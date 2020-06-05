@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tally Arbiter Settings</title>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<style>
+	body {
+		font-family: Helvetica, Arial;
+		background:#eeeeee;
+	}
+	
+	#container {
+		display: table;
+		clear: both;
+	}
+	
+	.logo {
+		display: flex;
+		align-items: center;
+	}
+	
+	#divContainer_Sources, #divContainer_SourceFields, #divContainer_Devices, #divContainer_DeviceFields, #divContainer_DeviceSources, #divContainer_DeviceSourceFields, #divContainer_DeviceActions, #divContainer_DeviceActionFields, #divContainer_Listeners, #divContainer_Logs {
+		background: #ffffff;
+		width: 200x;
+		padding: 5px;
+		float: left;
+		margin: 5px;
+	}
+
+	#divContainer_SourceFields, #divContainer_DeviceFields, #divContainer_DeviceSources, #divContainer_DeviceSourceFields, #divContainer_DeviceActions, #divContainer_DeviceActionFields, #divContainer_Listeners {
+		display: none;
+	}
+
+	#divLogs {
+		background: #cdcdcd;
+		font-family: monospace;
+		height: 200px;
+		overflow-y: scroll;
+		-webkit-user-select: text;
+	}
+
+	.disabled {
+		color: #cccccc;
+	}
+
+	.title {
+		font-weight: bold;
+		font-size: 115%;
+	}
+
+	.listenercount {
+		font-size: 75%;
+		background: #cccccc;
+		color: #666666;
+		padding: 5px;
+		border: #ffffff 3px solid;
+	}
+</style>
+<script src='/socket.io/socket.io.js'></script>
+<script src='js/jquery/jquery.min.js'></script>
+<script>
+	var socket = null;
+
+	var Clients = [];
+	var Logs = [];
+
+	var source_types = [];
+	var source_types_datafields = [];
+	var output_types = [];
+	var output_types_datafields = [];
+	var bus_options = [];
+
+	var sources = [];
+	var devices = [];
+	var device_sources = [];
+	var device_actions = [];
+
+	var device_states = [];
+
+	var selectedDeviceId = null;
+
+	function loadSettings() {
+		//gets the latest data from the API
+
+		$.when(getSourceTypes(), getSourceTypesDataFields(), getOutputTypes(),getOutputTypesDataFields(), getBusOptions(), getSources(), getDevices(), getDeviceSources(), getDeviceActions(), getDeviceStates()).done(function() {
+			//when all data has arrived, let's process it all together
+			loadSocket();
+			loadSources();
+			loadDevices();
+		});
+	}
+
+	function loadSocket() {
+		socket = io.connect();
+
+		socket.on('connect', function() {
+			// Connected, let's sign-up for to receive messages for this room
+			socket.emit('settings');
+		});
+		
+		socket.on('device_states', function(data) {
+			//process the data received and determine if it's in preview or program and color the screen accordingly
+			device_states = data;
+			loadDevices();
+		});
+
+		socket.on('sources', function(srcs) {
+			sources = srcs;
+			loadSources(); 
+		});
+
+		socket.on('clients', function(clients) {
+			Clients = clients;
+			loadDevices();
+			loadListeners();
+		});
+
+		socket.on('logs', function(logs) {
+			Logs = logs;
+			loadLogs();
+		});
+	}
+	
+	function getSourceTypes() {
+		return $.getJSON('/source_types', function(data) {
+			source_types = data;
+		});
+	}
+
+	function getSourceTypesDataFields() {
+		return $.getJSON('/source_types_datafields', function(data) {
+			source_types_datafields = data;
+		});
+	}
+
+	function getOutputTypes() {
+		return $.getJSON('/output_types', function(data) {
+			output_types = data;
+		});
+	}
+
+	function getOutputTypesDataFields() {
+		return $.getJSON('/output_types_datafields', function(data) {
+			output_types_datafields = data;
+		});
+	}
+
+	function getBusOptions() {
+		return $.getJSON('/bus_options', function(data) {
+			bus_options = data;
+		});
+	}
+
+	function getSources() {
+		return $.getJSON('/sources', function(data) {
+			sources = data;
+		});
+	}
+
+	function getDevices() {
+		return $.getJSON('/devices', function(data) {
+			devices = data;
+		});
+	}
+
+	function getDeviceSources() {
+		return $.getJSON('/device_sources', function(data) {
+			device_sources = data;
+		});
+	}
+
+	function getDeviceActions() {
+		return $.getJSON('/device_actions', function(data) {
+			device_actions = data;
+		});
+	}
+
+	function getDeviceStates() {
+		return $.getJSON('/device_states', function(data) {
+			device_states = data;
+		});
+	}
+
+	function loadSources() {
+		let divSources = $('#divSources')[0];
+		divSources.innerHTML = '';
+		let tableSources = document.createElement('table');
+
+		let trHeader = document.createElement('tr');
+		let tdHeaderSourceName = document.createElement('td');
+		tdHeaderSourceName.innerHTML = '<b>Name</b>';
+		trHeader.appendChild(tdHeaderSourceName);
+		let tdHeaderSourceType = document.createElement('td');
+		tdHeaderSourceType.innerHTML = '<b>Type</b>';
+		trHeader.appendChild(tdHeaderSourceType);
+		let tdHeaderSourceConnected = document.createElement('td');
+		tdHeaderSourceConnected.innerHTML = '&nbsp;';
+		trHeader.appendChild(tdHeaderSourceConnected);
+		let tdHeaderSourceEdit = document.createElement('td');
+		tdHeaderSourceEdit.innerHTML = '&nbsp;';
+		trHeader.appendChild(tdHeaderSourceEdit);
+		tableSources.appendChild(trHeader);
+
+		for (let i = 0; i < sources.length; i++) {
+			let trSourceItem = document.createElement('tr');
+
+			let tdSourceName = document.createElement('td');
+			tdSourceName.innerHTML = sources[i].name;
+			if (sources[i].enabled === false) {
+				tdSourceName.className = 'disabled';
+			}
+			trSourceItem.appendChild(tdSourceName);
+
+			let tdSourceType = document.createElement('td');
+			tdSourceType.innerHTML = GetSourceTypeById(sources[i].sourceTypeId).label;
+			if (sources[i].enabled === false) {
+				tdSourceType.className = 'disabled';
+			}
+			trSourceItem.appendChild(tdSourceType);
+
+			let tdSourceConnected = document.createElement('td');
+			let imgConnected = document.createElement('img');
+			imgConnected.src = ((sources[i].connected === true) ? 'green' : 'red') + '.png';
+			imgConnected.height = '18';
+			tdSourceConnected.appendChild(imgConnected);
+			trSourceItem.appendChild(tdSourceConnected);
+
+			let tdSourceEdit = document.createElement('td');
+			let btnEditSource = document.createElement('button');
+			btnEditSource.innerHTML = 'Edit';
+			btnEditSource.setAttribute('onclick', 'Edit_Source(\'' + sources[i].id + '\');');
+			tdSourceEdit.appendChild(btnEditSource);
+
+			let btnDeleteSource = document.createElement('button');
+			btnDeleteSource.innerHTML = 'Delete';
+			btnDeleteSource.setAttribute('onclick', 'Delete_Source(\'' + sources[i].id + '\');');
+			tdSourceEdit.appendChild(btnDeleteSource);
+
+			trSourceItem.appendChild(tdSourceEdit);
+
+			tableSources.appendChild(trSourceItem);
+		}
+
+		if (sources.length > 0) {
+			divSources.appendChild(tableSources);
+		}
+		else {
+			let spanNoSources = document.createElement('span');
+			spanNoSources.innerHTML = '(no sources configured)';
+			divSources.appendChild(spanNoSources);
+		}
+	}
+
+	function loadDevices() {
+		let divDevices = $('#divDevices')[0];
+		divDevices.innerHTML = '';
+
+		let tableDevices = document.createElement('table');
+
+		let trHeader = document.createElement('tr');
+		let tdHeaderDeviceTallyStatus = document.createElement('td');
+		tdHeaderDeviceTallyStatus.innerHTML = '&nbsp;';
+		trHeader.appendChild(tdHeaderDeviceTallyStatus);
+		let tdHeaderDeviceName = document.createElement('td');
+		tdHeaderDeviceName.innerHTML = '<b>Name</b>';
+		trHeader.appendChild(tdHeaderDeviceName);
+		let tdHeaderDeviceDescription = document.createElement('td');
+		tdHeaderDeviceDescription.innerHTML = '<b>Description</b>';
+		trHeader.appendChild(tdHeaderDeviceDescription);
+		let tdHeaderDeviceEdit = document.createElement('td');
+		tdHeaderDeviceEdit.innerHTML = '&nbsp;';
+		trHeader.appendChild(tdHeaderDeviceEdit);
+		tableDevices.appendChild(trHeader);
+
+		for (let i = 0; i < devices.length; i++) {
+			let trDeviceItem = document.createElement('tr');
+
+			let mode_preview = false;
+			let mode_program = false;
+
+			for (let j = 0; j < device_states.length; j++) {
+				if ((device_states[j].deviceId === devices[i].id) && (getBusById(device_states[j].busId).type === 'preview')) {
+					if (device_states[j].sources.length > 0) {
+						mode_preview = true;
+					}
+					else {
+						mode_preview = false;
+					}
+				}
+				else if ((device_states[j].deviceId === devices[i].id) && (getBusById(device_states[j].busId).type === 'program')) {
+					if (device_states[j].sources.length > 0) {
+						mode_program = true;
+					}
+					else {
+						mode_program = false;
+					}
+				}
+			}
+
+			let tdDeviceTallyStatus = document.createElement('td');
+			let tableDeviceTally = document.createElement('table');
+			let trDeviceTally = document.createElement('tr');
+			let tdDeviceTally_Preview = document.createElement('td');
+			let imgDeviceTally_Preview = document.createElement('img');
+			imgDeviceTally_Preview.src = ((mode_preview) ? 'green' : 'white') + '.png';
+			tdDeviceTally_Preview.appendChild(imgDeviceTally_Preview);
+			tableDeviceTally.appendChild(tdDeviceTally_Preview);
+			let tdDeviceTally_Program = document.createElement('td');
+			let imgDeviceTally_Program = document.createElement('img');
+			imgDeviceTally_Program.src = ((mode_program) ? 'red' : 'white') + '.png';
+			tdDeviceTally_Preview.appendChild(imgDeviceTally_Program);
+			tableDeviceTally.appendChild(tdDeviceTally_Program);
+			tableDeviceTally.appendChild(trDeviceTally);
+			tdDeviceTallyStatus.appendChild(tableDeviceTally);
+			trDeviceItem.appendChild(tdDeviceTallyStatus);
+
+			let tdDeviceName = document.createElement('td');
+			tdDeviceName.innerHTML = devices[i].name;
+			if (devices[i].enabled === false) {
+				tdDeviceName.className = 'disabled';
+			}
+			trDeviceItem.appendChild(tdDeviceName);
+
+			let tdDeviceDescription = document.createElement('td');
+			tdDeviceDescription.innerHTML = devices[i].description;
+			if (devices[i].enabled === false) {
+				tdDeviceDescription.className = 'disabled';
+			}
+			trDeviceItem.appendChild(tdDeviceDescription);
+
+			let tdDeviceEdit = document.createElement('td');
+
+			let btnEditDevice = document.createElement('button');
+			btnEditDevice.innerHTML = 'Edit';
+			btnEditDevice.setAttribute('onclick', 'Edit_Device(\'' + devices[i].id + '\');');
+			tdDeviceEdit.appendChild(btnEditDevice);
+
+			let btnEditDeviceSources = document.createElement('button');
+			btnEditDeviceSources.innerHTML = 'Edit Sources';
+			btnEditDeviceSources.setAttribute('onclick', 'Edit_Device_Sources(\'' + devices[i].id + '\');');
+			tdDeviceEdit.appendChild(btnEditDeviceSources);
+
+			let btnEditDeviceActions = document.createElement('button');
+			btnEditDeviceActions.innerHTML = 'Edit Actions';
+			btnEditDeviceActions.setAttribute('onclick', 'Edit_Device_Actions(\'' + devices[i].id + '\');');
+			tdDeviceEdit.appendChild(btnEditDeviceActions);
+
+			let btnDeleteDevice = document.createElement('button');
+			btnDeleteDevice.innerHTML = 'Delete';
+			btnDeleteDevice.setAttribute('onclick', 'Delete_Device(\'' + devices[i].id + '\');');
+			tdDeviceEdit.appendChild(btnDeleteDevice);
+
+			let spanListeners = document.createElement('span');
+			let listenerCount = GetListenersCount(devices[i].id);
+			spanListeners.innerHTML = ((listenerCount > 0) ? listenerCount : '');
+			spanListeners.className = ((listenerCount > 0) ? 'listenercount' : '');
+			tdDeviceEdit.appendChild(spanListeners);
+
+			trDeviceItem.appendChild(tdDeviceEdit);
+
+			tableDevices.appendChild(trDeviceItem);
+		}
+
+		if (devices.length > 0) {
+			divDevices.appendChild(tableDevices);
+		}
+		else {
+			let spanNoDevices = document.createElement('span');
+			spanNoDevices.innerHTML = '(no devices configured)';
+			divDevices.appendChild(spanNoDevices);
+		}
+	}
+
+	function loadListeners() {
+		let divContainer_Listeners = $('#divContainer_Listeners')[0];
+		let divListeners = $('#divListeners')[0];
+
+		if (Clients.length > 0) {
+			divContainer_Listeners.style.display = 'block';
+			divListeners.innerHTML = '';
+
+			let tableListeners = document.createElement('table');
+
+			let trHeader = document.createElement('tr');
+			let tdHeaderIPAddress = document.createElement('td');
+			tdHeaderIPAddress.innerHTML = '<b>IP Address</b>';
+			trHeader.appendChild(tdHeaderIPAddress);
+
+			let tdHeaderListenerType = document.createElement('td');
+			tdHeaderListenerType.innerHTML = '<b>Type</b>';
+			tdHeaderListenerType.style.background = '#eeeeee';
+			trHeader.appendChild(tdHeaderListenerType);
+
+			let tdHeaderDeviceName = document.createElement('td');
+			tdHeaderDeviceName.innerHTML = '<b>Device</b>';
+			trHeader.appendChild(tdHeaderDeviceName);
+
+			let tdHeaderButtons = document.createElement('td');
+			tdHeaderButtons.innerHTML = '&nbsp;';
+			trHeader.appendChild(tdHeaderButtons);
+
+			tableListeners.appendChild(trHeader);
+
+			for (let i = 0; i < Clients.length; i++) {
+				let trClientItem = document.createElement('tr');
+
+				let tdIPAddress = document.createElement('td');
+				tdIPAddress.innerHTML = Clients[i].ipAddress;
+				trClientItem.appendChild(tdIPAddress);
+
+				let tdListenerType = document.createElement('td');
+				tdListenerType.innerHTML = Clients[i].listenerType;
+				tdListenerType.style.background = '#eeeeee';
+				trClientItem.appendChild(tdListenerType);
+
+				let tdDevice = document.createElement('td');
+				let selDevices = document.createElement('select');
+				for (let j = 0; j < devices.length; j++) {
+					let optDevice = document.createElement('option');
+					optDevice.textContent = devices[j].name;
+					optDevice.value = devices[j].id;
+					if (devices[j].id === Clients[i].deviceId) {
+						optDevice.selected = true;
+					}
+					selDevices.appendChild(optDevice);
+				}
+				selDevices.id = 'selListenerReassign_' + Clients[i].id;
+				selDevices.setAttribute('onclick', 'Listener_Reassign(\'' + Clients[i].id + '\');');
+				tdDevice.appendChild(selDevices);
+				trClientItem.appendChild(tdDevice);
+
+				let tdButtons = document.createElement('td');
+				if (Clients[i].inactive === true) {
+					trClientItem.className = 'disabled';
+					let btnDelete = document.createElement('button');
+					btnDelete.innerHTML = 'X';
+					btnDelete.setAttribute('onclick', 'Listener_Delete(\'' + Clients[i].id + '\');');
+					tdButtons.appendChild(btnDelete);
+				}
+				else {
+					let btnFlash = document.createElement('button');
+					btnFlash.innerHTML = 'Flash';
+					btnFlash.setAttribute('onclick', 'Listener_Flash(\'' + Clients[i].id + '\');');
+					tdButtons.appendChild(btnFlash);
+				}
+				trClientItem.appendChild(tdButtons);
+
+				tableListeners.appendChild(trClientItem);
+			}
+
+			divListeners.appendChild(tableListeners);
+		}
+		else {
+			divContainer_Listeners.style.display = 'none';
+		}
+	}
+
+	function Listener_Flash(id) {
+		for (let i = 0; i < Clients.length; i++) {
+			if (Clients[i].id === id) {
+				socket.emit('flash', Clients[i].socketId);
+				break;
+			}
+		}
+	}
+
+	function Listener_Delete(clientId) {
+		socket.emit('listener_delete', clientId);
+	}
+
+	function Listener_Reassign(id) {
+		let clientObj = GetClientById(id);
+		let selListenerReassign = $('#selListenerReassign_' + id)[0];
+		let deviceId = selListenerReassign.options[selListenerReassign.selectedIndex].value;
+		let oldDeviceId = clientObj.deviceId;
+		let socketId = clientObj.socketId;
+		socket.emit('reassign', socketId, oldDeviceId, deviceId);
+	}
+
+	function loadLogs() {
+		let divContainer_Logs = $('#divContainer_Logs')[0];
+		let divLogs = $('#divLogs')[0];
+
+		divContainer_Logs.style.display = 'block';
+		divLogs.innerHTML = '';
+
+		for (let i = 0; i < Logs.length; i++) {
+			let spanLog = document.createElement('span');
+			spanLog.innerHTML = `[${Logs[i].datetime}]  ${Logs[i].log}<br />`;
+			switch (Logs[i].type) {
+				case 'info':
+					spanLog.style.color = '#0000FF';
+					break;
+				case 'error':
+					spanLog.style.color = '#FF0000';
+					break;
+				case 'console_action':
+					spanLog.style.color = '#00FF00';
+					break;
+			}
+			divLogs.appendChild(spanLog);
+		}
+
+		divLogs.scrollTop = divLogs.scrollHeight;
+	}
+
+	function GetListenersCount(deviceId) {
+		let j = 0;
+		for (let i = 0; i < Clients.length; i++) {
+			if ((Clients[i].deviceId === deviceId) && (Clients[i].inactive === false)) {
+				j++;
+			}
+		}
+
+		return j;
+	}
+
+	function GetClientById(clientId) {
+		//gets the Client by the Id
+		return Clients.find( ({ id }) => id === clientId);
+	}
+
+	function GetSourceById(sourceId) {
+		//gets the Source by the Id
+		return sources.find( ({ id }) => id === sourceId);
+	}
+
+	function GetSourceTypeById(sourceTypeId) {
+		//gets the Source Type by the Id
+		return source_types.find( ({ id }) => id === sourceTypeId);
+	}
+
+	function getBusById(busId) {
+		//gets the bus type (preview/program) by the bus id
+		return bus_options.find( ({ id }) => id === busId);
+	}
+
+	function GetOutputTypeById(outputTypeId) {
+		//gets the Source Type by the Id
+		return output_types.find( ({ id }) => id === outputTypeId);
+	}
+
+	function GetDeviceById(deviceId) {
+		//gets the Device by the Id
+		return devices.find( ({ id }) => id === deviceId);
+	}
+
+	function GetDeviceSourceById(deviceSourceId) {
+		//gets the Device Source by the Id
+		return device_sources.find( ({ id }) => id === deviceSourceId);
+	}
+
+	function GetDeviceActionById(deviceActionId) {
+		//gets the Device Actions by the Id
+		return device_actions.find( ({ id }) => id === deviceActionId);
+	}
+
+	function Add_Source() {
+		let divSourceFields = $('#divSourceFields')[0];
+		divSourceFields.innerHTML = '';
+
+		let selSourceType = $('#selSourceType')[0];
+		selSourceType.setAttribute('onchange', 'Add_Source_ShowFields();');
+		selSourceType.style.display = 'block';
+
+		selSourceType.options.length = 0;
+
+		let elChoose = document.createElement('option');
+		elChoose.text = '(Choose Source Type)';
+		elChoose.value = '-1';
+		selSourceType.appendChild(elChoose);
+
+		for (let i = 0; i < source_types.length; i++) {
+			if (source_types[i].enabled === true) {
+				let opt = source_types[i];
+				let el = document.createElement('option');
+				el.textContent = opt.label;
+				el.value = opt.id;
+				selSourceType.appendChild(el);	
+			}
+		}
+
+		let btnAdd_Source_Save = $('#btnAdd_Source_Save')[0];
+		btnAdd_Source_Save.style.display = 'none';
+
+		let btnEdit_Source_Save = $('#btnEdit_Source_Save')[0];
+		btnEdit_Source_Save.style.display = 'none';
+
+		let divContainer_SourceFields = $('#divContainer_SourceFields')[0];
+		divContainer_SourceFields.style.display = 'block';
+	}
+
+	function Add_Source_ShowFields() {
+		let divSourceFields = $('#divSourceFields')[0];
+		divSourceFields.innerHTML = '';
+
+		let btnAdd_Source_Save = $('#btnAdd_Source_Save')[0];
+		btnAdd_Source_Save.style.display = 'block';
+
+		let selSourceType = $('#selSourceType')[0];
+		let selectedSourceTypeId = selSourceType.options[selSourceType.selectedIndex].value;
+
+		let sourceType = GetSourceTypeById(selectedSourceTypeId);
+
+		let fields = source_types_datafields.find( ({ sourceTypeId }) => sourceTypeId === selectedSourceTypeId).fields;
+
+		let spanHelp = document.createElement('span');
+		spanHelp.innerHTML = sourceType.help;
+		spanHelp.style.display = 'block';
+		divSourceFields.appendChild(spanHelp);
+
+		let spanName = document.createElement('span');
+		spanName.innerHTML = 'Source Name';
+		spanName.style.display = 'block';
+		divSourceFields.appendChild(spanName);
+		let txtName = document.createElement('input');
+		txtName.type = 'text';
+		txtName.id = 'txtAddSourceName';
+		divSourceFields.appendChild(txtName);
+		for (let i = 0; i < fields.length; i++) {
+			let spanFieldName = document.createElement('span');
+			spanFieldName.innerHTML = fields[i].fieldLabel;
+			spanFieldName.style.display = 'block';
+			divSourceFields.appendChild(spanFieldName);
+			switch(fields[i].fieldType) {
+				case 'text':
+					let txtInput = document.createElement('input');
+					txtInput.type = 'text';
+					txtInput.id = fields[i].fieldName;
+					divSourceFields.appendChild(txtInput);
+					break;
+				case 'number':
+				let txtInputNumber = document.createElement('input');
+					txtInputNumber.type = 'text';
+					txtInputNumber.id = fields[i].fieldName;
+					divSourceFields.appendChild(txtInputNumber);
+					break;
+				case 'dropdown':
+					let selDropdown = document.createElement('select');
+					selDropdown.id = fields[i].fieldName;
+					for (let j = 0; j < fields[i].options.length; j++) {
+						let elOption = document.createElement('option');
+						elOption.textContent = fields[i].options[j].label;
+						elOption.value = fields[i].options[j].id;
+						selDropdown.appendChild(elOption);
+					}
+					divSourceFields.appendChild(selDropdown);
+					break;
+				default:
+					break;
+			}
+		}
+	}
+
+	function Add_Source_Save() {
+		let sourceObj = {};
+		let selSourceType = $('#selSourceType')[0];
+		let selectedSourceTypeId = selSourceType.options[selSourceType.selectedIndex].value;
+
+		if (selectedSourceTypeId === '-1') {
+			alert('Invalid Source Type.');
+			return false;
+		}
+
+		sourceObj.sourceTypeId = selectedSourceTypeId;
+		sourceObj.enabled = true;
+		sourceObj.name = $('#txtAddSourceName')[0].value;
+		let dataObj = {};
+		let fields = source_types_datafields.find( ({ sourceTypeId }) => sourceTypeId === selectedSourceTypeId).fields;
+		for (let i = 0; i < fields.length; i++) {
+			switch(fields[i].fieldType) {
+				case 'text':
+					dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].value;
+					break;
+				case 'number':
+					dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].value;
+					break;
+				case 'dropdown':
+					dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].options($('#' + fields[i].fieldName)[0].selectedIndex).value;
+					break;
+				default:
+					break;
+			}
+		}
+		sourceObj.data = dataObj;
+
+		let arbiterObj = {};
+		arbiterObj.action = 'add';
+		arbiterObj.type = 'source';
+		arbiterObj.source = sourceObj;
+
+		jQuery.ajax({
+				contentType: 'application/json',
+				url: '/manage',
+				type: 'POST',
+				data: JSON.stringify(arbiterObj),
+				dataType: 'json',
+				success: function(data) {
+					ProcessAPIResponse(data);
+				}
+		});
+	}
+
+	function Edit_Source(sourceId) {
+		let divSourceFields = $('#divSourceFields')[0];
+		let selSourceType = $('#selSourceType')[0];
+		selSourceType.style.display = 'none';
+
+		divSourceFields.innerHTML = '';
+
+		let source = GetSourceById(sourceId);
+		let sourceType = GetSourceTypeById(source.sourceTypeId);
+
+		let spanSourceIdName = document.createElement('span');
+		spanSourceIdName.innerHTML = 'Source Id:';
+		spanSourceIdName.style.display = 'block';
+		divSourceFields.appendChild(spanSourceIdName);
+
+		let txtSourceId = document.createElement('input');
+		txtSourceId.type = 'text';
+		txtSourceId.id = 'txtSourceId';
+		txtSourceId.value = source.id;
+		txtSourceId.style.display = 'block';
+		txtSourceId.disabled = true;
+		divSourceFields.appendChild(txtSourceId);
+
+		let spanSourceType = document.createElement('span');
+		spanSourceType.innerHTML = 'Source Type:';
+		spanSourceType.style.display = 'block';
+		divSourceFields.appendChild(spanSourceType);
+		
+		let spanSourceTypeName = document.createElement('span');
+		spanSourceTypeName.innerHTML = sourceType.label;
+		spanSourceTypeName.style.fontWeight = 'bold';
+		spanSourceTypeName.style.display = 'block';
+		divSourceFields.appendChild(spanSourceTypeName);
+
+		let spanHelp = document.createElement('span');
+		spanHelp.innerHTML = sourceType.help;
+		spanHelp.style.display = 'block';
+		divSourceFields.appendChild(spanHelp);
+
+		let spanName = document.createElement('span');
+		spanName.innerHTML = 'Source Name';
+		spanName.style.display = 'block';
+		divSourceFields.appendChild(spanName);
+
+		let txtSourceName = document.createElement('input');
+		txtSourceName.type = 'text';
+		txtSourceName.id = 'txtSourceName';
+		txtSourceName.value = source.name;
+		txtSourceName.style.display = 'block';
+		divSourceFields.appendChild(txtSourceName);
+
+		let fields = source_types_datafields.find( ({ sourceTypeId }) => sourceTypeId === sourceType.id).fields;
+
+		for (let i = 0; i < fields.length; i++) {
+			let spanFieldName = document.createElement('span');
+			spanFieldName.innerHTML = fields[i].fieldLabel;
+			spanFieldName.style.display = 'block';
+			divSourceFields.appendChild(spanFieldName);
+			switch(fields[i].fieldType) {
+				case 'text':
+					let txtInput = document.createElement('input');
+					txtInput.type = 'text';
+					txtInput.id = fields[i].fieldName;
+					txtInput.value = source.data[fields[i].fieldName];
+					divSourceFields.appendChild(txtInput);
+					break;
+				case 'number':
+				let txtInputNumber = document.createElement('input');
+					txtInputNumber.type = 'text';
+					txtInputNumber.id = fields[i].fieldName;
+					txtInputNumber.value = source.data[fields[i].fieldName];
+					divSourceFields.appendChild(txtInputNumber);
+					break;
+				case 'dropdown':
+					let selDropdown = document.createElement('select');
+					selDropdown.id = fields[i].fieldName;
+					for (let j = 0; j < fields[i].options.length; j++) {
+						let elOption = document.createElement('option');
+						elOption.textContent = fields[i].options[j].label;
+						elOption.value = fields[i].options[j].id;
+						if (source.data[fields[i].fieldName] === fields[i].options[j].id) {
+							elOption.selected = true;
+						}
+						selDropdown.appendChild(elOption);
+					}
+					divSourceFields.appendChild(selDropdown);
+					break;
+				default:
+					break;
+			}
+		}
+
+		let spanEnabled = document.createElement('span');
+		spanEnabled.innerHTML = 'Enabled';
+		spanEnabled.style.display = 'block';
+		divSourceFields.appendChild(spanEnabled);
+
+		let chkEnabled = document.createElement('input');
+		chkEnabled.id = 'chkSourceEnabled';
+		chkEnabled.type = 'checkbox';
+		if (source.enabled === true) {
+			chkEnabled.checked = true;
+		}
+		divSourceFields.appendChild(chkEnabled);
+
+		let btnAdd_Source_Save = $('#btnAdd_Source_Save')[0];
+		btnAdd_Source_Save.style.display = 'none';
+		let btnEdit_Source_Save = $('#btnEdit_Source_Save')[0];
+		btnEdit_Source_Save.style.display = 'block';
+
+		let divContainer_SourceFields = $('#divContainer_SourceFields')[0];
+		divContainer_SourceFields.style.display = 'block';
+	}
+
+	function Edit_Source_Save() {
+		let sourceObj = {};
+
+		sourceObj.id = $('#txtSourceId')[0].value;
+		sourceObj.name = $('#txtSourceName')[0].value;
+		sourceObj.enabled = $('#chkSourceEnabled')[0].checked;
+
+		let source = GetSourceById(sourceObj.id);
+		let sourceType = GetSourceTypeById(source.sourceTypeId);
+
+		let dataObj = {};
+
+		let fields = source_types_datafields.find( ({ sourceTypeId }) => sourceTypeId === sourceType.id).fields;
+
+		for (let i = 0; i < fields.length; i++) {
+			switch(fields[i].fieldType) {
+				case 'text':
+					dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].value;
+					break;
+				case 'number':
+					dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].value;
+					break;
+				case 'dropdown':
+					dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].options($('#' + fields[i].fieldName)[0].selectedIndex).value;
+					break;
+				default:
+					break;
+			}
+		}
+		sourceObj.data = dataObj;
+
+		let arbiterObj = {};
+		arbiterObj.action = 'edit';
+		arbiterObj.type = 'source';
+		arbiterObj.source = sourceObj;
+
+		jQuery.ajax({
+			contentType: 'application/json',
+			url: '/manage',
+			type: 'POST',
+			data: JSON.stringify(arbiterObj),
+			dataType: 'json',
+			success: function(data) {
+				ProcessAPIResponse(data);
+			}
+		});
+	}
+
+	function Delete_Source(sourceId) {
+		let arbiterObj = {};
+		arbiterObj.action = 'delete';
+		arbiterObj.type = 'source';
+		arbiterObj.sourceId = sourceId;
+
+		jQuery.ajax({
+			contentType: 'application/json',
+			url: '/manage',
+			type: 'POST',
+			data: JSON.stringify(arbiterObj),
+			dataType: 'json',
+			success: function(data) {
+				ProcessAPIResponse(data);
+			}
+		});
+	}
+
+	function Cancel_Source() {
+		$('#divContainer_SourceFields')[0].style.display = 'none';
+	}
+
+	function Add_Device() {
+		$('#divContainer_DeviceFields')[0].style.display = 'block';
+		let divDeviceFields = $('#divDeviceFields')[0];
+		divDeviceFields.innerHTML = '';
+
+		let spanName = document.createElement('span');
+		spanName.innerHTML = 'Device Name';
+		spanName.style.display = 'block';
+		divDeviceFields.appendChild(spanName);
+		let txtName = document.createElement('input');
+		txtName.type = 'text';
+		txtName.id = 'txtAddDeviceName';
+		divDeviceFields.appendChild(txtName);
+
+		let spanDescription = document.createElement('span');
+		spanDescription.innerHTML = 'Device Description';
+		spanDescription.style.display = 'block';
+		divDeviceFields.appendChild(spanDescription);
+		let txtDescription = document.createElement('input');
+		txtDescription.type = 'text';
+		txtDescription.id = 'txtAddDeviceDescription';
+		divDeviceFields.appendChild(txtDescription);
+		
+		$('#btnAdd_Device_Save')[0].style.display = 'block';
+		$('#btnEdit_Device_Save')[0].style.display = 'none';
+	}
+
+	function Add_Device_Save() {
+		let deviceObj = {};
+		
+		deviceObj.name = $('#txtAddDeviceName')[0].value;
+		deviceObj.description = $('#txtAddDeviceDescription')[0].value;
+		deviceObj.enabled = true;
+
+		let arbiterObj = {};
+		arbiterObj.action = 'add';
+		arbiterObj.type = 'device';
+		arbiterObj.device = deviceObj;
+
+		jQuery.ajax({
+				contentType: 'application/json',
+				url: '/manage',
+				type: 'POST',
+				data: JSON.stringify(arbiterObj),
+				dataType: 'json',
+				success: function(data) {
+					ProcessAPIResponse(data);
+				}
+		});
+	}
+
+	function Edit_Device(deviceId) {
+		let divDeviceFields = $('#divDeviceFields')[0];
+		divDeviceFields.innerHTML = '';
+
+		let device = GetDeviceById(deviceId);
+
+		let spanDeviceIdName = document.createElement('span');
+		spanDeviceIdName.innerHTML = 'Device Id:';
+		spanDeviceIdName.style.display = 'block';
+		divDeviceFields.appendChild(spanDeviceIdName);
+
+		let txtDeviceId = document.createElement('input');
+		txtDeviceId.type = 'text';
+		txtDeviceId.id = 'txtDeviceId';
+		txtDeviceId.value = device.id;
+		txtDeviceId.style.display = 'block';
+		txtDeviceId.disabled = true;
+		divDeviceFields.appendChild(txtDeviceId);
+
+		let spanName = document.createElement('span');
+		spanName.innerHTML = 'Device Name';
+		spanName.style.display = 'block';
+		divDeviceFields.appendChild(spanName);
+
+		let txtDeviceName = document.createElement('input');
+		txtDeviceName.type = 'text';
+		txtDeviceName.id = 'txtDeviceName';
+		txtDeviceName.value = device.name;
+		txtDeviceName.style.display = 'block';
+		divDeviceFields.appendChild(txtDeviceName);
+
+		let spanDescription = document.createElement('span');
+		spanDescription.innerHTML = 'Device Description';
+		spanDescription.style.display = 'block';
+		divDeviceFields.appendChild(spanDescription);
+
+		let txtDeviceDescription = document.createElement('input');
+		txtDeviceDescription.type = 'text';
+		txtDeviceDescription.id = 'txtDeviceDescription';
+		txtDeviceDescription.value = device.description;
+		txtDeviceDescription.style.display = 'block';
+		divDeviceFields.appendChild(txtDeviceDescription);
+
+		let spanEnabled = document.createElement('span');
+		spanEnabled.innerHTML = 'Enabled';
+		spanEnabled.style.display = 'block';
+		divDeviceFields.appendChild(spanEnabled);
+
+		let chkEnabled = document.createElement('input');
+		chkEnabled.id = 'chkDeviceEnabled';
+		chkEnabled.type = 'checkbox';
+		if (device.enabled === true) {
+			chkEnabled.checked = true;
+		}
+		divDeviceFields.appendChild(chkEnabled);
+
+		let btnAdd_Device_Save = $('#btnAdd_Device_Save')[0];
+		btnAdd_Device_Save.style.display = 'none';
+		let btnEdit_Device_Save = $('#btnEdit_Device_Save')[0];
+		btnEdit_Device_Save.style.display = 'block';
+
+		$('#divContainer_DeviceFields')[0].style.display = 'block';
+		$('#divContainer_DeviceSources')[0].style.display = 'none';
+		$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+		$('#divContainer_DeviceActions')[0].style.display = 'none';
+		$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+
+		selectedDeviceId = deviceId;
+	}
+
+	function Edit_Device_Save() {
+		let deviceObj = {};
+
+		deviceObj.id = selectedDeviceId;
+		deviceObj.name = $('#txtDeviceName')[0].value;
+		deviceObj.description = $('#txtDeviceDescription')[0].value;
+		deviceObj.enabled = $('#chkDeviceEnabled')[0].checked;
+
+		let arbiterObj = {};
+		arbiterObj.action = 'edit';
+		arbiterObj.type = 'device';
+		arbiterObj.device = deviceObj;
+
+		jQuery.ajax({
+			contentType: 'application/json',
+			url: '/manage',
+			type: 'POST',
+			data: JSON.stringify(arbiterObj),
+			dataType: 'json',
+			success: function(data) {
+				ProcessAPIResponse(data);
+			}
+		});
+	}
+
+	function Cancel_Device() {
+		$('#divContainer_DeviceFields')[0].style.display = 'none';
+	}
+
+	function Delete_Device(deviceId) {
+		let arbiterObj = {};
+		arbiterObj.action = 'delete';
+		arbiterObj.type = 'device';
+		arbiterObj.deviceId = deviceId;
+
+		let listenerCount = GetListenersCount(deviceId);
+
+		if (listenerCount > 0) {
+			let result = confirm('There are listeners connected to this device. Delete anyway?');
+			if (!result) {
+				return false;
+			}
+		}
+
+		jQuery.ajax({
+			contentType: 'application/json',
+			url: '/manage',
+			type: 'POST',
+			data: JSON.stringify(arbiterObj),
+			dataType: 'json',
+			success: function(data) {
+				ProcessAPIResponse(data);
+			}
+		});
+	}
+
+	function Edit_Device_Sources(deviceId) {
+		let divDeviceSources = $('#divDeviceSources')[0];
+		divDeviceSources.innerHTML = '';
+
+		$('#divDeviceSources_DeviceName')[0].innerHTML = GetDeviceById(deviceId).name;
+
+		let tableDeviceSources = document.createElement('table');
+
+		let trHeader = document.createElement('tr');
+		
+		let tdHeaderDeviceSource = document.createElement('td');
+		tdHeaderDeviceSource.innerHTML = '<b>Source</b>';
+		trHeader.appendChild(tdHeaderDeviceSource);
+		let tdHeaderDeviceSourceAddress = document.createElement('td');
+		tdHeaderDeviceSourceAddress.innerHTML = '<b>Address</b>';
+		trHeader.appendChild(tdHeaderDeviceSourceAddress);
+		
+		let tdHeaderDeviceSourceEdit = document.createElement('td');
+		tdHeaderDeviceSourceEdit.innerHTML = '&nbsp;';
+		trHeader.appendChild(tdHeaderDeviceSourceEdit);
+		tableDeviceSources.appendChild(trHeader);
+
+		for (let i = 0; i < device_sources.length; i++) {
+			if (device_sources[i].deviceId === deviceId) {
+				let trDeviceSourceItem = document.createElement('tr');
+
+				let tdDeviceSource = document.createElement('td');
+				tdDeviceSource.innerHTML = GetSourceById(device_sources[i].sourceId).name;
+				trDeviceSourceItem.appendChild(tdDeviceSource);
+
+				let tdDeviceSourceAddress = document.createElement('td');
+				tdDeviceSourceAddress.innerHTML = device_sources[i].address;
+				trDeviceSourceItem.appendChild(tdDeviceSourceAddress);
+
+				let tdDeviceEdit = document.createElement('td');
+
+				let btnEditDeviceSource = document.createElement('button');
+				btnEditDeviceSource.innerHTML = 'Edit';
+				btnEditDeviceSource.setAttribute('onclick', 'Edit_Device_Source(\'' + device_sources[i].id + '\');');
+				tdDeviceEdit.appendChild(btnEditDeviceSource);
+
+				let btnDeleteDevice = document.createElement('button');
+				btnDeleteDevice.innerHTML = 'Delete';
+				btnDeleteDevice.setAttribute('onclick', 'Delete_Device_Source(\'' + device_sources[i].id + '\');');
+				tdDeviceEdit.appendChild(btnDeleteDevice);
+
+				trDeviceSourceItem.appendChild(tdDeviceEdit);
+				tableDeviceSources.appendChild(trDeviceSourceItem);
+			}
+		}
+
+		divDeviceSources.appendChild(tableDeviceSources);
+
+		let btnAddDeviceSource = document.createElement('button');
+		btnAddDeviceSource.innerHTML = 'Add Source';
+		btnAddDeviceSource.setAttribute('onclick', 'Add_Device_Source(\'' + deviceId + '\');');
+		divDeviceSources.appendChild(btnAddDeviceSource);
+
+		$('#divContainer_DeviceFields')[0].style.display = 'none';
+		$('#divContainer_DeviceSources')[0].style.display = 'block';
+		$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+		$('#divContainer_DeviceActions')[0].style.display = 'none';
+		$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+		
+		var selectedDeviceId = deviceId;
+	}
+
+	function Add_Device_Source(deviceId) {
+		let divDeviceSourceFields = $('#divDeviceSourceFields')[0];
+		divDeviceSourceFields.innerHTML = '';
+
+		let selDeviceSource = document.createElement('select');
+		selDeviceSource.style.display = 'block';
+		selDeviceSource.id = 'selDeviceSource';
+
+		for (let i = 0; i < sources.length; i++) {
+			if (sources[i].enabled === true) {
+				let opt = sources[i];
+				let el = document.createElement('option');
+				el.textContent = opt.name;
+				el.value = opt.id;
+				selDeviceSource.appendChild(el);	
+			}
+		}
+		
+		divDeviceSourceFields.appendChild(selDeviceSource);
+
+		let spanDeviceSourceAddressName = document.createElement('span');
+		spanDeviceSourceAddressName.innerHTML = 'Address:';
+		divDeviceSourceFields.appendChild(spanDeviceSourceAddressName);
+
+		let txtDeviceSourceAddress = document.createElement('input');
+		txtDeviceSourceAddress.type = 'text';
+		txtDeviceSourceAddress.id = 'txtAddDeviceSourceAddress';
+		txtDeviceSourceAddress.style.display = 'block';
+		divDeviceSourceFields.appendChild(txtDeviceSourceAddress);
+		
+		$('#divContainer_DeviceSourceFields')[0].style.display = 'block';
+
+		$('#btnAdd_DeviceSource_Save')[0].style.display = 'block';
+		$('#btnEdit_DeviceSource_Save')[0].style.display = 'none';
+
+		selectedDeviceId = deviceId;
+	}
+
+	function Add_Device_Source_Save() {
+		let deviceSourceObj = {};
+
+		deviceSourceObj.deviceId = selectedDeviceId;
+		deviceSourceObj.sourceId = $('#selDeviceSource')[0].options[$('#selDeviceSource')[0].selectedIndex].value;
+		deviceSourceObj.address = $('#txtAddDeviceSourceAddress')[0].value;
+
+		let arbiterObj = {};
+		arbiterObj.action = 'add';
+		arbiterObj.type = 'device_source';
+		arbiterObj.device_source = deviceSourceObj;
+
+		jQuery.ajax({
+				contentType: 'application/json',
+				url: '/manage',
+				type: 'POST',
+				data: JSON.stringify(arbiterObj),
+				dataType: 'json',
+				success: function(data) {
+					ProcessAPIResponse(data);
+				}
+		});
+	}
+
+	function Edit_Device_Source(deviceSourceId) {
+		let deviceSourceObj = GetDeviceSourceById(deviceSourceId);
+
+		let divDeviceSourceFields = $('#divDeviceSourceFields')[0];
+		divDeviceSourceFields.innerHTML = '';
+
+		let spanDeviceSourceIdName = document.createElement('span');
+		spanDeviceSourceIdName.innerHTML = 'Device Source Id:';
+		spanDeviceSourceIdName.style.display = 'block';
+		divDeviceSourceFields.appendChild(spanDeviceSourceIdName);
+
+		let txtDeviceSourceId = document.createElement('input');
+		txtDeviceSourceId.type = 'text';
+		txtDeviceSourceId.id = 'txtDeviceSourceId';
+		txtDeviceSourceId.value = deviceSourceId;
+		txtDeviceSourceId.style.display = 'block';
+		txtDeviceSourceId.disabled = true;
+		divDeviceSourceFields.appendChild(txtDeviceSourceId);
+
+		let selDeviceSource = document.createElement('select');
+		selDeviceSource.style.display = 'block';
+		selDeviceSource.id = 'selDeviceSource';
+
+		for (let i = 0; i < sources.length; i++) {
+			if (sources[i].enabled === true) {
+				let opt = sources[i];
+				let el = document.createElement('option');
+				el.textContent = opt.name;
+				el.value = opt.id;
+				if (opt.id === deviceSourceId) {
+					el.selected = true;
+				}
+				selDeviceSource.appendChild(el);	
+			}
+		}
+		
+		divDeviceSourceFields.appendChild(selDeviceSource);
+
+		let txtDeviceSourceAddress = document.createElement('input');
+		txtDeviceSourceAddress.type = 'text';
+		txtDeviceSourceAddress.id = 'txtDeviceSourceAddress';
+		txtDeviceSourceAddress.value = deviceSourceObj.address;
+		txtDeviceSourceAddress.style.display = 'block';
+		txtDeviceSourceAddress.value = deviceSourceObj.address;
+		divDeviceSourceFields.appendChild(txtDeviceSourceAddress);
+		
+		$('#divContainer_DeviceSourceFields')[0].style.display = 'block';
+
+		$('#btnAdd_DeviceSource_Save')[0].style.display = 'none';
+		$('#btnEdit_DeviceSource_Save')[0].style.display = 'block';
+	}
+
+	function Edit_Device_Source_Save() {
+		let deviceSourceObj = {};
+
+		deviceSourceObj.id = $('#txtDeviceSourceId')[0].value;
+		deviceSourceObj.deviceId = selectedDeviceId;
+		deviceSourceObj.sourceId = $('#selDeviceSource')[0].options[$('#selDeviceSource')[0].selectedIndex].value;
+		deviceSourceObj.address = $('#txtDeviceSourceAddress')[0].value;
+
+		let arbiterObj = {};
+		arbiterObj.action = 'edit';
+		arbiterObj.type = 'device_source';
+		arbiterObj.device_source = deviceSourceObj;
+
+		jQuery.ajax({
+			contentType: 'application/json',
+			url: '/manage',
+			type: 'POST',
+			data: JSON.stringify(arbiterObj),
+			dataType: 'json',
+			success: function(data) {
+				ProcessAPIResponse(data);
+			}
+		});
+	}
+
+	function Cancel_Device_Source() {
+		$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+	}
+
+	function Delete_Device_Source(deviceSourceId) {
+		let arbiterObj = {};
+		arbiterObj.action = 'delete';
+		arbiterObj.type = 'device_source';
+		arbiterObj.device_source = {};
+		arbiterObj.device_source.id = deviceSourceId;
+
+		jQuery.ajax({
+			contentType: 'application/json',
+			url: '/manage',
+			type: 'POST',
+			data: JSON.stringify(arbiterObj),
+			dataType: 'json',
+			success: function(data) {
+				ProcessAPIResponse(data);
+			}
+		});
+	}
+
+	function Close_Device_Sources() {
+		$('#divContainer_DeviceSources')[0].style.display = 'none';
+	}
+
+	function Edit_Device_Actions(deviceId) {
+		let divDeviceActions = $('#divDeviceActions')[0];
+		divDeviceActions.innerHTML = '';
+
+		$('#divDeviceActions_DeviceName')[0].innerHTML = GetDeviceById(deviceId).name;
+
+		let tableDeviceActions = document.createElement('table');
+
+		let trHeader = document.createElement('tr');
+		
+		let tdHeaderDeviceActionBus = document.createElement('td');
+		tdHeaderDeviceActionBus.innerHTML = '<b>Bus</b>';
+		trHeader.appendChild(tdHeaderDeviceActionBus);
+
+		let tdHeaderDeviceActionActive = document.createElement('td');
+		tdHeaderDeviceActionActive.innerHTML = '<b>On/Off</b>';
+		trHeader.appendChild(tdHeaderDeviceActionActive);
+
+		let tdHeaderDeviceActionOutputType = document.createElement('td');
+		tdHeaderDeviceActionOutputType.innerHTML = '<b>Output Type</b>';
+		trHeader.appendChild(tdHeaderDeviceActionOutputType);
+		
+		let tdHeaderDeviceActionsEdit = document.createElement('td');
+		tdHeaderDeviceActionsEdit.innerHTML = '&nbsp;';
+		trHeader.appendChild(tdHeaderDeviceActionsEdit);
+		tableDeviceActions.appendChild(trHeader);
+
+		for (let i = 0; i < device_actions.length; i++) {
+			if (device_actions[i].deviceId === deviceId) {
+				let trDeviceActionItem = document.createElement('tr');
+
+				let tdDeviceActionBus = document.createElement('td');
+				tdDeviceActionBus.innerHTML = getBusById(device_actions[i].busId).label;
+				trDeviceActionItem.appendChild(tdDeviceActionBus);
+
+				let tdDeviceActionActive = document.createElement('td');
+				tdDeviceActionActive.innerHTML = ((device_actions[i].active === true) ? 'On' : 'Off')
+				trDeviceActionItem.appendChild(tdDeviceActionActive);
+
+				let tdDeviceActionOutputType = document.createElement('td');
+				tdDeviceActionOutputType.innerHTML = GetOutputTypeById(device_actions[i].outputTypeId).label;
+				trDeviceActionItem.appendChild(tdDeviceActionOutputType);
+
+				let tdDeviceActionEdit = document.createElement('td');
+
+				let btnEditDeviceAction = document.createElement('button');
+				btnEditDeviceAction.innerHTML = 'Edit';
+				btnEditDeviceAction.setAttribute('onclick', 'Edit_Device_Action(\'' + device_actions[i].id + '\');');
+				tdDeviceActionEdit.appendChild(btnEditDeviceAction);
+
+				let btnDeleteDeviceAction = document.createElement('button');
+				btnDeleteDeviceAction.innerHTML = 'Delete';
+				btnDeleteDeviceAction.setAttribute('onclick', 'Delete_Device_Action(\'' + device_actions[i].id + '\');');
+				tdDeviceActionEdit.appendChild(btnDeleteDeviceAction);
+
+				trDeviceActionItem.appendChild(tdDeviceActionEdit);
+				tableDeviceActions.appendChild(trDeviceActionItem);
+			}
+		}
+
+		divDeviceActions.appendChild(tableDeviceActions);
+
+		let btnAddDeviceAction = document.createElement('button');
+		btnAddDeviceAction.innerHTML = 'Add Action';
+		btnAddDeviceAction.setAttribute('onclick', 'Add_Device_Action(\'' + deviceId + '\');');
+		divDeviceActions.appendChild(btnAddDeviceAction);
+
+		$('#divContainer_DeviceFields')[0].style.display = 'none';
+		$('#divContainer_DeviceSources')[0].style.display = 'none';
+		$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+		$('#divContainer_DeviceActions')[0].style.display = 'block';
+		$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+		
+		var selectedDeviceId = deviceId;
+	}
+
+	function Add_Device_Action(deviceId) {
+		let divDeviceActionFields = $('#divDeviceActionFields')[0];
+		divDeviceActionFields.innerHTML = '';
+
+		let selDeviceAction_Bus = $('#selDeviceAction_Bus')[0];
+		selDeviceAction_Bus.style.display = 'block';
+		selDeviceAction_Bus.options.length = 0;	
+
+		for (let i = 0; i < bus_options.length; i++) {
+			let opt = bus_options[i];
+			let el = document.createElement('option');
+			el.textContent = opt.label;
+			el.value = opt.id;
+			selDeviceAction_Bus.appendChild(el);	
+		}
+
+		let selDeviceAction_OutputType = $('#selDeviceAction_OutputType')[0];
+		selDeviceAction_OutputType.setAttribute('onchange', 'Add_Device_Action_ShowFields();');
+		selDeviceAction_OutputType.style.display = 'block';
+
+		selDeviceAction_OutputType.options.length = 0;
+
+		let elChoose = document.createElement('option');
+		elChoose.text = '(Choose Output Type)';
+		elChoose.value = '-1';
+		selDeviceAction_OutputType.appendChild(elChoose);
+
+		for (let i = 0; i < output_types.length; i++) {
+			if (output_types[i].enabled === true) {
+				let opt = output_types[i];
+				let el = document.createElement('option');
+				el.textContent = opt.label;
+				el.value = opt.id;
+				selDeviceAction_OutputType.appendChild(el);	
+			}
+		}
+		
+		$('#divContainer_DeviceActionFields')[0].style.display = 'block';
+
+		$('#divDeviceActionDropdowns')[0].style.display = 'block';
+
+		$('#btnAdd_DeviceAction_Save')[0].style.display = 'block';
+		$('#btnEdit_DeviceAction_Save')[0].style.display = 'none';
+
+		selectedDeviceId = deviceId;
+	}
+
+	function Add_Device_Action_ShowFields() {
+		let divDeviceActionFields = $('#divDeviceActionFields')[0];
+		divDeviceActionFields.innerHTML = '';
+
+		let selDeviceAction_OutputType = $('#selDeviceAction_OutputType')[0];
+		let selectedOutputTypeId = selDeviceAction_OutputType.options[selDeviceAction_OutputType.selectedIndex].value;
+
+		if (selectedOutputTypeId === '-1') {
+			alert('Invalid Output Type selected.');
+			return false;
+		}
+
+		let fields = output_types_datafields.find( ({ outputTypeId }) => outputTypeId === selectedOutputTypeId).fields;
+		for (let i = 0; i < fields.length; i++) {
+			let spanFieldName = document.createElement('span');
+			spanFieldName.innerHTML = fields[i].fieldLabel;
+			spanFieldName.style.display = 'block';
+			divDeviceActionFields.appendChild(spanFieldName);
+			switch(fields[i].fieldType) {
+				case 'text':
+					let txtInput = document.createElement('input');
+					txtInput.type = 'text';
+					txtInput.id = 'field_DeviceAction_' + fields[i].fieldName;
+					divDeviceActionFields.appendChild(txtInput);
+					break;
+				case 'number':
+				let txtInputNumber = document.createElement('input');
+					txtInputNumber.type = 'text';
+					txtInputNumber.id = 'field_DeviceAction_' + fields[i].fieldName;
+					divDeviceActionFields.appendChild(txtInputNumber);
+					break;
+				case 'dropdown':
+					let selDropdown = document.createElement('select');
+					selDropdown.id = 'field_DeviceAction_' + fields[i].fieldName;
+					for (let j = 0; j < fields[i].options.length; j++) {
+						let elOption = document.createElement('option');
+						elOption.textContent = fields[i].options[j].label;
+						elOption.value = fields[i].options[j].id;
+						selDropdown.appendChild(elOption);
+					}
+					divDeviceActionFields.appendChild(selDropdown);
+					break;
+				case 'bool':
+					let chkBool = document.createElement('input');
+					chkBool.type = 'checkbox';
+					chkBool.id = 'field_DeviceAction_' + fields[i].fieldName;
+					divDeviceActionFields.appendChild(chkBool);
+					break;
+				default:
+					break;
+			}
+		}
+	}
+
+	function Add_Device_Action_Save() {
+		let deviceActionObj = {};
+
+		deviceActionObj.deviceId = selectedDeviceId;
+		deviceActionObj.busId = $('#selDeviceAction_Bus')[0].options[$('#selDeviceAction_Bus')[0].selectedIndex].value;
+		deviceActionObj.active = (($('#selDeviceAction_BusActive')[0].options[$('#selDeviceAction_BusActive')[0].selectedIndex].value === 'on') ? true : false);
+		deviceActionObj.outputTypeId = $('#selDeviceAction_OutputType')[0].options[$('#selDeviceAction_OutputType')[0].selectedIndex].value;
+
+		if (deviceActionObj.outputTypeId === '-1') {
+			alert('Invalid Output Type selected.');
+			return false;
+		}
+
+		let dataObj = {};
+
+		let fields = output_types_datafields.find( ({ outputTypeId }) => outputTypeId === deviceActionObj.outputTypeId).fields;
+		for (let i = 0; i < fields.length; i++) {
+			switch(fields[i].fieldType) {
+				case 'text':
+					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].value;
+					break;
+				case 'number':
+					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].value;
+					break;
+				case 'dropdown':
+					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].options[$('#field_DeviceAction_' + fields[i].fieldName)[0].selectedIndex].value;
+					break;
+				case 'bool':
+					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].checked;
+					break;
+				default:
+					break;
+			}
+		}
+
+		deviceActionObj.data = dataObj;
+
+		let arbiterObj = {};
+		arbiterObj.action = 'add';
+		arbiterObj.type = 'device_action';
+		arbiterObj.device_action = deviceActionObj;
+
+		jQuery.ajax({
+				contentType: 'application/json',
+				url: '/manage',
+				type: 'POST',
+				data: JSON.stringify(arbiterObj),
+				dataType: 'json',
+				success: function(data) {
+					ProcessAPIResponse(data);
+				}
+		});
+	}
+
+	function Edit_Device_Action(deviceActionId) {
+		let deviceActionObj = GetDeviceActionById(deviceActionId);
+
+		let divDeviceActionFields = $('#divDeviceActionFields')[0];
+		divDeviceActionFields.innerHTML = '';
+
+		let spanDeviceActionIdName = document.createElement('span');
+		spanDeviceActionIdName.innerHTML = 'Device Action Id:';
+		spanDeviceActionIdName.style.display = 'block';
+		divDeviceActionFields.appendChild(spanDeviceActionIdName);
+
+		let txtDeviceActionId = document.createElement('input');
+		txtDeviceActionId.type = 'text';
+		txtDeviceActionId.id = 'txtDeviceActionId';
+		txtDeviceActionId.value = deviceActionId;
+		txtDeviceActionId.style.display = 'block';
+		txtDeviceActionId.disabled = true;
+		divDeviceActionFields.appendChild(txtDeviceActionId);
+
+		$('#divDeviceActionDropdowns')[0].style.display = 'none';
+
+		let spanDeviceActionBus = document.createElement('span');
+		spanDeviceActionBus.innerHTML = 'Bus: ' + getBusById(deviceActionObj.busId).label;
+		spanDeviceActionBus.style.display = 'block';
+		divDeviceActionFields.appendChild(spanDeviceActionBus);
+
+		let spanDeviceActionBusActive = document.createElement('span');
+		spanDeviceActionBusActive.innerHTML = 'Active: ' + ((deviceActionObj.active === true) ? 'On' : 'Off');
+		spanDeviceActionBusActive.style.display = 'block';
+		divDeviceActionFields.appendChild(spanDeviceActionBusActive);
+
+		let spanDeviceActionOutputType = document.createElement('span');
+		spanDeviceActionOutputType.innerHTML = 'Output Type: ' + GetOutputTypeById(deviceActionObj.outputTypeId).label;
+		spanDeviceActionOutputType.style.display = 'block';
+		divDeviceActionFields.appendChild(spanDeviceActionOutputType);
+
+		let fields = output_types_datafields.find( ({ outputTypeId }) => outputTypeId === deviceActionObj.outputTypeId).fields;
+
+		for (let i = 0; i < fields.length; i++) {
+			let spanFieldName = document.createElement('span');
+			spanFieldName.innerHTML = fields[i].fieldLabel;
+			spanFieldName.style.display = 'block';
+			divDeviceActionFields.appendChild(spanFieldName);
+			switch(fields[i].fieldType) {
+				case 'text':
+					let txtInput = document.createElement('input');
+					txtInput.type = 'text';
+					txtInput.id = 'field_DeviceAction_' + fields[i].fieldName;
+					txtInput.value = deviceActionObj.data[fields[i].fieldName];
+					divDeviceActionFields.appendChild(txtInput);
+					break;
+				case 'number':
+				let txtInputNumber = document.createElement('input');
+					txtInputNumber.type = 'text';
+					txtInputNumber.id = 'field_DeviceAction_' + fields[i].fieldName;
+					txtInputNumber.value = deviceActionObj.data[fields[i].fieldName];
+					divDeviceActionFields.appendChild(txtInputNumber);
+					break;
+				case 'dropdown':
+					let selDropdown = document.createElement('select');
+					selDropdown.id = 'field_DeviceAction_' + fields[i].fieldName;
+					for (let j = 0; j < fields[i].options.length; j++) {
+						let elOption = document.createElement('option');
+						elOption.textContent = fields[i].options[j].label;
+						elOption.value = fields[i].options[j].id;
+						if (deviceActionObj.data[fields[i].fieldName] === fields[i].options[j].id) {
+							elOption.selected = true;
+						}
+						selDropdown.appendChild(elOption);
+					}
+					divDeviceActionFields.appendChild(selDropdown);
+					break;
+				case 'bool':
+					let chkBool = document.createElement('input');
+					chkBool.type = 'checkbox';
+					chkBool.id = 'field_DeviceAction_' + fields[i].fieldName;
+					chkBool.checked = ((deviceActionObj.data[fields[i].fieldName] === true) ? true : false);
+					divDeviceActionFields.appendChild(chkBool);
+					break;
+				default:
+					break;
+			}
+		}
+		
+		$('#divContainer_DeviceActionFields')[0].style.display = 'block';
+
+		$('#btnAdd_DeviceAction_Save')[0].style.display = 'none';
+		$('#btnEdit_DeviceAction_Save')[0].style.display = 'block';
+	}
+
+	function Edit_Device_Action_Save() {
+		let existingDeviceActionObj = GetDeviceActionById($('#txtDeviceActionId')[0].value);
+
+		let deviceActionObj = {};
+
+		deviceActionObj.id = existingDeviceActionObj.id;
+		deviceActionObj.deviceId = existingDeviceActionObj.deviceId;
+		deviceActionObj.busId = existingDeviceActionObj.busId;
+		deviceActionObj.active = existingDeviceActionObj.active;
+		deviceActionObj.outputTypeId = existingDeviceActionObj.outputTypeId;
+		
+		let dataObj = {};
+
+		let fields = output_types_datafields.find( ({ outputTypeId }) => outputTypeId === deviceActionObj.outputTypeId).fields;
+
+		for (let i = 0; i < fields.length; i++) {
+			switch(fields[i].fieldType) {
+				case 'text':
+					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].value;
+					break;
+				case 'number':
+					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].value;
+					break;
+				case 'dropdown':
+					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].options[$('#field_DeviceAction_' + fields[i].fieldName)[0].selectedIndex].value;
+					break;
+				case 'bool':
+					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].checked;
+					break;
+				default:
+					break;
+			}
+		}
+
+		deviceActionObj.data = dataObj;
+
+		let arbiterObj = {};
+		arbiterObj.action = 'edit';
+		arbiterObj.type = 'device_action';
+		arbiterObj.device_action = deviceActionObj;
+
+		jQuery.ajax({
+			contentType: 'application/json',
+			url: '/manage',
+			type: 'POST',
+			data: JSON.stringify(arbiterObj),
+			dataType: 'json',
+			success: function(data) {
+				ProcessAPIResponse(data);
+			}
+		});
+	}
+
+	function Cancel_Device_Action() {
+		$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+	}
+
+	function Delete_Device_Action(deviceActionId) {
+		let arbiterObj = {};
+		arbiterObj.action = 'delete';
+		arbiterObj.type = 'device_action';
+		arbiterObj.device_action = {};
+		arbiterObj.device_action.id = deviceActionId;
+
+		jQuery.ajax({
+			contentType: 'application/json',
+			url: '/manage',
+			type: 'POST',
+			data: JSON.stringify(arbiterObj),
+			dataType: 'json',
+			success: function(data) {
+				ProcessAPIResponse(data);
+			}
+		});
+	}
+
+	function Close_Device_Actions() {
+		$('#divContainer_DeviceActions')[0].style.display = 'none';
+	}
+
+	function ProcessAPIResponse(response) {
+		//process the various responses from the API and display them in the log				
+		let responseText = '';
+				
+		switch (response.result) {
+			case 'source-added-successfully':
+			case 'source-edited-successfully':
+			case 'source-deleted-successfully':
+				$('#divContainer_SourceFields')[0].style.display = 'none';
+				$.when(getSources(), getDeviceSources()).done(function() {
+					loadSources();
+					$('#divContainer_DeviceSources')[0].style.display = 'none';
+					$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+				});
+				break;
+			case 'device-added-successfully':
+			case 'device-edited-successfully':
+			case 'device-deleted-successfully':
+				$('#divContainer_DeviceFields')[0].style.display = 'none';
+				$.when(getDevices(), getDeviceSources(), getDeviceStates()).done(function() {
+					loadDevices();
+					loadListeners();
+					$('#divContainer_DeviceFields')[0].style.display = 'none';
+					$('#divContainer_DeviceSources')[0].style.display = 'none';
+					$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+					$('#divContainer_DeviceActions')[0].style.display = 'none';
+					$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+				});
+				break;
+			case 'device-source-added-successfully':
+			case 'device-source-edited-successfully':
+			case 'device-source-deleted-successfully':
+				$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+				$.when(getDeviceSources()).done(function() {
+					Edit_Device_Sources(response.deviceId);
+					$('#divContainer_DeviceFields')[0].style.display = 'none';
+					$('#divContainer_DeviceSources')[0].style.display = 'block';
+					$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+					$('#divContainer_DeviceActions')[0].style.display = 'none';
+					$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+				});
+				break;
+			case 'device-action-added-successfully':
+			case 'device-action-edited-successfully':
+			case 'device-action-deleted-successfully':
+				$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+				$.when(getDeviceActions()).done(function() {
+					Edit_Device_Actions(response.deviceId);
+					$('#divContainer_DeviceFields')[0].style.display = 'none';
+					$('#divContainer_DeviceSources')[0].style.display = 'none';
+					$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+					$('#divContainer_DeviceActions')[0].style.display = 'block';
+					$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+				});
+				break;	
+			case 'error':
+				responseText = 'Unexpected Error Occurred: ' + response.error;
+			default:
+				responseText = response.result;
+		}
+	}
+</script>
+</head>
+<body onload='loadSettings();'>
+<div id='logo'><a href='/'><img src='logo.png' height='60' /></a></div>
+<div id='container'>
+	<br /><br />
+	<div id='divContainer_Sources'>
+		<span class='title'>Sources</span>
+		<div id='divSources'></div>
+		<br /><br />
+		<button id='btnAdd_Source' onclick='Add_Source();'>Add</button>
+	</div>
+	<div id='divContainer_SourceFields'>
+		<span class='title'>Source</span>
+		<select id='selSourceType' style='display:block;'></select><br />
+		<div id='divSourceFields'></div><br />
+		<button id='btnAdd_Source_Save' onclick='Add_Source_Save();'>Save</button>
+		<button id='btnEdit_Source_Save' onclick='Edit_Source_Save();'>Save</button>
+		<button id='btnSource_Cancel' onclick='Cancel_Source();'>Cancel</button>
+	</div>
+	<div id='divContainer_Devices'>
+		<span class='title'>Devices</span>
+		<div id='divDevices'></div>
+		<br /><br />
+		<button id='btnAdd_Device' onclick='Add_Device();'>Add</button>
+	</div>
+	<div id='divContainer_DeviceFields'>
+		<span class='title'>Device</span>
+		<div id='divDeviceFields'></div><br />
+		<button id='btnAdd_Device_Save' onclick='Add_Device_Save();'>Save</button>
+		<button id='btnEdit_Device_Save' onclick='Edit_Device_Save();'>Save</button>
+		<button id='btnDevice_Cancel' onclick='Cancel_Device();'>Cancel</button>
+	</div>
+	<div id='divContainer_DeviceSources'>
+		<span class='title'>Device Sources</span>
+		<div id='divDeviceSources_DeviceName'></div><br />
+		<div id='divDeviceSources'></div><br />
+		<button id='btnDeviceSources_Close' onclick='Close_Device_Sources();'>Close</button>
+	</div>
+	<div id='divContainer_DeviceSourceFields'>
+		<span class='title'>Device Source</span>
+		<div id='divDeviceSourceFields'></div><br />
+		<button id='btnAdd_DeviceSource_Save' onclick='Add_Device_Source_Save();'>Save</button>
+		<button id='btnEdit_DeviceSource_Save' onclick='Edit_Device_Source_Save();'>Save</button>
+		<button id='btnDeviceSource_Cancel' onclick='Cancel_Device_Source();'>Cancel</button>
+	</div>
+	<div id='divContainer_DeviceActions'>
+		<span class='title'>Device Actions</span>
+		<div id='divDeviceActions_DeviceName'></div><br />
+		<div id='divDeviceActions'></div><br />
+		<button id='btnDeviceActions_Close' onclick='Close_Device_Actions();'>Close</button>
+	</div>
+	<div id='divContainer_DeviceActionFields'>
+		<span class='title'>Device Action</span>
+		<div id='divDeviceActionDropdowns'>
+			Bus: <select id='selDeviceAction_Bus' style='display:block;'></select><br />
+			Active: <select id='selDeviceAction_BusActive' style='display:block;'>
+				<option value='on'>On</option>
+				<option value='off'>Off</option>
+			</select><br />
+			Output Type: <select id='selDeviceAction_OutputType' style='display:block;'></select><br />
+		</div>
+		<div id='divDeviceActionFields'></div><br />
+		<button id='btnAdd_DeviceAction_Save' onclick='Add_Device_Action_Save();'>Save</button>
+		<button id='btnEdit_DeviceAction_Save' onclick='Edit_Device_Action_Save();'>Save</button>
+		<button id='btnDeviceAction_Cancel' onclick='Cancel_Device_Action();'>Cancel</button>
+	</div>
+	<div id='divContainer_Listeners'>
+		<span class='title'>Connected Listeners:</span>
+		<div id='divListeners'></div>
+	</div>
+	<div id='divContainer_Logs'>
+		<span class='title'>Logs</span>
+		<div id='divLogs'></div>
+	</div>
+</div>
+</body>
+</html>
