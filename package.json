@@ -1,0 +1,42 @@
+{
+    "name": "TallyServer",
+    "version": "1.0.0",
+    "description": "Simple Tally listening program. Listens for incoming tally data and acts on it.",
+    "keywords": [
+        "util",
+        "functional",
+        "server",
+        "client",
+        "browser",
+        "tsl",
+        "tally",
+        "carbonite",
+        "graphhite",
+        "blackmagic",
+        "atem",
+        "ross",
+        "propresenter",
+        "provideoserver",
+        "obs",
+        "blink1",
+        "roland"
+    ],
+    "license": "MIT",
+    "author": "Joseph Adams",
+    "dependencies": {
+        "atem": "^0.1.8",
+        "cli-color": "^2.0.0",
+        "detect-rpi": "^1.4.0",
+        "dgram": "^1.0.1",
+        "express": "^4.17.1",
+        "jquery": "^3.5.1",
+        "obs-websocket-js": "^4.0.1",
+        "packet": "0.0.6",
+        "request": "^2.88.2",
+        "socket.io": "^2.3.0",
+        "tsl-umd": "^1.0.1"
+    },
+    "main": "main.js",
+    "scripts": {},
+    "devDependencies": {}
+}
