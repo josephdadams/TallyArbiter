@@ -14,18 +14,18 @@ A lot of these instructions on getting started are available all over the intern
 1. Once the image is written, mount the card to your computer and enable SSH by adding a blank file named `SSH` to the root of the `boot` volume oef the card. If you're using MacOS, an easy way to do this is to open Terminal, type `cd /Volumes/boot` and then `touch ssh`. This will create an empty file. You do not need to put anything in the file, it just needs to exist.
 1. Add another file to the root of the `boot` volume named `wpa_supplicant.conf`. Again, in terminal, just type `touch wpa_supplicant.conf` while you're in the root of the `boot` volume and it will be created.
 1. The new `wpa_supplicant.conf` file needs to be edited. Use `sudo nano wpa_supplicant.conf`. This file should contain the following:
-    ```
-    ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-    update_config=1
-    country=US
+	```
+	ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+	update_config=1
+	country=US
 
-    network={
-        ssid="Your network name/SSID"
-        psk="Your WPA/WPA2 security key"
-        key_mgmt=WPA-PSK
-    }
-    ```
-    Edit `country=`, `ssid=` and `psk=` with your information and save the file by pressing `CTRL + X`.
+	network={
+		ssid="Your network name/SSID"
+		psk="Your WPA/WPA2 security key"
+		key_mgmt=WPA-PSK
+	}
+	```
+	Edit `country=`, `ssid=` and `psk=` with your information and save the file by pressing `CTRL + X`.
 1. At this point, you can eject the card and put into the Pi and turn it on.
 1. Now you can SSH into the Pi to continue configuration. You'll need the IP address of the Pi. You can usually get this in your router admin page, or you might need to do more depending on your network.
 1. In the terminal window, type `ssh pi@192.168.1.5` (replace with your actual Pi IP address). It will prompt for a password. The default is usually `raspberry`.
@@ -40,16 +40,16 @@ The Tally Arbiter Python Listener Client uses the following libraries:
 These will have to be installed on the Pi in order for the script to function correctly.
 
 1. In your SSH terminal session, run the following:
-    * `sudo apt install libudev-dev libusb-1.0-0-dev`: The `libusb-dev` library is necessary to communicate with the blink(1) device over USB.
+    * `sudo apt install libudev-dev libusb-1.0-0-dev`: The `libusb` library is necessary to communicate with the blink(1) device over USB.
     * `sudo pip3 install blink1`: This is the base library to use with the blink(1).
     * `sudo pip3 install python-socketio[client]`: This library is used to communicate with a Tally Arbiter server over websockets.
 
     *If `pip3` is not installed, you can get it by running `sudo apt-get install python3-pip`.*
 
-1. Now that all the necessary libraries are installed and compiled, you need to copy the `tallyarbiter_listener.py` file to your Pi. You can do this a number of ways, but one simple way is to execute this command through your SSH connection: `wget https://raw.githubusercontent.com/josephdadams/TallyArbiter/master/tallyarbiter_listener.py`. This will copy the file into your current folder (probably still the home folder for the `pi` account).
+1. Now that all the necessary libraries are installed and compiled, you need to copy the `tallyarbiter_listener.py` file to your Pi. You can do this a number of ways, but one simple way is to execute this command through your SSH connection: `wget https://raw.githubusercontent.com/josephdadams/TallyArbiter/master/tallyarbiter_listener.py`. This will copy the file into your current folder (you should still be the home folder for the `pi` account).
 1. Once the Python script has been copied over, go ahead and test it out to make sure everything is working properly. Run this in the SSH session: `sudo python3 tallyarbiter_listener.py 192.168.1.6 4455`
     
-    Be sure to replace the IP address with the IP of your TallyArbiter server. If you leave off the port, it will attempt to connect using port `4455`.
+    Be sure to replace the IP address `192.168.1.6` with the IP of your Tally Arbiter server. If you leave off the port, it will attempt to connect using port `4455`.
 
 1. If it is working properly, the blink(1) will flash green twice as it connects to the server. You can also view the newly added listener client in the Tally Arbiter Settings page. Use the "flash" button if you want to see the server communicate with the listener client.
 
