@@ -16,13 +16,12 @@ const {version} = 	require('./package.json');
 const isPi = 		require('detect-rpi');
 const clc = 		require('cli-color');
 
-//Express variables
+//Server variables
 const express = 	require('express');
 const bodyParser = 	require('body-parser');
 const app = 		express();
-const http = 	require('http');
+const axios = 		require('axios');
 const httpServer = 	require('http').Server(app);
-const https =		require('https');
 const io = 			require('socket.io')(httpServer);
 const listenPort = 	4455;
 
@@ -33,10 +32,10 @@ var source_types = [
 	{ id: '5e0a1d8c', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true, help: ''},
 	{ id: 'dc75100e', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true , help: ''},
 	{ id: '44b8bc4f', label: 'Blackmagic ATEM', type: 'atem', enabled: true, help: 'Uses Port 9910.' },
-	{ id: 'cf51e3c9', label: 'Incoming Webhook', type: 'webhook', enabled: true, help: ''},
+	{ id: 'cf51e3c9', label: 'Incoming Webhook', type: 'webhook', enabled: false, help: ''},
 	{ id: '4eb73542', label: 'OBS Studio', type: 'obs', enabled: true, help: 'The OBS Websocket plugin must be installed on the source.'},
 	{ id: '58b6af42', label: 'VMix', type: 'vmix', enabled: true },
-	{ id: '4a58f00f', label: 'Roland Smart Tally', type: 'roland', enabled: false }
+	{ id: '4a58f00f', label: 'Roland Smart Tally', type: 'roland', enabled: true }
 ];
 
 var source_types_datafields = [
@@ -69,8 +68,7 @@ var source_types_datafields = [
 	]
 },
 	{ sourceTypeId: '4a58f00f', fields: [ // Roland Smart Tally
-			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' }
+			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
 		]
 	}
 ];
@@ -97,7 +95,6 @@ var output_types = [
 	{ id: '7dcd66b5', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true},
 	{ id: '276a8dcc', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true },
 	{ id: 'ffe2b0b6', label: 'Outgoing Webhook', type: 'webhook', enabled: true},
-	{ id: '25e28091', label: 'SainSmart Relay', type: 'sainsmart', enabled: true },
 	{ id: 'b47ea684', label: 'ProTally', type: 'protally', enabled: false},
 	{ id: '6dbb7bf7', label: 'Local Console Output', type: 'console', enabled: true }
 ];
@@ -125,13 +122,6 @@ var output_types_datafields = [
 			{ fieldName: 'path', fieldLabel: 'Path', fieldType: 'text' },
 			{ fieldName: 'method', fieldLabel: 'Method', fieldType: 'dropdown', options: [ { id: 'GET', label: 'GET' }, { id: 'POST', label: 'POST'} ] },
 			{ fieldName: 'postdata', fieldLabel: 'POST Data', fieldType: 'text' }
-		]
-	},
-	{ outputTypeId: '25e28091', fields: [ //SainSmart Relay
-			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' },
-			{ fieldName: 'relayNumber', fieldLabel: 'Relay Number', fieldType: 'dropdown', options: [{id: '1', label: 'Relay 1'}, {id: '2', label: 'Relay 2'}, {id: '3', label: 'Relay 3'}, {id: '4', label: 'Relay 4'}, {id: '5', label: 'Relay 5'}, {id: '6', label: 'Relay 6'}, {id: '7', label: 'Relay 7'}, {id: '8', label: 'Relay 8'}] },
-			{ fieldName: 'relayOnOff', fieldLabel: 'On/Off', fieldType: 'dropdown', options: [{id: 'on', label: 'On'}, {id: 'off', label: 'Off'}] }
 		]
 	},
 	{ outputTypeId: 'b47ea684', fields: [ //ProTally
@@ -194,7 +184,7 @@ function startUp() {
 
 	process.on('uncaughtException', function (err) {
 		logger(`Caught exception: ${err}`, 'error');
-	  });
+	});
 }
 
 //sets up the REST API and GUI pages
@@ -267,6 +257,18 @@ function initialSetup() {
 		res.send(device_states);
 	});
 
+	app.get('/clients', function (req, res) {
+		//gets all Listener Clients
+		res.send(Clients);
+	});
+
+	app.get('/flash/:clientid', function (req, res) {
+		//sends a flash command
+		let clientId = req.params.clientid;
+		let result = FlashClient(clientId);
+		res.send(result);
+	});
+
 	app.get('/version', function (req, res) {
 		//gets the version of the software
 		res.send(version);
@@ -301,6 +303,11 @@ function initialSetup() {
 		});
 
 		socket.on('device_listen', function(deviceId, listenerType) {
+			let device = GetDeviceByDeviceId(deviceId);
+			if ((deviceId === 'null') || (!device)) {
+				deviceId = devices[0].id;
+			}
+
 			socket.join('device-' + deviceId);
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
@@ -308,15 +315,17 @@ function initialSetup() {
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
 			
-			AddClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
+			let clientId = AddClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 		});
 
 		socket.on('device_listen_python', function(obj) {
 			let deviceId = obj.deviceId;
-			if (deviceId === 'null') {
+			let device = GetDeviceByDeviceId(deviceId);
+			if ((deviceId === 'null') || (!device)) {
 				deviceId = devices[0].id;
 			}
+
 			let listenerType = 'python';
 
 			socket.join('device-' + deviceId);
@@ -326,8 +335,34 @@ function initialSetup() {
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
 			
-			AddClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
+			let clientId = AddClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
+		});
+
+		socket.on('device_listen_relay', function(relayGroupId, deviceId) {
+			let device = GetDeviceByDeviceId(deviceId);
+			if (!device) {
+				deviceId = devices[0].id;
+			}
+
+			let listenerType = 'relay';
+
+			socket.join('device-' + deviceId);
+			let deviceName = GetDeviceByDeviceId(deviceId).name;
+			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
+			
+			let ipAddress = socket.request.connection.remoteAddress;
+			let datetimeConnected = new Date().getTime();
+			
+			let clientId = AddClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
+			//add relayGroupId to client
+			for (let i = 0; i < Clients.length; i++) {
+				if (Clients[i].id === clientId) {
+					Clients[i].relayGroupId = relayGroupId;
+					break;
+				}
+			}
+			socket.emit('listener_relay_assignment', relayGroupId, deviceId);
 		});
 
 		socket.on('device_states', function(deviceId) {
@@ -340,12 +375,32 @@ function initialSetup() {
 			socket.emit('logs', Logs);
 		});
 
-		socket.on('flash', function(socketId) {
-			io.to(socketId).emit('flash');
+		socket.on('flash', function(clientId) {
+			for (let i = 0; i < Clients.length; i++) {
+				if (Clients[i].id === clientId) {
+					if (Clients[i].relayGroupId) {
+						io.to(Clients[i].socketId).emit('flash', Clients[i].relayGroupId);
+					}
+					else {
+						io.to(Clients[i].socketId).emit('flash');
+					}
+					break;
+				}
+			}
 		});
 
-		socket.on('reassign', function(socketId, oldDeviceId, deviceId) {
-			io.to(socketId).emit('reassign', oldDeviceId, deviceId);
+		socket.on('reassign', function(clientId, oldDeviceId, deviceId) {
+			for (let i = 0; i < Clients.length; i++) {
+				if (Clients[i].id === clientId) {
+					if (Clients[i].relayGroupId) {
+						io.to(Clients[i].socketId).emit('reassign', Clients[i].relayGroupId, oldDeviceId, deviceId);
+					}
+					else {
+						io.to(Clients[i].socketId).emit('reassign', oldDeviceId, deviceId);
+					}
+					break;
+				}
+			}
 		});
 
 		socket.on('listener_reassign', function(oldDeviceId, deviceId) {
@@ -367,14 +422,50 @@ function initialSetup() {
 			io.to('settings').emit('clients', Clients);
 		});
 
+		socket.on('listener_reassign_relay', function(relayGroupId, oldDeviceId, deviceId) {
+			let canRemove = true;
+			for (let i = 0; i < Clients.length; i++) {
+				if (Clients[i].socketId === socket.id) {
+					if (Clients[i].deviceId === oldDeviceId) {
+						if (Clients[i].relayGroupId !== relayGroupId) {
+							canRemove = false;
+							break;
+						}
+					}
+				}
+			}
+			if (canRemove) {
+				//no other relay groups on this socket are using the old device ID, so we can safely leave that room
+				socket.leave('device-' + oldDeviceId);
+			}
+			
+			socket.join('device-' + deviceId);
+
+			for (let i = 0; i < Clients.length; i++) {
+				if (Clients[i].relayGroupId === relayGroupId) {
+					Clients[i].deviceId = deviceId;
+				}
+			}
+
+			let oldDeviceName = GetDeviceByDeviceId(oldDeviceId).name;
+			let deviceName = GetDeviceByDeviceId(deviceId).name;
+
+			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info');
+			io.to('settings').emit('clients', Clients);
+		});
+
 		socket.on('listener_delete', function(clientId) {
 			for (let i = Clients.length - 1; i >= 0; i--) {
 				if (Clients[i].id === clientId) {
-					logger(`Inactive Client removed: ${Clients[i].socketId}`, 'info');
+					logger(`Inactive Client removed: ${Clients[i].id}`, 'info');
 					Clients.splice(i, 1);
 				}
 			}
 			io.to('settings').emit('clients', Clients);
+		});
+
+		socket.on('listener_log', function(logObj) {
+			//log the log object into the global log array
 		});
 
 		socket.on('disconnect', function() {
@@ -414,7 +505,7 @@ function logger(log, type) {
 	logObj.type = type;
 	Logs.push(logObj);
 
-	io.to('settings').emit('logs', Logs);
+	io.to('settings').emit('log_item', logObj);
 }
 
 //loads the JSON data from the config file to memory
@@ -461,7 +552,7 @@ function loadConfig() {
 	}
 	catch (error) {
 		if (error.code === 'ENOENT') {
-			logge('The config file could not be found.', 'error');
+			logger('The config file could not be found.', 'error');
 		}
 		else {
 			logger('An error occurred while loading the configuration file:', 'error');
@@ -488,6 +579,9 @@ function loadConfig() {
 					break;
 				case 'vmix':
 					SetUpVMixServer(sources[i].id);
+					break;
+				case 'roland':
+					SetUpRolandSmartTally(sources[i].id);
 					break;
 				default:
 					logger(`Error initiating connection for Source: ${sources[i].name}. The specified Source Type is not implemented at this time: ${sourceType.type}`, 'error');
@@ -1025,6 +1119,78 @@ function StopVMixServer(sourceId) {
 	}
 }
 
+function SetUpRolandSmartTally(sourceId) {
+	let source = sources.find( ({ id }) => id === sourceId);
+	let ip = source.data.ip;
+	let port = 80;
+
+	try {
+		let sourceConnectionObj = {};
+		sourceConnectionObj.sourceId = sourceId;
+		sourceConnectionObj.server = null;
+		source_connections.push(sourceConnectionObj);
+
+		for (let i = 0; i < source_connections.length; i++) {
+			if (source_connections[i].sourceId === sourceId) {
+				source_connections[i].server = setInterval(function() {
+					for (let j = 0; j < device_sources.length; j++) {
+						if (device_sources[j].sourceId === sourceId) {
+							let address = device_sources[j].address;
+							axios.get(`http://${ip}/tally/${address}/status`)
+							.then(function (response) {
+								let tallyObj = {};
+								tallyObj.address = address;
+								tallyObj.label = "Input " + address;
+								tallyObj.tally4 = 0;
+								tallyObj.tally3 = 0;
+								tallyObj.tally2 = 0;
+								tallyObj.tally1 = 0;
+								
+								switch(response)
+								{
+									case "onair":
+										tallyObj.tally2 = 1;
+										tallyObj.tally1 = 0;
+										break;
+									case "selected":
+										tallyObj.tally2 = 0;
+										tallyObj.tally1 = 1;
+										break;
+									case "unselected":
+									default:
+										tallyObj.tally2 = 0;
+										tallyObj.tally1 = 0;
+										break;
+								}
+								processTSLTally(sourceId, tallyObj);							
+							})
+							.catch(function (error) {
+								logger(`An error occured fetching the Roland Smart Tally data: ${error}`, 'error');
+							});
+						}
+					}
+				}, 1000, sourceId);
+				break;
+			}
+		}
+	}
+	catch (error) {
+		logger(`Error initiating connection for Source: ${source.name}. Roland Smart Tally Error Occurred: ${error}`, 'error');
+	}
+}
+
+function StopRolandSmartTally(sourceId) {
+	let source = GetSourceBySourceId(sourceId);
+	
+	for (let i = 0; i < source_connections.length; i++) {
+		if (source_connections[i].sourceId === sourceId) {
+			clearInterval(source_connections[i].server);
+			logger(`Roland Smart Tally connection closed for Source: ${source.name}`, 'info');
+			break;
+		}
+	}
+}
+
 function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 {
 	let deviceId = null;
@@ -1171,9 +1337,6 @@ function RunAction(deviceId, busId, active) {
 						case 'webhook':
 							RunAction_Webhook(actionObj.data);
 							break;
-						case 'sainsmart':
-							RunAction_SainSmartRelay(actionObj.data);
-							break;
 						case 'protally':
 							RunAction_ProTally(actionObj.data);
 							break;
@@ -1288,70 +1451,26 @@ function RunAction_TSL_31_TCP(data) {
 function RunAction_Webhook(data) {
 	try {
 		let options = {
-			hostname: data.ip,
-			port: data.port,
-			path: data.path,
-			method: data.method
+			method: data.method,
+			url: 'http://' + data.ip + ':' + data.port + '/' + data.path
 		};
-	
+
 		if (data.method === 'POST') {
 			if (data.postdata !== '') {
 				options.data = data.postdata;
 			}
 		}
-	
-		let req = http.request(options, res => {
-			logger(`statusCode: ${res.statusCode}`, 'info');
+
+		axios(options)
+		.then(function (response) {
+			logger(`Outgoing Webhook triggered.`, 'info');
+		})
+		.catch(function (error) {
+			logger(`An error occured triggering the Outgoing Webhook: ${error}`, 'error');
 		});
-	
-		req.on('error', error => {
-			console.error(error);
-		});
-	
-		req.end();
-		
-		logger('Running Webhook', 'info');
-		logger(options, 'info');
 	}
 	catch (error) {
 		logger(`An error occured sending the Outgoing Webhook: ${error}`, 'error');
-	}
-}
-
-function RunAction_SainSmartRelay(data) {
-	try {
-		let relay = null;
-
-		if (data.relayOnOff === 'on') {
-			relay = '0' + parseInt(data.relayNumber);
-		}
-		else {
-			relay = '0' + (parseInt(data.relayNumber)-1);
-		}
-
-		if (relay !== null) {
-			let options = {
-				hostname: data.ip,
-				port: 80,
-				path: '/' + data.port + '/' + relay,
-				method: 'GET'
-			};
-		
-			let req = http.request(options, res => {
-				logger(`statusCode: ${res.statusCode}`, 'info');
-			});
-		
-			req.on('error', error => {
-				logger(`An error occured triggering the Sainsmart Relay: ${error}`, 'error');
-			});
-		
-			req.end();
-		
-			console.log(options);
-		}
-	}
-	catch (error) {
-		logger(`An error occured triggering the Sainsmart Relay: ${error}`, 'error');
 	}
 }
 
@@ -1479,6 +1598,9 @@ function StartConnection(sourceId) {
 		case 'vmix':
 			SetUpVMixServer(sourceId);
 			break;
+		case 'roland':
+			SetUpRolandSmartTally(sourceId);
+			break;
 		default:
 			break;
 	}
@@ -1503,6 +1625,9 @@ function StopConnection(sourceId) {
 			break;
 		case 'vmix':
 			StopVMixServer(sourceId);
+			break;
+		case 'roland':
+			StopRolandSmartTally(sourceId);
 			break;
 		default:
 			break;
@@ -1793,6 +1918,8 @@ function AddClient(socketId, deviceId, listenerType, ipAddress, datetimeConnecte
 	Clients.push(clientObj);
 
 	io.to('settings').emit('clients', Clients);
+
+	return clientObj.id;
 }
 
 function DeactivateClient(socketId) {
@@ -1801,7 +1928,6 @@ function DeactivateClient(socketId) {
 			//Clients.splice(i, 1);
 			Clients[i].inactive = true;
 			Clients[i].datetime_inactive = new Date().getTime();
-			break;
 		}
 	}
 
@@ -1826,6 +1952,18 @@ function DeleteInactiveClients() {
 	}
 
 	setTimeout(DeleteInactiveClients, 60 * 1000); // runs every minute
+}
+
+function FlashClient(clientId) {
+	let clientObj = Clients.find( ({ id }) => id === clientId);
+
+	if (clientObj) {
+		io.to(clientObj.socketId).emit('flash');
+		return {result: 'flash-sent-successfully', cliendId: clientId};
+	}
+	else {
+		return {result: 'flash-not-sent', clientId: clientId, error: 'client id not found'};
+	}
 }
 
 startUp();

@@ -120,6 +120,11 @@
 			Logs = logs;
 			loadLogs();
 		});
+
+		socket.on('log_item', function(logObj) {
+			Logs.push(logObj);
+			loadLogs();
+		});
 	}
 	
 	function getSourceTypes() {
@@ -426,7 +431,7 @@
 					selDevices.appendChild(optDevice);
 				}
 				selDevices.id = 'selListenerReassign_' + Clients[i].id;
-				selDevices.setAttribute('onclick', 'Listener_Reassign(\'' + Clients[i].id + '\');');
+				selDevices.setAttribute('onchange', 'Listener_Reassign(\'' + Clients[i].id + '\');');
 				tdDevice.appendChild(selDevices);
 				trClientItem.appendChild(tdDevice);
 
@@ -457,12 +462,7 @@
 	}
 
 	function Listener_Flash(id) {
-		for (let i = 0; i < Clients.length; i++) {
-			if (Clients[i].id === id) {
-				socket.emit('flash', Clients[i].socketId);
-				break;
-			}
-		}
+		socket.emit('flash', id);
 	}
 
 	function Listener_Delete(clientId) {
@@ -474,8 +474,8 @@
 		let selListenerReassign = $('#selListenerReassign_' + id)[0];
 		let deviceId = selListenerReassign.options[selListenerReassign.selectedIndex].value;
 		let oldDeviceId = clientObj.deviceId;
-		let socketId = clientObj.socketId;
-		socket.emit('reassign', socketId, oldDeviceId, deviceId);
+		let clientId = clientObj.id;
+		socket.emit('reassign', clientId, oldDeviceId, deviceId);
 	}
 
 	function loadLogs() {
