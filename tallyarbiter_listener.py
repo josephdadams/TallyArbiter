@@ -1,6 +1,5 @@
 ## Tally Arbiter Python Listener
 
-#import sys
 from signal import signal, SIGINT
 from sys import exit
 import sys
@@ -16,14 +15,27 @@ mode_program = False
 
 server = sys.argv[1]
 
+try:
+	stored_deviceId_file = open('deviceid.txt')
+	stored_deviceId = stored_deviceId_file.read()
+	stored_deviceId_file.close()
+except IOError:
+	stored_deviceId = ''
+
+print('Last Used Device Id: ' + stored_deviceId)
+
 if len(sys.argv) > 2:
 	port = sys.argv[2]
 else:
 	port = '4455'
+
 if len(sys.argv) > 3:
 	deviceId = sys.argv[3]
 else:
-	deviceId = 'null'
+	if (stored_deviceId != ''):
+		deviceId = stored_deviceId
+	else:
+		deviceId = 'null'
 
 #SocketIO Connections
 sio = socketio.Client()
@@ -94,8 +106,8 @@ def on_flash():
 	evaluateMode()
 
 @sio.on('reassign')
-def on_reassign(oldDeviceId, deviceId):
-	print('Reassigning from DeviceID: ' + oldDeviceId + ' to Device ID: ' + deviceId)
+def on_reassign(oldDeviceId, newDeviceId):
+	print('Reassigning from DeviceID: ' + oldDeviceId + ' to Device ID: ' + newDeviceId)
 	doBlink(0, 0, 0)
 	time.sleep(.1)
 	doBlink(0, 0, 255)
@@ -105,7 +117,12 @@ def on_reassign(oldDeviceId, deviceId):
 	doBlink(0, 0, 255)
 	time.sleep(.1)
 	doBlink(0, 0, 0)
-	sio.emit('listener_reassign', data=(oldDeviceId, deviceId))
+	sio.emit('listener_reassign', data=(oldDeviceId, newDeviceId))
+	global deviceId
+	deviceId = newDeviceId
+	stored_deviceId_file = open('deviceid.txt', 'w')
+	stored_deviceId_file.write(newDeviceId)
+	stored_deviceId_file.close()
 
 def getBusTypeById(busId):
 	for bus in bus_options:

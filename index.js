@@ -1,44 +1,42 @@
-/* Tally Arbiter*/
+/* Tally Arbiter */
 
-//Protocol and Network Variables
-const net = 		require('net');
-const packet = 		require('packet');
-const TSLUMD = 		require('tsl-umd'); // TSL UDP package
-const dgram = 		require('dgram');
-const ATEM = 		require('atem');
-const OBS = 		require('obs-websocket-js');
+//Protocol, Network, Socket, Server libraries/variables
+const net 			= require('net');
+const packet 		= require('packet');
+const TSLUMD 		= require('tsl-umd'); // TSL UDP package
+const dgram 		= require('dgram');
+const ATEM 			= require('atem');
+const OBS 			= require('obs-websocket-js');
+const fs 			= require('fs');
+const path 			= require('path');
+const {version} 	= require('./package.json');
+const isPi 			= require('detect-rpi');
+const clc 			= require('cli-color');
+const util 			= require ('util');
+const express 		= require('express');
+const bodyParser 	= require('body-parser');
+const app 			= express();
+const axios 		= require('axios');
+const httpServer 	= require('http').Server(app);
+const io 			= require('socket.io')(httpServer);
 
-//General Variables
-const fs = 			require('fs');
-const path = 		require('path');
-const config_file = './config.json'; //local storage JSON file
-const {version} = 	require('./package.json');
-const isPi = 		require('detect-rpi');
-const clc = 		require('cli-color');
+//Tally Arbiter variables
+const listenPort 	= 4455;
+const config_file 	= './config.json'; //local storage JSON file
+var Clients 		= []; //array of connected listener clients (web, python, relay, etc.)
+var Logs 			= []; //array of actions, information, and errors
 
-//Server variables
-const express = 	require('express');
-const bodyParser = 	require('body-parser');
-const app = 		express();
-const axios = 		require('axios');
-const httpServer = 	require('http').Server(app);
-const io = 			require('socket.io')(httpServer);
-const listenPort = 	4455;
-
-var Clients = [];
-var Logs = [];
-
-var source_types = [
+var source_types 	= [ //available tally source types
 	{ id: '5e0a1d8c', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true, help: ''},
 	{ id: 'dc75100e', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true , help: ''},
 	{ id: '44b8bc4f', label: 'Blackmagic ATEM', type: 'atem', enabled: true, help: 'Uses Port 9910.' },
-	{ id: 'cf51e3c9', label: 'Incoming Webhook', type: 'webhook', enabled: false, help: ''},
 	{ id: '4eb73542', label: 'OBS Studio', type: 'obs', enabled: true, help: 'The OBS Websocket plugin must be installed on the source.'},
 	{ id: '58b6af42', label: 'VMix', type: 'vmix', enabled: true },
-	{ id: '4a58f00f', label: 'Roland Smart Tally', type: 'roland', enabled: true }
+	{ id: '4a58f00f', label: 'Roland Smart Tally', type: 'roland', enabled: true },
+	{ id: 'cf51e3c9', label: 'Incoming Webhook', type: 'webhook', enabled: false, help: ''}
 ];
 
-var source_types_datafields = [
+var source_types_datafields = [ //data fields for the tally source types
 	{ sourceTypeId: '5e0a1d8c', fields: [ //TSL 3.1 UDP
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' }
@@ -91,15 +89,14 @@ if (isPi()) {
 	source_types_datafields.push(sourceTypeDataFieldObj);
 }
 
-var output_types = [
+var output_types = [ //output actions that Tally Arbiter can perform
 	{ id: '7dcd66b5', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true},
 	{ id: '276a8dcc', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true },
 	{ id: 'ffe2b0b6', label: 'Outgoing Webhook', type: 'webhook', enabled: true},
-	{ id: 'b47ea684', label: 'ProTally', type: 'protally', enabled: false},
 	{ id: '6dbb7bf7', label: 'Local Console Output', type: 'console', enabled: true }
 ];
 
-var output_types_datafields = [
+var output_types_datafields = [ //data fields for the outgoing actions
 	{ outputTypeId: '7dcd66b5', fields: [ //TSL 3.1 UDP
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' },
@@ -124,15 +121,6 @@ var output_types_datafields = [
 			{ fieldName: 'postdata', fieldLabel: 'POST Data', fieldType: 'text' }
 		]
 	},
-	{ outputTypeId: 'b47ea684', fields: [ //ProTally
-			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' },
-			{ fieldName: 'windowNumber', fieldLabel: 'Window Number', fieldType: 'dropdown', options: [{id: '1', label: 'Window 1'}, {id: '2', label: 'Window 2'}, {id: '3', label: 'Window 3'}, {id: '4', label: 'Window 4'}] },
-			{ fieldName: 'mode', fieldLabel: 'Mode', fieldType: 'dropdown', options: [{id: 'Preview', label: 'Preview'}, {id: 'Program', label: 'Program'}, {id: 'PreviewProgram', label: 'Preview + Program'}, {id: 'Clear', label: 'Clear'}] },
-			{ fieldName: 'label', fieldLabel: 'Label', fieldType: 'text' },
-			{ fieldName: 'color', fieldLabel: 'Color', fieldType: 'text' }
-		]
-	},
 	{ outputTypeId: '6dbb7bf7', fields: [ //Local Console Output
 			{ fieldName: 'text', fieldLabel: 'Text', fieldType: 'text'}
 		]
@@ -146,7 +134,7 @@ if (isPi()) {
 	outputTypeObj.label = 'Local GPIO';
 	outputTypeObj.type = 'gpio';
 	outputTypeObj.enabled = false;
-	outputTypeObj.push(outputTypeObj);
+	output_types.push(outputTypeObj);
 
 	let outputTypeDataFieldObj = {};
 	outputTypeDataFieldObj.outputTypeId = outputTypeObj.id;
@@ -157,17 +145,18 @@ if (isPi()) {
 	output_types_datafields.push(outputTypeDataFieldObj);
 }
 
-const bus_options = [
+const bus_options = [ // the busses available to monitor in Tally Arbiter
 	{ id: 'e393251c', label: 'Preview', type: 'preview'},
-	{ id: '334e4eda', label: 'Program', type: 'program'}
+	{ id: '334e4eda', label: 'Program', type: 'program'},
+	{ id: '12c8d698', label: 'Preview + Program', type: 'previewprogram'}
 ]
 
-var sources = [];
-var devices = [];
-var device_sources = [];
-var device_actions = [];
-var device_states = []; //array of tally data as it has come in and the known state
-var source_connections = []; //array of source connections/servers as they are created
+var sources 			= []; // the configured tally sources
+var devices 			= []; // the configured tally devices
+var device_sources		= []; // the configured tally device-source mappings
+var device_actions		= []; // the configured device output actions
+var device_states		= []; // array of tally data as it has come in and the known state
+var source_connections	= []; // array of source connections/servers as they are established
 
 function uuidv4() //unique UUID generator for IDs
 {
@@ -187,9 +176,8 @@ function startUp() {
 	});
 }
 
-//sets up the REST API and GUI pages
+//sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
 function initialSetup() {
-	// starts the Express server that will listen for incoming requests
 	app.use(bodyParser.json({ type: 'application/json' }));
 
 	//about the author, this program, etc.
@@ -202,7 +190,7 @@ function initialSetup() {
 		res.sendFile('views/settings.html', { root: __dirname });
 	});
 
-	//tally page - view tally state of any device (pick the device upon page load)
+	//tally page - view tally state of any device
 	app.get('/tally', function (req, res) {
 		res.sendFile('views/tally.html', { root: __dirname });
 	});
@@ -263,7 +251,7 @@ function initialSetup() {
 	});
 
 	app.get('/flash/:clientid', function (req, res) {
-		//sends a flash command
+		//sends a flash command to the listener
 		let clientId = req.params.clientid;
 		let result = FlashClient(clientId);
 		res.send(result);
@@ -293,16 +281,16 @@ function initialSetup() {
 	});
 
 	io.sockets.on('connection', function(socket) {
-		// TALLY VIEWER SOCKETS //
-		socket.on('devices', function() {
+
+		socket.on('devices', function() { // sends the configured Devices to the socket
 			socket.emit('devices', devices);
 		});
 
-		socket.on('bus_options', function() {
+		socket.on('bus_options', function() { // sends the Bus Options (preview, program) to the socket
 			socket.emit('bus_options', bus_options);
 		});
 
-		socket.on('device_listen', function(deviceId, listenerType) {
+		socket.on('device_listen', function(deviceId, listenerType) { // emitted by a socket (tally page) that has selected a Device to listen for state information
 			let device = GetDeviceByDeviceId(deviceId);
 			if ((deviceId === 'null') || (!device)) {
 				deviceId = devices[0].id;
@@ -319,7 +307,7 @@ function initialSetup() {
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 		});
 
-		socket.on('device_listen_python', function(obj) {
+		socket.on('device_listen_python', function(obj) { // emitted by the Python client that has selected a Device to listen for state information
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
 			if ((deviceId === 'null') || (!device)) {
@@ -339,7 +327,7 @@ function initialSetup() {
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 		});
 
-		socket.on('device_listen_relay', function(relayGroupId, deviceId) {
+		socket.on('device_listen_relay', function(relayGroupId, deviceId) { // emitted by the Relay Controller accessory program that has selected a Device to listen for state information
 			let device = GetDeviceByDeviceId(deviceId);
 			if (!device) {
 				deviceId = devices[0].id;
@@ -420,6 +408,7 @@ function initialSetup() {
 
 			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info');
 			io.to('settings').emit('clients', Clients);
+			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 		});
 
 		socket.on('listener_reassign_relay', function(relayGroupId, oldDeviceId, deviceId) {
@@ -454,7 +443,7 @@ function initialSetup() {
 			io.to('settings').emit('clients', Clients);
 		});
 
-		socket.on('listener_delete', function(clientId) {
+		socket.on('listener_delete', function(clientId) { // emitted by the Settings page when an inactive client is being removed manually
 			for (let i = Clients.length - 1; i >= 0; i--) {
 				if (Clients[i].id === clientId) {
 					logger(`Inactive Client removed: ${Clients[i].id}`, 'info');
@@ -464,23 +453,17 @@ function initialSetup() {
 			io.to('settings').emit('clients', Clients);
 		});
 
-		socket.on('listener_log', function(logObj) {
-			//log the log object into the global log array
-		});
-
-		socket.on('disconnect', function() {
+		socket.on('disconnect', function() { // emitted when any listener clienet disconnects from the server
 			DeactivateClient(socket.id);
 		});
 	});
 	
-	//start up http server	
-	httpServer.listen(listenPort, function () {
+	httpServer.listen(listenPort, function () { // start up http server
 		logger(`Tally Arbiter running on port ${listenPort}`, 'info');
 	});
 }
 
-function logger(log, type) {
-	//logs the item to the console, to the log array, and sends the array to the settings page
+function logger(log, type) { //logs the item to the console, to the log array, and sends the log item to the settings page
 
 	let dtNow = new Date();
 
@@ -495,7 +478,7 @@ function logger(log, type) {
 			console.log(clc.black(`[${dtNow}]`) + '     ' + clc.green(log.text));
 			break;
 		default:
-			console.log(clc.black(`[${dtNow}]`) + '     ' + log);
+			console.log(clc.black(`[${dtNow}]`) + '     ' + util.inspect(log, {depth: null}));
 			break;
 	}
 	
@@ -508,8 +491,7 @@ function logger(log, type) {
 	io.to('settings').emit('log_item', logObj);
 }
 
-//loads the JSON data from the config file to memory
-function loadConfig() {
+function loadConfig() { // loads the JSON data from the config file to memory
 	try {
 		let rawdata = fs.readFileSync(config_file);
 		let configJson = JSON.parse(rawdata); 
@@ -593,9 +575,10 @@ function loadConfig() {
 	initializeDeviceStates();
 }
 
-function initializeDeviceStates() {
+function initializeDeviceStates() { // initializes each device state in the array upon server startup
 	let busId_preview = null;
 	let busId_program = null;
+	let busId_previewprogram = null;
 
 	for (let i = 0; i < bus_options.length; i++) {
 		switch(bus_options[i].type) {
@@ -605,6 +588,8 @@ function initializeDeviceStates() {
 			case 'program':
 				busId_program = bus_options[i].id;
 				break;
+			case 'previewprogram':
+				busId_previewprogram = bus_options[i].id;
 			default:
 				break;
 		}
@@ -622,6 +607,12 @@ function initializeDeviceStates() {
 		deviceStateObj_program.busId = busId_program;
 		deviceStateObj_program.sources = [];
 		device_states.push(deviceStateObj_program);
+
+		let deviceStateObj_previewprogram = {};
+		deviceStateObj_previewprogram.deviceId = devices[i].id;
+		deviceStateObj_previewprogram.busId = busId_previewprogram;
+		deviceStateObj_previewprogram.sources = [];
+		device_states.push(deviceStateObj_previewprogram);
 	}
 }
 
@@ -1057,23 +1048,17 @@ function SetUpVMixServer(sourceId) {
 				});
 
 				source_connections[i].server.on('data', function (data) {
-					//console.log(data);
-							
 					data = data
 					.toString()
 					.split(/\r?\n/);
 
 					tallyData = data.filter(text => text.startsWith('TALLY OK'));
 
-					console.log('tally data');
-					console.log(tallyData);
-					console.log(tallyData[0]);
-
 					if (tallyData.length > 0) {
 						for (let j = 9; j < tallyData[0].length; j++) {
 							let address = j-9+1;
 							let value = tallyData[0].charAt(j);
-							console.log('value' + value);
+
 							//build an object like the TSL module creates so we can use the same function to process it
 							let tallyObj = {};
 							tallyObj.address = address.toString();
@@ -1083,7 +1068,6 @@ function SetUpVMixServer(sourceId) {
 							tallyObj.tally3 = 0;
 							tallyObj.tally4 = 0;
 							tallyObj.label = `Input ${address}`;
-							console.log(tallyObj);
 							processTSLTally(sourceId, tallyObj);
 						}
 					}
@@ -1204,6 +1188,7 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 
 	let busId_preview = null;
 	let busId_program = null;
+	let busId_previewprogram = null;
 
 	for (let i = 0; i < bus_options.length; i++) {
 		switch(bus_options[i].type) {
@@ -1213,6 +1198,9 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 			case 'program':
 				busId_program = bus_options[i].id;
 				break;
+			case 'previewprogram':
+				busId_previewprogram = bus_options[i].id;
+				break;
 			default:
 				break;
 		}
@@ -1220,6 +1208,9 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 
 	if (deviceId !== null) {
 		//do something with the device given the current state
+
+		let inPreview = false;
+		let inProgram = false;
 
 		for (let i = 0; i < device_states.length; i++) {
 			if (device_states[i].deviceId === deviceId) {
@@ -1229,13 +1220,18 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 						if (!tallyObj.tally1) {
 							//remove it, it's no longer in preview on that source
 							device_states[i].sources.splice(device_states[i].sources.indexOf(sourceId));
+							inPreview = false;
+						}
+						else {
+							inPreview = true;
 						}
 					}
 					else {
-						//if the device is currently not marked as in preview, let's check and see if we shuold include it
+						//if the device is currently not marked as in preview, let's check and see if we should include it
 						if (tallyObj.tally1) {
-							//add it, it's not in preview on this source
+							//add it, it's not already in preview on this source
 							device_states[i].sources.push(sourceId);
+							inPreview = true;
 						}
 					}
 				}
@@ -1246,12 +1242,38 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 						if (!tallyObj.tally2) {
 							//remove it, it's no longer in program on that source
 							device_states[i].sources.splice(device_states[i].sources.indexOf(sourceId));
+							inProgram = false;
+						}
+						else {
+							inProgram = true;
 						}
 					}
 					else {
-						//if the device is currently not marked as in program, let's check and see if we shuold include it
+						//if the device is currently not marked as in program, let's check and see if we should include it
 						if (tallyObj.tally2) {
-							//add it, it's not in program on this source
+							//add it, it's not already in program on this source
+							device_states[i].sources.push(sourceId);
+							inProgram = true;
+						}
+					}
+				}
+			}
+		}
+
+		for (let i = 0; i < device_states.length; i++) {
+			if (device_states[i].deviceId === deviceId) {
+				if (device_states[i].busId === busId_previewprogram) {
+					if (device_states[i].sources.includes(sourceId)) {
+						//if the device is currently marked as in preview+program, let's check and see if we should remove it
+						if ((!inPreview) && (!inProgram)) {
+							//remove it, it's no longer in preview+program on that source
+							device_states[i].sources.splice(device_states[i].sources.indexOf(sourceId));
+						}
+					}
+					else {
+						//if the device is currently not marked as in preview, let's check and see if we should include it
+						if ((inPreview) && (inProgram)) {
+							//add it, it's not already in preview on this source
 							device_states[i].sources.push(sourceId);
 						}
 					}
@@ -1267,6 +1289,7 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 function UpdateDeviceState(deviceId) {
 	let busId_preview = null;
 	let busId_program = null;
+	let busId_previewprogram = null;
 
 	for (let i = 0; i < bus_options.length; i++) {
 		switch(bus_options[i].type) {
@@ -1276,10 +1299,16 @@ function UpdateDeviceState(deviceId) {
 			case 'program':
 				busId_program = bus_options[i].id;
 				break;
+			case 'previewprogram':
+				busId_previewprogram = bus_options[i].id;
+				break;
 			default:
 				break;
 		}
 	}
+
+	let inPreview = null;
+	let inProgram = null;
 
 	for (let i = 0; i < device_states.length; i++) {
 		if (device_states[i].deviceId === deviceId) {
@@ -1290,7 +1319,7 @@ function UpdateDeviceState(deviceId) {
 					device_states[i].active = true;
 				}
 				else if ((device_states[i].sources.length < 1) && (device_states[i].active)) {
-					//if the source list is now zereo and the state is marked active, run the action and make it inactive
+					//if the source list is now zero and the state is marked active, run the action and make it inactive
 					RunAction(deviceId, device_states[i].busId, false);
 					device_states[i].active = false;
 				}
@@ -1302,7 +1331,19 @@ function UpdateDeviceState(deviceId) {
 					device_states[i].active = true;
 				}
 				else if ((device_states[i].sources.length < 1) && (device_states[i].active)) {
-					//if the source list is now zereo and the state is marked active, run the action and make it inactive
+					//if the source list is now zero and the state is marked active, run the action and make it inactive
+					RunAction(deviceId, device_states[i].busId, false);
+					device_states[i].active = false;
+				}
+			}
+			else if (device_states[i].busId === busId_previewprogram) {
+				if ((device_states[i].sources.length > 0) && (!device_states[i].active)) {
+					//if the sources list is now greater than zero and the state is not already marked active for this device, run the action and make it active
+					RunAction(deviceId, device_states[i].busId, true);
+					device_states[i].active = true;
+				}
+				else if ((device_states[i].sources.length < 1) && (device_states[i].active)) {
+					//if the source list is now zero and the state is marked active, run the action and make it inactive
 					RunAction(deviceId, device_states[i].busId, false);
 					device_states[i].active = false;
 				}
@@ -1951,14 +1992,19 @@ function DeleteInactiveClients() {
 		io.to('settings').emit('clients', Clients);
 	}
 
-	setTimeout(DeleteInactiveClients, 60 * 1000); // runs every minute
+	setTimeout(DeleteInactiveClients, 5 * 1000); // runs every 5 minutes
 }
 
 function FlashClient(clientId) {
 	let clientObj = Clients.find( ({ id }) => id === clientId);
 
 	if (clientObj) {
-		io.to(clientObj.socketId).emit('flash');
+		if (clientObj.relayGroupId) {
+			io.to(clientObj.socketId).emit('flash', Clients[i].relayGroupId);
+		}
+		else {
+			io.to(clientObj.socketId).emit('flash');
+		}
 		return {result: 'flash-sent-successfully', cliendId: clientId};
 	}
 	else {
