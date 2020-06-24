@@ -7,8 +7,6 @@
 	<style type='text/css'>
 		* {
 			margin: 0;
-			/*padding: 5px;
-			box-sizing: border-box;*/
 		}
 
 		html {
@@ -18,7 +16,7 @@
 			
 		body {
 			font-family: Avenir, Helvetica, Arial;
-			background: #464646; 
+			background: #aaaaaa; 
 			color: #414141;
 		}
 		
@@ -78,18 +76,6 @@
 		.select-css option {
 			font-weight:normal;
 		}
-
-		#divLogo {
-			opacity: 0;
-			transition: opacity 0.5s linear;
-			display: none;
-			position: absolute;
-			top: 50%;
-			left: 50%;
-			margin-right: -50%;
-			transform: translate(-50%, -50%);
-			justify-content: center;
-		}
 		
 		.imgLogo {
 			margin: auto;
@@ -100,10 +86,25 @@
 		
 		#divTally {
 			display: none;
-			text-align: center;
-			transition: color .5s ease 0s, opacity 0.5s linear;
-			font-size: 12vmin;
 			width: 100%;
+			height: 100%;
+		}
+
+		.tallyDeviceTitle {
+			text-align: center;
+			color: #eeeeee;
+			font-size: 5vmin;
+			font-weight: bold;
+			width: 100%;
+			display: block;
+		}
+
+		.tallyDeviceDescription {
+			text-align: center;
+			color: #aaaaaa;
+			font-size: 4vmin;
+			width: 100%;
+			display: block;
 		}
 
 		.flash {
@@ -127,9 +128,9 @@
 	<script>
 	var socket = null;
 	var Devices = [];
-	var selectedDeviceID = null;
+	var selectedDeviceId = null;
 
-	//var noSleep = new NoSleep();
+	var noSleep = new NoSleep();
 	var KeepAwake = true;
 
 	var device_states = [];
@@ -141,17 +142,19 @@
 		socket = io.connect();
 
 		socket.on('connect', function() {
-			// Connected, let's sign-up for to receive messages for this room
+			//connected, let's get some data
 			socket.emit('devices');
 			socket.emit('bus_options');
 		});
 
 		socket.on('devices', function(deviceArray) {
+			//Returns a list of available Devices for the dropdown list
 			Devices = deviceArray;
 			updateDeviceList();
 		});
 
 		socket.on('bus_options', function(busOptionsArray) {
+			//Returns a list of available bus options (preview, program, etc.)
 			Bus_Options = busOptionsArray;
 		});
 		
@@ -162,6 +165,7 @@
 		});
 		
 		socket.on('flash', function() {
+			//flashes the screen to get the user's attention
 			document.body.className = 'flash';
 			setTimeout(function () {
 				document.body.classList.remove('flash');
@@ -169,11 +173,13 @@
 		});
 
 		socket.on('reassign', function(oldDeviceId, deviceId) {
-			console.log('Reassigning to Device: ' + deviceId);
+			//processes a reassign request that comes from the Settings GUI and relays the command so it originates from this socket
 			socket.emit('listener_reassign', oldDeviceId, deviceId);
+			selectedDeviceId = deviceId;
+			updateTallyInfo();
 		});
 
-		//KeepScreenAwake(true);
+		KeepScreenAwake(true); //keeps the phone from falling asleep
 	}
 
 	function updateDeviceList() {
@@ -212,17 +218,23 @@
 		}
 	}
 
-	function selectDevice(deviceID) {
-		socket.emit('device_listen', deviceID, 'web');
-		selectedDeviceID = deviceID;
+	function selectDevice(deviceId) {
+		socket.emit('device_listen', deviceId, 'web');
+		selectedDeviceId = deviceId;
 		document.getElementById('divSelectDevice').style.display = 'none';
+		updateTallyInfo();
 	}
 
 	function getBusTypeById(busId) {
 		//gets the bus type (preview/program) by the bus id
 		let bus = Bus_Options.find( ({ id }) => id === busId);
-
 		return bus.type;
+	}
+
+	function getDeviceById(deviceId) {
+		//gets the device by the id
+		let device = Devices.find( ({ id }) => id === deviceId);
+		return device;
 	}
 
 	function ProcessTallyData() {
@@ -263,6 +275,24 @@
 		}
 	}
 
+	function updateTallyInfo() {
+		let deviceObj = getDeviceById(selectedDeviceId);
+		let divTally = document.getElementById('divTally');
+
+		let spanTitle = document.createElement('span');
+		spanTitle.innerHTML = deviceObj.name;
+		spanTitle.className = 'tallyDeviceTitle';
+
+		let spanDescription = document.createElement('span');
+		spanDescription.innerHTML = deviceObj.description;
+		spanDescription.className = 'tallyDeviceDescription';
+
+		divTally.innerHTML = '';
+		divTally.appendChild(spanTitle);
+		divTally.appendChild(spanDescription);
+		divTally.style.display = 'block';
+	}
+
 	function KeepScreenAwake(value) { //keeps the phone screen on if true by using the NoSleep library - playing a dummy video in the background
 		KeepAwake = value;
 
@@ -278,7 +308,9 @@
 <body onLoad='onLoad();'>
 	<div id='container'>
 		<div id='divSelectDevice'>
-				<div id='divLogo'></div>
+				<div id='divLogo'>
+					<img src='logo.png' class='imgLogo' />
+				</div>
 				<div id='divSelect'><select id='selDeviceList' class='select-css'>
 					<option>Choose device</option>
 					</select></div>

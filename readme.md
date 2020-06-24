@@ -5,7 +5,7 @@ It is not sold, authorized, or associated with any other company or product.
 
 To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
 
-Tally Arbiter allows you to combine incoming tally data from multiple sources and arbitrate the bus state across all sources so that devices like cameras can accurately reflect tally data coming from multiple locations without each device having to be connected to all sources simulatenously. It supports incoming data from mulitple source types, such as TSL UMD 3.1, Blackmagic ATEM, webhooks, and even local GPIO pins if running on a Raspberry Pi.
+Tally Arbiter allows you to combine incoming tally data from multiple sources and arbitrate the bus state across all sources so that devices like cameras can accurately reflect tally data coming from multiple locations without each device having to be connected to all sources simulatenously. It supports incoming data from mulitple source types, such as TSL UMD 3.1, Blackmagic ATEM, OBS Studio, VMix, etc.
 
 # Running the software
 The software is written in Node.js and is therefore cross-platform and can be run on MacOS, Linux, or Windows.
@@ -17,14 +17,17 @@ The software is written in Node.js and is therefore cross-platform and can be ru
 1. If this folder does not contain the `config.json` file, a new one will be created the next time you use the API or the Settings page.
 
 **RUNNING DIRECTLY WITHIN NODE:**
-1. Install `node` if not already installed. <https://nodejs.org/en/download/>
+1. Install Node.js if not already installed. <https://nodejs.org/en/download/>
 1. Download the Tally Arbiter source code.
 1. Open a terminal window and change directory to the folder where you placed the source code.
+1. Type `npm install` to install all necessary libraries.
 1. Type `node index.js` within the this folder.
 1. If this folder does not contain the `config.json` file, a new one will be created the next time you use the API or the Settings page.
 
 **RUNNING AS A SERVICE:**
+1. Install Node.js if not already installed.
 1. Open a terminal window and change directory to the folder where you placed the source code.
+1. Type `npm install` to install all necessary libraries.
 1. Install the Node.js library, `pm2`, by typing `npm install -g pm2`. This will install it globally on your system.
 1. After `pm2` is installed, type `pm2 start index.js --name TallyArbiter` to daemonize it as a service.
 1. If you would like it to start automatically upon bootup, type `pm2 startup` and follow the instructions on-screen.
@@ -61,7 +64,6 @@ The following output types are supported:
 * TSL 3.1 UDP/TCP
 * Outgoing Webhook
 * Local Console Output/Logging (useful for testing)
-* Local GPIO (coming soon - Raspberry Pi models only)
 
 # Remote Tally Viewing (Listener Clients)
 In addition to the multiple output action types that can be used to trigger any number of remote devices for a tally state, Tally Arbiter also supports "listeners", devices and software that open websocket connections to the Tally Arbiter server and can receive data in real time to utilize tally information.
@@ -109,7 +111,7 @@ The Web GUI is the most complete way to interact with the software, however the 
 * `/device_actions`: The actions (outputs) for each Device depending on the Bus conditions that are met.
 * `/device_states`: The current tally data for all Devices.
 * `/clients`: The Listener Clients currently connected to the server.
-* `/flash/[cliendId]`: Flash a Listener Client. `[clientId]` is the id of the Listener Client.
+* `/flash/[clientId]`: Flash a Listener Client. `[clientId]` is the id of the Listener Client.
 * `/version` will retrieve the version of the software, based on the information specified in `package.json`.
 * `/manage`: POST with JSON, used to manage (add, edit, delete) all Sources, Devices, Device Sources, and Device Actions. Each request object must include the following:
 	* `action`: `add`, `edit`, or `delete`

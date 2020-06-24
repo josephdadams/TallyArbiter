@@ -20,12 +20,19 @@
 		align-items: center;
 	}
 	
-	#divContainer_Sources, #divContainer_SourceFields, #divContainer_Devices, #divContainer_DeviceFields, #divContainer_DeviceSources, #divContainer_DeviceSourceFields, #divContainer_DeviceActions, #divContainer_DeviceActionFields, #divContainer_Listeners, #divContainer_Logs {
+	#divContainer_Sources, #divContainer_SourceFields, #divContainer_Devices, #divContainer_DeviceFields, #divContainer_DeviceSources, #divContainer_DeviceSourceFields, #divContainer_DeviceActions, #divContainer_DeviceActionFields, #divContainer_Listeners {
 		background: #ffffff;
-		width: 200x;
 		padding: 5px;
 		float: left;
 		margin: 5px;
+	}
+
+	#divContainer_Logs {
+		background: #ffffff;
+		width: 600px;
+		padding: 5px;
+		display: block;
+		margin-top: 250px;
 	}
 
 	#divContainer_SourceFields, #divContainer_DeviceFields, #divContainer_DeviceSources, #divContainer_DeviceSourceFields, #divContainer_DeviceActions, #divContainer_DeviceActionFields, #divContainer_Listeners {
@@ -411,7 +418,7 @@
 				let trClientItem = document.createElement('tr');
 
 				let tdIPAddress = document.createElement('td');
-				tdIPAddress.innerHTML = Clients[i].ipAddress;
+				tdIPAddress.innerHTML = Clients[i].ipAddress.replace('::ffff:', '');
 				trClientItem.appendChild(tdIPAddress);
 
 				let tdListenerType = document.createElement('td');
