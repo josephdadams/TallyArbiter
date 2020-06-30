@@ -5,29 +5,22 @@ It is not sold, authorized, or associated with any other company or product.
 
 To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
 
-Tally Arbiter allows you to combine incoming tally data from multiple sources and arbitrate the bus state across all sources so that devices like cameras can accurately reflect tally data coming from multiple locations without each device having to be connected to all sources simulatenously. It supports incoming data from mulitple source types, such as TSL UMD 3.1, Blackmagic ATEM, OBS Studio, VMix, etc.
+Tally Arbiter is software that allows you to combine incoming tally data from multiple sources such as TSL UMD 3.1, Blackmagic ATEM, OBS Studio, VMix, Roland Smart Tally, etc. and arbitrate the bus state across all of the sources so that devices like cameras can accurately reflect tally data coming from those multiple locations without each device having to be connected to all sources simultaneously.
 
 # Running the software
 The software is written in Node.js and is therefore cross-platform and can be run on MacOS, Linux, or Windows.
-
-**RUNNING THIS SOFTWARE FROM BINARY:**
-1. Download a binary release from <https://github.com/josephdadams/tallyarbiter/releases> for your OS.
-1. Open a terminal window and change directory to the folder where you placed the binary release.
-1. Run the executable from this folder.
-1. If this folder does not contain the `config.json` file, a new one will be created the next time you use the API or the Settings page.
 
 **RUNNING DIRECTLY WITHIN NODE:**
 1. Install Node.js if not already installed. <https://nodejs.org/en/download/>
 1. Download the Tally Arbiter source code.
 1. Open a terminal window and change directory to the folder where you placed the source code.
-1. Type `npm install` to install all necessary libraries.
-1. Type `node index.js` within the this folder.
-1. If this folder does not contain the `config.json` file, a new one will be created the next time you use the API or the Settings page.
+1. Type `npm install` to install all of the necessary libraries.
+1. Type `node index.js` within this folder to run the program. *If this folder does not contain a `config.json` configuration file, a new one will be created the next time you use the API or the Settings page.*
 
 **RUNNING AS A SERVICE:**
 1. Install Node.js if not already installed.
 1. Open a terminal window and change directory to the folder where you placed the source code.
-1. Type `npm install` to install all necessary libraries.
+1. Type `npm install` to install all of the necessary libraries.
 1. Install the Node.js library, `pm2`, by typing `npm install -g pm2`. This will install it globally on your system.
 1. After `pm2` is installed, type `pm2 start index.js --name TallyArbiter` to daemonize it as a service.
 1. If you would like it to start automatically upon bootup, type `pm2 startup` and follow the instructions on-screen.
@@ -40,7 +33,7 @@ Upon startup, the program will enumerate through all stored incoming tally conne
 # Configuration
 Once running, a web interface is available to view tally sources, devices, and other information at `/settings`: <http://127.0.0.1:4455/settings>
 
-Use of the software consists of the following:
+Tally Arbiter consists of the following sections:
 
 ## Sources
 Sources represent all of the tally data that is generated. This is usually your video switcher or mixing software. Multiple sources can be added and they can all be different types.
@@ -88,10 +81,6 @@ Run the script:
 * `[server]` is the IP address of the Tally Arbiter server.
 * `[port]` is the Port of the Tally Arbiter server (usually `4455`)
 * `[deviceId]` is the deviceId of the Device (camera, etc.) that you want to follow. If you leave this blank, it will automatically select the first Device found on the server. You can reassign it if needed.
-
-If running MacOS or Linux, you can also `chmod` the script to make it an executable:
-* `chmod a+x tallyarbiter.py`
-* `./tallyarbiter_client.py [server] [port] [deviceId]`
 
 A constant blinking white light on the blink(1) USB device means the Listener is attempting to connect to the Tally Arbiter server. The same light will flash white when it is reassigned.
 
