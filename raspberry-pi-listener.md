@@ -2,8 +2,6 @@
 
 The listener client uses a blink(1) device available from Thingm.
 
-[picture]
-
 It is written in Python and designed to run on a Pi Zero with minimal configuration needed. It uses the `python-socketio[client]` library to communicate with the Tally Arbiter server.
 
 ## Getting Started

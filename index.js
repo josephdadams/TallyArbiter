@@ -51,10 +51,6 @@ var source_types_datafields = [ //data fields for the tally source types
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
 		]
 	},
-	{ sourceTypeId: 'cf51e3c9', fields: [ //Incoming Webhook
-			{ fieldName: 'path', fieldLabel: 'Webhook path', fieldType: 'text' }
-		]
-	},
 	{ sourceTypeId: '4eb73542', fields: [ // OBS Studio
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' },
@@ -62,11 +58,15 @@ var source_types_datafields = [ //data fields for the tally source types
 		]
 	},
 	{ sourceTypeId: '58b6af42', fields: [ // VMix
-		{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
-	]
-},
+			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
+		]
+	},
 	{ sourceTypeId: '4a58f00f', fields: [ // Roland Smart Tally
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
+		]
+	},
+	{ sourceTypeId: 'cf51e3c9', fields: [ //Incoming Webhook
+			{ fieldName: 'path', fieldLabel: 'Webhook path', fieldType: 'text' }
 		]
 	}
 ];
@@ -453,7 +453,7 @@ function initialSetup() {
 			io.to('settings').emit('clients', Clients);
 		});
 
-		socket.on('disconnect', function() { // emitted when any listener clienet disconnects from the server
+		socket.on('disconnect', function() { // emitted when any listener client disconnects from the server
 			DeactivateClient(socket.id);
 		});
 	});
@@ -511,7 +511,7 @@ function loadConfig() { // loads the JSON data from the config file to memory
 		}
 		else {
 			devices = [];
-			logger('Tally Arbitere Devices could not be loaded.', 'error');
+			logger('Tally Arbiter Devices could not be loaded.', 'error');
 		}
 		
 		if (configJson.device_sources) {
@@ -1918,6 +1918,11 @@ function TallyArbiter_Delete_Device_Action(obj) {
 function GetSourceBySourceId(sourceId) {
 	//gets the Source object by id
 	return sources.find( ({ id }) => id === sourceId);
+}
+
+function GetSourceTypeBySourceTypeId(sourceTypeId) {
+	//gets the Source Type object by id
+	return source_types.find( ({ id }) => id === sourceTypeId);
 }
 
 function GetBusByBusId(busId) {
