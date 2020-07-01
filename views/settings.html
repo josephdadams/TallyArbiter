@@ -109,7 +109,7 @@
 		socket.on('device_states', function(data) {
 			//process the data received and determine if it's in preview or program and color the screen accordingly
 			device_states = data;
-			loadDevices();
+			loadDeviceStates();
 		});
 
 		socket.on('sources', function(srcs) {
@@ -130,7 +130,7 @@
 
 		socket.on('log_item', function(logObj) {
 			Logs.push(logObj);
-			loadLogs();
+			AddLog(logObj);
 		});
 	}
 	
@@ -271,18 +271,27 @@
 		let tableDevices = document.createElement('table');
 
 		let trHeader = document.createElement('tr');
-		let tdHeaderDeviceTallyStatus = document.createElement('td');
-		tdHeaderDeviceTallyStatus.innerHTML = '&nbsp;';
-		trHeader.appendChild(tdHeaderDeviceTallyStatus);
+
+		let tdHeaderDeviceTallyStatus_PVW = document.createElement('td');
+		tdHeaderDeviceTallyStatus_PVW.innerHTML = 'PVW';
+		trHeader.appendChild(tdHeaderDeviceTallyStatus_PVW);
+
+		let tdHeaderDeviceTallyStatus_PGM = document.createElement('td');
+		tdHeaderDeviceTallyStatus_PGM.innerHTML = 'PGM';
+		trHeader.appendChild(tdHeaderDeviceTallyStatus_PGM);
+
 		let tdHeaderDeviceName = document.createElement('td');
 		tdHeaderDeviceName.innerHTML = '<b>Name</b>';
 		trHeader.appendChild(tdHeaderDeviceName);
+
 		let tdHeaderDeviceDescription = document.createElement('td');
 		tdHeaderDeviceDescription.innerHTML = '<b>Description</b>';
 		trHeader.appendChild(tdHeaderDeviceDescription);
+
 		let tdHeaderDeviceEdit = document.createElement('td');
 		tdHeaderDeviceEdit.innerHTML = '&nbsp;';
 		trHeader.appendChild(tdHeaderDeviceEdit);
+
 		tableDevices.appendChild(trHeader);
 
 		for (let i = 0; i < devices.length; i++) {
@@ -310,22 +319,19 @@
 				}
 			}
 
-			let tdDeviceTallyStatus = document.createElement('td');
-			let tableDeviceTally = document.createElement('table');
-			let trDeviceTally = document.createElement('tr');
-			let tdDeviceTally_Preview = document.createElement('td');
+			let tdDeviceTallyStatus_PVW = document.createElement('td');
+			tdDeviceTallyStatus_PVW.id = 'td_tallyPVW_' + devices[i].id;
 			let imgDeviceTally_Preview = document.createElement('img');
 			imgDeviceTally_Preview.src = ((mode_preview) ? 'green' : 'white') + '.png';
-			tdDeviceTally_Preview.appendChild(imgDeviceTally_Preview);
-			tableDeviceTally.appendChild(tdDeviceTally_Preview);
-			let tdDeviceTally_Program = document.createElement('td');
+			tdDeviceTallyStatus_PVW.appendChild(imgDeviceTally_Preview);
+			trDeviceItem.appendChild(tdDeviceTallyStatus_PVW);
+
+			let tdDeviceTallyStatus_PGM = document.createElement('td');
+			tdDeviceTallyStatus_PGM.id = 'td_tallyPGM_' + devices[i].id;
 			let imgDeviceTally_Program = document.createElement('img');
 			imgDeviceTally_Program.src = ((mode_program) ? 'red' : 'white') + '.png';
-			tdDeviceTally_Preview.appendChild(imgDeviceTally_Program);
-			tableDeviceTally.appendChild(tdDeviceTally_Program);
-			tableDeviceTally.appendChild(trDeviceTally);
-			tdDeviceTallyStatus.appendChild(tableDeviceTally);
-			trDeviceItem.appendChild(tdDeviceTallyStatus);
+			tdDeviceTallyStatus_PGM.appendChild(imgDeviceTally_Program);
+			trDeviceItem.appendChild(tdDeviceTallyStatus_PGM);
 
 			let tdDeviceName = document.createElement('td');
 			tdDeviceName.innerHTML = devices[i].name;
@@ -381,6 +387,48 @@
 			let spanNoDevices = document.createElement('span');
 			spanNoDevices.innerHTML = '(no devices configured)';
 			divDevices.appendChild(spanNoDevices);
+		}
+	}
+
+	function loadDeviceStates() {
+		for (let i = 0; i < devices.length; i++) {
+			let mode_preview = false;
+			let mode_program = false;
+
+			for (let j = 0; j < device_states.length; j++) {
+				if ((device_states[j].deviceId === devices[i].id) && (getBusById(device_states[j].busId).type === 'preview')) {
+					if (device_states[j].sources.length > 0) {
+						mode_preview = true;
+					}
+					else {
+						mode_preview = false;
+					}
+				}
+				else if ((device_states[j].deviceId === devices[i].id) && (getBusById(device_states[j].busId).type === 'program')) {
+					if (device_states[j].sources.length > 0) {
+						mode_program = true;
+					}
+					else {
+						mode_program = false;
+					}
+				}
+			}
+
+			let tdDeviceTallyStatus_PVW = document.getElementById('td_tallyPVW_' + devices[i].id);
+			if (tdDeviceTallyStatus_PVW) {
+				let imgDeviceTally_Preview = document.createElement('img');
+				imgDeviceTally_Preview.src = ((mode_preview) ? 'green' : 'white') + '.png';
+				tdDeviceTallyStatus_PVW.innerHTML = '';
+				tdDeviceTallyStatus_PVW.appendChild(imgDeviceTally_Preview);
+			}
+
+			let tdDeviceTallyStatus_PGM = document.getElementById('td_tallyPGM_' + devices[i].id);
+			if (tdDeviceTallyStatus_PGM) {
+				let imgDeviceTally_Program = document.createElement('img');
+				imgDeviceTally_Program.src = ((mode_program) ? 'red' : 'white') + '.png';
+				tdDeviceTallyStatus_PGM.innerHTML = '';
+				tdDeviceTallyStatus_PGM.appendChild(imgDeviceTally_Program);
+			}
 		}
 	}
 
@@ -508,6 +556,28 @@
 			}
 			divLogs.appendChild(spanLog);
 		}
+
+		divLogs.scrollTop = divLogs.scrollHeight;
+	}
+
+	function AddLog(logObj) {
+		let divContainer_Logs = $('#divContainer_Logs')[0];
+		let divLogs = $('#divLogs')[0];
+
+		let spanLog = document.createElement('span');
+		spanLog.innerHTML = `[${logObj.datetime}]  ${logObj.log}<br />`;
+		switch (logObj.type) {
+			case 'info':
+				spanLog.style.color = '#0000FF';
+				break;
+			case 'error':
+				spanLog.style.color = '#FF0000';
+				break;
+			case 'console_action':
+				spanLog.style.color = '#00FF00';
+				break;
+		}
+		divLogs.appendChild(spanLog);
 
 		divLogs.scrollTop = divLogs.scrollHeight;
 	}
