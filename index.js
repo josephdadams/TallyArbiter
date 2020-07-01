@@ -102,7 +102,10 @@ var output_types_datafields = [ //data fields for the outgoing actions
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' },
 			{ fieldName: 'address', fieldLabel: 'Address', fieldType: 'number' },
 			{ fieldName: 'label', fieldLabel: 'Label', fieldType: 'text' },
-			{ fieldName: 'tallynumber', fieldLabel: 'Tally Number', fieldType: 'dropdown', options: [ {id: '1', label: 'Tally 1 (PVW)'}, {id: '2', label: 'Tally 2 (PGM)'}, {id: '3', label: 'Tally 3'}, {id: '4', label: 'Tally 4'}, {id: 'off', label: 'Off'} ] }
+			{ fieldName: 'tally1', fieldLabel: 'Tally 1 (PVW)', fieldType: 'bool' },
+			{ fieldName: 'tally2', fieldLabel: 'Tally 2 (PGM)', fieldType: 'bool' },
+			{ fieldName: 'tally3', fieldLabel: 'Tally 3', fieldType: 'bool' },
+			{ fieldName: 'tally4', fieldLabel: 'Tally 4', fieldType: 'bool' }
 		]
 	},
 	{ outputTypeId: '276a8dcc', fields: [ //TSL 3.1 TCP
@@ -110,7 +113,10 @@ var output_types_datafields = [ //data fields for the outgoing actions
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' },
 			{ fieldName: 'address', fieldLabel: 'Address', fieldType: 'number' },
 			{ fieldName: 'label', fieldLabel: 'Label', fieldType: 'text' },
-			{ fieldName: 'tallynumber', fieldLabel: 'Tally Number', fieldType: 'dropdown', options: [ {id: '1', label: 'Tally 1 (PVW)'}, {id: '2', label: 'Tally 2 (PGM)'}, {id: '3', label: 'Tally 3'}, {id: '4', label: 'Tally 4'}, {id: 'off', label: 'Off'} ] }
+			{ fieldName: 'tally1', fieldLabel: 'Tally 1 (PVW)', fieldType: 'bool' },
+			{ fieldName: 'tally2', fieldLabel: 'Tally 2 (PGM)', fieldType: 'bool' },
+			{ fieldName: 'tally3', fieldLabel: 'Tally 3', fieldType: 'bool' },
+			{ fieldName: 'tally4', fieldLabel: 'Tally 4', fieldType: 'bool' }
 		]
 	},
 	{ outputTypeId: 'ffe2b0b6', fields: [ //Outgoing Webhook
@@ -147,8 +153,8 @@ if (isPi()) {
 
 const bus_options = [ // the busses available to monitor in Tally Arbiter
 	{ id: 'e393251c', label: 'Preview', type: 'preview'},
-	{ id: '334e4eda', label: 'Program', type: 'program'},
-	{ id: '12c8d698', label: 'Preview + Program', type: 'previewprogram'}
+	{ id: '334e4eda', label: 'Program', type: 'program'}
+	/* { id: '12c8d698', label: 'Preview + Program', type: 'previewprogram'}*/
 ]
 
 var sources 			= []; // the configured tally sources
@@ -469,6 +475,7 @@ function logger(log, type) { //logs the item to the console, to the log array, a
 
 	switch(type) {
 		case 'info':
+		case 'info-quiet':
 			console.log(clc.black(`[${dtNow}]`) + '     ' + clc.blue(log));
 			break;
 		case 'error':
@@ -482,13 +489,15 @@ function logger(log, type) { //logs the item to the console, to the log array, a
 			break;
 	}
 	
-	let logObj = {};
-	logObj.datetime = dtNow;
-	logObj.log = log;
-	logObj.type = type;
-	Logs.push(logObj);
+	if (type.indexOf('quiet') === -1) {
+		let logObj = {};
+		logObj.datetime = dtNow;
+		logObj.log = log;
+		logObj.type = type;
+		Logs.push(logObj);
 
-	io.to('settings').emit('log_item', logObj);
+		io.to('settings').emit('log_item', logObj);
+	}
 }
 
 function loadConfig() { // loads the JSON data from the config file to memory
@@ -578,7 +587,7 @@ function loadConfig() { // loads the JSON data from the config file to memory
 function initializeDeviceStates() { // initializes each device state in the array upon server startup
 	let busId_preview = null;
 	let busId_program = null;
-	let busId_previewprogram = null;
+	//let busId_previewprogram = null;
 
 	for (let i = 0; i < bus_options.length; i++) {
 		switch(bus_options[i].type) {
@@ -588,8 +597,9 @@ function initializeDeviceStates() { // initializes each device state in the arra
 			case 'program':
 				busId_program = bus_options[i].id;
 				break;
-			case 'previewprogram':
+			/*case 'previewprogram':
 				busId_previewprogram = bus_options[i].id;
+				break;*/
 			default:
 				break;
 		}
@@ -608,11 +618,11 @@ function initializeDeviceStates() { // initializes each device state in the arra
 		deviceStateObj_program.sources = [];
 		device_states.push(deviceStateObj_program);
 
-		let deviceStateObj_previewprogram = {};
+		/*let deviceStateObj_previewprogram = {};
 		deviceStateObj_previewprogram.deviceId = devices[i].id;
 		deviceStateObj_previewprogram.busId = busId_previewprogram;
 		deviceStateObj_previewprogram.sources = [];
-		device_states.push(deviceStateObj_previewprogram);
+		device_states.push(deviceStateObj_previewprogram);*/
 	}
 }
 
@@ -1188,7 +1198,7 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 
 	let busId_preview = null;
 	let busId_program = null;
-	let busId_previewprogram = null;
+	//let busId_previewprogram = null;
 
 	for (let i = 0; i < bus_options.length; i++) {
 		switch(bus_options[i].type) {
@@ -1198,9 +1208,9 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 			case 'program':
 				busId_program = bus_options[i].id;
 				break;
-			case 'previewprogram':
+			/*case 'previewprogram':
 				busId_previewprogram = bus_options[i].id;
-				break;
+				break;*/
 			default:
 				break;
 		}
@@ -1260,7 +1270,7 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 			}
 		}
 
-		for (let i = 0; i < device_states.length; i++) {
+		/*for (let i = 0; i < device_states.length; i++) {
 			if (device_states[i].deviceId === deviceId) {
 				if (device_states[i].busId === busId_previewprogram) {
 					if (device_states[i].sources.includes(sourceId)) {
@@ -1271,15 +1281,15 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 						}
 					}
 					else {
-						//if the device is currently not marked as in preview, let's check and see if we should include it
+						//if the device is currently not marked as in preview+program, let's check and see if we should include it
 						if ((inPreview) && (inProgram)) {
-							//add it, it's not already in preview on this source
+							//add it, it's not already in preview+program on this source
 							device_states[i].sources.push(sourceId);
 						}
 					}
 				}
 			}
-		}
+		}*/
 
 		UpdateDeviceState(deviceId);
 		io.to('settings').emit('device_states', device_states);
@@ -1289,7 +1299,7 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 function UpdateDeviceState(deviceId) {
 	let busId_preview = null;
 	let busId_program = null;
-	let busId_previewprogram = null;
+	//let busId_previewprogram = null;
 
 	for (let i = 0; i < bus_options.length; i++) {
 		switch(bus_options[i].type) {
@@ -1299,9 +1309,9 @@ function UpdateDeviceState(deviceId) {
 			case 'program':
 				busId_program = bus_options[i].id;
 				break;
-			case 'previewprogram':
+			/*case 'previewprogram':
 				busId_previewprogram = bus_options[i].id;
-				break;
+				break;*/
 			default:
 				break;
 		}
@@ -1336,7 +1346,7 @@ function UpdateDeviceState(deviceId) {
 					device_states[i].active = false;
 				}
 			}
-			else if (device_states[i].busId === busId_previewprogram) {
+			/*else if (device_states[i].busId === busId_previewprogram) {
 				if ((device_states[i].sources.length > 0) && (!device_states[i].active)) {
 					//if the sources list is now greater than zero and the state is not already marked active for this device, run the action and make it active
 					RunAction(deviceId, device_states[i].busId, true);
@@ -1347,7 +1357,7 @@ function UpdateDeviceState(deviceId) {
 					RunAction(deviceId, device_states[i].busId, false);
 					device_states[i].active = false;
 				}
-			}
+			}*/
 		}
 	}
 }
@@ -1358,15 +1368,16 @@ function RunAction(deviceId, busId, active) {
 	let deviceObj = GetDeviceByDeviceId(deviceId);
 
 	if (deviceObj.enabled === true) {
-		logger(`Running Actions for Device: ${deviceObj.name}`, 'info');
-		for (let i = 0; i < device_actions.length; i++) {
-			if (device_actions[i].deviceId === deviceId) {
-				if ((device_actions[i].busId === busId) && (device_actions[i].active === active)) {
-					actionObj = device_actions[i];
+		let filteredActions = device_actions.filter(obj => obj.deviceId === deviceId);
+		if (filteredActions.length > 0) {
+			logger(`Running Actions for Device: ${deviceObj.name}`, 'info');
+			for (let i = 0; i < filteredActions.length; i++) {
+				if ((filteredActions[i].busId === busId) && (filteredActions[i].active === active)) {
+					actionObj = filteredActions[i];
 					
 					let outputType = output_types.find( ({ id }) => id === actionObj.outputTypeId);
 	
-					logger(`Running action: ${outputType.type}  ${device_actions[i].id}`, 'info');
+					logger(`Running action: ${outputType.type}  ${filteredActions[i].id}`, 'info');
 	
 					switch(outputType.type) {
 						case 'tsl_31_udp':
@@ -1382,13 +1393,13 @@ function RunAction(deviceId, busId, active) {
 							RunAction_ProTally(actionObj.data);
 							break;
 						case 'gpio':
-							logger(`Device Action: ${device_actions[i].id}  Error: GPIO output type not supported at this time.`, 'error');
+							logger(`Device Action: ${filteredActions[i].id}  Error: GPIO output type not supported at this time.`, 'error');
 							break;
 						case 'console':
 							logger(actionObj.data, 'console_action');
 							break;
 						default:
-							logger(`Device Action: ${device_actions[i].id}  Error: Unsupported Output Type: ${outputType.type}`, 'error');
+							logger(`Device Action: ${filteredActions[i].id}  Error: Unsupported Output Type: ${outputType.type}`, 'error');
 							break;
 					}
 				}
@@ -1400,7 +1411,7 @@ function RunAction(deviceId, busId, active) {
 		logger(`Device: ${deviceObj.name} is not enabled, so no actions will be run.`, 'info');
 	}
 	
-	logger(`Sending device states to listeners for Device: ${deviceObj.id}`, 'info');
+	logger(`Sending device states for: ${deviceObj.id}`, 'info-quiet');
 	io.to('device-' + deviceId).emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 }
 
@@ -1410,24 +1421,20 @@ function RunAction_TSL_31_UDP(data) {
 		bufUMD[0] = 0x80 + parseInt(data.address);
 		bufUMD.write(data.label, 2);
 	
-		let bufTally = 0;
-	
-		if (data.tallynumber == '1') {
-			bufTally = 0x31;
+		let bufTally = 0x30;
+		
+		if (data.tally1) {
+			bufTally |= 1;
 		}
-		else if (data.tallynumber == '2') {
-			bufTally = 0x32;
+		if (data.tally2) {
+			bufTally |= 2;
 		}
-		else if (data.tallynumber == '3') {
-			bufTally = 0x34;
+		if (data.tally3) {
+			bufTally |= 4;
 		}
-		else if (data.tallynumber == '4') {
-			bufTally = 0x38;
+		if (data.tally4) {
+			bufTally |= 8;
 		}
-		else {
-			bufTally = 0x30;
-		}
-	
 		bufUMD[1] = bufTally;
 	
 		let client = dgram.createSocket('udp4');
@@ -1452,26 +1459,22 @@ function RunAction_TSL_31_TCP(data) {
 		bufUMD[0] = 0x80 + parseInt(data.address); //Address + 0x80
 		bufUMD.write(data.label, 2);
 	
-		let bufTally = 0;
-	
-		if (data.tallynumber == '1') {
-			bufTally = 0x31;
+		let bufTally = 0x30;
+		
+		if (data.tally1) {
+			bufTally |= 1;
 		}
-		else if (data.tallynumber == '2') {
-			bufTally = 0x32;
+		if (data.tally2) {
+			bufTally |= 2;
 		}
-		else if (data.tallynumber == '3') {
-			bufTally = 0x34;
+		if (data.tally3) {
+			bufTally |= 4;
 		}
-		else if (data.tallynumber == '4') {
-			bufTally = 0x38;
+		if (data.tally4) {
+			bufTally |= 8;
 		}
-		else {
-			bufTally = 0x30;
-		}
-	
 		bufUMD[1] = bufTally;
-	
+		
 		let client = new net.Socket();
 		client.connect(data.port, data.ip, function() {
 			client.write(bufUMD);
