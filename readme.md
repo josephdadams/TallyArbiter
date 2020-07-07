@@ -44,19 +44,59 @@ The following source types are supported:
 * OBS Studio
 * StudioCoast VMix
 * Roland Smart Tally
+* Open Sound Control (OSC)
+
+### TSL 3.1 UDP/TCP
+Your switcher that uses this protocol must be configured to send the data to Tally Arbiter.
+
+### Blackmagic ATEM
+You will need the IP address of the ATEM. The ATEM can only have 5 simultaneous connections, so you may need to disconnect another connection in order for Tally Arbiter to connect to the ATEM.
+
+### OBS Studio
+The `obs-websockets` plugin must be installed and configured in order for Tally Arbiter to connect. You can get the plugin here: https://github.com/Palakis/obs-websocket/releases
+
+You will need to supply the IP address, port, and password configured in the OBS Websockets plugin.
+
+### StudioCoast VMix
+You will need the IP address of the computer running VMix.
+
+### Roland Smart Tally
+You will need the IP address of the Roland switcher.
+
+### Open Sound Control (OSC)
+Incoming OSC data can be used to trigger device tally states. Configure the port as desired.
+
+OSC paths must be one of the following:
+* `/tally/preview_on`: Puts the device in Preview mode.
+* `/tally/preview_off`: Turns off Preview mode for the device.
+* `/tally/program_on`: Puts the device in Program mode.
+* `/tally/program_off`: Turns off Program mode for the device.
+
+Send one argument of any type (integer, float, or string). If you send multiple arguments, they will be ignored.
 
 ## Devices
-Devices represent your inputs (like cameras) that you want to track with tally data. Devices can be assigned different addresses or inputs by each source.
+Devices represent your inputs (like cameras) that you want to track with tally data. Devices can be assigned different addresses or inputs by each source. In Tally Arbiter, you can create as many devices as you would like and give each one a helpful name and description.
 
-For example, a Camera can be connected to `Source 1` on `Input/Address 1`, but connected to `Source 2` on `Input/Address 2`. Tally Arbiter will track the tally data from each source and arbitrate whether the device is ultimately in preview or program (or both) by aggregating all of the source data together.
+### Device Sources
+In order to assciate tally data with a device, you must assign the source addresses to each device. These addresses can vary from source to source, so they must be manually assigned.
 
-## Device Actions
+For example, a Camera can be connected to a `Blackmagic ATEM` on `Input 1`, but connected to an `OBS Studio` on `Scene 2`. Tally Arbiter will track the tally data from each source and arbitrate whether the device is ultimately in preview or program (or both) by aggregating all of the source data together.
+
+To assign a Source to a Device, click "Device Sources" next to a Device in the list. Choose the enabled Source from the drop down list, type in the address, and click Add.
+
+#### A Note About Addresses
+The source address is typically the actual input number on the switcher. So, if your camera on your ATEM comes in on Input 5, just enter `5`. However, if you're using a source like OBS Studio, your address might be a string, like `Scene 2`.
+
+### Device Actions
 Once a device is assigned to a source(s), if a matching condition is met, an action can be performed. You can specify whether the action should be run when the device is entering a bus or leaving a bus, which is helpful for bus-specific actions like operating a relay. Multiple actions are supported per device and per bus (preview and program).
 
 The following output types are supported:
 * TSL 3.1 UDP/TCP
 * Outgoing Webhook
 * Local Console Output/Logging (useful for testing)
+* Open Sound Control (OSC) (multiple arguments supported)
+
+Device Actions can only be run once when the device state enters or exits that bus. This is to prevent actions from being run continuously if tally data is received in chunks. To run an action again, a device must change state on that specific bus (Preview or Program) before it can be run again.
 
 # Remote Tally Viewing (Listener Clients)
 In addition to the multiple output action types that can be used to trigger any number of remote devices for a tally state, Tally Arbiter also supports "listeners", devices and software that open websocket connections to the Tally Arbiter server and can receive data in real time to utilize tally information.
@@ -64,7 +104,10 @@ In addition to the multiple output action types that can be used to trigger any 
 All connected listener clients are tracked and listed in the Settings page. You can "flash" a particular listener by clicking the Flash button next to it in the list. This is useful if you need to get the operator's attention or determine which listener is which. You can also reassign the listener to receive tally information of another Device at any time using the Tally Arbiter interface.
 
 ## Using a web page for tally output
-Navigate to `/tally` of the Tally Arbiter server in your browser and select a Device from the list. As long as the page remains connected to the system, it will display tally data (Preview, Program, Preview+Program, Clear) in real time.
+Navigate to `/tally` on the Tally Arbiter server in your browser and select a Device from the list. As long as the page remains connected to the system, it will display tally data (Preview, Program, Preview+Program, Clear) in real time.
+
+## Viewing all tally data
+Navigate to `/producer` on the Tally Arbiter server in your browser to view all Devices and their current states. This information is also available in the Settings GUI but is displayed in a minimal fashion here for in-service viewing.
 
 ## Using a blink(1) for tally output
 Tally Arbiter also supports the use of a blink(1) device by running the included Python script, `tallyarbiter_listener.py`. Python was chosen over Node.js for the ease of installation and use on a Raspberry Pi. It is compatible with and was designed to run on a Raspberry Pi Zero, making this an inexpensive option for *wireless* tally output. However, it can be run on any OS/device that supports Python such as MacOS or Windows, which can be helpful if you want to use this with graphics or video playback operators, for example.

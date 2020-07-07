@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'/>
+	<meta name='viewport' content='width=device-width, initial-scale=1'>
+	<title>Tally Arbiter</title>
+	<style type='text/css'>
+		* {
+			margin: 0;
+		}
+
+		html {
+			-webkit-text-size-adjust: none;
+			text-size-adjust: none;
+		}
+			
+		body {
+			font-family: Avenir, Helvetica, Arial;
+			background: #1b1b2f; 
+			color: #eeeeee;
+		}
+
+		.logo {
+			display: flex;
+			align-items: center;
+		}
+		
+		.container {
+			position: relative;
+			/*margin: auto; */
+			display: table;
+			flex-flow: row wrap;
+		}
+		
+		.imgLogo {
+			margin: auto;
+			display: block;
+			max-width: 50%;
+			max-height: 50%;
+		}
+		
+		#divDevices {
+			font-size: 3vmin;
+			background: #1f4068;
+			margin: auto;
+    		min-width: 100px;
+			float: left;
+		}
+
+		#divListeners {
+			border-left:#1b1b2f 5px solid;
+			padding: 10px;
+			font-size: 3vmin;
+			background: #1f4068;
+			margin: auto;
+			float: left;
+		}
+
+		.tallyDeviceTitle {
+			text-align: center;
+			color: #eeeeee;
+			font-size: 5vmin;
+			font-weight: bold;
+			width: 100%;
+			display: block;
+		}
+
+		.tallyDeviceDescription {
+			text-align: center;
+			color: #aaaaaa;
+			font-size: 4vmin;
+			width: 100%;
+			display: block;
+		}
+
+		.device_state_tally {
+			width: 50px;
+			height: 30px;
+		}
+
+		.device_state_tally_preview {
+			width: 50px;
+			height: 30px;
+			background: #3fe481;
+		}
+
+		.device_state_tally_program {
+			width: 50px;
+			height: 30px;
+			background: #e43f5a;
+		}
+</style>
+	<script src='/socket.io/socket.io.js'></script>
+	<script src='js/jquery/jquery.min.js'></script>
+	<script src='lib/nosleep.min.js'></script>
+	<script>
+	var socket = null;
+	var devices = [];
+	var Clients = [];
+
+	var noSleep = new NoSleep();
+	var KeepAwake = true;
+
+	var device_states = [];
+
+	var mode_preview = false;
+	var mode_program = false;
+
+	function onLoad() {
+		socket = io.connect();
+
+		socket.on('connect', function() {
+			//connected, let's get some data
+			socket.emit('producer');
+		});
+
+		socket.on('devices', function(deviceArray) {
+			//Returns a list of available Devices for the dropdown list
+			devices = deviceArray;
+			updateDeviceList();
+			loadListeners();
+		});
+
+		socket.on('bus_options', function(busOptionsArray) {
+			//Returns a list of available bus options (preview, program, etc.)
+			bus_options = busOptionsArray;
+		});
+
+		socket.on('clients', function(clients) {
+			Clients = clients;
+			loadListeners();
+		});
+		
+		socket.on('device_states', function(tallyDataArray) {
+			//process the data received and determine if it's in preview or program and color the screen accordingly
+			device_states = tallyDataArray;
+			loadDeviceStates();
+		});
+
+		KeepScreenAwake(true); //keeps the phone from falling asleep
+	}
+
+	function getBusById(busId) {
+		//gets the bus type (preview/program) by the bus id
+		return bus_options.find( ({ id }) => id === busId);
+	}
+
+	function getDeviceById(deviceId) {
+		//gets the device by the id
+		let device = Devices.find( ({ id }) => id === deviceId);
+		return device;
+	}
+
+	function GetListenersCount(deviceId) {
+		let j = 0;
+		for (let i = 0; i < Clients.length; i++) {
+			if ((Clients[i].deviceId === deviceId) && (Clients[i].inactive === false)) {
+				j++;
+			}
+		}
+
+		return j;
+	}
+
+	function updateDeviceList() {
+		let divDevices = $('#divDevices')[0];
+		divDevices.innerHTML = '';
+
+		let tableDevices = document.createElement('table');
+
+		let trHeader = document.createElement('tr');
+
+		let tdHeaderDeviceTallyStatus_PVW = document.createElement('td');
+		tdHeaderDeviceTallyStatus_PVW.innerHTML = 'PVW';
+		trHeader.appendChild(tdHeaderDeviceTallyStatus_PVW);
+
+		let tdHeaderDeviceTallyStatus_PGM = document.createElement('td');
+		tdHeaderDeviceTallyStatus_PGM.innerHTML = 'PGM';
+		trHeader.appendChild(tdHeaderDeviceTallyStatus_PGM);
+
+		let tdHeaderDeviceName = document.createElement('td');
+		tdHeaderDeviceName.innerHTML = '<b>Name</b>';
+		trHeader.appendChild(tdHeaderDeviceName);
+
+		let tdHeaderDeviceDescription = document.createElement('td');
+		tdHeaderDeviceDescription.innerHTML = '<b>Description</b>';
+		trHeader.appendChild(tdHeaderDeviceDescription);
+
+		let tdHeaderDeviceEdit = document.createElement('td');
+		tdHeaderDeviceEdit.innerHTML = '&nbsp;';
+		trHeader.appendChild(tdHeaderDeviceEdit);
+
+		tableDevices.appendChild(trHeader);
+
+		for (let i = 0; i < devices.length; i++) {
+			let trDeviceItem = document.createElement('tr');
+
+			let mode_preview = false;
+			let mode_program = false;
+
+			for (let j = 0; j < device_states.length; j++) {
+				if ((device_states[j].deviceId === devices[i].id) && (getBusById(device_states[j].busId).type === 'preview')) {
+					if (device_states[j].sources.length > 0) {
+						mode_preview = true;
+					}
+					else {
+						mode_preview = false;
+					}
+				}
+				else if ((device_states[j].deviceId === devices[i].id) && (getBusById(device_states[j].busId).type === 'program')) {
+					if (device_states[j].sources.length > 0) {
+						mode_program = true;
+					}
+					else {
+						mode_program = false;
+					}
+				}
+			}
+
+			let tdDeviceTallyStatus_PVW = document.createElement('td');
+			tdDeviceTallyStatus_PVW.id = 'td_tallyPVW_' + devices[i].id;
+			tdDeviceTallyStatus_PVW.className = 'device_state_tally';
+			if (mode_preview) {
+				tdDeviceTallyStatus_PVW.className = 'device_state_tally_preview';
+			}
+			trDeviceItem.appendChild(tdDeviceTallyStatus_PVW);
+
+			let tdDeviceTallyStatus_PGM = document.createElement('td');
+			tdDeviceTallyStatus_PGM.id = 'td_tallyPGM_' + devices[i].id;
+			tdDeviceTallyStatus_PGM.className = 'device_state_tally';
+			if (mode_program) {
+				tdDeviceTallyStatus_PGM.className = 'device_state_tally_program';
+			}
+			trDeviceItem.appendChild(tdDeviceTallyStatus_PGM);
+
+			let tdDeviceName = document.createElement('td');
+			tdDeviceName.innerHTML = devices[i].name;
+			if (devices[i].enabled === false) {
+				tdDeviceName.className = 'disabled';
+			}
+			trDeviceItem.appendChild(tdDeviceName);
+
+			let tdDeviceDescription = document.createElement('td');
+			tdDeviceDescription.innerHTML = devices[i].description;
+			if (devices[i].enabled === false) {
+				tdDeviceDescription.className = 'disabled';
+			}
+			trDeviceItem.appendChild(tdDeviceDescription);
+
+			let tdDeviceListeners = document.createElement('td');
+			let spanListeners = document.createElement('span');
+			let listenerCount = GetListenersCount(devices[i].id);
+			spanListeners.innerHTML = ((listenerCount > 0) ? listenerCount : '');
+			spanListeners.className = ((listenerCount > 0) ? 'listenercount' : '');
+			tdDeviceListeners.appendChild(spanListeners);
+			trDeviceItem.appendChild(tdDeviceListeners);
+
+			tableDevices.appendChild(trDeviceItem);
+		}
+
+		if (devices.length > 0) {
+			divDevices.appendChild(tableDevices);
+		}
+		else {
+			let spanNoDevices = document.createElement('span');
+			spanNoDevices.innerHTML = '(no devices configured)';
+			divDevices.appendChild(spanNoDevices);
+		}
+	}
+
+	function loadDeviceStates() {
+		for (let i = 0; i < devices.length; i++) {
+			let mode_preview = false;
+			let mode_program = false;
+
+			for (let j = 0; j < device_states.length; j++) {
+				if ((device_states[j].deviceId === devices[i].id) && (getBusById(device_states[j].busId).type === 'preview')) {
+					if (device_states[j].sources.length > 0) {
+						mode_preview = true;
+					}
+					else {
+						mode_preview = false;
+					}
+				}
+				else if ((device_states[j].deviceId === devices[i].id) && (getBusById(device_states[j].busId).type === 'program')) {
+					if (device_states[j].sources.length > 0) {
+						mode_program = true;
+					}
+					else {
+						mode_program = false;
+					}
+				}
+			}
+
+			let tdDeviceTallyStatus_PVW = document.getElementById('td_tallyPVW_' + devices[i].id);
+			if (tdDeviceTallyStatus_PVW) {
+				if (mode_preview) {
+					tdDeviceTallyStatus_PVW.className = 'device_state_tally_preview';
+				}
+				else {
+					tdDeviceTallyStatus_PVW.className = 'device_state_tally';
+				}
+			}
+
+			let tdDeviceTallyStatus_PGM = document.getElementById('td_tallyPGM_' + devices[i].id);
+			if (tdDeviceTallyStatus_PGM) {
+				if (mode_program) {
+					tdDeviceTallyStatus_PGM.className = 'device_state_tally_program';
+				}
+				else {
+					tdDeviceTallyStatus_PGM.className = 'device_state_tally';
+				}
+			}
+		}
+	}
+
+	function loadListeners() {
+		let divListeners = $('#divListeners')[0];
+
+		if (Clients.length > 0) {
+			divListeners.innerHTML = '';
+
+			let tableListeners = document.createElement('table');
+
+			let trHeader = document.createElement('tr');
+			let tdHeaderIPAddress = document.createElement('td');
+			tdHeaderIPAddress.innerHTML = '<b>IP</b>';
+			trHeader.appendChild(tdHeaderIPAddress);
+
+			let tdHeaderListenerType = document.createElement('td');
+			tdHeaderListenerType.innerHTML = '<b>Type</b>';
+			trHeader.appendChild(tdHeaderListenerType);
+
+			let tdHeaderDeviceName = document.createElement('td');
+			tdHeaderDeviceName.innerHTML = '<b>Device</b>';
+			trHeader.appendChild(tdHeaderDeviceName);
+
+			let tdHeaderButtons = document.createElement('td');
+			tdHeaderButtons.innerHTML = '&nbsp;';
+			trHeader.appendChild(tdHeaderButtons);
+
+			tableListeners.appendChild(trHeader);
+
+			for (let i = 0; i < Clients.length; i++) {
+				let trClientItem = document.createElement('tr');
+
+				let tdIPAddress = document.createElement('td');
+				tdIPAddress.innerHTML = Clients[i].ipAddress.replace('::ffff:', '');
+				trClientItem.appendChild(tdIPAddress);
+
+				let tdListenerType = document.createElement('td');
+				tdListenerType.innerHTML = Clients[i].listenerType;
+				trClientItem.appendChild(tdListenerType);
+
+				let tdDevice = document.createElement('td');
+				for (let j = 0; j < devices.length; j++) {
+					if (devices[j].id === Clients[i].deviceId) {
+						tdDevice.innerHTML = devices[j].name;
+						break;
+					}
+				}
+				trClientItem.appendChild(tdDevice);
+
+				let tdButtons = document.createElement('td');
+				if (Clients[i].inactive === false) {
+					let btnFlash = document.createElement('button');
+					btnFlash.innerHTML = 'Flash';
+					btnFlash.setAttribute('onclick', 'Listener_Flash(\'' + Clients[i].id + '\');');
+					tdButtons.appendChild(btnFlash);
+				}
+				trClientItem.appendChild(tdButtons);
+
+				tableListeners.appendChild(trClientItem);
+			}
+
+			divListeners.appendChild(tableListeners);
+		}
+		else {
+			divListeners.style.display = 'none';
+		}
+	}
+
+	function Listener_Flash(id) {
+		socket.emit('flash', id);
+	}
+
+
+	function KeepScreenAwake(value) { //keeps the phone screen on if true by using the NoSleep library - playing a dummy video in the background
+		KeepAwake = value;
+
+		if (value) {
+			noSleep.enable();
+		}
+		else {
+			noSleep.disable();
+		}
+	}
+	</script>
+</head>
+<body onLoad='onLoad();'>
+	<div id='logo'><a href='/'><img src='logo_white.png' height='60' /></a></div>
+	<div id='container'>
+		<div id='divDevices'></div>
+		<div id='divListeners'></div>
+	</div>
+</body>
+</html>

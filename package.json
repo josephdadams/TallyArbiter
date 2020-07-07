@@ -1,6 +1,6 @@
 {
     "name": "TallyArbiter",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Tally Arbiter is a Node.js server that is capable of listening/fetching tally data from multiple sources (and source types) and ultimately arbitrating whether a end device is considered to be in Preview or Program. Supports TSL 3.1, Blackmagic ATEM, OBS Studio, and StudioCoast VMix (currently). Tally output can be viewed on the server, on a web page, or using a listener script, with blink(1) devices on Raspberry Pi zeroes over wireless.",
     "keywords": [
         "util",
@@ -31,6 +31,7 @@
         "express": "^4.17.1",
         "jquery": "^3.5.1",
         "obs-websocket-js": "^4.0.1",
+        "osc": "^2.4.1",
         "packet": "0.0.6",
         "request": "^2.88.2",
         "socket.io": "^2.3.0",
