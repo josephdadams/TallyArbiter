@@ -19,6 +19,17 @@
 		display: flex;
 		align-items: center;
 	}
+
+	#version {
+		font-size:larger;
+	}
+
+	#divContainer_GettingStarted {
+		background: #ffffff;
+		padding: 5px;
+		display: block;
+		margin: 10px;
+	}
 	
 	#divContainer_Sources, #divContainer_SourceFields, #divContainer_Devices, #divContainer_DeviceFields, #divContainer_DeviceSources, #divContainer_DeviceSourceFields, #divContainer_DeviceActions, #divContainer_DeviceActionFields, #divContainer_Listeners {
 		background: #ffffff;
@@ -31,8 +42,16 @@
 		background: #ffffff;
 		width: 600px;
 		padding: 5px;
-		display: block;
-		margin-top: 250px;
+		float: left;
+		margin-top: 20px;
+	}
+
+	#divContainer_TallyData {
+		background: #ffffff;
+		width: 600px;
+		padding: 5px;
+		float: left;
+		margin-top: 20px;
 	}
 
 	#divContainer_SourceFields, #divContainer_DeviceFields, #divContainer_DeviceSources, #divContainer_DeviceSourceFields, #divContainer_DeviceActions, #divContainer_DeviceActionFields, #divContainer_Listeners {
@@ -40,6 +59,14 @@
 	}
 
 	#divLogs {
+		background: #cdcdcd;
+		font-family: monospace;
+		height: 200px;
+		overflow-y: scroll;
+		-webkit-user-select: text;
+	}
+
+	#divTallyData {
 		background: #cdcdcd;
 		font-family: monospace;
 		height: 200px;
@@ -63,14 +90,35 @@
 		padding: 5px;
 		border: #ffffff 3px solid;
 	}
+
+	.device_state_tally {
+		width: 50px;
+		height: 30px;
+	}
+
+	.device_state_tally_preview {
+		width: 50px;
+		height: 30px;
+		background: #3fe481;
+	}
+
+	.device_state_tally_program {
+		width: 50px;
+		height: 30px;
+		background: #e43f5a;
+	}
 </style>
 <script src='/socket.io/socket.io.js'></script>
 <script src='js/jquery/jquery.min.js'></script>
 <script>
 	var socket = null;
 
+	var Version = null;
+
 	var Clients = [];
 	var Logs = [];
+	var PortsInUse = [];
+	var TallyData = [];
 
 	var source_types = [];
 	var source_types_datafields = [];
@@ -86,6 +134,56 @@
 	var device_states = [];
 
 	var selectedDeviceId = null;
+
+	var TallyAddresses_ATEM = [
+		{address: 0, label: "Black"},
+		{address: 1, label: "Input 1"},
+		{address: 2, label: "Input 2"},
+		{address: 3, label: "Input 3"},
+		{address: 4, label: "Input 4"},
+		{address: 5, label: "Input 5"},
+		{address: 6, label: "Input 6"},
+		{address: 7, label: "Input 7"},
+		{address: 8, label: "Input 8"},
+		{address: 9, label: "Input 9"},
+		{address: 10, label: "Input 10"},
+		{address: 11, label: "Input 11"},
+		{address: 12, label: "Input 12"},
+		{address: 13, label: "Input 13"},
+		{address: 14, label: "Input 14"},
+		{address: 15, label: "Input 15"},
+		{address: 16, label: "Input 16"},
+		{address: 17, label: "Input 17"},
+		{address: 18, label: "Input 18"},
+		{address: 19, label: "Input 19"},
+		{address: 20, label: "Input 20"},
+		{address: 1000, label: "Color Bars"},
+		{address: 2001, label: "Color 1"},
+		{address: 2002, label: "Color 2"},
+		{address: 3010, label: "Media Player 1"},
+		{address: 3011, label: "Media Player 1 Key"},
+		{address: 3020, label: "Media Player 2"},
+		{address: 3021, label: "Media Player 2 Key"},
+		{address: 4010, label: "Key 1 Mask"},
+		{address: 4020, label: "Key 2 Mask"},
+		{address: 4030, label: "Key 3 Mask"},
+		{address: 4040, label: "Key 4 Mask"},
+		{address: 5010, label: "DSK 1 Mask"},
+		{address: 5020, label: "DSK 2 Mask"},
+		{address: 6000, label: "Super Source"},
+		{address: 7001, label: "Clean Feed 1"},
+		{address: 7002, label: "Clean Feed 2"},
+		{address: 8001, label: "Auxilary 1"},
+		{address: 8002, label: "Auxilary 2"},
+		{address: 8003, label: "Auxilary 3"},
+		{address: 8004, label: "Auxilary 4"},
+		{address: 8005, label: "Auxilary 5"},
+		{address: 8006, label: "Auxilary 6"},
+		{address: 10010, label: "ME 1 Prog", type: "Program"},
+		{address: 10011, label: "ME 1 Prev", type: "Preview"},
+		{address: 10020, label: "ME 2 Prog", type: "Program"},
+		{address: 10021, label: "ME 2 Prev", type: "Preview"}
+	];
 
 	function loadSettings() {
 		//gets the latest data from the API
@@ -103,7 +201,18 @@
 
 		socket.on('connect', function() {
 			// Connected, let's sign-up for to receive messages for this room
+			socket.emit('version');
 			socket.emit('settings');
+		});
+
+		socket.on('version', function(version) {
+			Version = version;
+			loadVersion();
+		})
+
+		socket.on('PortsInUse', function(ports) {
+			// the ports currently reserved or in use
+			PortsInUse = ports;
 		});
 		
 		socket.on('device_states', function(data) {
@@ -132,6 +241,15 @@
 			Logs.push(logObj);
 			AddLog(logObj);
 		});
+
+		socket.on('tally_data', function(sourceId, tallyObj) {
+			AddTallyData(sourceId, tallyObj);
+		});
+	}
+
+	function loadVersion() {
+		let divVersion = $('#version')[0];
+		divVersion.innerHTML = `Version ${Version}`;
 	}
 	
 	function getSourceTypes() {
@@ -321,16 +439,18 @@
 
 			let tdDeviceTallyStatus_PVW = document.createElement('td');
 			tdDeviceTallyStatus_PVW.id = 'td_tallyPVW_' + devices[i].id;
-			let imgDeviceTally_Preview = document.createElement('img');
-			imgDeviceTally_Preview.src = ((mode_preview) ? 'green' : 'white') + '.png';
-			tdDeviceTallyStatus_PVW.appendChild(imgDeviceTally_Preview);
+			tdDeviceTallyStatus_PVW.className = 'device_state_tally';
+			if (mode_preview) {
+				tdDeviceTallyStatus_PVW.className = 'device_state_tally_preview';
+			}
 			trDeviceItem.appendChild(tdDeviceTallyStatus_PVW);
 
 			let tdDeviceTallyStatus_PGM = document.createElement('td');
 			tdDeviceTallyStatus_PGM.id = 'td_tallyPGM_' + devices[i].id;
-			let imgDeviceTally_Program = document.createElement('img');
-			imgDeviceTally_Program.src = ((mode_program) ? 'red' : 'white') + '.png';
-			tdDeviceTallyStatus_PGM.appendChild(imgDeviceTally_Program);
+			tdDeviceTallyStatus_PGM.className = 'device_state_tally';
+			if (mode_program) {
+				tdDeviceTallyStatus_PGM.className = 'device_state_tally_preview';
+			}
 			trDeviceItem.appendChild(tdDeviceTallyStatus_PGM);
 
 			let tdDeviceName = document.createElement('td');
@@ -416,18 +536,22 @@
 
 			let tdDeviceTallyStatus_PVW = document.getElementById('td_tallyPVW_' + devices[i].id);
 			if (tdDeviceTallyStatus_PVW) {
-				let imgDeviceTally_Preview = document.createElement('img');
-				imgDeviceTally_Preview.src = ((mode_preview) ? 'green' : 'white') + '.png';
-				tdDeviceTallyStatus_PVW.innerHTML = '';
-				tdDeviceTallyStatus_PVW.appendChild(imgDeviceTally_Preview);
+				if (mode_preview) {
+					tdDeviceTallyStatus_PVW.className = 'device_state_tally_preview';
+				}
+				else {
+					tdDeviceTallyStatus_PVW.className = 'device_state_tally';
+				}
 			}
 
 			let tdDeviceTallyStatus_PGM = document.getElementById('td_tallyPGM_' + devices[i].id);
 			if (tdDeviceTallyStatus_PGM) {
-				let imgDeviceTally_Program = document.createElement('img');
-				imgDeviceTally_Program.src = ((mode_program) ? 'red' : 'white') + '.png';
-				tdDeviceTallyStatus_PGM.innerHTML = '';
-				tdDeviceTallyStatus_PGM.appendChild(imgDeviceTally_Program);
+				if (mode_program) {
+					tdDeviceTallyStatus_PGM.className = 'device_state_tally_program';
+				}
+				else {
+					tdDeviceTallyStatus_PGM.className = 'device_state_tally';
+				}
 			}
 		}
 	}
@@ -582,6 +706,27 @@
 		divLogs.scrollTop = divLogs.scrollHeight;
 	}
 
+	function AddTallyData(sourceId, tallyObj) {
+		let source = GetSourceById(sourceId);
+
+		let divContainer_TallyData = $('#divContainer_TallyData')[0];
+		let divTallyData = $('#divTallyData')[0];
+
+		let spanTally = document.createElement('span');
+		let tallyPreview = (tallyObj.tally1 === 1 ? 'True' : 'False');
+		let tallyProgram = (tallyObj.tally2 === 1 ? 'True' : 'False');
+
+		let today = new Date();
+		let date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+		let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+		let dateTime = date+' '+time;
+
+		spanTally.innerHTML = `[${dateTime}]  Source: ${source.name}  Address: ${tallyObj.address}  Label: ${tallyObj.label}  PVW: ${tallyPreview}  PGM: ${tallyProgram}<br />`;
+
+		divTallyData.appendChild(spanTally);
+		divTallyData.scrollTop = divTallyData.scrollHeight;
+	}
+
 	function GetListenersCount(deviceId) {
 		let j = 0;
 		for (let i = 0; i < Clients.length; i++) {
@@ -708,10 +853,16 @@
 					divSourceFields.appendChild(txtInput);
 					break;
 				case 'number':
-				let txtInputNumber = document.createElement('input');
+					let txtInputNumber = document.createElement('input');
 					txtInputNumber.type = 'text';
 					txtInputNumber.id = fields[i].fieldName;
 					divSourceFields.appendChild(txtInputNumber);
+					break;
+				case 'port':
+					let txtInputPort = document.createElement('input');
+					txtInputPort.type = 'text';
+					txtInputPort.id = fields[i].fieldName;
+					divSourceFields.appendChild(txtInputPort);
 					break;
 				case 'dropdown':
 					let selDropdown = document.createElement('select');
@@ -723,6 +874,12 @@
 						selDropdown.appendChild(elOption);
 					}
 					divSourceFields.appendChild(selDropdown);
+					break;
+				case 'info':
+					let spanInfo = document.createElement('span');
+					spanInfo.id = fields[i].fieldName;
+					spanInfo.innerHTML = fields[i].text;
+					divSourceFields.appendChild(spanInfo);
 					break;
 				default:
 					break;
@@ -752,6 +909,17 @@
 					break;
 				case 'number':
 					dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].value;
+					break;
+				case 'port':
+					//check if it's not reserved or in use first
+					let checkPort = $('#' + fields[i].fieldName)[0].value;
+					if (CheckPort(checkPort, '')) {
+						dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].value;
+					}
+					else {
+						alert(`Network Port ${checkPort} is already in use. Please select another.`);
+						return false;
+					}
 					break;
 				case 'dropdown':
 					dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].options($('#' + fields[i].fieldName)[0].selectedIndex).value;
@@ -846,11 +1014,18 @@
 					divSourceFields.appendChild(txtInput);
 					break;
 				case 'number':
-				let txtInputNumber = document.createElement('input');
+					let txtInputNumber = document.createElement('input');
 					txtInputNumber.type = 'text';
 					txtInputNumber.id = fields[i].fieldName;
 					txtInputNumber.value = source.data[fields[i].fieldName];
 					divSourceFields.appendChild(txtInputNumber);
+					break;
+				case 'port':
+					let txtInputPort = document.createElement('input');
+					txtInputPort.type = 'text';
+					txtInputPort.id = fields[i].fieldName;
+					txtInputPort.value = source.data[fields[i].fieldName];
+					divSourceFields.appendChild(txtInputPort);
 					break;
 				case 'dropdown':
 					let selDropdown = document.createElement('select');
@@ -865,6 +1040,12 @@
 						selDropdown.appendChild(elOption);
 					}
 					divSourceFields.appendChild(selDropdown);
+					break;
+				case 'info':
+					let spanInfo = document.createElement('span');
+					spanInfo.id = fields[i].fieldName;
+					spanInfo.innerHTML = fields[i].text;
+					divSourceFields.appendChild(spanInfo);
 					break;
 				default:
 					break;
@@ -914,6 +1095,17 @@
 					break;
 				case 'number':
 					dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].value;
+					break;
+				case 'port':
+					//check if reserved or in use first
+					let checkPort = $('#' + fields[i].fieldName)[0].value;
+					if (CheckPort(checkPort, sourceObj.id)) {
+						dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].value;
+					}
+					else {
+						alert(`Network Port ${checkPort} is already in use. Please select another.`);
+						return false;
+					}
 					break;
 				case 'dropdown':
 					dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].options($('#' + fields[i].fieldName)[0].selectedIndex).value;
@@ -1166,12 +1358,29 @@
 			if (device_sources[i].deviceId === deviceId) {
 				let trDeviceSourceItem = document.createElement('tr');
 
+				let device_source = GetSourceById(device_sources[i].sourceId);
+
 				let tdDeviceSource = document.createElement('td');
-				tdDeviceSource.innerHTML = GetSourceById(device_sources[i].sourceId).name;
+				tdDeviceSource.innerHTML = device_source.name;
 				trDeviceSourceItem.appendChild(tdDeviceSource);
 
+				let sourceType = GetSourceTypeById(device_source.sourceTypeId);
+
 				let tdDeviceSourceAddress = document.createElement('td');
-				tdDeviceSourceAddress.innerHTML = device_sources[i].address;
+				switch(sourceType.type) {
+					case "atem":
+						tdDeviceSourceAddress.innerHTML = device_sources[i].address;
+						for (let j = 0; j < TallyAddresses_ATEM.length; j++) {
+							if (TallyAddresses_ATEM[j].address.toString() === device_sources[i].address) {
+								tdDeviceSourceAddress.innerHTML = TallyAddresses_ATEM[j].label;
+								break;
+							}
+						}
+						break;
+					default:
+						tdDeviceSourceAddress.innerHTML = device_sources[i].address;
+						break;
+				}
 				trDeviceSourceItem.appendChild(tdDeviceSourceAddress);
 
 				let tdDeviceEdit = document.createElement('td');
@@ -1325,7 +1534,6 @@
 		let deviceSourceObj = {};
 
 		deviceSourceObj.id = $('#txtDeviceSourceId')[0].value;
-		deviceSourceObj.deviceId = selectedDeviceId;
 		deviceSourceObj.sourceId = $('#selDeviceSource')[0].options[$('#selDeviceSource')[0].selectedIndex].value;
 		deviceSourceObj.address = $('#txtDeviceSourceAddress')[0].value;
 
@@ -1333,6 +1541,8 @@
 		arbiterObj.action = 'edit';
 		arbiterObj.type = 'device_source';
 		arbiterObj.device_source = deviceSourceObj;
+
+		console.log(arbiterObj);
 
 		jQuery.ajax({
 			contentType: 'application/json',
@@ -1522,10 +1732,16 @@
 					divDeviceActionFields.appendChild(txtInput);
 					break;
 				case 'number':
-				let txtInputNumber = document.createElement('input');
+					let txtInputNumber = document.createElement('input');
 					txtInputNumber.type = 'text';
 					txtInputNumber.id = 'field_DeviceAction_' + fields[i].fieldName;
 					divDeviceActionFields.appendChild(txtInputNumber);
+					break;
+				case 'port':
+					let txtInputPort = document.createElement('input');
+					txtInputPort.type = 'text';
+					txtInputPort.id = 'field_DeviceAction_' + fields[i].fieldName;
+					divDeviceActionFields.appendChild(txtInputPort);
 					break;
 				case 'dropdown':
 					let selDropdown = document.createElement('select');
@@ -1537,6 +1753,12 @@
 						selDropdown.appendChild(elOption);
 					}
 					divDeviceActionFields.appendChild(selDropdown);
+					break;
+				case 'info':
+					let spanInfo = document.createElement('span');
+					spanInfo.id = fields[i].fieldName;
+					spanInfo.innerHTML = fields[i].text;
+					divDeviceActionFields.appendChild(spanInfo);
 					break;
 				case 'bool':
 					let chkBool = document.createElement('input');
@@ -1572,6 +1794,9 @@
 					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].value;
 					break;
 				case 'number':
+					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].value;
+					break;
+				case 'port':
 					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].value;
 					break;
 				case 'dropdown':
@@ -1656,11 +1881,18 @@
 					divDeviceActionFields.appendChild(txtInput);
 					break;
 				case 'number':
-				let txtInputNumber = document.createElement('input');
+					let txtInputNumber = document.createElement('input');
 					txtInputNumber.type = 'text';
 					txtInputNumber.id = 'field_DeviceAction_' + fields[i].fieldName;
 					txtInputNumber.value = deviceActionObj.data[fields[i].fieldName];
 					divDeviceActionFields.appendChild(txtInputNumber);
+					break;
+				case 'port':
+					let txtInputPort = document.createElement('input');
+					txtInputPort.type = 'text';
+					txtInputPort.id = 'field_DeviceAction_' + fields[i].fieldName;
+					txtInputPort.value = deviceActionObj.data[fields[i].fieldName];
+					divDeviceActionFields.appendChild(txtInputPort);
 					break;
 				case 'dropdown':
 					let selDropdown = document.createElement('select');
@@ -1675,6 +1907,12 @@
 						selDropdown.appendChild(elOption);
 					}
 					divDeviceActionFields.appendChild(selDropdown);
+					break;
+				case 'info':
+					let spanInfo = document.createElement('span');
+					spanInfo.id = fields[i].fieldName;
+					spanInfo.innerHTML = fields[i].text;
+					divDeviceActionFields.appendChild(spanInfo);
 					break;
 				case 'bool':
 					let chkBool = document.createElement('input');
@@ -1715,6 +1953,9 @@
 					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].value;
 					break;
 				case 'number':
+					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].value;
+					break;
+				case 'port':
 					dataObj[fields[i].fieldName] = $('#field_DeviceAction_' + fields[i].fieldName)[0].value;
 					break;
 				case 'dropdown':
@@ -1835,12 +2076,70 @@
 				responseText = response.result;
 		}
 	}
+
+	function CheckPort(port, sourceId) {
+		let portFound = false;
+
+		for (let i = 0; i < PortsInUse.length; i++) {
+			if (PortsInUse[i].port === port.toString()) {
+				if (PortsInUse[i].sourceId === sourceId) {
+					//this source owns this port, it's ok
+					return true;
+				}
+				else {
+					//this source doesn't own this port
+					return false;
+				}
+				break;
+			}
+
+		}
+
+		if (portFound === false) {
+			//the port isn't in use, it's ok
+			return true;
+		}
+	}
 </script>
 </head>
 <body onload='loadSettings();'>
 <div id='logo'><a href='/'><img src='logo.png' height='60' /></a></div>
+<div id='version'></div>
 <div id='container'>
-	<br /><br />
+	<div id='divContainer_GettingStarted'>
+		<span class='title'>Getting Started</span>
+		<br /><br />
+		Tally Arbiter is designed to receive or obtain tally data from multiple sources and then arbitrate whether a given device is considered to be in Preview or Program.<br /><br />
+		<b>Sources</b> represent all of the tally data that is generated. This is usually your video switcher or mixing software. Multiple sources can be added and they can all be different types.
+		The following source types are currently supported:
+		<ul>
+			<li>TSL 3.1 UDP/TCP (Ross switchers, etc.)</li>
+			<li>Blackmagic ATEM</li>
+			<li>OBS Studio</li>
+			<li>StudioCoast VMix</li>
+			<li>Roland Smart Tally</li>
+			<li>Open Sound Control (OSC)</li>
+		</ul>
+
+		<b>Devices</b> represent your inputs (like cameras) that you want to track with tally data. Devices can be assigned different addresses or inputs by each source. In Tally Arbiter, you can create as many devices as you would like and give each one a helpful name and description.
+		<br /><br />
+		<b>Mapping Source data to Devices:</b><br />
+		In order to assciate tally data with a device, you must assign the source addresses to each device. These addresses can vary from source to source, so they must be manually assigned.<br /><br />
+		For example, a Camera can be connected to a `Blackmagic ATEM` on `Input 1`, but connected to an `OBS Studio` on `Scene 2`. Tally Arbiter will track the tally data from each source and arbitrate whether the device is ultimately in preview or program (or both) by aggregating all of the source data together.<br /><br />
+		To assign a Source to a Device, click "Device Sources" next to a Device in the list. Choose the enabled Source from the drop down list, and click "Add".<br /><br />
+		<i>A Note About Addresses</i>: The source address is typically the actual input number on the switcher. So, if your camera on your ATEM comes in on Input 5, just enter `5`. However, if you're using a source like OBS Studio, your address might be a string, like `Scene 2`.
+		<br /><br />
+		<b>Running Actions when Devices reach a certain tally state:</b><br />
+		Once a device is assigned to a source(s), if a matching condition is met, an action can be performed. You can specify whether the action should be run when the device is entering a bus or leaving a bus, which is helpful for bus-specific actions like operating a relay. Multiple actions are supported per device and per bus (preview and program).
+		<ul>
+			<li>TSL 3.1 UDP or TCP</li>
+			<li>Outgoing Webhook</li>
+			<li>Local Console Output/Logging</li>
+			<li>Open Sound Control (OSC)</li>
+		</ul>
+
+		Device Actions can only be run once when the device state enters or exits that bus. This is to prevent actions from being run continuously if tally data is received in chunks. To run an action again, a device must change state on that specific bus (Preview or Program) before it can be run again.
+	</div>
 	<div id='divContainer_Sources'>
 		<span class='title'>Sources</span>
 		<div id='divSources'></div>
@@ -1909,6 +2208,10 @@
 	<div id='divContainer_Logs'>
 		<span class='title'>Logs</span>
 		<div id='divLogs'></div>
+	</div>
+	<div id='divContainer_TallyData'>
+		<span class='title'>Tally Data</span>
+		<div id='divTallyData'></div>
 	</div>
 </div>
 </body>

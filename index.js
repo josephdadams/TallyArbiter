@@ -19,32 +19,56 @@ const app 			= express();
 const axios 		= require('axios');
 const httpServer 	= require('http').Server(app);
 const io 			= require('socket.io')(httpServer);
+const osc 			= require('osc');
 
 //Tally Arbiter variables
 const listenPort 	= 4455;
+const oscPort 		= 5958;
+var oscUDP			= null;
 const config_file 	= './config.json'; //local storage JSON file
 var Clients 		= []; //array of connected listener clients (web, python, relay, etc.)
 var Logs 			= []; //array of actions, information, and errors
+var OBStallyData 	= []; //array of OBS sources and current tally data
+var PortsInUse		= []; //array of UDP/TCP ports in use, includes reserved ports
+
+let portObj = {};
+portObj.port = '9910'; //ATEM
+portObj.sourceId = 'reserved';
+PortsInUse.push(portObj);
+
+portObj = {};
+portObj.port = '8099'; //VMix
+portObj.sourceId = 'reserved';
+PortsInUse.push(portObj);
+
+portObj = {};
+portObj.port = oscPort.toString(); //OSC Broadcast
+portObj.sourceId = 'reserved';
+PortsInUse.push(portObj);
+
+portObj = {};
+portObj.port = listenPort.toString(); //Tally Arbiter
+portObj.sourceId = 'reserved';
+PortsInUse.push(portObj);
 
 var source_types 	= [ //available tally source types
 	{ id: '5e0a1d8c', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true, help: ''},
 	{ id: 'dc75100e', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true , help: ''},
 	{ id: '44b8bc4f', label: 'Blackmagic ATEM', type: 'atem', enabled: true, help: 'Uses Port 9910.' },
 	{ id: '4eb73542', label: 'OBS Studio', type: 'obs', enabled: true, help: 'The OBS Websocket plugin must be installed on the source.'},
-	{ id: '58b6af42', label: 'VMix', type: 'vmix', enabled: true },
-	{ id: '4a58f00f', label: 'Roland Smart Tally', type: 'roland', enabled: true },
+	{ id: '58b6af42', label: 'VMix', type: 'vmix', enabled: true, help: 'Uses Port 8099.'},
+	{ id: '4a58f00f', label: 'Roland Smart Tally', type: 'roland', enabled: true, help: ''},
+	{ id: '05d6bce1', label: 'Open Sound Control (OSC)', type: 'osc', enabled: true, help: ''},
 	{ id: 'cf51e3c9', label: 'Incoming Webhook', type: 'webhook', enabled: false, help: ''}
 ];
 
 var source_types_datafields = [ //data fields for the tally source types
 	{ sourceTypeId: '5e0a1d8c', fields: [ //TSL 3.1 UDP
-			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' }
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' }
 		]
 	},
 	{ sourceTypeId: 'dc75100e', fields: [ //TSL 3.1 TCP
-			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' }
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' }
 		]
 	},
 	{ sourceTypeId: '44b8bc4f', fields: [ //Blackmagic ATEM
@@ -53,7 +77,7 @@ var source_types_datafields = [ //data fields for the tally source types
 	},
 	{ sourceTypeId: '4eb73542', fields: [ // OBS Studio
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' },
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'password', fieldLabel: 'Password', fieldType: 'text' }
 		]
 	},
@@ -63,6 +87,11 @@ var source_types_datafields = [ //data fields for the tally source types
 	},
 	{ sourceTypeId: '4a58f00f', fields: [ // Roland Smart Tally
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
+		]
+	},
+	{ sourceTypeId: '05d6bce1', fields: [ // OSC Listener
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
+			{ fieldName: 'info', fieldLabel: 'Information', text: 'The device source address should be sent as an integer or a string to the server\'s IP address on the specified port. Sending to /tally/preview_on designates it as a Preview command, and /tally/program_on designates it as a Program command. To turn off a preview or program, use preview_off and program_off. The first OSC argument received will be used for the device source address.', fieldType: 'info' }
 		]
 	},
 	{ sourceTypeId: 'cf51e3c9', fields: [ //Incoming Webhook
@@ -93,13 +122,14 @@ var output_types = [ //output actions that Tally Arbiter can perform
 	{ id: '7dcd66b5', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true},
 	{ id: '276a8dcc', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true },
 	{ id: 'ffe2b0b6', label: 'Outgoing Webhook', type: 'webhook', enabled: true},
-	{ id: '6dbb7bf7', label: 'Local Console Output', type: 'console', enabled: true }
+	{ id: '6dbb7bf7', label: 'Local Console Output', type: 'console', enabled: true },
+	{ id: '58da987d', label: 'OSC Message', type: 'osc', enabled: true }
 ];
 
 var output_types_datafields = [ //data fields for the outgoing actions
 	{ outputTypeId: '7dcd66b5', fields: [ //TSL 3.1 UDP
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' },
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'address', fieldLabel: 'Address', fieldType: 'number' },
 			{ fieldName: 'label', fieldLabel: 'Label', fieldType: 'text' },
 			{ fieldName: 'tally1', fieldLabel: 'Tally 1 (PVW)', fieldType: 'bool' },
@@ -110,7 +140,7 @@ var output_types_datafields = [ //data fields for the outgoing actions
 	},
 	{ outputTypeId: '276a8dcc', fields: [ //TSL 3.1 TCP
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' },
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'address', fieldLabel: 'Address', fieldType: 'number' },
 			{ fieldName: 'label', fieldLabel: 'Label', fieldType: 'text' },
 			{ fieldName: 'tally1', fieldLabel: 'Tally 1 (PVW)', fieldType: 'bool' },
@@ -121,7 +151,7 @@ var output_types_datafields = [ //data fields for the outgoing actions
 	},
 	{ outputTypeId: 'ffe2b0b6', fields: [ //Outgoing Webhook
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'number' },
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'path', fieldLabel: 'Path', fieldType: 'text' },
 			{ fieldName: 'method', fieldLabel: 'Method', fieldType: 'dropdown', options: [ { id: 'GET', label: 'GET' }, { id: 'POST', label: 'POST'} ] },
 			{ fieldName: 'postdata', fieldLabel: 'POST Data', fieldType: 'text' }
@@ -129,6 +159,13 @@ var output_types_datafields = [ //data fields for the outgoing actions
 	},
 	{ outputTypeId: '6dbb7bf7', fields: [ //Local Console Output
 			{ fieldName: 'text', fieldLabel: 'Text', fieldType: 'text'}
+		]
+	},
+	{ outputTypeId: '58da987d', fields: [ //OSC
+			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
+			{ fieldName: 'path', fieldLabel: 'Path', fieldType: 'text' },
+			{ fieldName: 'args', fieldLabel: 'Arguments', fieldType: 'text', help: 'Separate multiple argments with a space. Strings must be encapsulated by double quotes.'}
 		]
 	}
 ];
@@ -184,6 +221,8 @@ function startUp() {
 
 //sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
 function initialSetup() {
+	logger('Setting up the REST API.', 'info-quiet');
+
 	app.use(bodyParser.json({ type: 'application/json' }));
 
 	//about the author, this program, etc.
@@ -199,6 +238,11 @@ function initialSetup() {
 	//tally page - view tally state of any device
 	app.get('/tally', function (req, res) {
 		res.sendFile('views/tally.html', { root: __dirname });
+	});
+
+	//producer page - view tally states of all devices
+	app.get('/producer', function (req, res) {
+		res.sendFile('views/producer.html', { root: __dirname });
 	});
 
 	app.get('/source_types', function (req, res) {
@@ -286,7 +330,15 @@ function initialSetup() {
 		res.status(404).send({error: true, url: req.originalUrl + ' not found.'});
 	});
 
+	logger('REST API Setup Complete.', 'info-quiet');
+
+	logger('Starting socket.IO Setup.', 'info-quiet');
+
 	io.sockets.on('connection', function(socket) {
+
+		socket.on('version', function() {
+			socket.emit('version', version);
+		});
 
 		socket.on('devices', function() { // sends the configured Devices to the socket
 			socket.emit('devices', devices);
@@ -313,14 +365,14 @@ function initialSetup() {
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 		});
 
-		socket.on('device_listen_python', function(obj) { // emitted by the Python client that has selected a Device to listen for state information
+		socket.on('device_listen_blink', function(obj) { // emitted by the Python blink(1) client that has selected a Device to listen for state information
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
 			if ((deviceId === 'null') || (!device)) {
 				deviceId = devices[0].id;
 			}
 
-			let listenerType = 'python';
+			let listenerType = 'blink(1)';
 
 			socket.join('device-' + deviceId);
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
@@ -359,6 +411,26 @@ function initialSetup() {
 			socket.emit('listener_relay_assignment', relayGroupId, deviceId);
 		});
 
+		socket.on('device_listen_gpio', function(obj) { // emitted by the Python GPIO client that has selected a Device to listen for state information
+			let deviceId = obj.deviceId;
+			let device = GetDeviceByDeviceId(deviceId);
+			if ((deviceId === 'null') || (!device)) {
+				deviceId = devices[0].id;
+			}
+
+			let listenerType = 'gpio';
+
+			socket.join('device-' + deviceId);
+			let deviceName = GetDeviceByDeviceId(deviceId).name;
+			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
+			
+			let ipAddress = socket.request.connection.remoteAddress;
+			let datetimeConnected = new Date().getTime();
+			
+			let clientId = AddClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
+			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
+		});
+
 		socket.on('device_states', function(deviceId) {
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 		});
@@ -367,6 +439,14 @@ function initialSetup() {
 			socket.join('settings');
 			socket.emit('clients', Clients);
 			socket.emit('logs', Logs);
+			socket.emit('PortsInUse', PortsInUse);
+		});
+
+		socket.on('producer', function () {
+			socket.join('producer');
+			socket.emit('clients', Clients);
+			socket.emit('devices', devices);
+			socket.emit('bus_options', bus_options);
 		});
 
 		socket.on('flash', function(clientId) {
@@ -463,6 +543,29 @@ function initialSetup() {
 			DeactivateClient(socket.id);
 		});
 	});
+
+	logger('Socket.IO Setup Complete.', 'info-quiet');
+
+	logger('Starting OSC Setup.', 'info-quiet');
+
+	oscUDP = new osc.UDPPort({
+		localAddress: '0.0.0.0',
+		localPort: oscPort,
+		broadcast: true,
+		metadata: true
+	});
+
+	oscUDP.on('error', function (error) {
+		logger(`An OSC error occurred: ${error.message}`, 'info-quiet');
+	});
+
+	oscUDP.open();
+
+	oscUDP.on('ready', function () {
+		logger(`OSC Sending Port Ready. Broadcasting on Port: ${oscPort}`, 'info-quiet');
+	});
+
+	logger('Starting HTTP Server.', 'info-quiet');
 	
 	httpServer.listen(listenPort, function () { // start up http server
 		logger(`Tally Arbiter running on port ${listenPort}`, 'info');
@@ -501,13 +604,19 @@ function logger(log, type) { //logs the item to the console, to the log array, a
 }
 
 function loadConfig() { // loads the JSON data from the config file to memory
+	logger('Loading the stored Tally Arbiter configuration file.', 'info-quiet');
+
 	try {
 		let rawdata = fs.readFileSync(config_file);
 		let configJson = JSON.parse(rawdata); 
 
 		if (configJson.sources) {
+			for (let i = 0; i < configJson.sources.length; i++) {
+				configJson.sources[i].connected = false;
+			}
 			sources = configJson.sources;
 			logger('Tally Arbiter Sources loaded.', 'info');
+			logger(`${sources.length} Sources configured.`, 'info');
 		}
 		else {
 			sources = [];
@@ -517,6 +626,7 @@ function loadConfig() { // loads the JSON data from the config file to memory
 		if (configJson.devices) {
 			devices = configJson.devices;
 			logger('Tally Arbiter Devices loaded.', 'info');
+			logger(`${devices.length} Devices configured.`, 'info');
 		}
 		else {
 			devices = [];
@@ -555,6 +665,8 @@ function loadConfig() { // loads the JSON data from the config file to memory
 		if (sources[i].enabled) {
 			let sourceType = source_types.find( ({ id }) => id === sources[i].sourceTypeId);
 
+			logger(`Initiating Setup for Source: ${sources[i].name}. Type: ${sourceType.label}`, 'info-quiet');
+			
 			switch(sourceType.type) {
 				case 'tsl_31_udp':
 					SetUpTSLServer_UDP(sources[i].id);
@@ -574,6 +686,9 @@ function loadConfig() { // loads the JSON data from the config file to memory
 				case 'roland':
 					SetUpRolandSmartTally(sources[i].id);
 					break;
+				case 'osc':
+					SetUpOSCServer(sources[i].id);
+					break;
 				default:
 					logger(`Error initiating connection for Source: ${sources[i].name}. The specified Source Type is not implemented at this time: ${sourceType.type}`, 'error');
 					break;
@@ -581,10 +696,14 @@ function loadConfig() { // loads the JSON data from the config file to memory
 		}
 	}
 
+	logger('Source Setup Complete.', 'info-quiet');
+
 	initializeDeviceStates();
 }
 
 function initializeDeviceStates() { // initializes each device state in the array upon server startup
+	logger('Initializing Device States.', 'info-quiet');
+
 	let busId_preview = null;
 	let busId_program = null;
 	//let busId_previewprogram = null;
@@ -624,6 +743,8 @@ function initializeDeviceStates() { // initializes each device state in the arra
 		deviceStateObj_previewprogram.sources = [];
 		device_states.push(deviceStateObj_previewprogram);*/
 	}
+
+	logger('Device States Initialized.', 'info-quiet');
 }
 
 function SetUpTSLServer_UDP(sourceId)
@@ -640,6 +761,8 @@ function SetUpTSLServer_UDP(sourceId)
 
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
+				AddPort(port, sourceId);
+				logger(`Source: ${source.name}  Creating TSL UDP Connection.`, 'info-quiet');
 				source_connections[i].server = new TSLUMD(port);
 
 				source_connections[i].server.on('message', function (tally) {
@@ -658,7 +781,7 @@ function SetUpTSLServer_UDP(sourceId)
 		}
 	} catch (error)
 	{
-		logger(`Error initiating connection for Source: ${source.name}. TSL 3.1 UDP Server Error occurred: ${error}`, 'error');
+		logger(`Source: ${source.name}  TSL 3.1 UDP Server Error occurred: ${error}`, 'error');
 	}
 }
 
@@ -669,8 +792,10 @@ function StopTSLServer_UDP(sourceId) {
 	{
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
+				logger(`Source: ${source.name}  Closing TSL UDP Connection.`, 'info-quiet');
 				source_connections[i].server.server.close();
-				logger(`Connection closed for Source: ${source.name}. TSL 3.1 UDP Server Stopped.`, 'info');
+				DeletePort(source.data.port);
+				logger(`Source: ${source.name}  TSL 3.1 UDP Server Stopped. Connection Closed.`, 'info');
 				for (let j = 0; j < sources.length; j++) {
 					if (sources[j].id === sourceId) {
 						sources[j].connected = false;
@@ -680,9 +805,11 @@ function StopTSLServer_UDP(sourceId) {
 				break;
 			}
 		}
+
+		io.to('settings').emit('sources', sources);
 	}
 	catch (error) {
-		logger(`Error stopping connection for Source: ${source.name}. TSL 3.1 UDP Server Error occurred: ${error}`, 'error');
+		logger(`Source: ${source.name}  TSL 3.1 UDP Server Error occurred: ${error}`, 'error');
 	}
 }
 
@@ -703,6 +830,8 @@ function SetUpTSLServer_TCP(sourceId)
 
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
+				AddPort(port, sourceId);
+				logger(`Source: ${source.name}  Creating TSL TCP Connection.`, 'info-quiet');
 				source_connections[i].server = net.createServer(function (socket) {
 					// Handle incoming messages
 					socket.on('data', function (data) {
@@ -731,7 +860,7 @@ function SetUpTSLServer_TCP(sourceId)
 		}
 	}
 	catch (error) {
-		logger(`Error initiating connection for Source: ${source.name}. TSL 3.1 TCP Server Error occurred: ${error}`, 'error');
+		logger(`Source: ${source.name}  TSL 3.1 TCP Server Error occurred: ${error}`, 'error');
 	}
 }
 
@@ -743,7 +872,8 @@ function StopTSLServer_TCP(sourceId) {
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
 				source_connections[i].server.close(function() {});
-				logger(`Connection closed for Source: ${source.name}. TSL 3.1 TCP Server Stopped.`, 'info');
+				DeletePort(source.data.port);
+				logger(`Source: ${source.name}  TSL 3.1 TCP Server Stopped.`, 'info');
 				for (let j = 0; j < sources.length; j++) {
 					if (sources[j].id === sourceId) {
 						sources[j].connected = false;
@@ -753,9 +883,11 @@ function StopTSLServer_TCP(sourceId) {
 				break;
 			}
 		}
+
+		io.to('settings').emit('sources', sources);
 	}
 	catch (error) {
-		logger(`Error stopping connection for Source: ${source.name}. TSL 3.1 UDP Server Error occurred: ${error}`, 'error');
+		logger(`Source: ${source.name}  TSL 3.1 UDP Server Error occurred: ${error}`, 'error');
 	}
 }
 
@@ -764,7 +896,6 @@ function SetUpATEMServer(sourceId) {
 
 	try {
 		let atemIP = source.data.ip;
-		let atemPort = 9910;
 
 		let sourceConnectionObj = {};
 		sourceConnectionObj.sourceId = sourceId;
@@ -773,68 +904,80 @@ function SetUpATEMServer(sourceId) {
 
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
-				source_connections[i].server = new ATEM();
-				source_connections[i].server.ip = atemIP;
-				source_connections[i].server.connect();
+				try {
+					logger(`Source: ${source.name}  Creating ATEM Connection.`, 'info-quiet');
+					source_connections[i].server = new ATEM();
+					source_connections[i].server.ip = atemIP;
+					source_connections[i].server.connect();
 
-				source_connections[i].server.on('connectionStateChange', function (state) {
-					switch (state.toString())
-					{
-						case 'closed':
-							for (let j = 0; j < sources.length; j++) {
-								if (sources[j].id === sourceId) {
-									sources[j].connected = false;
-									break;
+					source_connections[i].server.on('connectionStateChange', function (state) {
+						switch (state.toString())
+						{
+							case 'closed':
+								for (let j = 0; j < sources.length; j++) {
+									if (sources[j].id === sourceId) {
+										sources[j].connected = false;
+										break;
+									}
 								}
-							}
-							logger(`Connection closed for Source: ${source.name} (ATEM)`, 'info');
-							io.to('settings').emit('sources', sources);
-							break;
-						case 'attempting':
-							logger(`Initiating connection to Source: ${source.name}  ATEM: ${source.data.ip}`, 'info');
-							break;
-						case 'establishing':
-							break;
-						case 'open':
-							for (let j = 0; j < sources.length; j++) {
-								if (sources[j].id === sourceId) {
-									sources[j].connected = true;
-									break;
+								logger(`Source: ${source.name} ATEM connection closed.`, 'info');
+								io.to('settings').emit('sources', sources);
+								break;
+							case 'attempting':
+								logger(`Source: ${source.name}  Initiating connection to ATEM: ${source.data.ip}`, 'info');
+								break;
+							case 'establishing':
+								logger(`Source: ${source.name}  Establishing ATEM connection.`, 'info-quiet');
+								break;
+							case 'open':
+								for (let j = 0; j < sources.length; j++) {
+									if (sources[j].id === sourceId) {
+										sources[j].connected = true;
+										break;
+									}
 								}
-							}
-							logger(`Connection opened for Source: ${source.name} (ATEM)`, 'info');
-							io.to('settings').emit('sources', sources);
-							break;
-						default:
-							break;
-					}
-				});
-
-				source_connections[i].server.on('connectionLost', function () {
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = false;
-							break;
+								logger(`Source: ${source.name} ATEM connection opened.`, 'info');
+								io.to('settings').emit('sources', sources);
+								break;
+							default:
+								break;
 						}
-					}
-				});
+					});
 
-				source_connections[i].server.on('sourceConfiguration', function (id, config, info) {
-					
-				});
+					source_connections[i].server.on('connectionLost', function () {
+						for (let j = 0; j < sources.length; j++) {
+							if (sources[j].id === sourceId) {
+								sources[j].connected = false;
+								break;
+							}
+						}
 
-				source_connections[i].server.on('sourceTally', function (sourceNumber, tallyState) {
-					//build an object like the TSL module creates so we can use the same function to process it
-					let tallyObj = {};
-					tallyObj.address = sourceNumber;
-					tallyObj.brightness = 1;
-					tallyObj.tally1 = (tallyState.preview ? 1 : 0);
-					tallyObj.tally2 = (tallyState.program ? 1 : 0);
-					tallyObj.tally3 = 0;
-					tallyObj.tally4 = 0;
-					tallyObj.label = `Source ${sourceNumber}`;
-					processTSLTally(sourceId, tallyObj);
-				});
+						logger(`Source: ${source.name}  Connection to ATEM lost.`, 'info-quiet');
+
+						io.to('settings').emit('sources', sources);
+					});
+
+					source_connections[i].server.on('sourceConfiguration', function (id, config, info) {
+						
+					});
+
+					source_connections[i].server.on('sourceTally', function (sourceNumber, tallyState) {
+						logger(`Source: ${source.name}  ATEM Source Tally Data received.`, 'info-quiet');
+						//build an object like the TSL module creates so we can use the same function to process it
+						let tallyObj = {};
+						tallyObj.address = sourceNumber;
+						tallyObj.brightness = 1;
+						tallyObj.tally1 = (tallyState.preview ? 1 : 0);
+						tallyObj.tally2 = (tallyState.program ? 1 : 0);
+						tallyObj.tally3 = 0;
+						tallyObj.tally4 = 0;
+						tallyObj.label = `Source ${sourceNumber}`;
+						processTSLTally(sourceId, tallyObj);
+					});
+				}
+				catch(error) {
+					logger(`ATEM Error: ${error}`, 'error');
+				}
 
 				break;
 			}
@@ -851,7 +994,7 @@ function StopATEMServer(sourceId) {
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
 			source_connections[i].server.disconnect(null);
-			logger(`ATEM connection closed for Source: ${source.name}`, 'info');
+			logger(`Source: ${source.name}  ATEM connection closed.`, 'info');
 			break;
 		}
 	}
@@ -873,150 +1016,149 @@ function SetUpOBSServer(sourceId) {
 
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
-				source_connections[i].server = new OBS();
-				source_connections[i].server.ip = ip;
-				source_connections[i].server.connect({address: ip + ':' + port, password: password}, function (data) {
-					logger(`Connected to OBS Studio @ ${ip}:${port}`, 'info');
-				});
+				try {
+					AddPort(port, sourceId);
+					logger(`Source: ${source.name}  Creating OBS Websocket connection.`, 'info-quiet');
+					source_connections[i].server = new OBS();
+					source_connections[i].server.ip = ip;
+					source_connections[i].server.connect({address: ip + ':' + port, password: password}, function (data) {
+						logger(`Source: ${source.name}  Connected to OBS @ ${ip}:${port}`, 'info');
+					});
 
-				source_connections[i].server.on('error', err => {
-					logger('OBS socket error: ' + err, 'error');
-				});
+					source_connections[i].server.on('error', err => {
+						logger(`Source: ${source.name}  OBS websocket error: ${err}`, 'error');
+					});
 
-				source_connections[i].server.on('ConnectionOpened', function (data) {
-					logger('OBS Connection Opened.', 'info');
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = true;
-							break;
+					source_connections[i].server.on('ConnectionOpened', function (data) {
+						logger(`Source: ${source.name}  OBS Connection opened.`, 'info');
+						for (let j = 0; j < sources.length; j++) {
+							if (sources[j].id === sourceId) {
+								sources[j].connected = true;
+								break;
+							}
 						}
-					}
-					io.to('settings').emit('sources', sources);
-				});
+						io.to('settings').emit('sources', sources);
+					});
 
-				source_connections[i].server.on('ConnectionClosed', function (data) {
-					logger(`Connection closed for Source: ${source.name} (OBS Studio)`, 'info');
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = false;
-							break;
+					source_connections[i].server.on('ConnectionClosed', function (data) {
+						logger(`Source: ${source.name} OBS Connection closed.`, 'info');
+						for (let j = 0; j < sources.length; j++) {
+							if (sources[j].id === sourceId) {
+								sources[j].connected = false;
+								break;
+							}
 						}
-					}
-					io.to('settings').emit('sources', sources);
-				});
+						DeletePort(source.data.port);
+						io.to('settings').emit('sources', sources);
+					});
 
-				source_connections[i].server.on('AuthenticationSuccess', function (data) {
-					logger('OBS Authenticated.', 'info');
-				});
+					source_connections[i].server.on('AuthenticationSuccess', function (data) {
+						logger(`Source: ${source.name}  OBS Authenticated.`, 'info');
+					});
 
-				source_connections[i].server.on('AuthenticationFailure', function (data) {
-					logger('Invalid OBS Password.', 'info');
-				});
+					source_connections[i].server.on('AuthenticationFailure', function (data) {
+						logger(`Source: ${source.name}  Invalid OBS Password.`, 'info');
+					});
 
-				source_connections[i].server.on('PreviewSceneChanged', function (data) {
-					if (data)
-					{
-						if (data.sources)
+					source_connections[i].server.on('PreviewSceneChanged', function (data) {
+						logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
+						if (data)
 						{
-							processOBSTally(sourceId, data.sources, 'preview');
+							if (data.sources)
+							{
+								processOBSTally(sourceId, data.sources, 'preview');
+							}
 						}
-					}
-				});
+					});
 
-				source_connections[i].server.on('SwitchScenes', function (data) {
-					if (data)
-					{
-						if (data.sources)
+					source_connections[i].server.on('SwitchScenes', function (data) {
+						logger(`Source: ${source.name}  Program Scene Changed.`, 'info-quiet');
+						if (data)
 						{
-							processOBSTally(sourceId, data.sources, 'program');
+							if (data.sources)
+							{
+								processOBSTally(sourceId, data.sources, 'program');
+							}
 						}
-					}
-				});
+					});
+				}
+				catch(error) {
+					logger(`Source: ${source.name}  OBS Error: ${error}`, 'error');
+				}
 
 				break;
 			}
 		}
 	}
 	catch (error) {
-		logger(`OBS Error: ${error}`, 'error');
+		logger(`Source: ${source.name}  OBS Error: ${error}`, 'error');
 	}
 }
 
 function processOBSTally(sourceId, sourceArray, tallyType) {
-	let device_sources_specific = GetDeviceSourcesBySourceId(sourceId);
+	console.log(sourceArray);
 
 	for (let i = 0; i < sourceArray.length; i++) {
-		let tallyObj = {};
-		tallyObj.label = sourceArray[i].name;
-		tallyObj.address = sourceArray[i].name;
-		tallyObj.tally4 = 0;
-		tallyObj.tally3 = 0;
-		tallyObj.tally2 = 0; //PGM
-		tallyObj.tally1 = 0; //PVW
-
-		switch(tallyType) {
-			case 'preview':
-				tallyObj.tally1 = ((sourceArray[i].render) ? 1 : 0);
+		let obsSourceFound = false;
+		for (let j = 0; j < OBStallyData.length; j++) {
+			if (OBStallyData[j].address === sourceArray[i].name) {
+				obsSourceFound = true;
 				break;
-			case 'program':
-				tallyObj.tally2 = ((sourceArray[i].render) ? 1 : 0);
-				break;
-			default:
-				break;
+			}
 		}
-		processTSLTally(sourceId, tallyObj);
+
+		if (!obsSourceFound) {
+			//the source is not in the OBS array, we don't know anything about it, so add it to the array
+			let obsTallyObj = {};
+			obsTallyObj.label = sourceArray[i].name;
+			obsTallyObj.address = sourceArray[i].name;
+			obsTallyObj.tally4 = 0;
+			obsTallyObj.tally3 = 0;
+			obsTallyObj.tally2 = 0; // PGM
+			obsTallyObj.tally1 = 0; // PVW
+			OBStallyData.push(obsTallyObj);
+		}
 	}
 
-	for (let i = 0; i < device_sources_specific.length; i++) {
-		let device_source_found = false;
-		for (j = 0; j < sourceArray.length; j++) {
-			if (device_sources_specific[i].address === sourceArray[j].name) {
-				device_source_found = true;
+	for (let i = 0; i < OBStallyData.length; i++) {
+		let obsSourceFound = false;
+		for (let j = 0; j < sourceArray.length; j++) {
+			if (OBStallyData[i].address === sourceArray[j].name) {
+				obsSourceFound = true;
+				//update the tally state because OBS is saying this source is not in the current scene
+				switch(tallyType) {
+					case 'preview':
+						OBStallyData[i].tally1 = ((sourceArray[j].render) ? 1 : 0);
+						break;
+					case 'program':
+						OBStallyData[i].tally2 = ((sourceArray[j].render) ? 1 : 0);
+						break;
+					default:
+						break;
+				}
+				processTSLTally(sourceId, OBStallyData[i]);
 				break;
 			}
 		}
-		if (!device_source_found) {
-			let inPreview = false;
-			let inProgram = false;
 
-			for (j = 0; j < device_states.length; j++) {
-				if (device_states[j].sources.includes(device_sources_specific[i].sourceId)) {
-					if (GetBusByBusId(device_states[j].busId).type === 'preview') {
-						inPreview = true;
-					}
-					else if (GetBusByBusId(device_states[j].busId).type === 'preview') {
-						inProgram = true;
-					}
-				}
-			}
-
-			tallyObj = {};
-			tallyObj.label = device_sources_specific[i].address;
-			tallyObj.address = device_sources_specific[i].address;
-			tallyObj.tally4 = 0;
-			tallyObj.tally3 = 0;
-			tallyObj.tally2 = 0; //PGM
-			tallyObj.tally1 = 0; //PVW
-
+		if (!obsSourceFound) {
+			//it is no longer in the bus, mark it as such
 			switch(tallyType) {
 				case 'preview':
-					if (inProgram) {
-						tallyObj.tally2 = 1;
-					}
-					tallyObj.tally1 = 0;
+					OBStallyData[i].tally1 = 0;
 					break;
 				case 'program':
-					if (inPreview) {
-						tallyObj.tally1 = 1;
-					}
-					tallyObj.tally2 = 0;
+					OBStallyData[i].tally2 = 0;
 					break;
 				default:
 					break;
 			}
-			processTSLTally(sourceId, tallyObj);
+			processTSLTally(sourceId, OBStallyData[i]);
 		}
 	}
+
+	console.log("OBStallyData");
+	console.log(OBStallyData);
 }
 
 function StopOBSServer(sourceId) {
@@ -1024,6 +1166,7 @@ function StopOBSServer(sourceId) {
 	
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
+			logger(`Source: ${source.name}  Closing OBS connection.`, 'info-quiet');
 			source_connections[i].server.disconnect();
 			break;
 		}
@@ -1044,9 +1187,10 @@ function SetUpVMixServer(sourceId) {
 
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
+				logger(`Source: ${source.name}  Creating VMix connection.`, 'info-quiet');
 				source_connections[i].server = new net.Socket();
 				source_connections[i].server.connect(port, ip, function() {
-					logger(`Source: ${source.name}  VMix TCP Client Opened.`, 'info');
+					logger(`Source: ${source.name}  VMix Connection Opened.`, 'info');
 					source_connections[i].server.write('SUBSCRIBE TALLY\r\n');
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
@@ -1058,6 +1202,7 @@ function SetUpVMixServer(sourceId) {
 				});
 
 				source_connections[i].server.on('data', function (data) {
+					logger(`Source: ${source.name}  VMix data received.`, 'info-quiet');
 					data = data
 					.toString()
 					.split(/\r?\n/);
@@ -1065,6 +1210,7 @@ function SetUpVMixServer(sourceId) {
 					tallyData = data.filter(text => text.startsWith('TALLY OK'));
 
 					if (tallyData.length > 0) {
+						logger(`Source: ${source.name}  VMix tally data received.`, 'info-quiet');
 						for (let j = 9; j < tallyData[0].length; j++) {
 							let address = j-9+1;
 							let value = tallyData[0].charAt(j);
@@ -1084,7 +1230,7 @@ function SetUpVMixServer(sourceId) {
 				});
 
 				source_connections[i].server.on('close', function () {
-					logger(`Source: ${source.name}  VMix TCP Client Closed.`, 'info');
+					logger(`Source: ${source.name}  VMix Connection closed.`, 'info');
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = false;
@@ -1098,7 +1244,7 @@ function SetUpVMixServer(sourceId) {
 		}
 	}
 	catch (error) {
-		logger(`Error initiating connection for Source: ${source.name}. VMix Error Occurred: ${error}`, 'error');
+		logger(`Source: ${source.name}. VMix Error Occurred: ${error}`, 'error');
 	}
 }
 
@@ -1107,6 +1253,7 @@ function StopVMixServer(sourceId) {
 	
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
+			logger(`Source: ${source.name}  Closing VMix connection.`, 'info-quiet');
 			source_connections[i].server.write('QUIT\r\n');
 			break;
 		}
@@ -1116,7 +1263,6 @@ function StopVMixServer(sourceId) {
 function SetUpRolandSmartTally(sourceId) {
 	let source = sources.find( ({ id }) => id === sourceId);
 	let ip = source.data.ip;
-	let port = 80;
 
 	try {
 		let sourceConnectionObj = {};
@@ -1126,6 +1272,7 @@ function SetUpRolandSmartTally(sourceId) {
 
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
+				logger(`Source: ${source.name}  Opening Roland Smart Tally connection.`, 'info-quiet');
 				source_connections[i].server = setInterval(function() {
 					for (let j = 0; j < device_sources.length; j++) {
 						if (device_sources[j].sourceId === sourceId) {
@@ -1159,7 +1306,7 @@ function SetUpRolandSmartTally(sourceId) {
 								processTSLTally(sourceId, tallyObj);							
 							})
 							.catch(function (error) {
-								logger(`An error occured fetching the Roland Smart Tally data: ${error}`, 'error');
+								logger(`Source: ${source.name}  Roland Smart Tally Error: ${error}`, 'error');
 							});
 						}
 					}
@@ -1167,9 +1314,11 @@ function SetUpRolandSmartTally(sourceId) {
 				break;
 			}
 		}
+
+		io.to('settings').emit('sources', sources);
 	}
 	catch (error) {
-		logger(`Error initiating connection for Source: ${source.name}. Roland Smart Tally Error Occurred: ${error}`, 'error');
+		logger(`Source: ${source.name}. Roland Smart Tally Error: ${error}`, 'error');
 	}
 }
 
@@ -1179,14 +1328,117 @@ function StopRolandSmartTally(sourceId) {
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
 			clearInterval(source_connections[i].server);
-			logger(`Roland Smart Tally connection closed for Source: ${source.name}`, 'info');
+			logger(`Source: ${source.name}  Roland Smart Tally connection closed`, 'info');
 			break;
 		}
 	}
+
+	for (let j = 0; j < sources.length; j++) {
+		if (sources[j].id === sourceId) {
+			sources[j].connected = false;
+			break;
+		}
+	}
+
+	io.to('settings').emit('sources', sources);
+}
+
+function SetUpOSCServer(sourceId) {
+	let source = sources.find( ({ id }) => id === sourceId);
+
+	try {
+		let sourceConnectionObj = {};
+		sourceConnectionObj.sourceId = sourceId;
+		sourceConnectionObj.server = null;
+		source_connections.push(sourceConnectionObj);
+
+		for (let i = 0; i < source_connections.length; i++) {
+			if (source_connections[i].sourceId === sourceId) {
+				AddPort(source.data.port, sourceId);
+				logger(`Source: ${source.name}  Creating new OSC connection.`, 'info-quiet');
+				source_connections[i].server = new osc.UDPPort({
+					localAddress: '0.0.0.0',
+					localPort: source.data.port,
+					metadata: true
+				});
+			
+				source_connections[i].server.on('message', function (oscMsg, timeTag, info) {
+					logger(`Source: ${source.name} OSC message received: ${oscMsg.address} ${oscMsg.args[0].value.toString()}`, 'info-quiet');
+					let tallyObj = {};
+					tallyObj.address = oscMsg.args[0].value.toString();
+					tallyObj.label = tallyObj.address;
+					switch(oscMsg.address) {
+						case '/tally/preview_on':
+							tallyObj.tally1 = 1;
+							break;
+						case '/tally/preview_off':
+							tallyObj.tally1 = 0;
+							break;
+						case '/tally/program_on':
+							tallyObj.tally2 = 1;
+							break;
+						case '/tally/program_off':
+							tallyObj.tally2 = 0;
+							break;
+						default:
+							break;
+					}
+					processTSLTally(source.id, tallyObj);
+				});
+			
+				source_connections[i].server.on('error', function (error) {
+					console.log('An error occurred: ', error.message);
+				});
+
+				source_connections[i].server.on('ready', function () {
+					logger(`Source: ${source.name}  OSC port ${source.data.port} ready.`, 'info-quiet');
+					for (let j = 0; j < sources.length; j++) {
+						if (sources[j].id === sourceId) {
+							sources[j].connected = true;
+							io.to('settings').emit('sources', sources);
+							break;
+						}
+					}
+				});
+			
+				source_connections[i].server.open();
+				break;
+			}
+		}
+	}
+	catch (error) {
+		logger(`Source: ${source.name} OSC Error: ${error}`, 'error');
+	}
+}
+
+function StopOSCServer(sourceId) {
+	let source = GetSourceBySourceId(sourceId);
+
+	for (let i = 0; i < source_connections.length; i++) {
+		if (source_connections[i].sourceId === sourceId) {
+			source_connections[i].server.close();
+			DeletePort(source.data.port);
+			logger(`Source: ${source.name}  OSC connection closed.`, 'info');
+			break;
+		}
+	}
+
+	for (let j = 0; j < sources.length; j++) {
+		if (sources[j].id === sourceId) {
+			sources[j].connected = false;
+			break;
+		}
+	}
+
+	io.to('settings').emit('sources', sources);
 }
 
 function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 {
+	logger(`Processing new tally object.`, 'info-quiet');
+
+	io.to('settings').emit('tally_data', sourceId, tallyObj);
+
 	let deviceId = null;
 
 	for (let i = 0; i < device_sources.length; i++) {
@@ -1293,6 +1545,7 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 
 		UpdateDeviceState(deviceId);
 		io.to('settings').emit('device_states', device_states);
+		io.to('producer').emit('device_states', device_states);
 	}
 }
 
@@ -1377,7 +1630,7 @@ function RunAction(deviceId, busId, active) {
 					
 					let outputType = output_types.find( ({ id }) => id === actionObj.outputTypeId);
 	
-					logger(`Running action: ${outputType.type}  ${filteredActions[i].id}`, 'info');
+					logger(`Running action: ${outputType.label}  ${filteredActions[i].id}`, 'info');
 	
 					switch(outputType.type) {
 						case 'tsl_31_udp':
@@ -1389,14 +1642,11 @@ function RunAction(deviceId, busId, active) {
 						case 'webhook':
 							RunAction_Webhook(actionObj.data);
 							break;
-						case 'protally':
-							RunAction_ProTally(actionObj.data);
-							break;
-						case 'gpio':
-							logger(`Device Action: ${filteredActions[i].id}  Error: GPIO output type not supported at this time.`, 'error');
-							break;
 						case 'console':
 							logger(actionObj.data, 'console_action');
+							break;
+						case 'osc':
+							RunAction_OSC(actionObj.data);
 							break;
 						default:
 							logger(`Device Action: ${filteredActions[i].id}  Error: Unsupported Output Type: ${outputType.type}`, 'error');
@@ -1518,36 +1768,45 @@ function RunAction_Webhook(data) {
 	}
 }
 
-function RunAction_ProTally(data) {
-	try {
-		let proTallyObj = {};
+function RunAction_OSC(data) {
+	let arguments = data.args.split(' ');
 
-		proTallyObj.windowNumber = data.windowNumber;
-		proTallyObj.mode = data.mode;
-		proTallyObj.label = data.label;
-		proTallyObj.color = data.color;
-	
-		let client = new net.Socket();
-		client.connect(data.port, data.ip, function() {
-			client.write(JSON.stringify(proTallyObj));
-		});
+	let args = null;
 
-		client.on('error', function(error) {
-			logger(`An error occured sending the ProTally message: ${error}`, 'error');
-			client.destroy();
-		});
+	let arg;
 	
-		client.on('data', function(data) {
-			client.destroy(); // kill client after server's response
-		});
+	if (arguments.length) {
+		args = [];
+	}
 	
-		client.on('close', function() {
-		});
+	for (let i = 0; i < arguments.length; i++) {
+		if (isNaN(arguments[i])) {
+			arg = {
+				type: 's',
+				value: arguments[i].replace(/"/g, '').replace(/'/g, '')
+			};
+			args.push(arg);
+		}
+		else if (arguments[i].indexOf('.') > -1) {
+			arg = {
+				type: 'f',
+				value: parseFloat(arguments[i])
+			};
+			args.push(arg);
+		}
+		else {
+			arg = {
+				type: 'i',
+				value: parseInt(arguments[i])
+			};
+			args.push(arg);
+		}
 	}
-	catch (error) {
-		logger(`An error occured sending the ProTally message: ${error}`, 'error');
-	}
+
+	logger(`Sending OSC Message: ${data.ip}:${data.port} ${data.path} ${data.args}`, 'info');
+	oscUDP.send({address: data.path, args: args}, data.ip, data.port);
 }
+
 function TallyArbiter_Manage(obj) {
 	switch(obj.type) {
 		case 'source':
@@ -1645,6 +1904,9 @@ function StartConnection(sourceId) {
 		case 'roland':
 			SetUpRolandSmartTally(sourceId);
 			break;
+		case 'osc':
+			SetUpOSCServer(sourceId);
+			break;
 		default:
 			break;
 	}
@@ -1672,6 +1934,9 @@ function StopConnection(sourceId) {
 			break;
 		case 'roland':
 			StopRolandSmartTally(sourceId);
+			break;
+		case 'osc':
+			StopOSCServer(sourceId);
 			break;
 		default:
 			break;
@@ -1749,6 +2014,7 @@ function TallyArbiter_Delete_Source(obj) {
 	}
 
 	io.to('settings').emit('device_states', device_states);
+	io.to('producer').emit('device_states', device_states);
 
 	logger(`Source Deleted: ${sourceName}`, 'info');
 
@@ -1759,6 +2025,44 @@ function TallyArbiter_Add_Device(obj) {
 	let deviceObj = obj.device;
 	deviceObj.id = uuidv4();
 	devices.push(deviceObj);
+
+	let busId_preview = null;
+	let busId_program = null;
+	//let busId_previewprogram = null;
+
+	for (let i = 0; i < bus_options.length; i++) {
+		switch(bus_options[i].type) {
+			case 'preview':
+				busId_preview = bus_options[i].id;
+				break;
+			case 'program':
+				busId_program = bus_options[i].id;
+				break;
+			/*case 'previewprogram':
+				busId_previewprogram = bus_options[i].id;
+				break;*/
+			default:
+				break;
+		}
+	}
+
+	let deviceStateObj_preview = {};
+	deviceStateObj_preview.deviceId = deviceObj.id;
+	deviceStateObj_preview.busId = busId_preview;
+	deviceStateObj_preview.sources = [];
+	device_states.push(deviceStateObj_preview);
+
+	let deviceStateObj_program = {};
+	deviceStateObj_program.deviceId = deviceObj.id;
+	deviceStateObj_program.busId = busId_program;
+	deviceStateObj_program.sources = [];
+	device_states.push(deviceStateObj_program);
+
+	/*let deviceStateObj_previewprogram = {};
+	deviceStateObj_previewprogram.deviceId = deviceObj.id;
+	deviceStateObj_previewprogram.busId = busId_previewprogram;
+	deviceStateObj_previewprogram.sources = [];
+	device_states.push(deviceStateObj_previewprogram);*/
 
 	logger(`Device Added: ${deviceObj.name}`, 'info');
 
@@ -1833,7 +2137,7 @@ function TallyArbiter_Edit_Device_Source(obj) {
 		}
 	}
 
-	let deviceName = GetDeviceByDeviceId(deviceSourceObj.deviceId).name;
+	let deviceName = GetDeviceByDeviceId(deviceId).name;
 	let sourceName = GetSourceBySourceId(deviceSourceObj.sourceId).name;
 
 	logger(`Device Source Edited: ${deviceName} - ${sourceName}`, 'info');
@@ -1967,6 +2271,7 @@ function AddClient(socketId, deviceId, listenerType, ipAddress, datetimeConnecte
 	Clients.push(clientObj);
 
 	io.to('settings').emit('clients', Clients);
+	io.to('producer').emit('clients', Clients);
 
 	return clientObj.id;
 }
@@ -1974,13 +2279,13 @@ function AddClient(socketId, deviceId, listenerType, ipAddress, datetimeConnecte
 function DeactivateClient(socketId) {
 	for (let i = 0; i < Clients.length; i++) {
 		if (Clients[i].socketId === socketId) {
-			//Clients.splice(i, 1);
 			Clients[i].inactive = true;
 			Clients[i].datetime_inactive = new Date().getTime();
 		}
 	}
 
 	io.to('settings').emit('clients', Clients);
+	io.to('producer').emit('clients', Clients);
 }
 
 function DeleteInactiveClients() {
@@ -1989,7 +2294,7 @@ function DeleteInactiveClients() {
 		if (Clients[i].inactive === true) {
 			let dtNow = new Date().getTime();
 			if ((dtNow - Clients[i].datetime_inactive) > (1000 * 60 * 60)) { //1 hour
-				logger(`Inactive Client removed: ${Clients[i].socketId}`, 'info');
+				logger(`Inactive Client removed: ${Clients[i].id}`, 'info');
 				Clients.splice(i, 1);
 				changesMade = true;
 			}
@@ -1998,6 +2303,7 @@ function DeleteInactiveClients() {
 
 	if (changesMade) {
 		io.to('settings').emit('clients', Clients);
+		io.to('producer').emit('clients', Clients);
 	}
 
 	setTimeout(DeleteInactiveClients, 5 * 1000); // runs every 5 minutes
@@ -2018,6 +2324,24 @@ function FlashClient(clientId) {
 	else {
 		return {result: 'flash-not-sent', clientId: clientId, error: 'client id not found'};
 	}
+}
+
+function AddPort(port, sourceId) { //Adds the port to the list of reserved or in-use ports
+	let portObj = {};
+	portObj.port = port;
+	portObj.sourceId = sourceId;
+	PortsInUse.push(portObj);
+	io.to('settings').emit('PortsInUse', PortsInUse);
+}
+
+function DeletePort(port) { //Deletes the port from the list of reserved or in-use ports
+	for (let i = 0; i < PortsInUse.length; i++) {
+		if (PortsInUse[i].port === port.toString()) {
+			PortsInUse.splice(i, 1);
+			break;
+		}
+	}
+	io.to('settings').emit('PortsInUse', PortsInUse);
 }
 
 startUp();

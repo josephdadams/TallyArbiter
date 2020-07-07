@@ -44,7 +44,7 @@ sio = socketio.Client()
 def connect():
 	print('Connected to Tally Arbiter server:', server, port)
 	sio.emit('bus_options')												# get current bus options
-	sio.emit('device_listen_python', {'deviceId': deviceId})			# start listening for the device
+	sio.emit('device_listen_blink', {'deviceId': deviceId})			# start listening for the device
 	repeatNumber = 2
 	while(repeatNumber):
 		repeatNumber = repeatNumber - 1
