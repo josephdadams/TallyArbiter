@@ -7,20 +7,35 @@ To contact the author or for more information, please visit [www.techministry.bl
 
 Tally Arbiter is software that allows you to combine incoming tally data from multiple sources such as TSL UMD 3.1, Blackmagic ATEM, OBS Studio, VMix, Roland Smart Tally, etc. and arbitrate the bus state across all of the sources so that devices like cameras can accurately reflect tally data coming from those multiple locations without each device having to be connected to all sources simultaneously.
 
-# Running the software
+# Installing the software
 The software is written in Node.js and is therefore cross-platform and can be run on MacOS, Linux, or Windows.
 
+You must have Node.js installed for the software to run. You can download it here: <https://nodejs.org/en/download/>
+
+Download the Tallly Arbiter source code. You can download it directly from GitHub, or you can use `git` from the command line to download the files.
+
+To use `git`, you must have it installed: <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>
+Type `git clone https://github.com/josephdadams/tallyarbiter` to download the source code. This will download to a subfolder of your current working folder.
+
+After downloading the software, type `npm install` to install all necessary libraries and packages.
+
+# Upgrading the software
+If you downloaded the software using `git`, upgrades are simple. In the terminal window, change directly to the Tally Arbiter folder, and then type: `git pull`. This will download the latest source code.
+
+If you downloaded the source code manually, just replace the files in the folder manually.
+
+**Be Sure to back up or save your `config.json` file!**
+
+Now run `npm install` to make sure all packages are up to date.
+
+# Running the software
+
 **RUNNING DIRECTLY WITHIN NODE:**
-1. Install Node.js if not already installed. <https://nodejs.org/en/download/>
-1. Download the Tally Arbiter source code.
 1. Open a terminal window and change directory to the folder where you placed the source code.
-1. Type `npm install` to install all of the necessary libraries.
 1. Type `node index.js` within this folder to run the program. *If this folder does not contain a `config.json` configuration file, a new one will be created the next time you use the API or the Settings page.*
 
 **RUNNING AS A SERVICE:**
-1. Install Node.js if not already installed.
 1. Open a terminal window and change directory to the folder where you placed the source code.
-1. Type `npm install` to install all of the necessary libraries.
 1. Install the Node.js library, `pm2`, by typing `npm install -g pm2`. This will install it globally on your system.
 1. After `pm2` is installed, type `pm2 start index.js --name TallyArbiter` to daemonize it as a service.
 1. If you would like it to start automatically upon bootup, type `pm2 startup` and follow the instructions on-screen.
@@ -46,6 +61,8 @@ The following source types are supported:
 * Roland Smart Tally
 * Open Sound Control (OSC)
 
+When you add a source and the connection to the tally source (video switcher, software, etc.) is successfully made, the source will be green. If there is an error, the source will be red. Look at the logs for more error information.
+
 ### TSL 3.1 UDP/TCP
 Your switcher that uses this protocol must be configured to send the data to Tally Arbiter.
 
@@ -62,6 +79,9 @@ You will need the IP address of the computer running VMix.
 
 ### Roland Smart Tally
 You will need the IP address of the Roland switcher.
+
+### Newtek Tricaster
+You will need the IP address of the Tricaster.
 
 ### Open Sound Control (OSC)
 Incoming OSC data can be used to trigger device tally states. Configure the port as desired.
@@ -110,28 +130,23 @@ Navigate to `/tally` on the Tally Arbiter server in your browser and select a De
 Navigate to `/producer` on the Tally Arbiter server in your browser to view all Devices and their current states. This information is also available in the Settings GUI but is displayed in a minimal fashion here for in-service viewing.
 
 ## Using a blink(1) for tally output
-Tally Arbiter also supports the use of a blink(1) device by running the included Python script, `tallyarbiter_listener.py`. Python was chosen over Node.js for the ease of installation and use on a Raspberry Pi. It is compatible with and was designed to run on a Raspberry Pi Zero, making this an inexpensive option for *wireless* tally output. However, it can be run on any OS/device that supports Python such as MacOS or Windows, which can be helpful if you want to use this with graphics or video playback operators, for example.
-
-For a more complete walkthrough of setting up the Raspberry Pi Zero from scratch, [read this document](raspberry-pi-listener.md).
-
-You must install the following Python dependencies:
-* `pip3 install blink1`
-* `pip3 install "python-socketio[client]"`
-
-Run the script:
-
-`python3 tallyarbiter.py [server] [port] [deviceId]`
-* `[server]` is the IP address of the Tally Arbiter server.
-* `[port]` is the Port of the Tally Arbiter server (usually `4455`)
-* `[deviceId]` is the deviceId of the Device (camera, etc.) that you want to follow. If you leave this blank, it will automatically select the first Device found on the server. You can reassign it if needed.
-
-A constant blinking white light on the blink(1) USB device means the Listener is attempting to connect to the Tally Arbiter server. The same light will flash white when it is reassigned.
+Tally Arbiter also supports the use of a blink(1) device as a tally light. A remote listening script is available in the separate repository, [Tally Arbiter Blink1 Listener](http://github.com/josephdadams/tallyarbiter-blink1listener). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-blink1listener/readme.md). It is compatible with and was designed to run on a Raspberry Pi Zero, making this an inexpensive option for *wireless* tally output. However, it can be run on any OS/device that supports Python such as MacOS or Windows, which can be helpful if you want to use this with graphics or video playback operators, for example.
 
 ## Using a Relay for contact-closure systems
-Many Camera CCUs and other devices support incoming tally via contact closure. A remote listening script that can trigger USB relays is available with the separate repository, [Tally Arbiter Relay Controller](http://github.com/josephdadams/tallyarbiterrelaycontroller). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiterrelaycontroller/readme.md).
+Many Camera CCUs and other devices support incoming tally via contact closure. A remote listening script that can trigger USB relays is available with the separate repository, [Tally Arbiter Relay Listener](http://github.com/josephdadams/tallyarbiter-relaylistener). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-relaylistener/readme.md).
 
-# Using the API
-The Web GUI is the most complete way to interact with the software, however the following API's are available:
+## Using a GPO output
+Lots of equipment support the use of GPIO (General Purpose In/Out) pins to interact. This could be for logic control, turning on LEDs, etc. A remote listening script that can run on a Raspberry Pi is available with the separate repository, [Tally Arbiter GPO Listener](http://github.com/josephdadams/tallyarbiter-gpolistener). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-gpolistener/readme.md).
+
+## Creating your own listener client
+Tally Arbiter can send data over the socket.IO protocol to your listener. You can make use of the following event emitters:
+* `bus_options`: Send no arguments; Returns a `bus_options` event with an array of available busses (preview and program).
+* `devices`: Send no arguments; Returns a `devices` event with an array of configured Tally Arbiter Devices.
+* `device_listen`: Send a deviceId and a listener type (string); Returns a `device_states` event with an array of current device states for that device Id. This will add the listener client to the list in Tally Arbiter, making it manageable in the Settings interface.
+* `device_states`: Send a deviceId as the argument; Returns a `device_states` event with an array of current device states for that device Id.
+
+# Using the REST API
+The Web GUI is the most complete way to interact with the software, however the following API's are available (`HTTP GET` method unless otherwise noted):
 * `/source_types`: Returns the available source types
 * `/source_types_datafields`: Returns the source types' datafields needed to properly interact with the source (IP address, port, etc.)
 * `/output_types`: Returns the available output types
@@ -190,6 +205,9 @@ The API will respond with JSON messages for each request received.
 * `device-action-added-successfully`: The Device Action was successfully added to the system.
 * `device-action-edited-successfully`: The Device Action was successfully edited in the system.
 * `device-action-deleted-successfully`: The Device Action was successfully deleted from the system.
+* `tsl-client-added-successfully`: The TSL Client was successfully added to the system.
+* `tsl-client-edited-successfully`: The TSL Client was successfully edited in the system.
+* `tsl-client-deleted-successfully`: The TSL Client was successfully deleted from the system.
 * `flash-sent-successfully`: The Listener Client was flashed successfully.
 * `flash-not-sent`: The specified Listener Client could not be located or another error occurred.
 * `error`: An unexpected error occurred. Check the `error` property for more information.

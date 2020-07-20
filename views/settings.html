@@ -31,7 +31,7 @@
 		margin: 10px;
 	}
 	
-	#divContainer_Sources, #divContainer_SourceFields, #divContainer_Devices, #divContainer_DeviceFields, #divContainer_DeviceSources, #divContainer_DeviceSourceFields, #divContainer_DeviceActions, #divContainer_DeviceActionFields, #divContainer_Listeners {
+	#divContainer_Sources, #divContainer_SourceFields, #divContainer_Devices, #divContainer_DeviceFields, #divContainer_DeviceSources, #divContainer_DeviceSourceFields, #divContainer_DeviceActions, #divContainer_DeviceActionFields, #divContainer_TSLClients, #divContainer_TSLClientFields, #divContainer_Listeners {
 		background: #ffffff;
 		padding: 5px;
 		float: left;
@@ -54,7 +54,7 @@
 		margin-top: 20px;
 	}
 
-	#divContainer_SourceFields, #divContainer_DeviceFields, #divContainer_DeviceSources, #divContainer_DeviceSourceFields, #divContainer_DeviceActions, #divContainer_DeviceActionFields, #divContainer_Listeners {
+	#divContainer_SourceFields, #divContainer_DeviceFields, #divContainer_DeviceSources, #divContainer_DeviceSourceFields, #divContainer_DeviceActions, #divContainer_DeviceActionFields, #divContainer_TSLClientFields, #divContainer_Listeners {
 		display: none;
 	}
 
@@ -69,7 +69,7 @@
 	#divTallyData {
 		background: #cdcdcd;
 		font-family: monospace;
-		height: 200px;
+		height: 300px;
 		overflow-y: scroll;
 		-webkit-user-select: text;
 	}
@@ -107,6 +107,32 @@
 		height: 30px;
 		background: #e43f5a;
 	}
+
+	.tsl_client_connected {
+		color: #3fe481;
+	}
+
+	.tsl_client_disconnected {
+		color: #999999;
+	}
+
+	.tsl_client_error {
+		color: #e43f5a;
+	}
+
+	.source_status_connected {
+		color: #3fe481;
+	}
+
+	.source_status_disconnected {
+		color: #e43f5a;
+	}
+
+	#divGettingStarted_Close {
+		top: 2px;
+		right: 2px;
+		float: right;
+	}
 </style>
 <script src='/socket.io/socket.io.js'></script>
 <script src='js/jquery/jquery.min.js'></script>
@@ -131,9 +157,12 @@
 	var device_sources = [];
 	var device_actions = [];
 
+	var tsl_clients = [];
+
 	var device_states = [];
 
 	var selectedDeviceId = null;
+	var selectedTSLClientId = null;
 
 	var TallyAddresses_ATEM = [
 		{address: 0, label: "Black"},
@@ -188,11 +217,12 @@
 	function loadSettings() {
 		//gets the latest data from the API
 
-		$.when(getSourceTypes(), getSourceTypesDataFields(), getOutputTypes(),getOutputTypesDataFields(), getBusOptions(), getSources(), getDevices(), getDeviceSources(), getDeviceActions(), getDeviceStates()).done(function() {
+		$.when(getSourceTypes(), getSourceTypesDataFields(), getOutputTypes(),getOutputTypesDataFields(), getBusOptions(), getSources(), getDevices(), getDeviceSources(), getDeviceActions(), getDeviceStates(), getTSLClients()).done(function() {
 			//when all data has arrived, let's process it all together
 			loadSocket();
 			loadSources();
 			loadDevices();
+			loadTSLClients();
 		});
 	}
 
@@ -244,6 +274,11 @@
 
 		socket.on('tally_data', function(sourceId, tallyObj) {
 			AddTallyData(sourceId, tallyObj);
+		});
+
+		socket.on('tsl_clients', function(data) {
+			tsl_clients = data;
+			loadTSLClients();
 		});
 	}
 
@@ -312,6 +347,12 @@
 		});
 	}
 
+	function getTSLClients() {
+		return $.getJSON('/tsl_clients', function(data) {
+			tsl_clients = data;
+		});
+	}
+
 	function loadSources() {
 		let divSources = $('#divSources')[0];
 		divSources.innerHTML = '';
@@ -324,9 +365,6 @@
 		let tdHeaderSourceType = document.createElement('td');
 		tdHeaderSourceType.innerHTML = '<b>Type</b>';
 		trHeader.appendChild(tdHeaderSourceType);
-		let tdHeaderSourceConnected = document.createElement('td');
-		tdHeaderSourceConnected.innerHTML = '&nbsp;';
-		trHeader.appendChild(tdHeaderSourceConnected);
 		let tdHeaderSourceEdit = document.createElement('td');
 		tdHeaderSourceEdit.innerHTML = '&nbsp;';
 		trHeader.appendChild(tdHeaderSourceEdit);
@@ -334,6 +372,7 @@
 
 		for (let i = 0; i < sources.length; i++) {
 			let trSourceItem = document.createElement('tr');
+			trSourceItem.className = ((sources[i].connected === true) ? 'source_status_connected' : 'source_status_disconnected');
 
 			let tdSourceName = document.createElement('td');
 			tdSourceName.innerHTML = sources[i].name;
@@ -348,13 +387,6 @@
 				tdSourceType.className = 'disabled';
 			}
 			trSourceItem.appendChild(tdSourceType);
-
-			let tdSourceConnected = document.createElement('td');
-			let imgConnected = document.createElement('img');
-			imgConnected.src = ((sources[i].connected === true) ? 'green' : 'red') + '.png';
-			imgConnected.height = '18';
-			tdSourceConnected.appendChild(imgConnected);
-			trSourceItem.appendChild(tdSourceConnected);
 
 			let tdSourceEdit = document.createElement('td');
 			let btnEditSource = document.createElement('button');
@@ -449,7 +481,7 @@
 			tdDeviceTallyStatus_PGM.id = 'td_tallyPGM_' + devices[i].id;
 			tdDeviceTallyStatus_PGM.className = 'device_state_tally';
 			if (mode_program) {
-				tdDeviceTallyStatus_PGM.className = 'device_state_tally_preview';
+				tdDeviceTallyStatus_PGM.className = 'device_state_tally_program';
 			}
 			trDeviceItem.appendChild(tdDeviceTallyStatus_PGM);
 
@@ -640,6 +672,85 @@
 		}
 	}
 
+	function loadTSLClients() {
+		let divTSLClients = $('#divTSLClients')[0];
+		divTSLClients.innerHTML = '';
+
+		let tableTSLClients = document.createElement('table');
+
+		let trHeader = document.createElement('tr');
+
+		let tdHeaderTSLIP = document.createElement('td');
+		tdHeaderTSLIP.innerHTML = '<b>IP</b>';
+		trHeader.appendChild(tdHeaderTSLIP);
+
+		let tdHeaderTSLPort = document.createElement('td');
+		tdHeaderTSLPort.innerHTML = '<b>Port</b>';
+		trHeader.appendChild(tdHeaderTSLPort);
+
+		let tdHeaderTSLTransport = document.createElement('td');
+		tdHeaderTSLTransport.innerHTML = '<b>Transport</b>';
+		trHeader.appendChild(tdHeaderTSLTransport);
+
+		let tdHeaderTSLEdit = document.createElement('td');
+		tdHeaderTSLEdit.innerHTML = '&nbsp;';
+		trHeader.appendChild(tdHeaderTSLEdit);
+
+		tableTSLClients.appendChild(trHeader);
+
+		for (let i = 0; i < tsl_clients.length; i++) {
+			let trItem = document.createElement('tr');
+
+			if (tsl_clients[i].connected === true) {
+				trItem.className = 'tsl_client_connected';
+			}
+			else {
+				trItem.className = 'tsl_client_disconnected';
+			}
+
+			if (tsl_clients[i].error === true) {
+				trItem.className = 'tsl_client_error';
+			}
+
+			let tdTSLIP = document.createElement('td');
+			tdTSLIP.innerHTML = tsl_clients[i].ip;
+			trItem.appendChild(tdTSLIP);
+
+			let tdTSLPort = document.createElement('td');
+			tdTSLPort.innerHTML = tsl_clients[i].port;
+			trItem.appendChild(tdTSLPort);
+
+			let tdTSLTransport = document.createElement('td');
+			tdTSLTransport.innerHTML = tsl_clients[i].transport;
+			trItem.appendChild(tdTSLTransport);
+
+			let tdTSLEdit = document.createElement('td');
+
+			let btnEdit = document.createElement('button');
+			btnEdit.innerHTML = 'Edit';
+			btnEdit.setAttribute('onclick', 'Edit_TSL_Client(\'' + tsl_clients[i].id + '\');');
+			tdTSLEdit.appendChild(btnEdit);
+
+			let btnDelete = document.createElement('button');
+			btnDelete.innerHTML = 'Delete';
+			btnDelete.setAttribute('onclick', 'Delete_TSL_Client(\'' + tsl_clients[i].id + '\');');
+			tdTSLEdit.appendChild(btnDelete);
+
+			trItem.appendChild(tdTSLEdit);
+
+			tableTSLClients.appendChild(trItem);
+		}
+
+		if (tsl_clients.length > 0) {
+			divTSLClients.appendChild(tableTSLClients);
+		}
+		else {
+			let spanNoItems = document.createElement('span');
+			spanNoItems.innerHTML = '(no TSL clients configured)';
+			divTSLClients.appendChild(spanNoItems);
+		}
+	}
+
 	function Listener_Flash(id) {
 		socket.emit('flash', id);
 	}
@@ -776,6 +887,11 @@
 	function GetDeviceActionById(deviceActionId) {
 		//gets the Device Actions by the Id
 		return device_actions.find( ({ id }) => id === deviceActionId);
+	}
+
+	function GetTSLClientById(tslClientId) {
+		//gets the TSL Client by the Id
+		return tsl_clients.find( ({ id }) => id === tslClientId);	
 	}
 
 	function Add_Source() {
@@ -1177,6 +1293,15 @@
 		txtDescription.type = 'text';
 		txtDescription.id = 'txtAddDeviceDescription';
 		divDeviceFields.appendChild(txtDescription);
+
+		let spanTSLAddress = document.createElement('span');
+		spanTSLAddress.innerHTML = 'TSL Address';
+		spanTSLAddress.style.display = 'block';
+		divDeviceFields.appendChild(spanTSLAddress);
+		let txtTSLAddress = document.createElement('input');
+		txtTSLAddress.type = 'text';
+		txtTSLAddress.id = 'txtAddTSLAddress';
+		divDeviceFields.appendChild(txtTSLAddress);
 		
 		$('#btnAdd_Device_Save')[0].style.display = 'block';
 		$('#btnEdit_Device_Save')[0].style.display = 'none';
@@ -1187,6 +1312,7 @@
 		
 		deviceObj.name = $('#txtAddDeviceName')[0].value;
 		deviceObj.description = $('#txtAddDeviceDescription')[0].value;
+		deviceObj.tslAddress = $('#txtAddTSLAddress')[0].value;
 		deviceObj.enabled = true;
 
 		let arbiterObj = {};
@@ -1249,6 +1375,18 @@
 		txtDeviceDescription.style.display = 'block';
 		divDeviceFields.appendChild(txtDeviceDescription);
 
+		let spanTSLAddress = document.createElement('span');
+		spanTSLAddress.innerHTML = 'TSL Address';
+		spanTSLAddress.style.display = 'block';
+		divDeviceFields.appendChild(spanTSLAddress);
+
+		let txtTSLAddress = document.createElement('input');
+		txtTSLAddress.type = 'text';
+		txtTSLAddress.id = 'txtDeviceTSLAddress';
+		txtTSLAddress.value = (device.tslAddress) ? device.tslAddress : '0';
+		txtTSLAddress.style.display = 'block';
+		divDeviceFields.appendChild(txtTSLAddress);
+
 		let spanEnabled = document.createElement('span');
 		spanEnabled.innerHTML = 'Enabled';
 		spanEnabled.style.display = 'block';
@@ -1282,6 +1420,7 @@
 		deviceObj.id = selectedDeviceId;
 		deviceObj.name = $('#txtDeviceName')[0].value;
 		deviceObj.description = $('#txtDeviceDescription')[0].value;
+		deviceObj.tslAddress = $('#txtDeviceTSLAddress')[0].value;
 		deviceObj.enabled = $('#chkDeviceEnabled')[0].checked;
 
 		let arbiterObj = {};
@@ -1413,7 +1552,7 @@
 		$('#divContainer_DeviceActions')[0].style.display = 'none';
 		$('#divContainer_DeviceActionFields')[0].style.display = 'none';
 		
-		var selectedDeviceId = deviceId;
+		selectedDeviceId = deviceId;
 	}
 
 	function Add_Device_Source(deviceId) {
@@ -1656,7 +1795,7 @@
 		$('#divContainer_DeviceActions')[0].style.display = 'block';
 		$('#divContainer_DeviceActionFields')[0].style.display = 'none';
 		
-		var selectedDeviceId = deviceId;
+		selectedDeviceId = deviceId;
 	}
 
 	function Add_Device_Action(deviceId) {
@@ -2015,6 +2154,199 @@
 		$('#divContainer_DeviceActions')[0].style.display = 'none';
 	}
 
+	function Add_TSL_Client() {
+		$('#divContainer_TSLClientFields')[0].style.display = 'block';
+		let divTSLClientFields = $('#divTSLClientFields')[0];
+		divTSLClientFields.innerHTML = '';
+
+		let spanTSLIP = document.createElement('span');
+		spanTSLIP.innerHTML = 'IP Address';
+		spanTSLIP.style.display = 'block';
+		divTSLClientFields.appendChild(spanTSLIP);
+
+		let txtTSLIP = document.createElement('input');
+		txtTSLIP.type = 'text';
+		txtTSLIP.id = 'txtTSLIP';
+		txtTSLIP.style.display = 'block';
+		divTSLClientFields.appendChild(txtTSLIP);
+
+		let spanTSLPort = document.createElement('span');
+		spanTSLPort.innerHTML = 'Port';
+		spanTSLPort.style.display = 'block';
+		divTSLClientFields.appendChild(spanTSLPort);
+
+		let txtTSLPort = document.createElement('input');
+		txtTSLPort.type = 'text';
+		txtTSLPort.id = 'txtTSLPort';
+		txtTSLPort.style.display = 'block';
+		divTSLClientFields.appendChild(txtTSLPort);
+
+		let selTSLTransport = document.createElement('select');
+		selTSLTransport.style.display = 'block';
+		selTSLTransport.id = 'selTSLTransport';
+
+		let optUDP = document.createElement('option');
+		optUDP.textContent = 'UDP';
+		optUDP.value = 'udp';
+		selTSLTransport.appendChild(optUDP);
+
+		let optTCP = document.createElement('option');
+		optTCP.textContent = 'TCP';
+		optTCP.value = 'tcp';
+		selTSLTransport.appendChild(optTCP);
+		
+		divTSLClientFields.appendChild(selTSLTransport);
+		
+		$('#btnAdd_TSL_Client_Save')[0].style.display = 'block';
+		$('#btnEdit_TSL_Client_Save')[0].style.display = 'none';
+	}
+
+	function Add_TSL_Client_Save() {
+		let tslClientObj = {};
+		
+		tslClientObj.ip = $('#txtTSLIP')[0].value;
+		tslClientObj.port = $('#txtTSLPort')[0].value;
+		tslClientObj.transport = $('#selTSLTransport')[0].options[$('#selTSLTransport')[0].selectedIndex].value;
+
+		let arbiterObj = {};
+		arbiterObj.action = 'add';
+		arbiterObj.type = 'tsl_client';
+		arbiterObj.tslClient = tslClientObj;
+
+		jQuery.ajax({
+				contentType: 'application/json',
+				url: '/manage',
+				type: 'POST',
+				data: JSON.stringify(arbiterObj),
+				dataType: 'json',
+				success: function(data) {
+					ProcessAPIResponse(data);
+				}
+		});
+	}
+
+	function Edit_TSL_Client(tslClientId) {
+		let divTSLClientFields = $('#divTSLClientFields')[0];
+		divTSLClientFields.innerHTML = '';
+
+		let tslClient = GetTSLClientById(tslClientId);
+
+		let spanTSLClientId = document.createElement('span');
+		spanTSLClientId.innerHTML = 'TSL Client Id:';
+		spanTSLClientId.style.display = 'block';
+		divTSLClientFields.appendChild(spanTSLClientId);
+
+		let txtTSLClientId = document.createElement('input');
+		txtTSLClientId.type = 'text';
+		txtTSLClientId.id = 'txtTSLClientId';
+		txtTSLClientId.value = tslClientId;
+		txtTSLClientId.style.display = 'block';
+		txtTSLClientId.disabled = true;
+		divTSLClientFields.appendChild(txtTSLClientId);
+
+		let spanTSLIP = document.createElement('span');
+		spanTSLIP.innerHTML = 'IP Address';
+		spanTSLIP.style.display = 'block';
+		divTSLClientFields.appendChild(spanTSLIP);
+
+		let txtTSLIP = document.createElement('input');
+		txtTSLIP.type = 'text';
+		txtTSLIP.id = 'txtTSLIP';
+		txtTSLIP.value = tslClient.ip;
+		txtTSLIP.style.display = 'block';
+		divTSLClientFields.appendChild(txtTSLIP);
+
+		let spanTSLPort = document.createElement('span');
+		spanTSLPort.innerHTML = 'Port';
+		spanTSLPort.style.display = 'block';
+		divTSLClientFields.appendChild(spanTSLPort);
+
+		let txtTSLPort = document.createElement('input');
+		txtTSLPort.type = 'text';
+		txtTSLPort.id = 'txtTSLPort';
+		txtTSLPort.value = tslClient.port;
+		txtTSLPort.style.display = 'block';
+		divTSLClientFields.appendChild(txtTSLPort);
+
+		let selTSLTransport = document.createElement('select');
+		selTSLTransport.style.display = 'block';
+		selTSLTransport.id = 'selTSLTransport';
+
+		let optUDP = document.createElement('option');
+		optUDP.textContent = 'UDP';
+		optUDP.value = 'udp';
+		if (tslClient.transport === 'udp') {
+			optUDP.selected = true;
+		}
+		selTSLTransport.appendChild(optUDP);
+
+		let optTCP = document.createElement('option');
+		optTCP.textContent = 'TCP';
+		optTCP.value = 'tcp';
+		if (tslClient.transport === 'tcp') {
+			optTCP.selected = true;
+		}
+		selTSLTransport.appendChild(optTCP);
+		
+		divTSLClientFields.appendChild(selTSLTransport);
+
+		let btnAdd_TSLClient_Save = $('#btnAdd_TSL_Client_Save')[0];
+		btnAdd_TSLClient_Save.style.display = 'none';
+		let btnEdit_TSLClient_Save = $('#btnEdit_TSL_Client_Save')[0];
+		btnEdit_TSLClient_Save.style.display = 'block';
+
+		$('#divContainer_TSLClientFields')[0].style.display = 'block';
+
+		selectedTSLClientId = tslClientId;
+	}
+
+	function Edit_TSL_Client_Save() {
+		let tslClientObj = {};
+
+		tslClientObj.id = selectedTSLClientId;
+		tslClientObj.ip = $('#txtTSLIP')[0].value;
+		tslClientObj.port = $('#txtTSLPort')[0].value;
+		tslClientObj.transport = $('#selTSLTransport')[0].options[$('#selTSLTransport')[0].selectedIndex].value;
+
+		let arbiterObj = {};
+		arbiterObj.action = 'edit';
+		arbiterObj.type = 'tsl_client';
+		arbiterObj.tslClient = tslClientObj;
+
+		jQuery.ajax({
+			contentType: 'application/json',
+			url: '/manage',
+			type: 'POST',
+			data: JSON.stringify(arbiterObj),
+			dataType: 'json',
+			success: function(data) {
+				ProcessAPIResponse(data);
+			}
+		});
+	}
+
+	function Cancel_TSL_Client() {
+		$('#divContainer_TSLClientFields')[0].style.display = 'none';
+	}
+
+	function Delete_TSL_Client(tslClientId) {
+		let arbiterObj = {};
+		arbiterObj.action = 'delete';
+		arbiterObj.type = 'tsl_client';
+		arbiterObj.tslClientId = tslClientId;
+
+		jQuery.ajax({
+			contentType: 'application/json',
+			url: '/manage',
+			type: 'POST',
+			data: JSON.stringify(arbiterObj),
+			dataType: 'json',
+			success: function(data) {
+				ProcessAPIResponse(data);
+			}
+		});
+	}
+
 	function ProcessAPIResponse(response) {
 		//process the various responses from the API and display them in the log				
 		let responseText = '';
@@ -2069,7 +2401,15 @@
 					$('#divContainer_DeviceActions')[0].style.display = 'block';
 					$('#divContainer_DeviceActionFields')[0].style.display = 'none';
 				});
-				break;	
+				break;
+			case 'tsl-client-added-successfully':
+			case 'tsl-client-edited-successfully':
+			case 'tsl-client-deleted-successfully':
+				$('#divContainer_TSLClientFields')[0].style.display = 'none';
+				$.when(getTSLClients()).done(function() {
+					loadTSLClients();
+				});
+				break;
 			case 'error':
 				responseText = 'Unexpected Error Occurred: ' + response.error;
 			default:
@@ -2100,6 +2440,10 @@
 			return true;
 		}
 	}
+
+	function GettingStarted_Close() {
+		$('#divContainer_GettingStarted')[0].style.display = 'none';
+	}
 </script>
 </head>
 <body onload='loadSettings();'>
@@ -2107,6 +2451,9 @@
 <div id='version'></div>
 <div id='container'>
 	<div id='divContainer_GettingStarted'>
+		<div id='divGettingStarted_Close'>
+			<button id='btnGettingStarted_Close' onClick='GettingStarted_Close();'>X</button>
+		</div>
 		<span class='title'>Getting Started</span>
 		<br /><br />
 		Tally Arbiter is designed to receive or obtain tally data from multiple sources and then arbitrate whether a given device is considered to be in Preview or Program.<br /><br />
@@ -2120,6 +2467,9 @@
 			<li>Roland Smart Tally</li>
 			<li>Open Sound Control (OSC)</li>
 		</ul>
+
+		When you add a source and the connection to the tally source (video switcher, software, etc.) is successfully made, the source will be green. If there is an error, the source will be red. Look at the logs for more error information.
+		<br /><br />
 
 		<b>Devices</b> represent your inputs (like cameras) that you want to track with tally data. Devices can be assigned different addresses or inputs by each source. In Tally Arbiter, you can create as many devices as you would like and give each one a helpful name and description.
 		<br /><br />
@@ -2200,6 +2550,19 @@
 		<button id='btnAdd_DeviceAction_Save' onclick='Add_Device_Action_Save();'>Save</button>
 		<button id='btnEdit_DeviceAction_Save' onclick='Edit_Device_Action_Save();'>Save</button>
 		<button id='btnDeviceAction_Cancel' onclick='Cancel_Device_Action();'>Cancel</button>
+	</div>
+	<div id='divContainer_TSLClients'>
+		<span class='title'>TSL Clients</span>
+		<div id='divTSLClients'></div>
+		<br /><br />
+		<button id='btnAdd_TSL_Client' onclick='Add_TSL_Client();'>Add</button>
+	</div>
+	<div id='divContainer_TSLClientFields'>
+		<span class='title'>TSL Client</span>
+		<div id='divTSLClientFields'></div><br />
+		<button id='btnAdd_TSL_Client_Save' onclick='Add_TSL_Client_Save();'>Save</button>
+		<button id='btnEdit_TSL_Client_Save' onclick='Edit_TSL_Client_Save();'>Save</button>
+		<button id='btnTSL_Client_Cancel' onclick='Cancel_TSL_Client();'>Cancel</button>
 	</div>
 	<div id='divContainer_Listeners'>
 		<span class='title'>Connected Listeners:</span>
