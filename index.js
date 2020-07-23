@@ -23,7 +23,7 @@ const osc 			= require('osc');
 const xml2js		= require('xml2js');
 
 //Tally Arbiter variables
-const listenPort 	= 4455;
+const listenPort 	= process.env.PORT || 4455;
 const oscPort 		= 5958;
 var oscUDP			= null;
 const config_file 	= './config.json'; //local storage JSON file
@@ -33,8 +33,7 @@ var tallydata_OBS 	= []; //array of OBS sources and current tally data
 var tallydata_TC 	= []; //array of Tricaster sources and current tally data
 var PortsInUse		= []; //array of UDP/TCP ports in use, includes reserved ports
 var tsl_clients		= []; //array of TSL 3.1 clients that Tally Arbiter will send tally data to
-var tsl_client_socket_udp = null; //used to send UDP data to a TSL Client
-var tsl_client_socket_tcp = null; //used to send TCP data to a TSL Client
+var cloud_destinations = []; //array of Tally Arbiter Cloud Destinations (host, port, key)
 
 let portObj = {};
 portObj.port = '9910'; //ATEM
@@ -308,6 +307,11 @@ function initialSetup() {
 	app.get('/tsl_clients', function (req, res) {
 		//gets all TSL Clients
 		res.send(tsl_clients);
+	});
+
+	app.get('/cloud_destinations', function (req, res) {
+		//gets all Cloud Destinations
+		res.send(cloud_destinations);
 	});
 
 	app.get('/clients', function (req, res) {
@@ -636,6 +640,18 @@ function initialSetup() {
 		}
 
 		logger(`Finished TSL Client Connections.`, 'info');
+	}
+
+	if (cloud_destinations.length > 0) {
+		logger(`Initiation ${cloud_destinations.length} Cloud Destination Connections.`, 'info');
+
+		for (let i = 0; i < cloud_destinations.length; i++) {
+			logger(`Cloud Destination: ${cloud_destinations[i].host}:${cloud_destinations[i].port}`, 'info-quiet');
+			cloud_destinations[i].connected = false;
+			StartCloudDestination(cloud_destinations[i].id);
+		}
+
+		logger(`Finished Cloud Destinations.`, 'info');
 	}
 
 	logger('Starting HTTP Server.', 'info-quiet');
@@ -2398,6 +2414,60 @@ function SendTSLClientData(deviceId) {
 					default:
 						break;
 				}
+			}
+		}
+	}
+}
+
+function StartCloudDestination(cloudId) {
+	for (let i = 0; i < cloud_destinations.length; i++) {
+		if (cloud_destinations[i].id === cloudId) {
+			logger(`Cloud Destination: ${cloudId}  Initiating Connection.`, 'info-quiet');
+
+			cloud_destinations[i].socket = io.connect('http://' + cloud_destinations[i].host + ':' + cloud_destinations[i].port, {reconnection: true});
+
+			cloud_destinations[i].socket.on('connect', function() { 
+				cloud_destinations[i].socket.emit('cloud_initialdata', cloud_destinations[i].key, sources, devices, device_sources, device_states);
+			});
+
+			cloud_destinations[i].socket.on('error', function(error) {
+				logger(`An error occurred with the connection to ${cloud_destinations[i].host}:${cloud_destinations[i].port}  ${error}`, 'error');
+				cloud_destinations[i].error = true;
+				io.to('settings').emit('cloud_destinations', cloud_destinations);
+			});
+
+			cloud_destinations[i].socket.on('disconnect', function() { 
+				logger(`Cloud Connection Disconnected: ${cloud_destinations[i].host}:${cloud_destinations[i].port}  ${error}`, 'error');
+				cloud_destinations[i].connected = false;
+				io.to('settings').emit('cloud_destinations', cloud_destinations);
+			});
+
+			break;
+		}
+	}
+}
+
+function StopCloudDestination(cloudId) {
+	for (let i = 0; i < cloud_destinations.length; i++) {
+		if (cloud_destinations[i].id === cloudId) {
+			logger(`Cloud Destination: ${cloudId}  Closing Connection.`, 'info-quiet');
+			cloud_destinations[i].socket.close();
+			break;
+		}
+	}
+}
+
+function SendCloudData(deviceId) {
+	let filtered_device_states = GetDeviceStatesByDeviceId(deviceId);
+	
+	for (let i = 0; i < cloud_destinations.length; i++) {
+		if (cloud_destinations[i].connected === true) {
+			try {
+				cloud_destinations[i].socket.emit('cloud_data', deviceId, filtered_device_states);
+			}
+			catch(error) {
+				logger(`An error occurred sending Cloud data to ${cloud_destinations[i].host}:${cloud_destinations[i].port}  ${error}`, 'error');
+				cloud_destinations[i].error = true;
 			}
 		}
 	}
