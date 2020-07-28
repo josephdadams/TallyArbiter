@@ -25,14 +25,14 @@ These will have to be installed on the Pi in order for the script to function co
 1. Now that all the necessary libraries are installed and compiled, you need to copy the `tallyarbiter-gpolistener.py` file to your Pi. You can do this a number of ways, but one simple way is to execute this command through your SSH connection: `wget https://raw.githubusercontent.com/josephdadams/TallyArbiter-GPOListener/master/tallyarbiter-gpolistener.py`. This will copy the file into your current folder (you should still be the home folder for the `pi` account).
 1. Once the Python script has been copied over, go ahead and test it out to make sure everything is working properly. Run this in the SSH session: `sudo python3 tallyarbiter-gpolistener.py`
     
-    Be sure to replace the IP address `192.168.1.6` with the actual IP of your Tally Arbiter server. If you leave off the port, it will attempt to connect using port `4455`.
+    Be sure to replace the IP address `192.168.1.6 config_gpo.jspon` with the actual IP of your Tally Arbiter server. If you leave off the port, it will attempt to connect using port `4455`. You can specify another path for `config_gpo.json` if you are running the script from another folder location. If you leave the argument off completely, it will look for a file called `config_gpo.json` in the current working directory.
 
 1. If it is working properly, you will be able to view the newly added GPO listener client in the Tally Arbiter Settings page under the "Listeners" section. Use the "flash" button if you want to see the server communicate with the GPO listener. It will take each GPO pin associated with that device and alternate taking the pin High and Low two times before going back to the previous state of the GPO.
 
 ## Setting up the script to start at boot
 Now that it is working properly, you will want to set up the script to run on boot so that all you have to do is turn on the Pi and wait for it to launch and connect to the server. There are several different methods in the Raspberry Pi OS to do this. The following describes how to do it using the `rc.local` file.
 1. In your SSH session, type `sudo nano /etc/rc.local`.
-1. Just before the last line of this file (`exit 0`), add the following: `sudo python3 /home/pi/tallyarbiter-gpolistener.py &`. The `&` is important because it allows the script to launch in a separate thread since we want the program to continue running in the background.
+1. Just before the last line of this file (`exit 0`), add the following: `sudo python3 /home/pi/tallyarbiter-gpolistener.py /home/pi/config_gpo.json &`. The `&` is important because it allows the script to launch in a separate thread since we want the program to continue running in the background.
 1. Now reboot the Pi to test that the script runs on boot: `sudo reboot`. This will end your SSH session.
 
 The program should now launch every time the Pi boots up, and automatically connect to your Tally Arbiter server once the server is available.
