@@ -11,7 +11,11 @@ import json
 import atexit
 import RPi.GPIO as GPIO
 
-configFileName = 'config_gpo.json'
+if len(sys.argv) > 1:
+	configFileName = sys.argv[1]
+else:
+	configFileName = 'config_gpo.json'
+
 server_config = []
 gpo_groups = []
 
