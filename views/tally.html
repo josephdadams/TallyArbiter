@@ -178,8 +178,6 @@
 			selectedDeviceId = deviceId;
 			updateTallyInfo();
 		});
-
-		KeepScreenAwake(true); //keeps the phone from falling asleep
 	}
 
 	function updateDeviceList() {
@@ -216,6 +214,7 @@
 		if (id !== '0') {
 			selectDevice(id);
 		}
+		KeepScreenAwake(true); //keeps the phone from falling asleep
 	}
 
 	function selectDevice(deviceId) {
