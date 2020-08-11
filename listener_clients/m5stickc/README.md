@@ -1,7 +1,7 @@
-# Tally Arbiter M5StickC Listener
-Tally Arbiter M5StickC Listener was written  by Joseph Adams and is distributed under the MIT License.
+# Tally Arbiter M5Stick-C Listener
+Tally Arbiter M5Stick-C Listener was written  by Joseph Adams and is distributed under the MIT License.
 
-Tally Arbiter M5StickC Listener is an accessory program that allows you to connect to a Tally Arbiter server and control an M5StickC ESP32 Arduino device from M5Stack based on the incoming tally information.
+Tally Arbiter M5Stick-C Listener is an accessory program that allows you to connect to a Tally Arbiter server and control an M5Stick-C ESP32 Arduino device from M5Stack based on the incoming tally information.
 
 To learn more about the Tally Arbiter project, [click here](http://github.com/josephdadams/tallyarbiter).
 
@@ -25,10 +25,8 @@ Line 42 of this file reads, `hexdump(payload, length);`. This function is not de
 
 The fix is to simply comment out this line as it is not needed and is only for debugging purposes. Modify the line so it now reads, `//hexdump(payload, length);`.
 
-**Alternatively, you can just download the `libraries` folder of this repository and place them into your Arduino IDE libraries folder.** The default path for that folder is `~/Documents/Arduino/Libraries/`.
-
 ## Compile and Upload the Sketch to the Device
-1. Once all libraries are downloaded, open the `tallyarbiter-m5stickclistener.ino` file in the Arduino IDE.
+1. Once all libraries are downloaded, open the `tallyarbiter-m5stickc.ino` file in the Arduino IDE.
 1. Modify these lines are the top of the file to reflect your wireless network and Tally Arbiter server settings:
 	```c++
 	//Wifi SSID and password
