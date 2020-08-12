@@ -7,6 +7,21 @@ To contact the author or for more information, please visit [www.techministry.bl
 
 Tally Arbiter is software that allows you to combine incoming tally data from multiple sources such as TSL UMD 3.1, Blackmagic ATEM, OBS Studio, VMix, Roland Smart Tally, etc. and arbitrate the bus state across all of the sources so that devices like cameras can accurately reflect tally data coming from those multiple locations without each device having to be connected to all sources simultaneously.
 
+# Features
+* Supports many different tally sources/switchers
+* Supports output of tally data to several different types (web/phone, blink(1), relay, GPO, M5StickC/Arduino)
+* Outgoing webhooks or OSC based on tally states
+* Unlimited tally sources and devices
+* Cloud Support - send data from your closed production network to a server in the cloud
+* Feedbacks and Control through Bitfocus Companion - view tally data live on your stream deck!
+
+# Videos
+* Introduction and Walkthrough: https://youtu.be/msfAL631ARw
+* Using Tally Arbiter for TSL 3.1 Protocol Conversion: https://youtu.be/iZd0_K21k6U
+* Using Tally Arbiter Cloud to view tally data from anywhere: https://youtu.be/yvWg1NuH248
+* Feedback and Control with Bitfocus Companion: https://youtu.be/osvbW4XHu0I
+* Using an M5StickC Arduino for viewing tally: https://youtu.be/WMrRKD63Jrw
+
 # Installing the software
 The software is written in Node.js and is therefore cross-platform and can be run on MacOS, Linux, or Windows.
 
@@ -47,6 +62,19 @@ Upon startup, the program will enumerate through all stored incoming tally conne
 
 # Configuration
 Once running, a web interface is available to view tally sources, devices, and other information at `/settings`: <http://127.0.0.1:4455/settings>
+**This page is restricted by a username and password. The default username is `admin` and the default password is `12345`.**
+You can change the security of this area by adding the following section to your `config.json` file:
+```javascript
+{
+	security:
+	{
+		"username_settings": "admin",
+		"password_settings": "12345",
+		"username_producer": "producer",
+		"password_producer": "12345"
+	}
+}
+```
 
 Tally Arbiter consists of the following sections:
 
@@ -59,6 +87,7 @@ The following source types are supported:
 * OBS Studio
 * StudioCoast VMix
 * Roland Smart Tally
+* Newtek Tricaster
 * Open Sound Control (OSC)
 
 When you add a source and the connection to the tally source (video switcher, software, etc.) is successfully made, the source will be green. If there is an error, the source will be red. Look at the logs for more error information.
@@ -128,15 +157,20 @@ Navigate to `/tally` on the Tally Arbiter server in your browser and select a De
 
 ## Viewing all tally data
 Navigate to `/producer` on the Tally Arbiter server in your browser to view all Devices and their current states. This information is also available in the Settings GUI but is displayed in a minimal fashion here for in-service viewing.
+**This page is restricted by a username and password. The default username is `producer` and the default password is `12345`.**
 
 ## Using a blink(1) for tally output
-Tally Arbiter also supports the use of a blink(1) device as a tally light. A remote listening script is available in the separate repository, [Tally Arbiter Blink1 Listener](http://github.com/josephdadams/tallyarbiter-blink1listener). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-blink1listener/readme.md). It is compatible with and was designed to run on a Raspberry Pi Zero, making this an inexpensive option for *wireless* tally output. However, it can be run on any OS/device that supports Python such as MacOS or Windows, which can be helpful if you want to use this with graphics or video playback operators, for example.
+Tally Arbiter supports the use of a blink(1) device as a tally light. A remote listening script is available in the separate repository, [Tally Arbiter Blink1 Listener](http://github.com/josephdadams/tallyarbiter-blink1listener). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-blink1listener/readme.md). It is compatible with and was designed to run on a Raspberry Pi Zero, making this an inexpensive option for *wireless* tally output. However, it can be run on any OS/device that supports Python such as MacOS or Windows, which can be helpful if you want to use this with graphics or video playback operators, for example.
 
 ## Using a Relay for contact-closure systems
 Many Camera CCUs and other devices support incoming tally via contact closure. A remote listening script that can trigger USB relays is available with the separate repository, [Tally Arbiter Relay Listener](http://github.com/josephdadams/tallyarbiter-relaylistener). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-relaylistener/readme.md).
 
 ## Using a GPO output
-Lots of equipment support the use of GPIO (General Purpose In/Out) pins to interact. This could be for logic control, turning on LEDs, etc. A remote listening script that can run on a Raspberry Pi is available with the separate repository, [Tally Arbiter GPO Listener](http://github.com/josephdadams/tallyarbiter-gpolistener). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-gpolistener/readme.md).
+Lots of equipment support the use of GPIO (General Purpose In/Out) pins to interact. This could be for logic control, turning on LEDs, etc. A remote listening script that can run on a Raspberry Pi is available with the separate repository, [Tally Arbiter GPO Listener](http://github.com/josephdadams/tallyarbiter-gpolistener). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-gpolistener/ readme.md).
+
+## Using an M5StickC for tally output
+Tally Arbiter can send tally data to an M5StickC Arduino Finger Computer. A remote script is available in the separate repository, [Tally Arbiter M5StickC Listener](http://github.com/josephdadams/tallyarbiter-m5stickclistener). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-m5stickclistener/readme.md).
+  
 
 ## Creating your own listener client
 Tally Arbiter can send data over the socket.IO protocol to your listener. You can make use of the following event emitters:
@@ -145,24 +179,36 @@ Tally Arbiter can send data over the socket.IO protocol to your listener. You ca
 * `device_listen`: Send a deviceId and a listener type (string); Returns a `device_states` event with an array of current device states for that device Id. This will add the listener client to the list in Tally Arbiter, making it manageable in the Settings interface.
 * `device_states`: Send a deviceId as the argument; Returns a `device_states` event with an array of current device states for that device Id.
 
+# Configuring and Using Tally Arbiter Cloud
+Tally Arbiter can send source, device, and tally data from a local instance within a closed network to an instance of Tally Arbiter on another network that may be more acccessible for end users. This is helpful if your users need to access Tally Arbiter and you don't want to have them tunnel or connect into your private network, or if users are located remotely.
+
+* On the cloud server, create a new Cloud Key. This is like a password.
+* On the local server, create a new Cloud Destination specifying the host, port, and cloud key. Multiple local servers can utilize the same cloud key.
+* Once a connection is established, all sources, devices, and tally data from the local server will be relayed up to the cloud server.
+* Tally Arbiter will handle this incoming tally data as it would any local source.
+* You can also flash/ping listener clients the same way you would if they were local.
+* **If a Tally Arbiter Client is removed, all Sources and Devices will be removed.**
+
 # Using the REST API
 The Web GUI is the most complete way to interact with the software, however the following API's are available (`HTTP GET` method unless otherwise noted):
-* `/source_types`: Returns the available source types
-* `/source_types_datafields`: Returns the source types' datafields needed to properly interact with the source (IP address, port, etc.)
-* `/output_types`: Returns the available output types
-* `/output_types_datafields`: Returns the output types' datafields needed to properly send tally data to the output (device action).
-* `/bus_options`: The bus options available to the system. (Preview and Program)
-* `/sources`: The currently configured Sources.
-* `/devices`: The currently configured Devices.
-* `/device_sources`: The relationships between Devices and Sources.
-* `/device_actions`: The actions (outputs) for each Device depending on the Bus conditions that are met.
-* `/device_states`: The current tally data for all Devices.
-* `/clients`: The Listener Clients currently connected to the server.
-* `/flash/[clientId]`: Flash a Listener Client. `[clientId]` is the id of the Listener Client.
 * `/version` will retrieve the version of the software, based on the information specified in `package.json`.
-* `/manage`: POST with JSON, used to manage (add, edit, delete) all Sources, Devices, Device Sources, and Device Actions. Each request object must include the following:
+* `/settings/source_types`: Returns the available source types
+* `/settings/source_types_datafields`: Returns the source types' datafields needed to properly interact with the source (IP address, port, etc.)
+* `/settings/output_types`: Returns the available output types
+* `/settings/output_types_datafields`: Returns the output types' datafields needed to properly send tally data to the output (device action).
+* `/settings/bus_options`: The bus options available to the system. (Preview and Program)
+* `/settings/sources`: The currently configured Sources.
+* `/settings/devices`: The currently configured Devices.
+* `/settings/device_sources`: The relationships between Devices and Sources.
+* `/settings/device_actions`: The actions (outputs) for each Device depending on the Bus conditions that are met.
+* `/settings/device_states`: The current tally data for all Devices.
+* `/settings/tsl_clients`: The TSL Clients currently configured on the server.
+* `/settings/cloud_destinations`: The Cloud Destinations currently configured on the server.
+* `/settings/listener_clients`: The Listener Clients currently connected to the server.
+* `/settings/flash/[clientId]`: Flash a Listener Client. `[clientId]` is the id of the Listener Client.
+* `/settings/manage`: POST with JSON, used to manage (add, edit, delete) all Sources, Devices, Device Sources, and Device Actions. Each request object must include the following:
 	* `action`: `add`, `edit`, or `delete`
-	* `type:`: `source`, `device`, `device_source`, or `device_action`.
+	* `type:`: `source`, `device`, `device_source`, `device_action`, `tsl_client`, `cloud_destination`, `cloud_key`, `cloud_client`.
 
 	If adding or editing a Source, then you must include a `source` object.
 	Example:
@@ -184,7 +230,7 @@ The Web GUI is the most complete way to interact with the software, however the 
 	Example:
 	```javascript
 	{
-		"action": "edit",
+		"action": "delete",
 		"type": "source",
 		"sourceId": "836223ea"
 	}
@@ -208,6 +254,11 @@ The API will respond with JSON messages for each request received.
 * `tsl-client-added-successfully`: The TSL Client was successfully added to the system.
 * `tsl-client-edited-successfully`: The TSL Client was successfully edited in the system.
 * `tsl-client-deleted-successfully`: The TSL Client was successfully deleted from the system.
+* `cloud-destination-added-successfully`: The Cloud Destination was successfully added to the system.
+* `cloud-destination-edited-successfully`: The Cloud Destination was successfully edited in the system.
+* `cloud-destination-deleted-successfully`: The Cloud Destination was successfully deleted from the system.
+* `cloud-key-added-successfully`: The Cloud Key was successfully added to the system.
+* `cloud-key-deleted-successfully`: The Cloud Key was successfully deleted from the system.
 * `flash-sent-successfully`: The Listener Client was flashed successfully.
 * `flash-not-sent`: The specified Listener Client could not be located or another error occurred.
 * `error`: An unexpected error occurred. Check the `error` property for more information.
