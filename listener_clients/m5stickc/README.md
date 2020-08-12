@@ -21,7 +21,7 @@ These will have to be included with the sketch file in order for it to compile p
 ### Modification of SocketIoClient file for ESP32 compatibility
 One library file will need to be modified in order to work properly: `SocketIoClient.cpp`.
 
-Line 42 of this file reads, `hexdump(payload, length);`. This function is not declared properly and thus will error out.
+Line `41` of this file reads, `hexdump(payload, length);`. This function is not declared properly and thus will error out.
 
 The fix is to simply comment out this line as it is not needed and is only for debugging purposes. Modify the line so it now reads, `//hexdump(payload, length);`.
 
@@ -46,6 +46,8 @@ The fix is to simply comment out this line as it is not needed and is only for d
 1. Go to Sketch > and choose `Upload`. The code will compile and upload to the device.
 
 Once the code is successfully compiled and uploaded to the device. the M5Stick-C will boot up and automatically try to connect to your Tally Arbiter server. It will auto-assign itself to the first Device on the server, and you can reassign it through the Settings GUI of Tally Arbiter.
+
+Video Walkthrough: https://youtu.be/WMrRKD63Jrw
 
 ## Using the Device
 When you turn on the M5Stick-C device after it has been programmed, it will automatically connect to the wireless network using the settings provided, and then initiate a connection to the Tally Arbiter server. If the server is offline, just reboot the device after the server is back online.
