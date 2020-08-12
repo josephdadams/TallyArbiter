@@ -15,25 +15,42 @@ const clc 			= require('cli-color');
 const util 			= require ('util');
 const express 		= require('express');
 const bodyParser 	= require('body-parser');
-const app 			= express();
 const axios 		= require('axios');
-const httpServer 	= require('http').Server(app);
-const io 			= require('socket.io')(httpServer);
+const http 			= require('http');
+const socketio		= require('socket.io');
+const ioClient		= require('socket.io-client');
 const osc 			= require('osc');
 const xml2js		= require('xml2js');
 
 //Tally Arbiter variables
 const listenPort 	= process.env.PORT || 4455;
+const app 			= express();
+const httpServer	= http.Server(app);
+const io 			= socketio(httpServer);
+const appProducer	= require('express').Router();
+const appSettings	= require('express').Router();
+var username_producer = 'producer';
+var password_producer = '12345';
+var username_settings = 'admin';
+var password_settings = '12345';
+const socketupdates_Settings  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations', 'cloud_keys', 'cloud_clients', 'PortsInUse'];
+const socketupdates_Producer  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients'];
+const socketupdates_Companion = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
 const oscPort 		= 5958;
 var oscUDP			= null;
 const config_file 	= './config.json'; //local storage JSON file
-var Clients 		= []; //array of connected listener clients (web, python, relay, etc.)
+var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var Logs 			= []; //array of actions, information, and errors
 var tallydata_OBS 	= []; //array of OBS sources and current tally data
 var tallydata_TC 	= []; //array of Tricaster sources and current tally data
 var PortsInUse		= []; //array of UDP/TCP ports in use, includes reserved ports
 var tsl_clients		= []; //array of TSL 3.1 clients that Tally Arbiter will send tally data to
-var cloud_destinations = []; //array of Tally Arbiter Cloud Destinations (host, port, key)
+var cloud_destinations	= []; //array of Tally Arbiter Cloud Destinations (host, port, key)
+var cloud_destinations_sockets = []; //array of actual socket connections
+var cloud_keys 			= []; //array of Tally Arbiter Cloud Sources (key only)
+var cloud_clients		= []; //array of Tally Arbiter Cloud Clients that have connected with a key
+
+var source_reconnects	= []; //array of sources and their reconnect timers/intervals
 
 let portObj = {};
 portObj.port = '9910'; //ATEM
@@ -52,6 +69,16 @@ PortsInUse.push(portObj);
 
 portObj = {};
 portObj.port = listenPort.toString(); //Tally Arbiter
+portObj.sourceId = 'reserved';
+PortsInUse.push(portObj);
+
+portObj = {};
+portObj.port = 80; //Default HTTP Port
+portObj.sourceId = 'reserved';
+PortsInUse.push(portObj);
+
+portObj = {};
+portObj.port = 443; //Default HTTPS Port
 portObj.sourceId = 'reserved';
 PortsInUse.push(portObj);
 
@@ -221,7 +248,7 @@ function uuidv4() //unique UUID generator for IDs
 function startUp() {
 	loadConfig();
 	initialSetup();
-	DeleteInactiveClients();
+	DeleteInactiveListenerClients();
 
 	process.on('uncaughtException', function (err) {
 		logger(`Caught exception: ${err}`, 'error');
@@ -239,9 +266,9 @@ function initialSetup() {
 		res.sendFile('views/index.html', { root: __dirname });
 	});
 
-	//settings page - add sources, devices, actions, etc.
-	app.get('/settings', function (req, res) {
-		res.sendFile('views/settings.html', { root: __dirname });
+	//gets the version of the software
+	app.get('/version', function (req, res) {
+		res.send(version);
 	});
 
 	//tally page - view tally state of any device
@@ -249,89 +276,145 @@ function initialSetup() {
 		res.sendFile('views/tally.html', { root: __dirname });
 	});
 
+	appProducer.use((req, res, next) => {
+
+		// -----------------------------------------------------------------------
+		// authentication middleware
+
+		// parse login and password from headers
+		const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
+		const [login, password] = new Buffer.from(b64auth, 'base64').toString().split(':');
+
+		// Verify login and password are set and correct
+		if (!login || !password || login !== username_producer || password !== password_producer) {
+			res.set('WWW-Authenticate', 'Basic realm=\'401\''); // change this
+			res.status(401).send('Authentication required to access this area.'); // custom message
+			return;
+		}
+
+		// -----------------------------------------------------------------------
+		// Access granted...
+		next();
+	});
+
+	app.use('/producer', appProducer);
+
 	//producer page - view tally states of all devices
-	app.get('/producer', function (req, res) {
+	appProducer.get('/', function (req, res) {
 		res.sendFile('views/producer.html', { root: __dirname });
 	});
 
-	app.get('/source_types', function (req, res) {
+	appSettings.use((req, res, next) => {
+
+		// -----------------------------------------------------------------------
+		// authentication middleware
+
+		// parse login and password from headers
+		const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
+		const [login, password] = new Buffer.from(b64auth, 'base64').toString().split(':');
+
+		// Verify login and password are set and correct
+		if (!login || !password || login !== username_settings || password !== password_settings) {
+			res.set('WWW-Authenticate', 'Basic realm=\'401\''); // change this
+			res.status(401).send('Authentication required to access this area.'); // custom message
+			return;
+		}
+
+		// -----------------------------------------------------------------------
+		// Access granted...
+		next();
+	});
+
+	app.use('/settings', appSettings);
+
+	//settings page - add sources, devices, actions, etc.
+	appSettings.get('/', function (req, res) {
+		res.sendFile('views/settings.html', { root: __dirname });
+	});
+
+	appSettings.get('/source_types', function (req, res) {
 		//gets all Tally Source Types
 		res.send(source_types);
 	});
 
-	app.get('/source_types_datafields', function (req, res) {
+	appSettings.get('/source_types_datafields', function (req, res) {
 		//gets all Tally Source Types Data Fields
 		res.send(source_types_datafields);
 	});
 
-	app.get('/output_types', function (req, res) {
+	appSettings.get('/output_types', function (req, res) {
 		//gets all Tally Output Types
 		res.send(output_types);
 	});
 
-	app.get('/output_types_datafields', function (req, res) {
+	appSettings.get('/output_types_datafields', function (req, res) {
 		//gets all Tally Output Types Data Fields
 		res.send(output_types_datafields);
 	});
 
-	app.get('/bus_options', function (req, res) {
+	appSettings.get('/bus_options', function (req, res) {
 		//gets all Tally Bus Options
 		res.send(bus_options);
 	});
 
-	app.get('/sources', function (req, res) {
+	appSettings.get('/sources', function (req, res) {
 		//gets all Tally Sources
 		res.send(sources);
 	});
 
-	app.get('/devices', function (req, res) {
+	appSettings.get('/devices', function (req, res) {
 		//gets all Tally Devices
 		res.send(devices);
 	});
 
-	app.get('/device_sources', function (req, res) {
+	appSettings.get('/device_sources', function (req, res) {
 		//gets all Tally Device Sources
 		res.send(device_sources);
 	});
 
-	app.get('/device_actions', function (req, res) {
+	appSettings.get('/device_actions', function (req, res) {
 		//gets all Tally Device Actions
 		res.send(device_actions);
 	});
 
-	app.get('/device_states', function (req, res) {
+	appSettings.get('/device_states', function (req, res) {
 		//gets all Tally Device States
 		res.send(device_states);
 	});
 
-	app.get('/tsl_clients', function (req, res) {
+	appSettings.get('/tsl_clients', function (req, res) {
 		//gets all TSL Clients
 		res.send(tsl_clients);
 	});
 
-	app.get('/cloud_destinations', function (req, res) {
+	appSettings.get('/cloud_destinations', function (req, res) {
 		//gets all Cloud Destinations
 		res.send(cloud_destinations);
 	});
 
-	app.get('/clients', function (req, res) {
-		//gets all Listener Clients
-		res.send(Clients);
+	appSettings.get('/cloud_keys', function (req, res) {
+		//gets all Cloud Keys
+		res.send(cloud_keys);
 	});
 
-	app.get('/flash/:clientid', function (req, res) {
+	appSettings.get('/cloud_clients', function (req, res) {
+		//gets all Cloud Clients
+		res.send(cloud_clients);
+	});
+
+	appSettings.get('/listener_clients', function (req, res) {
+		//gets all Listener Clients
+		res.send(listener_clients);
+	});
+
+	appSettings.get('/flash/:clientid', function (req, res) {
 		//sends a flash command to the listener
 		let clientId = req.params.clientid;
-		let result = FlashClient(clientId);
+		let result = FlashListenerClient(clientId);
 		res.send(result);
 	});
 
-	app.get('/version', function (req, res) {
-		//gets the version of the software
-		res.send(version);
-	});
-
-	app.post('/manage', function (req, res) {
+	appSettings.post('/manage', function (req, res) {
 		//adds the item based on the type defined in the object
 		let obj = req.body;
 		
@@ -359,6 +442,10 @@ function initialSetup() {
 			socket.emit('version', version);
 		});
 
+		socket.on('sources', function() { // sends the configured Sources to the socket
+			socket.emit('sources', sources);
+		});
+
 		socket.on('devices', function() { // sends the configured Devices to the socket
 			socket.emit('devices', devices);
 		});
@@ -369,8 +456,13 @@ function initialSetup() {
 
 		socket.on('device_listen', function(deviceId, listenerType) { // emitted by a socket (tally page) that has selected a Device to listen for state information
 			let device = GetDeviceByDeviceId(deviceId);
-			if ((deviceId === 'null') || (!device)) {
-				deviceId = devices[0].id;
+			if ((deviceId === 'null') || (device.id === 'unassigned')) {
+				if (devices.length > 0) {
+					deviceId = devices[0].id;
+				}
+				else {
+					deviceId = 'unassigned';
+				}
 			}
 
 			socket.join('device-' + deviceId);
@@ -380,15 +472,20 @@ function initialSetup() {
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
 			
-			let clientId = AddClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
+			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 		});
 
 		socket.on('device_listen_blink', function(obj) { // emitted by the Python blink(1) client that has selected a Device to listen for state information
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
-			if ((deviceId === 'null') || (!device)) {
-				deviceId = devices[0].id;
+			if ((deviceId === 'null') || (device.id === 'unassigned')) {
+				if (devices.length > 0) {
+					deviceId = devices[0].id;
+				}
+				else {
+					deviceId = 'unassigned';
+				}
 			}
 
 			let listenerType = 'blink(1)';
@@ -400,14 +497,19 @@ function initialSetup() {
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
 			
-			let clientId = AddClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
+			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 		});
 
 		socket.on('device_listen_relay', function(relayGroupId, deviceId) { // emitted by the Relay Controller accessory program that has selected a Device to listen for state information
 			let device = GetDeviceByDeviceId(deviceId);
-			if (!device) {
-				deviceId = devices[0].id;
+			if (device.id === 'unassigned') {
+				if (devices.length > 0) {
+					deviceId = devices[0].id;
+				}
+				else {
+					deviceId = 'unassigned';
+				}
 			}
 
 			let listenerType = 'relay';
@@ -419,11 +521,11 @@ function initialSetup() {
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
 			
-			let clientId = AddClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
+			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
 			//add relayGroupId to client
-			for (let i = 0; i < Clients.length; i++) {
-				if (Clients[i].id === clientId) {
-					Clients[i].relayGroupId = relayGroupId;
+			for (let i = 0; i < listener_clients.length; i++) {
+				if (listener_clients[i].id === clientId) {
+					listener_clients[i].relayGroupId = relayGroupId;
 					break;
 				}
 			}
@@ -434,8 +536,13 @@ function initialSetup() {
 			let gpoGroupId = obj.gpoGroupId;
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
-			if ((deviceId === 'null') || (!device)) {
-				deviceId = devices[0].id;
+			if ((deviceId === 'null') || (device.id === 'unassigned')) {
+				if (devices.length > 0) {
+					deviceId = devices[0].id;
+				}
+				else {
+					deviceId = 'unassigned';
+				}
 			}
 
 			let listenerType = 'gpo';
@@ -447,15 +554,42 @@ function initialSetup() {
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
 			
-			let clientId = AddClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
+			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
 			//add gpoGroupId to client
-			for (let i = 0; i < Clients.length; i++) {
-				if (Clients[i].id === clientId) {
-					Clients[i].gpoGroupId = gpoGroupId;
+			for (let i = 0; i < listener_clients.length; i++) {
+				if (listener_clients[i].id === clientId) {
+					listener_clients[i].gpoGroupId = gpoGroupId;
 					break;
 				}
 			}
 			socket.emit('listener_relay_assignment', gpoGroupId, deviceId);
+		});
+
+		socket.on('device_listen_m5stick', function(obj) { // emitted by the M5StickC Arduino client that has selected a Device to listen for state information
+			let deviceId = obj.deviceId;
+			let device = GetDeviceByDeviceId(deviceId);
+			if ((deviceId === 'null') || (device.id === 'unassigned')) {
+				if (devices.length > 0) {
+					deviceId = devices[0].id;
+					socket.emit('deviceId', deviceId);
+					socket.emit('devices', devices);
+					socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
+				}
+				else {
+					deviceId = 'unassigned';
+				}
+			}
+
+			let listenerType = 'm5stick-c';
+
+			socket.join('device-' + deviceId);
+			let deviceName = GetDeviceByDeviceId(deviceId).name;
+			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
+			
+			let ipAddress = socket.request.connection.remoteAddress;
+			let datetimeConnected = new Date().getTime();
+			
+			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
 		});
 
 		socket.on('device_states', function(deviceId) {
@@ -464,60 +598,49 @@ function initialSetup() {
 
 		socket.on('settings', function () {
 			socket.join('settings');
-			socket.emit('clients', Clients);
+			socket.emit('sources', sources);
+			socket.emit('devices', devices);
+			socket.emit('listener_clients', listener_clients);
 			socket.emit('logs', Logs);
 			socket.emit('PortsInUse', PortsInUse);
 		});
 
 		socket.on('producer', function () {
 			socket.join('producer');
-			socket.emit('clients', Clients);
+			socket.emit('sources', sources);
 			socket.emit('devices', devices);
 			socket.emit('bus_options', bus_options);
+			socket.emit('listener_clients', listener_clients);
+		});
+
+		socket.on('companion', function () {
+			socket.join('companion');
+			socket.emit('sources', sources);
+			socket.emit('devices', devices);
+			socket.emit('bus_options', bus_options);
+			socket.emit('device_sources', device_sources);
+			socket.emit('device_states', device_states);
+			socket.emit('listener_clients', listener_clients);
+			socket.emit('tsl_clients', tsl_clients);
+			socket.emit('cloud_destinations', cloud_destinations);
 		});
 
 		socket.on('flash', function(clientId) {
-			for (let i = 0; i < Clients.length; i++) {
-				if (Clients[i].id === clientId) {
-					if (Clients[i].relayGroupId) {
-						io.to(Clients[i].socketId).emit('flash', Clients[i].relayGroupId);
-					}
-					else if (Clients[i].gpoGroupId) {
-						io.to(Clients[i].socketId).emit('flash', Clients[i].gpoGroupId);
-					}
-					else {
-						io.to(Clients[i].socketId).emit('flash');
-					}
-					break;
-				}
-			}
+			FlashListenerClient(clientId);
 		});
 
 		socket.on('reassign', function(clientId, oldDeviceId, deviceId) {
-			for (let i = 0; i < Clients.length; i++) {
-				if (Clients[i].id === clientId) {
-					if (Clients[i].relayGroupId) {
-						io.to(Clients[i].socketId).emit('reassign', Clients[i].relayGroupId, oldDeviceId, deviceId);
-					}
-					else if (Clients[i].gpoGroupId) {
-						io.to(Clients[i].socketId).emit('reassign', Clients[i].gpoGroupId, oldDeviceId, deviceId);
-					}
-					else {
-						io.to(Clients[i].socketId).emit('reassign', oldDeviceId, deviceId);
-					}
-					break;
-				}
-			}
+			ReassignListenerClient(clientId, oldDeviceId, deviceId);
 		});
 
 		socket.on('listener_reassign', function(oldDeviceId, deviceId) {
 			socket.leave('device-' + oldDeviceId);
 			socket.join('device-' + deviceId);
 
-			for (let i = 0; i < Clients.length; i++) {
-				if (Clients[i].socketId === socket.id) {
-					Clients[i].deviceId = deviceId;
-					Clients[i].inactive = false;
+			for (let i = 0; i < listener_clients.length; i++) {
+				if (listener_clients[i].socketId === socket.id) {
+					listener_clients[i].deviceId = deviceId;
+					listener_clients[i].inactive = false;
 					break;
 				}
 			}
@@ -526,16 +649,17 @@ function initialSetup() {
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 
 			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info');
-			io.to('settings').emit('clients', Clients);
+			UpdateSockets('listener_clients');
+			UpdateCloud('listener_clients');
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 		});
 
 		socket.on('listener_reassign_relay', function(relayGroupId, oldDeviceId, deviceId) {
 			let canRemove = true;
-			for (let i = 0; i < Clients.length; i++) {
-				if (Clients[i].socketId === socket.id) {
-					if (Clients[i].deviceId === oldDeviceId) {
-						if (Clients[i].relayGroupId !== relayGroupId) {
+			for (let i = 0; i < listener_clients.length; i++) {
+				if (listener_clients[i].socketId === socket.id) {
+					if (listener_clients[i].deviceId === oldDeviceId) {
+						if (listener_clients[i].relayGroupId !== relayGroupId) {
 							canRemove = false;
 							break;
 						}
@@ -549,9 +673,9 @@ function initialSetup() {
 			
 			socket.join('device-' + deviceId);
 
-			for (let i = 0; i < Clients.length; i++) {
-				if (Clients[i].relayGroupId === relayGroupId) {
-					Clients[i].deviceId = deviceId;
+			for (let i = 0; i < listener_clients.length; i++) {
+				if (listener_clients[i].relayGroupId === relayGroupId) {
+					listener_clients[i].deviceId = deviceId;
 				}
 			}
 
@@ -559,15 +683,16 @@ function initialSetup() {
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 
 			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info');
-			io.to('settings').emit('clients', Clients);
+			UpdateSockets('listener_clients');
+			UpdateCloud('listener_clients');
 		});
 
 		socket.on('listener_reassign_gpo', function(gpoGroupId, oldDeviceId, deviceId) {
 			let canRemove = true;
-			for (let i = 0; i < Clients.length; i++) {
-				if (Clients[i].socketId === socket.id) {
-					if (Clients[i].deviceId === oldDeviceId) {
-						if (Clients[i].gpoGroupId !== gpoGroupId) {
+			for (let i = 0; i < listener_clients.length; i++) {
+				if (listener_clients[i].socketId === socket.id) {
+					if (listener_clients[i].deviceId === oldDeviceId) {
+						if (listener_clients[i].gpoGroupId !== gpoGroupId) {
 							canRemove = false;
 							break;
 						}
@@ -581,9 +706,9 @@ function initialSetup() {
 			
 			socket.join('device-' + deviceId);
 
-			for (let i = 0; i < Clients.length; i++) {
-				if (Clients[i].gpoGroupId === gpoGroupId) {
-					Clients[i].deviceId = deviceId;
+			for (let i = 0; i < listener_clients.length; i++) {
+				if (listener_clients[i].gpoGroupId === gpoGroupId) {
+					listener_clients[i].deviceId = deviceId;
 				}
 			}
 
@@ -591,21 +716,326 @@ function initialSetup() {
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 
 			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info');
-			io.to('settings').emit('clients', Clients);
+			UpdateSockets('listener_clients');
+			UpdateCloud('listener_clients');
+		});
+
+		socket.on('listener_reassign_object', function(reassignObj) {
+			socket.leave('device-' + reassignObj.oldDeviceId);
+			socket.join('device-' + reassignObj.newDeviceId);
+
+			for (let i = 0; i < listener_clients.length; i++) {
+				if (listener_clients[i].socketId === socket.id) {
+					listener_clients[i].deviceId = reassignObj.newDeviceId;
+					listener_clients[i].inactive = false;
+					break;
+				}
+			}
+
+			let oldDeviceName = GetDeviceByDeviceId(reassignObj.oldDeviceId).name;
+			let deviceName = GetDeviceByDeviceId(reassignObj.newDeviceId).name;
+
+			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info');
+			UpdateSockets('listener_clients');
+			UpdateCloud('listener_clients');
+			socket.emit('device_states', GetDeviceStatesByDeviceId(reassignObj.newDeviceId));
 		});
 
 		socket.on('listener_delete', function(clientId) { // emitted by the Settings page when an inactive client is being removed manually
-			for (let i = Clients.length - 1; i >= 0; i--) {
-				if (Clients[i].id === clientId) {
-					logger(`Inactive Client removed: ${Clients[i].id}`, 'info');
-					Clients.splice(i, 1);
+			for (let i = listener_clients.length - 1; i >= 0; i--) {
+				if (listener_clients[i].id === clientId) {
+					logger(`Inactive Client removed: ${listener_clients[i].id}`, 'info');
+					listener_clients.splice(i, 1);
+					break;
 				}
 			}
-			io.to('settings').emit('clients', Clients);
+			UpdateSockets('listener_clients');
+			UpdateCloud('listener_clients');
 		});
 
-		socket.on('disconnect', function() { // emitted when any listener client disconnects from the server
-			DeactivateClient(socket.id);
+		socket.on('cloud_destination_reconnect', function(cloudDestinationId) {
+			StartCloudDestination(cloudDestinationId);
+		});
+
+		socket.on('cloud_destination_disconnect', function(cloudDestinationId) {
+			StopCloudDestination(cloudDestinationId);
+		});
+
+		socket.on('cloud_client', function(key) {
+			let ipAddress = socket.request.connection.remoteAddress;
+
+			if (cloud_keys.includes(key)) {
+				let datetimeConnected = new Date().getTime();
+				logger(`Cloud Client Connected: ${ipAddress}`, 'info');
+				AddCloudClient(socket.id, key, ipAddress, datetimeConnected);
+			}
+			else {
+				socket.emit('invalidkey');
+				logger(`Cloud Client ${ipAddress} attempted connection with an invalid key: ${key}`, 'info');
+				socket.disconnect();
+			}
+		});
+
+		socket.on('cloud_sources', function(key, data) {
+			let cloudClientId = GetCloudClientBySocketId(socket.id).id;
+
+			//loop through the received array and if an item in the array isn't already in the sources array, add it, and attach the cloud ID as a property
+			if (cloud_keys.includes(key)) {
+				for (let i = 0; i < data.length; i++) {
+					let found = false;
+	
+					for (j = 0; j < sources.length; j++) {
+						if (data[i].id === sources[j].id) {
+							found = true;
+							sources[j].sourceTypeId = data[i].sourceTypeId;
+							sources[j].name = data[i].name;
+							sources[j].connected = data[i].connected;
+							sources[j].cloudConnection = true;
+							sources[j].cloudClientId = cloudClientId;
+							break;
+						}
+					}
+	
+					if (!found) {
+						data[i].cloudConnection = true;
+						data[i].cloudClientId = cloudClientId;
+						sources.push(data[i]);
+					}
+				}
+
+				for (let i = 0; i < sources.length; i++) {
+					let found = false;
+
+					if (sources[i].cloudClientId === cloudClientId) {
+						for (j = 0; j < data.length; j++) {
+							if (sources[i].id === data[j].id) {
+								found = true;
+								break;
+							}
+						}
+	
+						if (!found) {
+							//the client was deleted on the local source, so we should delete it here as well
+							sources.splice(i, 1);
+						}
+					}
+				}
+
+				UpdateSockets('sources');
+			}
+			else {
+				socket.emit('invalidkey');
+				socket.disconnect();
+			}
+		});
+
+		socket.on('cloud_devices', function(key, data) {
+			let cloudClientId = GetCloudClientBySocketId(socket.id).id;
+
+			//loop through the received array and if an item in the array isn't already in the devices array, add it, and attach the cloud ID as a property
+			if (cloud_keys.includes(key)) {
+				for (let i = 0; i < data.length; i++) {
+					let found = false;
+
+					for (j = 0; j < devices.length; j++) {
+						if (data[i].id === devices[j].id) {
+							found = true;
+							devices[j].name = data[j].name;
+							devices[j].description = data[j].description;
+							devices[j].tslAddress = data[j].tslAddress;
+							devices[j].enabled = data[j].enabled;
+							devices[j].cloudConnection = true;
+							devices[j].cloudClientId = cloudClientId;
+							break;
+						}
+					}
+
+					if (!found) {
+						data[i].cloudConnection = true;
+						data[i].cloudClientId = cloudClientId;
+						devices.push(data[i]);
+
+						let busId_preview = null;
+						let busId_program = null;
+						//let busId_previewprogram = null;
+					
+						for (let i = 0; i < bus_options.length; i++) {
+							switch(bus_options[i].type) {
+								case 'preview':
+									busId_preview = bus_options[i].id;
+									break;
+								case 'program':
+									busId_program = bus_options[i].id;
+									break;
+								/*case 'previewprogram':
+									busId_previewprogram = bus_options[i].id;
+									break;*/
+								default:
+									break;
+							}
+						}
+					
+						let deviceStateObj_preview = {};
+						deviceStateObj_preview.deviceId = data[i].id;
+						deviceStateObj_preview.busId = busId_preview;
+						deviceStateObj_preview.sources = [];
+						device_states.push(deviceStateObj_preview);
+					
+						let deviceStateObj_program = {};
+						deviceStateObj_program.deviceId = data[i].id;
+						deviceStateObj_program.busId = busId_program;
+						deviceStateObj_program.sources = [];
+						device_states.push(deviceStateObj_program);
+					
+						/*let deviceStateObj_previewprogram = {};
+						deviceStateObj_previewprogram.deviceId = data[i].id;
+						deviceStateObj_previewprogram.busId = busId_previewprogram;
+						deviceStateObj_previewprogram.sources = [];
+						device_states.push(deviceStateObj_previewprogram);*/
+					}
+				}
+
+				for (let i = 0; i < devices.length; i++) {
+					let found = false;
+
+					if (devices[i].cloudClientId === cloudClientId) {
+						for (j = 0; j < data.length; j++) {
+							if (devices[i].id === data[j].id) {
+								found = true;
+								break;
+							}
+						}
+	
+						if (!found) {
+							//the client was deleted on the local source, so we should delete it here as well
+							devices.splice(i, 1);
+						}
+					}
+				}
+
+				UpdateSockets('devices');
+			}
+			else {
+				socket.emit('invalidkey');
+				socket.disconnect();
+			}
+		});
+
+		socket.on('cloud_device_sources', function(key, data) {
+			let cloudClientId = GetCloudClientBySocketId(socket.id).id;
+
+			//loop through the received array and if an item in the array isn't already in the device sources array, add it, and attach the cloud ID as a property
+			if (cloud_keys.includes(key)) {
+				for (let i = 0; i < data.length; i++) {
+					let found = false;
+
+					for (j = 0; j < device_sources.length; j++) {
+						if (data[i].id === device_sources[j].id) {
+							found = true;
+							break;
+						}
+					}
+
+					if (!found) {
+						data[i].cloudConnection = true;
+						data[i].cloudClientId = cloudClientId;
+						device_sources.push(data[i]);
+					}
+				}
+
+				for (let i = 0; i < device_sources.length; i++) {
+					let found = false;
+
+					if (device_sources[i].cloudClientId === cloudClientId) {
+						for (j = 0; j < data.length; j++) {
+							if (device_sources[i].id === data[j].id) {
+								found = true;
+								break;
+							}
+						}
+	
+						if (!found) {
+							//the client was deleted on the local source, so we should delete it here as well
+							device_sources.splice(i, 1);
+						}
+					}
+				}
+			}
+			else {
+				socket.emit('invalidkey');
+				socket.disconnect();
+			}
+		});
+
+		socket.on('cloud_listeners', function(key, data) {
+			let cloudClientId = GetCloudClientBySocketId(socket.id).id;
+
+			//loop through the received array and if an item in the array isn't already in the listener_clients array, add it, and attach the cloud ID as a property
+			if (cloud_keys.includes(key)) {
+				for (let i = 0; i < data.length; i++) {
+					let found = false;
+	
+					for (j = 0; j < listener_clients.length; j++) {
+						if (data[i].id === listener_clients[j].id) {
+							found = true;
+							listener_clients[j].socketId = data[i].socketId;
+							listener_clients[j].deviceId = data[i].deviceId;
+							listener_clients[j].listenerType = data[i].listenerType;
+							listener_clients[j].ipAddress = data[i].ipAddress;
+							listener_clients[j].datetimeConnected = data[i].datetimeConnected;
+							listener_clients[j].inactive = data[i].inactive;
+							listener_clients[j].cloudConnection = true;
+							listener_clients[j].cloudClientId = cloudClientId;
+							break;
+						}
+					}
+	
+					if (!found) {
+						data[i].cloudConnection = true;
+						data[i].cloudClientId = cloudClientId;
+						listener_clients.push(data[i]);
+					}
+				}
+
+				for (let i = 0; i < listener_clients.length; i++) {
+					let found = false;
+
+					if (listener_clients[i].cloudClientId === cloudClientId) {
+						for (j = 0; j < data.length; j++) {
+							if (listener_clients[i].id === data[j].id) {
+								found = true;
+								break;
+							}
+						}
+	
+						if (!found) {
+							//the client was deleted on the local source, so we should delete it here as well
+							listener_clients.splice(i, 1);
+						}
+					}
+				}
+
+				UpdateSockets('listener_clients');
+			}
+			else {
+				socket.emit('invalidkey');
+				socket.disconnect();
+			}
+		});
+
+		socket.on('cloud_data', function(key, sourceId, tallyObj) {
+			if (cloud_keys.includes(key)) {
+				processTSLTally(sourceId, tallyObj);
+			}
+			else {
+				socket.emit('invalidkey');
+				socket.disconnect();
+			}
+		});
+
+		socket.on('disconnect', function() { // emitted when any socket.io client disconnects from the server
+			DeactivateListenerClient(socket.id);
+			CheckCloudClients(socket.id);
 		});
 	});
 
@@ -643,7 +1073,7 @@ function initialSetup() {
 	}
 
 	if (cloud_destinations.length > 0) {
-		logger(`Initiation ${cloud_destinations.length} Cloud Destination Connections.`, 'info');
+		logger(`Initiating ${cloud_destinations.length} Cloud Destination Connections.`, 'info');
 
 		for (let i = 0; i < cloud_destinations.length; i++) {
 			logger(`Cloud Destination: ${cloud_destinations[i].host}:${cloud_destinations[i].port}`, 'info-quiet');
@@ -665,19 +1095,23 @@ function logger(log, type) { //logs the item to the console, to the log array, a
 
 	let dtNow = new Date();
 
+	if (type === undefined) {
+		type = 'info-quiet';
+	}
+
 	switch(type) {
 		case 'info':
 		case 'info-quiet':
-			console.log(clc.black(`[${dtNow}]`) + '     ' + clc.blue(log));
+			console.log(`[${dtNow}]     ${log}`);
 			break;
 		case 'error':
-			console.log(clc.black(`[${dtNow}]`) + '     ' + clc.red.bold(log));
+			console.log(`[${dtNow}]     ${clc.red.bold(log)}`);
 			break;
 		case 'console_action':
-			console.log(clc.black(`[${dtNow}]`) + '     ' + clc.green(log.text));
+			console.log(`[${dtNow}]     ${clc.green.bold(log)}`);
 			break;
 		default:
-			console.log(clc.black(`[${dtNow}]`) + '     ' + util.inspect(log, {depth: null}));
+			console.log(`[${dtNow}]     ${util.inspect(log, {depth: null})}`);
 			break;
 	}
 	
@@ -697,7 +1131,22 @@ function loadConfig() { // loads the JSON data from the config file to memory
 
 	try {
 		let rawdata = fs.readFileSync(config_file);
-		let configJson = JSON.parse(rawdata); 
+		let configJson = JSON.parse(rawdata);
+
+		if (configJson.security) {
+			if (configJson.security.username_settings) {
+				username_settings = configJson.security.username_settings;
+			}
+			if (configJson.security.password_settings) {
+				password_settings = configJson.security.password_settings;
+			}
+			if (configJson.security.username_producer) {
+				username_producer = configJson.security.username_producer;
+			}
+			if (configJson.security.password_producer) {
+				password_producer = configJson.security.password_producer;
+			}
+		}
 
 		if (configJson.sources) {
 			for (let i = 0; i < configJson.sources.length; i++) {
@@ -748,6 +1197,24 @@ function loadConfig() { // loads the JSON data from the config file to memory
 			tsl_clients = [];
 			logger('Tally Arbiter TSL Clients could not be loaded.', 'error');
 		}
+
+		if (configJson.cloud_destinations) {
+			cloud_destinations = configJson.cloud_destinations;
+			logger('Tally Arbiter Cloud Destinations loaded.', 'info');
+		}
+		else {
+			cloud_destinations = [];
+			logger('Tally Arbiter Cloud Destinations could not be loaded.', 'error');
+		}
+
+		if (configJson.cloud_keys) {
+			cloud_keys = configJson.cloud_keys;
+			logger('Tally Arbiter Cloud Keys loaded.', 'info');
+		}
+		else {
+			cloud_keys = [];
+			logger('Tally Arbiter Cloud Keys could not be loaded.', 'error');
+		}
 	}
 	catch (error) {
 		if (error.code === 'ENOENT') {
@@ -760,7 +1227,7 @@ function loadConfig() { // loads the JSON data from the config file to memory
 	}
 
 	for (let i = 0; i < sources.length; i++) {
-		if (sources[i].enabled) {
+		if ((sources[i].enabled) && (!sources[i].cloudConnection)) {
 			let sourceType = source_types.find( ({ id }) => id === sources[i].sourceTypeId);
 
 			logger(`Initiating Setup for Source: ${sources[i].name}. Type: ${sourceType.label}`, 'info-quiet');
@@ -800,6 +1267,37 @@ function loadConfig() { // loads the JSON data from the config file to memory
 	logger('Source Setup Complete.', 'info-quiet');
 
 	initializeDeviceStates();
+}
+
+function SaveConfig() {
+	try {
+		let securityObj = {};
+		securityObj.username_settings = username_settings;
+		securityObj.password_settings = password_settings;
+		securityObj.username_producer = username_producer;
+		securityObj.password_producer = password_producer;
+
+		let configJson = {
+			security: securityObj,
+			sources: sources,
+			devices: devices,
+			device_sources: device_sources,
+			device_actions: device_actions,
+			tsl_clients: tsl_clients,
+			cloud_destinations: cloud_destinations,
+			cloud_keys: cloud_keys,
+		};
+
+		fs.writeFileSync(config_file, JSON.stringify(configJson, null, 1), 'utf8', function(error) {
+			if (error)
+			{ 
+				result.error = 'Error saving configuration to file: ' + error;
+			}
+		});	
+	}
+	catch (error) {
+		result.error = 'Error saving configuration to file: ' + error;
+	}
 }
 
 function initializeDeviceStates() { // initializes each device state in the array upon server startup
@@ -877,6 +1375,8 @@ function SetUpTSLServer_UDP(sourceId)
 						break;
 					}
 				}
+				UpdateSockets('sources');
+				UpdateCloud('sources');
 				break;
 			}
 		}
@@ -903,11 +1403,12 @@ function StopTSLServer_UDP(sourceId) {
 						break;
 					}
 				}
+
+				UpdateSockets('sources');
+				UpdateCloud('sources');
 				break;
 			}
 		}
-
-		io.to('settings').emit('sources', sources);
 	}
 	catch (error) {
 		logger(`Source: ${source.name}  TSL 3.1 UDP Server Error occurred: ${error}`, 'error');
@@ -934,7 +1435,6 @@ function SetUpTSLServer_TCP(sourceId)
 				AddPort(port, sourceId);
 				logger(`Source: ${source.name}  Creating TSL TCP Connection.`, 'info-quiet');
 				source_connections[i].server = net.createServer(function (socket) {
-					// Handle incoming messages
 					socket.on('data', function (data) {
 						parser.extract('tsl', function (result) {
 							result.label = new Buffer(result.label).toString();
@@ -945,17 +1445,21 @@ function SetUpTSLServer_TCP(sourceId)
 
 					socket.on('close', function () {
 						logger(`Source: ${source.name}  TSL 3.1 Server connection closed.`, 'info');
+						CheckReconnect(source.id);
 					});
-
-				}).listen(port);
-
-				logger(`Source: ${source.name}  TSL 3.1 Server started. Listening for data on TCP Port: ${port}`, 'info');
-				for (let j = 0; j < sources.length; j++) {
-					if (sources[j].id === sourceId) {
-						sources[j].connected = true;
-						break;
+				}).listen(port, function() {
+					logger(`Source: ${source.name}  TSL 3.1 Server started. Listening for data on TCP Port: ${port}`, 'info');
+					for (let j = 0; j < sources.length; j++) {
+						if (sources[j].id === sourceId) {
+							sources[j].connected = true;
+							UnregisterReconnect(sources[j].id);
+							break;
+						}
 					}
-				}
+					UpdateSockets('sources');
+					UpdateCloud('sources');
+
+				});
 				break;
 			}
 		}
@@ -967,6 +1471,8 @@ function SetUpTSLServer_TCP(sourceId)
 
 function StopTSLServer_TCP(sourceId) {
 	let source = sources.find( ({ id }) => id === sourceId);
+
+	RegisterDisconnect(sourceId);
 
 	try
 	{	
@@ -981,11 +1487,12 @@ function StopTSLServer_TCP(sourceId) {
 						break;
 					}
 				}
+
+				UpdateSockets('sources');
+				UpdateCloud('sources');
 				break;
 			}
 		}
-
-		io.to('settings').emit('sources', sources);
 	}
 	catch (error) {
 		logger(`Source: ${source.name}  TSL 3.1 UDP Server Error occurred: ${error}`, 'error');
@@ -1018,11 +1525,13 @@ function SetUpATEMServer(sourceId) {
 								for (let j = 0; j < sources.length; j++) {
 									if (sources[j].id === sourceId) {
 										sources[j].connected = false;
+										CheckReconnect(sources[j].id);
 										break;
 									}
 								}
 								logger(`Source: ${source.name} ATEM connection closed.`, 'info');
-								io.to('settings').emit('sources', sources);
+								UpdateSockets('sources');
+								UpdateCloud('sources');
 								break;
 							case 'attempting':
 								logger(`Source: ${source.name}  Initiating connection to ATEM: ${source.data.ip}`, 'info');
@@ -1038,7 +1547,9 @@ function SetUpATEMServer(sourceId) {
 									}
 								}
 								logger(`Source: ${source.name} ATEM connection opened.`, 'info');
-								io.to('settings').emit('sources', sources);
+								UnregisterReconnect(source.id);
+								UpdateSockets('sources');
+								UpdateCloud('sources');
 								break;
 							default:
 								break;
@@ -1049,17 +1560,15 @@ function SetUpATEMServer(sourceId) {
 						for (let j = 0; j < sources.length; j++) {
 							if (sources[j].id === sourceId) {
 								sources[j].connected = false;
+								CheckReconnect(sources[j].id);
 								break;
 							}
 						}
 
 						logger(`Source: ${source.name}  Connection to ATEM lost.`, 'info-quiet');
 
-						io.to('settings').emit('sources', sources);
-					});
-
-					source_connections[i].server.on('sourceConfiguration', function (id, config, info) {
-						
+						UpdateSockets('sources');
+						UpdateCloud('sources');
 					});
 
 					source_connections[i].server.on('sourceTally', function (sourceNumber, tallyState) {
@@ -1091,6 +1600,8 @@ function SetUpATEMServer(sourceId) {
 
 function StopATEMServer(sourceId) {
 	let source = GetSourceBySourceId(sourceId);
+
+	RegisterDisconnect(sourceId);
 
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
@@ -1139,10 +1650,12 @@ function SetUpOBSServer(sourceId) {
 						for (let j = 0; j < sources.length; j++) {
 							if (sources[j].id === sourceId) {
 								sources[j].connected = true;
+								UnregisterReconnect(sources[j].id);
 								break;
 							}
 						}
-						io.to('settings').emit('sources', sources);
+						UpdateSockets('sources');
+						UpdateCloud('sources');
 					});
 
 					source_connections[i].server.on('ConnectionClosed', function (data) {
@@ -1150,10 +1663,12 @@ function SetUpOBSServer(sourceId) {
 						for (let j = 0; j < sources.length; j++) {
 							if (sources[j].id === sourceId) {
 								sources[j].connected = false;
+								CheckReconnect(sources[j].id);
 								break;
 							}
 						}
-						io.to('settings').emit('sources', sources);
+						UpdateSockets('sources');
+						UpdateCloud('sources');
 					});
 
 					source_connections[i].server.on('AuthenticationSuccess', function (data) {
@@ -1267,6 +1782,8 @@ function processOBSTally(sourceId, sourceArray, tallyType) {
 
 function StopOBSServer(sourceId) {
 	let source = GetSourceBySourceId(sourceId);
+
+	RegisterDisconnect(sourceId);
 	
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
@@ -1299,10 +1816,12 @@ function SetUpVMixServer(sourceId) {
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = true;
+							UnregisterReconnect(sources[j].id);
 							break;
 						}
 					}
-					io.to('settings').emit('sources', sources);
+					UpdateSockets('sources');
+					UpdateCloud('sources');
 				});
 
 				source_connections[i].server.on('data', function (data) {
@@ -1338,10 +1857,12 @@ function SetUpVMixServer(sourceId) {
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = false;
+							CheckReconnect(sources[j].id);
 							break;
 						}
 					}
-					io.to('settings').emit('sources', sources);
+					UpdateSockets('sources');
+					UpdateCloud('sources');
 				});
 				break;
 			}
@@ -1354,6 +1875,8 @@ function SetUpVMixServer(sourceId) {
 
 function StopVMixServer(sourceId) {
 	let source = GetSourceBySourceId(sourceId);
+
+	RegisterDisconnect(sourceId);
 	
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
@@ -1419,7 +1942,8 @@ function SetUpRolandSmartTally(sourceId) {
 			}
 		}
 
-		io.to('settings').emit('sources', sources);
+		UpdateSockets('sources');
+		UpdateCloud('sources');
 	}
 	catch (error) {
 		logger(`Source: ${source.name}. Roland Smart Tally Error: ${error}`, 'error');
@@ -1444,7 +1968,8 @@ function StopRolandSmartTally(sourceId) {
 		}
 	}
 
-	io.to('settings').emit('sources', sources);
+	UpdateSockets('sources');
+	UpdateCloud('sources');
 }
 
 function SetUpOSCServer(sourceId) {
@@ -1499,7 +2024,8 @@ function SetUpOSCServer(sourceId) {
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = true;
-							io.to('settings').emit('sources', sources);
+							UpdateSockets('sources');
+							UpdateCloud('sources');
 							break;
 						}
 					}
@@ -1534,7 +2060,8 @@ function StopOSCServer(sourceId) {
 		}
 	}
 
-	io.to('settings').emit('sources', sources);
+	UpdateSockets('sources');
+	UpdateCloud('sources');
 }
 
 function SetUpTricasterServer(sourceId) {
@@ -1560,9 +2087,12 @@ function SetUpTricasterServer(sourceId) {
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = true;
+							UnregisterReconnect(sources[j].id);
 							break;
 						}
 					}
+					UpdateSockets('sources');
+					UpdateCloud('sources');
 				});
 
 				source_connections[i].server.on('data', function(data) {
@@ -1607,11 +2137,13 @@ function SetUpTricasterServer(sourceId) {
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = false;
+							CheckReconnect(sources[j].id);
 							break;
 						}
 					}
 
-					io.to('settings').emit('sources', sources);
+					UpdateSockets('sources');
+					UpdateCloud('sources');
 				});
 
 				source_connections[i].server.on('error', function(error) {
@@ -1695,6 +2227,8 @@ function processTricasterTally(sourceId, sourceArray, tallyType) {
 function StopTricasterServer(sourceId) {
 	let source = sources.find( ({ id }) => id === sourceId);
 
+	RegisterDisconnect(sourceId);
+
 	try
 	{	
 		for (let i = 0; i < source_connections.length; i++) {
@@ -1714,7 +2248,7 @@ function StopTricasterServer(sourceId) {
 
 function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 {
-	logger(`Processing new tally object.`, 'info-quiet');
+	//logger(`Processing new tally object.`, 'info-quiet');
 
 	io.to('settings').emit('tally_data', sourceId, tallyObj);
 
@@ -1823,9 +2357,9 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 		}*/
 
 		UpdateDeviceState(deviceId);
-		io.to('settings').emit('device_states', device_states);
-		io.to('producer').emit('device_states', device_states);
+		UpdateSockets('device_states');
 		SendTSLClientData(deviceId);
+		SendCloudData(sourceId, tallyObj);
 	}
 }
 
@@ -2145,33 +2679,38 @@ function TallyArbiter_Manage(obj) {
 				result = TallyArbiter_Delete_TSL_Client(obj);
 			}
 			break;
+		case 'cloud_destination':
+			if (obj.action === 'add') {
+				result = TallyArbiter_Add_Cloud_Destination(obj);
+			}
+			else if (obj.action === 'edit') {
+				result = TallyArbiter_Edit_Cloud_Destination(obj);
+			}
+			else if (obj.action === 'delete') {
+				result = TallyArbiter_Delete_Cloud_Destination(obj);
+			}
+			break;
+		case 'cloud_key':
+			if (obj.action === 'add') {
+				result = TallyArbiter_Add_Cloud_Key(obj);
+			}
+			else if (obj.action === 'delete') {
+				result = TallyArbiter_Delete_Cloud_Key(obj);
+			}
+			break;
+		case 'cloud_client':
+			if (obj.action === 'remove') {
+				result = TallyArbiter_Remove_Cloud_Client(obj);
+			}
+			break;
 		default:
+				result = {result: 'error', error: 'Invalid API request.'}
 			break;
 	}
 
-	try {
-		let configJson = {
-			sources: sources,
-			devices: devices,
-			device_sources: device_sources,
-			device_actions: device_actions,
-			tsl_clients: tsl_clients
-		};
+	SaveConfig();
 
-		fs.writeFileSync(config_file, JSON.stringify(configJson, null, 1), 'utf8', function(error) {
-			if (error)
-			{ 
-				result.error = 'Error saving configuration to file: ' + error;
-			}
-		});	
-	}
-	catch (error) {
-		result.error = 'Error saving configuration to file: ' + error;
-	}
-	finally {
-		//sends a result object back
-		return result;
-	}
+	return result;
 }
 
 function StartConnection(sourceId) {
@@ -2242,6 +2781,78 @@ function StopConnection(sourceId) {
 	}
 }
 
+function RegisterDisconnect(sourceId) {
+	let found = false;
+
+	for (let i = 0; i < source_reconnects.length; i++) {
+		if (source_reconnects[i].sourceId === sourceId) {
+			found = true;
+		}
+	}
+
+	if (!found) {
+		let reconnectObj = {};
+		reconnectObj.sourceId = sourceId;
+		reconnectObj.forcibly = true;
+		source_reconnects.push(reconnectObj);
+	}
+}
+
+function CheckReconnect(sourceId) {
+	let source = GetSourceBySourceId(sourceId);
+
+	if (source.connected === false) {
+		let found = false;
+
+		for (let i = 0; i < source_reconnects.length; i++) {
+			if (source_reconnects[i].sourceId === sourceId) {
+				found = true;
+				if (source_reconnects[i].forcibly !== true) {
+					if (source_reconnects[i].attempts < 5) {
+						source_reconnects[i].attempts = source_reconnects[i].attempts + 1;
+						logger(`Attempting to reconnect to ${source.name} (${source_reconnects[i].attempts} of 5)`, 'info');
+						StartConnection(sourceId);
+						setTimeout(CheckReconnect, 5000, sourceId);
+					}
+				}
+				break;
+			}
+		}
+	
+		if (!found) {
+			let reconnectObj = {};
+			reconnectObj.sourceId = sourceId;
+			reconnectObj.forcibly = false;
+			reconnectObj.attempts = 1;
+			source_reconnects.push(reconnectObj);
+			logger(`Attempting to reconnect to ${source.name} (${reconnectObj.attempts} of 5)`, 'info');
+			StartConnection(sourceId);
+			setTimeout(CheckReconnect, 5000, sourceId);
+		}
+	}
+	else {
+		UnregisterReconnect(sourceId);
+	}
+
+	/*
+	if there's an entry here, check to see if forcibly = true
+	if forcibly = true, then it was purposely closed or stopped, so don't reconnect it
+	if forcibly = false, then let's try to reconnect, but check how many retries have happened so far
+	if there's no entry, let's add one but mark forcibly = false since this was just a close that happened unexpectedly
+
+	When a connection is re-estalished, then the entry in this array needs to be removed
+	*/
+}
+
+function UnregisterReconnect(sourceId) {
+	for (let i = 0; i < source_reconnects.length; i++) {
+		if (source_reconnects[i].sourceId === sourceId) {
+			source_reconnects.splice(i, 1);
+			break;
+		}
+	}
+}
+
 function StartTSLClientConnection(tslClientId) {
 	for (let i = 0; i < tsl_clients.length; i++) {
 		if (tsl_clients[i].id === tslClientId) {
@@ -2255,19 +2866,19 @@ function StartTSLClientConnection(tslClientId) {
 						if (error.toString().indexOf('ECONNREFUSED') > -1) {
 							tsl_clients[i].connected = false;
 						}
-						io.to('settings').emit('tsl_clients', tsl_clients);
+						UpdateSockets('tsl_clients');
 					});
 					tsl_clients[i].socket.on('connect', function() {
 						logger(`TSL Client ${tslClientId} Connection Established: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
 						tsl_clients[i].error = false;
 						tsl_clients[i].connected = true;
-						io.to('settings').emit('tsl_clients', tsl_clients);
+						UpdateSockets('tsl_clients');
 					});
 					tsl_clients[i].socket.on('close', function() {
 						logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
 						tsl_clients[i].error = false;
 						tsl_clients[i].connected = false;
-						io.to('settings').emit('tsl_clients', tsl_clients);
+						UpdateSockets('tsl_clients');
 					});
 					tsl_clients[i].connected = true;
 					break;
@@ -2280,19 +2891,19 @@ function StartTSLClientConnection(tslClientId) {
 						if (error.toString().indexOf('ECONNREFUSED') > -1) {
 							tsl_clients[i].connected = false;
 						}
-						io.to('settings').emit('tsl_clients', tsl_clients);
+						UpdateSockets('tsl_clients');
 					});
 					tsl_clients[i].socket.on('connect', function() {
 						logger(`TSL Client ${tslClientId} Connection Established: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
 						tsl_clients[i].error = false;
 						tsl_clients[i].connected = true;
-						io.to('settings').emit('tsl_clients', tsl_clients);
+						UpdateSockets('tsl_clients');
 					});
 					tsl_clients[i].socket.on('close', function() {
 						logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
 						tsl_clients[i].error = false;
 						tsl_clients[i].connected = false;
-						io.to('settings').emit('tsl_clients', tsl_clients);
+						UpdateSockets('tsl_clients');
 					});
 					tsl_clients[i].socket.connect(parseInt(tsl_clients[i].port), tsl_clients[i].ip);
 					break;
@@ -2330,6 +2941,9 @@ function SendTSLClientData(deviceId) {
 	let filtered_device_states = GetDeviceStatesByDeviceId(deviceId);
 
 	let tslAddress = (device.tslAddress) ? parseInt(device.tslAddress) : 0;
+
+	let mode_preview = false;
+	let mode_program = false;
 
 	if (tslAddress !== 0) {
 		let bufUMD = Buffer.alloc(18, 0); //ignores spec and pad with 0 for better aligning on Decimator etc
@@ -2419,57 +3033,238 @@ function SendTSLClientData(deviceId) {
 	}
 }
 
-function StartCloudDestination(cloudId) {
-	for (let i = 0; i < cloud_destinations.length; i++) {
-		if (cloud_destinations[i].id === cloudId) {
-			logger(`Cloud Destination: ${cloudId}  Initiating Connection.`, 'info-quiet');
+function StartCloudDestination(cloudDestinationId) {
+	let cloud_destination = GetCloudDestinationById(cloudDestinationId);
 
-			cloud_destinations[i].socket = io.connect('http://' + cloud_destinations[i].host + ':' + cloud_destinations[i].port, {reconnection: true});
+	let cloudDestinationSocketObj = {};
+	cloudDestinationSocketObj.id = cloudDestinationId;
+	cloudDestinationSocketObj.socket = null;
+	cloudDestinationSocketObj.host = cloud_destination.host;
+	cloudDestinationSocketObj.port = cloud_destination.port;
+	cloudDestinationSocketObj.key = cloud_destination.key;
+	cloud_destinations_sockets.push(cloudDestinationSocketObj);
 
-			cloud_destinations[i].socket.on('connect', function() { 
-				cloud_destinations[i].socket.emit('cloud_initialdata', cloud_destinations[i].key, sources, devices, device_sources, device_states);
+	for (let i = 0; i < cloud_destinations_sockets.length; i++) {
+		if (cloud_destinations_sockets[i].id === cloudDestinationId) {
+			logger(`Cloud Destination: ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port}  Initiating Connection.`, 'info-quiet');
+
+			cloud_destinations_sockets[i].socket = ioClient('http://' + cloud_destinations_sockets[i].host + ':' + cloud_destinations_sockets[i].port, {reconnection: true});
+
+			cloud_destinations_sockets[i].socket.on('connect', function() { 
+				logger(`Cloud Destination: ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port} Connected. Sending Initial Data.`, 'info-quiet');
+				cloud_destinations_sockets[i].connected = true;
+				SetCloudDestinationStatus(cloud_destinations_sockets[i].id, 'connected');
+				cloud_destinations_sockets[i].socket.emit('cloud_client', cloud_destinations_sockets[i].key);
+				cloud_destinations_sockets[i].socket.emit('cloud_sources', cloud_destinations_sockets[i].key, sources);
+				cloud_destinations_sockets[i].socket.emit('cloud_devices', cloud_destinations_sockets[i].key, devices);
+				cloud_destinations_sockets[i].socket.emit('cloud_device_sources', cloud_destinations_sockets[i].key, device_sources);
+				cloud_destinations_sockets[i].socket.emit('cloud_listeners', cloud_destinations_sockets[i].key, listener_clients);
 			});
-
-			cloud_destinations[i].socket.on('error', function(error) {
-				logger(`An error occurred with the connection to ${cloud_destinations[i].host}:${cloud_destinations[i].port}  ${error}`, 'error');
-				cloud_destinations[i].error = true;
-				io.to('settings').emit('cloud_destinations', cloud_destinations);
-			});
-
-			cloud_destinations[i].socket.on('disconnect', function() { 
-				logger(`Cloud Connection Disconnected: ${cloud_destinations[i].host}:${cloud_destinations[i].port}  ${error}`, 'error');
-				cloud_destinations[i].connected = false;
-				io.to('settings').emit('cloud_destinations', cloud_destinations);
-			});
-
-			break;
-		}
-	}
-}
-
-function StopCloudDestination(cloudId) {
-	for (let i = 0; i < cloud_destinations.length; i++) {
-		if (cloud_destinations[i].id === cloudId) {
-			logger(`Cloud Destination: ${cloudId}  Closing Connection.`, 'info-quiet');
-			cloud_destinations[i].socket.close();
-			break;
-		}
-	}
-}
-
-function SendCloudData(deviceId) {
-	let filtered_device_states = GetDeviceStatesByDeviceId(deviceId);
 	
-	for (let i = 0; i < cloud_destinations.length; i++) {
-		if (cloud_destinations[i].connected === true) {
+			cloud_destinations_sockets[i].socket.on('invalidkey', function () {
+				cloud_destinations_sockets[i].error = true;
+				logger(`An error occurred with the connection to ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port} : The specified key could not be found on the host: ${cloud_destinations_sockets[i].key}`, 'error');
+				SetCloudDestinationStatus(cloud_destinations_sockets[i].id, 'invalid-key');
+			});
+
+			cloud_destinations_sockets[i].socket.on('flash', function (listnerClientId) {
+				FlashListenerClient(listnerClientId);
+			});
+
+			cloud_destinations_sockets[i].socket.on('error', function(error) {
+				logger(`An error occurred with the connection to ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port}  ${error}`, 'error');
+				cloud_destinations[i].error = true;
+				SetCloudDestinationStatus(cloud_destinations_sockets[i].id, 'error');
+			});
+
+			cloud_destinations_sockets[i].socket.on('disconnect', function() { 
+				logger(`Cloud Connection Disconnected: ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port}`, 'error');
+				cloud_destinations_sockets[i].connected = false;
+				SetCloudDestinationStatus(cloud_destinations_sockets[i].id, 'disconnected');
+			});
+
+			break;
+		}
+	}
+}
+
+function StopCloudDestination(cloudDestinationId) {
+	for (let i = cloud_destinations_sockets.length - 1; i >= 0; i--) {
+		if (cloud_destinations_sockets[i].id === cloudDestinationId) {
+			logger(`Cloud Destination: ${cloudDestinationId}  Closing Connection.`, 'info-quiet');
 			try {
-				cloud_destinations[i].socket.emit('cloud_data', deviceId, filtered_device_states);
+				cloud_destinations_sockets[i].socket.close();
+			}
+			catch (error) {
+				logger(`Error Closing Cloud Destination ${cloudDestinationId}`, 'error');
+			}
+			cloud_destinations_sockets.splice(i, 1);
+			break;
+		}
+	}
+}
+
+function SendCloudData(sourceId, tallyObj) {
+	if (cloud_destinations.length > 0) {
+		//logger(`Sending data to Cloud Destinations.`, 'info-quiet');
+	}
+
+	for (let i = 0; i < cloud_destinations_sockets.length; i++) {
+		if (cloud_destinations_sockets[i].connected === true) {
+			try {
+				logger(`Sending data to Cloud Destination: ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port}`, 'info-quiet');
+				cloud_destinations_sockets[i].socket.emit('cloud_data', cloud_destinations_sockets[i].key, sourceId, tallyObj);
 			}
 			catch(error) {
-				logger(`An error occurred sending Cloud data to ${cloud_destinations[i].host}:${cloud_destinations[i].port}  ${error}`, 'error');
-				cloud_destinations[i].error = true;
+				logger(`An error occurred sending Cloud data to ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port}  ${error}`, 'error');
+				cloud_destinations_sockets[i].error = true;
 			}
 		}
+	}
+}
+
+function SetCloudDestinationStatus(cloudId, status) {
+	for (let i = 0; i < cloud_destinations.length; i++) {
+		if (cloud_destinations[i].id === cloudId) {
+			cloud_destinations[i].status = status;
+			break;
+		}
+	}
+
+	UpdateSockets('cloud_destinations');
+}
+
+function UpdateCloud(dataType) {
+	for (let i = 0; i < cloud_destinations_sockets.length; i++) {
+		if (cloud_destinations_sockets[i].connected === true) {
+			try {
+				switch(dataType) {
+					case 'sources':
+						cloud_destinations_sockets[i].socket.emit('cloud_sources', cloud_destinations_sockets[i].key, sources);
+						break;
+					case 'devices':
+						cloud_destinations_sockets[i].socket.emit('cloud_devices', cloud_destinations_sockets[i].key, devices);
+						break;
+					case 'device_sources':
+						cloud_destinations_sockets[i].socket.emit('cloud_device_sources', cloud_destinations_sockets[i].key, device_sources);
+						break;
+					case 'listener_clients':
+						cloud_destinations_sockets[i].socket.emit('cloud_listeners', cloud_destinations_sockets[i].key, listener_clients);
+						break;
+				}
+			}
+			catch(error) {
+				logger(`An error occurred sending Cloud data to ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port}  ${error}`, 'error');
+				cloud_destinations_sockets[i].error = true;
+				SetCloudDestinationStatus(cloud_destinations_sockets[i].id, 'error');
+			}
+		}
+	}
+}
+
+function UpdateSockets(dataType) {
+	let emitSettings = false;
+	let emitProducer =  false;
+
+	if (socketupdates_Settings.includes(dataType)) {
+		emitSettings = true;
+	}
+
+	if (socketupdates_Producer.includes(dataType)) {
+		emitProducer = true;
+	}
+
+	if (socketupdates_Companion.includes(dataType)) {
+		emitCompanion = true;
+	}
+
+	switch(dataType) {
+		case 'sources':
+			if (emitSettings) {
+				io.to('settings').emit('sources', sources);
+			}
+			if (emitProducer) {
+				io.to('producer').emit('sources', sources);
+			}
+			if (emitCompanion) {
+				io.to('companion').emit('sources', sources);
+			}
+			break;
+		case 'devices':
+			if (emitSettings) {
+				io.to('settings').emit('devices', devices);
+			}
+			if (emitProducer) {
+				io.to('producer').emit('devices', devices);
+			}
+			if (emitCompanion) {
+				io.to('companion').emit('devices', devices);
+			}
+			break;
+		case 'device_sources':
+			if (emitSettings) {
+				io.to('settings').emit('device_sources', device_sources);
+			}
+			if (emitProducer) {
+				io.to('producer').emit('device_sources', device_sources);
+			}
+			if (emitCompanion) {
+				io.to('companion').emit('device_sources', device_sources);
+			}
+			break;
+		case 'device_states':
+			if (emitSettings) {
+				io.to('settings').emit('device_states', device_states);
+			}
+			if (emitProducer) {
+				io.to('producer').emit('device_states', device_states);
+			}
+			if (emitCompanion) {
+				io.to('companion').emit('device_states', device_states);
+			}
+			break;
+		case 'listener_clients':
+			if (emitSettings) {
+				io.to('settings').emit('listener_clients', listener_clients);
+			}
+			if (emitProducer) {
+				io.to('producer').emit('listener_clients', listener_clients);
+			}
+			if (emitCompanion) {
+				io.to('companion').emit('listener_clients', listener_clients);
+			}
+			break;
+		case 'tsl_clients':
+			if (emitSettings) {
+				io.to('settings').emit('tsl_clients', tsl_clients);
+			}
+			if (emitProducer) {
+				io.to('producer').emit('tsl_clients', tsl_clients);
+			}
+			if (emitCompanion) {
+				io.to('companion').emit('tsl_clients', tsl_clients);
+			}
+			break;
+		case 'cloud_destinations':
+			if (emitSettings) {
+				io.to('settings').emit('cloud_destinations', cloud_destinations);
+			}
+			if (emitCompanion) {
+				io.to('companion').emit('cloud_destinations', cloud_destinations);
+			}
+			break;
+		case 'cloud_clients':
+			if (emitSettings) {
+				io.to('settings').emit('cloud_clients', cloud_clients);
+			}
+			break;
+		case 'PortsInUse':
+			if (emitSettings) {
+				io.to('settings').emit('tsl_clients', tsl_clients);
+			}
+			break;
+		default:
+			break;
 	}
 }
 
@@ -2477,6 +3272,8 @@ function TallyArbiter_Add_Source(obj) {
 	let sourceObj = obj.source;
 	sourceObj.id = uuidv4();
 	sources.push(sourceObj);
+
+	UpdateCloud('sources');
 
 	logger(`Source Added: ${sourceObj.name}`, 'info');
 
@@ -2494,11 +3291,14 @@ function TallyArbiter_Edit_Source(obj) {
 		if (sources[i].id === sourceObj.id) {
 			sources[i].name = sourceObj.name;
 			sources[i].enabled = sourceObj.enabled;
+			sources[i].reconnect = sourceObj.reconnect;
 			sources[i].data = sourceObj.data;
 			sourceTypeId = sources[i].sourceTypeId;
 			connected = sources[i].connected;
 		}
 	}
+
+	UpdateCloud('sources');
 
 	logger(`Source Edited: ${sourceObj.name}`, 'info');
 
@@ -2525,14 +3325,19 @@ function TallyArbiter_Delete_Source(obj) {
 			}
 			sourceName = sources[i].name;
 			sources.splice(i, 1);
+			break;
 		}
 	}
+
+	UpdateCloud('sources');
 
 	for (let i = device_sources.length - 1; i >= 0; i--) {
 		if (device_sources[i].sourceId === sourceId) {
 			device_sources.splice(i, 1);
 		}
 	}
+
+	UpdateCloud('device_sources');
 
 	for (let i = device_states.length - 1; i >=0; i--) {
 		for (let j = device_states[i].sources.length - 1; j >=0; j--) {
@@ -2543,8 +3348,7 @@ function TallyArbiter_Delete_Source(obj) {
 		}
 	}
 
-	io.to('settings').emit('device_states', device_states);
-	io.to('producer').emit('device_states', device_states);
+	UpdateSockets('device_states');
 
 	logger(`Source Deleted: ${sourceName}`, 'info');
 
@@ -2555,6 +3359,8 @@ function TallyArbiter_Add_Device(obj) {
 	let deviceObj = obj.device;
 	deviceObj.id = uuidv4();
 	devices.push(deviceObj);
+
+	UpdateCloud('devices');
 
 	let busId_preview = null;
 	let busId_program = null;
@@ -2614,6 +3420,8 @@ function TallyArbiter_Edit_Device(obj) {
 
 	SendTSLClientData(deviceObj.id);
 
+	UpdateCloud('devices');
+
 	logger(`Device Edited: ${deviceObj.name}`, 'info');
 
 	return {result: 'device-edited-successfully'};
@@ -2630,11 +3438,15 @@ function TallyArbiter_Delete_Device(obj) {
 		}
 	}
 
+	UpdateCloud('devices');
+
 	for (let i = device_sources.length - 1; i >= 0; i--) {
 		if (device_sources[i].deviceId === deviceId) {
 			device_sources.splice(i, 1);
 		}
 	}
+
+	UpdateCloud('device_sources');
 	
 	for (let i = device_actions.length - 1; i >= 0; i--) {
 		if (device_actions[i].deviceId === deviceId) {
@@ -2656,6 +3468,8 @@ function TallyArbiter_Add_Device_Source(obj) {
 	let deviceName = GetDeviceByDeviceId(deviceSourceObj.deviceId).name;
 	let sourceName = GetSourceBySourceId(deviceSourceObj.sourceId).name;
 
+	UpdateCloud('device_sources');
+
 	logger(`Device Source Added: ${deviceName} - ${sourceName}`, 'info');
 
 	return {result: 'device-source-added-successfully', deviceId: deviceId};
@@ -2675,6 +3489,8 @@ function TallyArbiter_Edit_Device_Source(obj) {
 	let deviceName = GetDeviceByDeviceId(deviceId).name;
 	let sourceName = GetSourceBySourceId(deviceSourceObj.sourceId).name;
 
+	UpdateCloud('device_sources');
+
 	logger(`Device Source Edited: ${deviceName} - ${sourceName}`, 'info');
 
 	return {result: 'device-source-edited-successfully', deviceId: deviceId};
@@ -2690,11 +3506,14 @@ function TallyArbiter_Delete_Device_Source(obj) {
 			deviceId = device_sources[i].deviceId;
 			sourceId = device_sources[i].sourceId;
 			device_sources.splice(i, 1);
+			break;
 		}
 	}
 
 	let deviceName = GetDeviceByDeviceId(deviceId).name;
 	let sourceName = GetSourceBySourceId(sourceId).name;
+
+	UpdateCloud('device_sources');
 
 	logger(`Device Source Deleted: ${deviceName} - ${sourceName}`, 'info');
 
@@ -2746,6 +3565,7 @@ function TallyArbiter_Delete_Device_Action(obj) {
 			deviceId = device_actions[i].deviceId;
 			outputTypeId = device_actions[i].outputTypeId;
 			device_actions.splice(i, 1);
+			break;
 		}
 	}
 
@@ -2797,12 +3617,116 @@ function TallyArbiter_Delete_TSL_Client(obj) {
 		if (tsl_clients[i].id === tslClientId) {
 			StopTSLClientConnection(tslClientId);
 			tsl_clients.splice(i, 1);
+			break;
 		}
 	}
 
 	logger(`TSL Client Deleted: ${tslClientObj.ip}:${tslClientObj.port} (${tslClientObj.transport})`, 'info');
 
 	return {result: 'tsl-client-deleted-successfully'};
+}
+
+function TallyArbiter_Add_Cloud_Destination(obj) {
+	let cloudObj = obj.cloudDestination;
+	cloudObj.id = uuidv4();
+	cloud_destinations.push(cloudObj);
+
+	logger(`Cloud Destination Added: ${cloudObj.host}:${cloudObj.port}`, 'info');
+
+	StartCloudDestination(cloudObj.id);
+
+	return {result: 'cloud-destination-added-successfully'};
+}
+
+function TallyArbiter_Edit_Cloud_Destination(obj) {
+	let cloudObj = obj.cloudDestination;
+
+	for (let i = 0; i < cloud_destinations.length; i++) {
+		if (cloud_destinations[i].id === cloudObj.id) {
+			cloud_destinations[i].host = cloudObj.host;
+			cloud_destinations[i].port = cloudObj.port;
+			cloud_destinations[i].key = cloudObj.key;
+			break;
+		}
+	}
+
+	for (let i = 0; i < cloud_destinations_sockets.length; i++) {
+		if (cloud_destinations_sockets[i].id === cloudObj.id) {
+			cloud_destinations_sockets[i].host = cloudObj.host;
+			cloud_destinations_sockets[i].port = cloudObj.port;
+			cloud_destinations_sockets[i].key = cloudObj.key;
+			break;
+		}
+	}
+
+	//something was changed so we need to stop, give it time to disconnect, and then restart the connection
+	StopCloudDestination(cloudObj.id);
+	setTimeout(StartCloudDestination, 1000, cloudObj.id);
+
+	logger(`Cloud Destination Edited: ${cloudObj.host}:${cloudObj.port}`, 'info');
+
+	return {result: 'cloud-destination-edited-successfully'};
+}
+
+function TallyArbiter_Delete_Cloud_Destination(obj) {
+	let cloudObj = GetCloudDestinationById(obj.cloudId);
+	let cloudId = obj.cloudId;
+
+	for (let i = 0; i < cloud_destinations.length; i++) {
+		if (cloud_destinations[i].id === cloudId) {
+			StopCloudDestination(cloudId);
+			cloud_destinations.splice(i, 1);
+			break;
+		}
+	}
+
+	logger(`Cloud Destination Deleted: ${cloudObj.host}:${cloudObj.port}`, 'info');
+
+	return {result: 'cloud-destination-deleted-successfully'};
+}
+
+function TallyArbiter_Add_Cloud_Key(obj) {
+	cloud_keys.push(obj.key);
+
+	logger(`Cloud Key Added: ${obj.key}`, 'info');
+
+	return {result: 'cloud-key-added-successfully'};
+}
+
+function TallyArbiter_Delete_Cloud_Key(obj) {
+	for (let i = 0; i < cloud_keys.length; i++) {
+		if (cloud_keys[i] === obj.key) {
+			cloud_keys.splice(i, 1);
+			break;
+		}
+	}
+
+	DeleteCloudClients(obj.key);
+
+	logger(`Cloud Key Deleted: ${obj.key}`, 'info');
+
+	return {result: 'cloud-key-deleted-successfully'};
+}
+
+function TallyArbiter_Remove_Cloud_Client(obj) {
+	let ipAddress = null;
+	let key = null;
+	for (let i = 0; i < cloud_clients.length; i++) {
+		if (cloud_clients[i].id === obj.id) {
+			//disconnect the cloud client
+			ipAddress = cloud_clients[i].ipAddress;
+			key = cloud_clients[i].key;
+			if (io.sockets.connected[cloud_clients[i].socketId]) {
+				io.sockets.connected[cloud_clients[i].socketId].disconnect(true);
+			}
+			cloud_clients.splice(i, 1);
+			break;
+		}
+	}
+
+	logger(`Cloud Client Removed: ${obj.id}  ${ipAddress}  ${key}`, 'info');
+
+	return {result: 'cloud-client-removed-successfully'};
 }
 
 function GetSourceBySourceId(sourceId) {
@@ -2822,7 +3746,15 @@ function GetBusByBusId(busId) {
 
 function GetDeviceByDeviceId(deviceId) {
 	//gets the Device object by id
-	return devices.find( ({ id }) => id === deviceId);
+	if (deviceId !== 'unassigned') {
+		return devices.find( ({ id }) => id === deviceId);
+	}
+	else {
+		let deviceObj = {};
+		deviceObj.id = 'unassigned';
+		deviceObj.name = 'Unassigned';
+		return deviceObj;
+	}
 }
 
 function GetOutputTypeByOutputTypeId(outputTypeId) {
@@ -2839,13 +3771,28 @@ function GetTSLClientById(tslClientId) {
 	return tsl_clients.find( ({ id }) => id === tslClientId);	
 }
 
+function GetCloudDestinationById(cloudId) {
+	//gets the Cloud Destination by the Id
+	return cloud_destinations.find( ({ id }) => id === cloudId);	
+}
+
+function GetCloudClientById(cloudClientId) {
+	//gets the Cloud Client by the Id
+	return cloud_clients.find( ({ id }) => id === cloudClientId);	
+}
+
+function GetCloudClientBySocketId(socket) {
+	//gets the Cloud Client by the Socket Id
+	return cloud_clients.find( ({ socketId }) => socketId === socket);	
+}
+
 function GetDeviceStatesByDeviceId(deviceId) {
 	//gets the current tally data for the device and returns it
 
 	return device_states.filter(obj => obj.deviceId === deviceId);
 }
 
-function AddClient(socketId, deviceId, listenerType, ipAddress, datetimeConnected) {
+function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetimeConnected) {
 	let clientObj = {};
 
 	clientObj.id = uuidv4();
@@ -2856,64 +3803,192 @@ function AddClient(socketId, deviceId, listenerType, ipAddress, datetimeConnecte
 	clientObj.datetime_connected = datetimeConnected;
 	clientObj.inactive = false;
 	
-	Clients.push(clientObj);
+	listener_clients.push(clientObj);
 
-	io.to('settings').emit('clients', Clients);
-	io.to('producer').emit('clients', Clients);
+	UpdateSockets('listener_clients');
+	UpdateCloud('listener_clients');
 
 	return clientObj.id;
 }
 
-function DeactivateClient(socketId) {
-	for (let i = 0; i < Clients.length; i++) {
-		if (Clients[i].socketId === socketId) {
-			Clients[i].inactive = true;
-			Clients[i].datetime_inactive = new Date().getTime();
+function ReassignListenerClient(clientId, oldDeviceId, deviceId) {
+	for (let i = 0; i < listener_clients.length; i++) {
+		if (listener_clients[i].id === clientId) {
+			if (listener_clients[i].relayGroupId) {
+				io.to(listener_clients[i].socketId).emit('reassign', listener_clients[i].relayGroupId, oldDeviceId, deviceId);
+			}
+			else if (listener_clients[i].gpoGroupId) {
+				io.to(listener_clients[i].socketId).emit('reassign', listener_clients[i].gpoGroupId, oldDeviceId, deviceId);
+			}
+			else {
+				io.to(listener_clients[i].socketId).emit('reassign', oldDeviceId, deviceId);
+			}
+			break;
+		}
+	}
+}
+
+function DeactivateListenerClient(socketId) {
+	for (let i = 0; i < listener_clients.length; i++) {
+		if (listener_clients[i].socketId === socketId) {
+			listener_clients[i].inactive = true;
+			listener_clients[i].datetime_inactive = new Date().getTime();
 		}
 	}
 
-	io.to('settings').emit('clients', Clients);
-	io.to('producer').emit('clients', Clients);
+	UpdateSockets('listener_clients');
+	UpdateCloud('listener_clients');
 }
 
-function DeleteInactiveClients() {
+function DeleteInactiveListenerClients() {
 	let changesMade = false;
-	for (let i = Clients.length - 1; i >= 0; i--) {
-		if (Clients[i].inactive === true) {
+	for (let i = listener_clients.length - 1; i >= 0; i--) {
+		if (listener_clients[i].inactive === true) {
 			let dtNow = new Date().getTime();
-			if ((dtNow - Clients[i].datetime_inactive) > (1000 * 60 * 60)) { //1 hour
-				logger(`Inactive Client removed: ${Clients[i].id}`, 'info');
-				Clients.splice(i, 1);
+			if ((dtNow - listener_clients[i].datetime_inactive) > (1000 * 60 * 60)) { //1 hour
+				logger(`Inactive Client removed: ${listener_clients[i].id}`, 'info');
+				listener_clients.splice(i, 1);
 				changesMade = true;
 			}
 		}
 	}
 
 	if (changesMade) {
-		io.to('settings').emit('clients', Clients);
-		io.to('producer').emit('clients', Clients);
+		UpdateSockets('listener_clients');
+		UpdateCloud('listener_clients');
 	}
 
-	setTimeout(DeleteInactiveClients, 5 * 1000); // runs every 5 minutes
+	setTimeout(DeleteInactiveListenerClients, 5 * 1000); // runs every 5 minutes
 }
 
-function FlashClient(clientId) {
-	let clientObj = Clients.find( ({ id }) => id === clientId);
+function FlashListenerClient(listenerClientId) {
+	let listenerClientObj = listener_clients.find( ({ id }) => id === listenerClientId);
 
-	if (clientObj) {
-		if (clientObj.relayGroupId) {
-			io.to(clientObj.socketId).emit('flash', Clients[i].relayGroupId);
-		}
-		else if (clientObj.gpoGroupId) {
-			io.to(clientObj.socketId).emit('flash', Clients[i].gpoGroupId);
+	if (listenerClientObj) {
+		if (listenerClientObj.cloudConnection) {
+			let cloudClientSocketId = GetCloudClientById(listenerClientObj.cloudClientId).socketId;
+			if (io.sockets.connected[cloudClientSocketId]) {
+				io.sockets.connected[cloudClientSocketId].emit('flash', listenerClientId);
+			}
 		}
 		else {
-			io.to(clientObj.socketId).emit('flash');
+			if (listenerClientObj.relayGroupId) {
+				io.to(listenerClientObj.socketId).emit('flash', listenerClientObj.relayGroupId);
+			}
+			else if (listenerClientObj.gpoGroupId) {
+				io.to(listenerClientObj.socketId).emit('flash', listenerClientObj.gpoGroupId);
+			}
+			else {
+				io.to(listenerClientObj.socketId).emit('flash');
+			}
 		}
-		return {result: 'flash-sent-successfully', cliendId: clientId};
+		return {result: 'flash-sent-successfully', listenerClientId: listenerClientId};
 	}
 	else {
-		return {result: 'flash-not-sent', clientId: clientId, error: 'client id not found'};
+		return {result: 'flash-not-sent', listenerClientId: listenerClientId, error: 'listener-client-not-found'};
+	}
+}
+
+function AddCloudClient(socketId, key, ipAddress, datetimeConnected) {
+	let cloudClientObj = {};
+
+	cloudClientObj.id = uuidv4();
+	cloudClientObj.socketId = socketId;
+	cloudClientObj.key = key;
+	cloudClientObj.ipAddress = ipAddress;
+	cloudClientObj.datetimeConnected = datetimeConnected;
+	cloudClientObj.inactive = false;
+	
+	cloud_clients.push(cloudClientObj);
+
+	UpdateSockets('cloud_clients');
+
+	return cloudClientObj.id;
+}
+
+function DeleteCloudClients(key) {
+	for (let i = cloud_clients.length - 1; i >= 0; i--) {
+		if (cloud_clients[i].key === key) {
+			if (io.sockets.connected[cloud_clients[i].socketId]) {
+				io.sockets.connected[cloud_clients[i].socketId].disconnect(true);
+				cloud_clients.splice(i, 1);
+			}
+		}
+	}
+
+	UpdateSockets('cloud_clients');
+}
+
+function CheckCloudClients(socketId) { //check the list of cloud clients and if the socket is present, delete it, because they just disconnected
+	let cloudClientId = null;
+
+	if (socketId !== null) {
+		for (let i = 0; i < cloud_clients.length; i++) {
+			if (cloud_clients[i].socketId === socketId) {
+				cloudClientId = cloud_clients[i].id;
+				logger(`Cloud Client Disconnected: ${cloud_clients[i].ipAddress}`, 'info');
+				cloud_clients.splice(i, 1);
+				break;
+			}
+		}
+	}
+
+	DeleteCloudArrays(cloudClientId);
+	UpdateSockets('cloud_clients');
+}
+
+function DeleteCloudArrays(cloudClientId) { //no other socket connections are using this key so let's remove all sources, devices, and device_sources assigned to this key
+	for (let i = sources.length - 1; i >= 0; i--) {
+		if (sources[i].cloudConnection) {
+			if (sources[i].cloudClientId === cloudClientId) {
+				sources.splice(i, 1);
+			}
+		}
+	}
+
+	for (let i = devices.length - 1; i >= 0; i--) {
+		if (devices[i].cloudConnection) {
+			if (devices[i].cloudClientId === cloudClientId) {
+				devices.splice(i, 1);
+			}
+		}
+	}
+
+	for (let i = device_sources.length - 1; i >= 0; i--) {
+		if (device_sources[i].cloudConnection) {
+			if (device_sources[i].cloudClientId === cloudClientId) {
+				device_sources.splice(i, 1);
+			}
+		}
+	}
+
+	for (let i = listener_clients.length - 1; i >= 0; i--) {
+		if (listener_clients[i].cloudConnection) {
+			if (listener_clients[i].cloudClientId === cloudClientId) {
+				listener_clients.splice(i, 1);
+			}
+		}
+	}
+	
+	CheckListenerClients();
+
+	UpdateSockets('sources');
+	UpdateSockets('devices');
+	UpdateSockets('device_sources');
+	UpdateSockets('listener_clients');
+}
+
+function CheckListenerClients() { //checks all listener clients and if a client is connected to a device that no longer exists (due to cloud connection), reassigns to the first device
+	let newDeviceId = 'unassigned';
+	if (devices.length > 0) {
+		newDeviceId = devices[0].id;
+	}
+
+	for (let i = 0; i < listener_clients.length; i++) {
+		if (!GetDeviceByDeviceId(listener_clients[i].deviceId)) {
+			//this device has been removed, so reassign it to the first index
+			ReassignListenerClient(listener_clients[i].id, listener_clients[i].deviceId, newDeviceId);
+		}
 	}
 }
 
@@ -2922,7 +3997,7 @@ function AddPort(port, sourceId) { //Adds the port to the list of reserved or in
 	portObj.port = port;
 	portObj.sourceId = sourceId;
 	PortsInUse.push(portObj);
-	io.to('settings').emit('PortsInUse', PortsInUse);
+	UpdateSockets('PortsInUse');
 }
 
 function DeletePort(port) { //Deletes the port from the list of reserved or in-use ports
@@ -2932,7 +4007,7 @@ function DeletePort(port) { //Deletes the port from the list of reserved or in-u
 			break;
 		}
 	}
-	io.to('settings').emit('PortsInUse', PortsInUse);
+	UpdateSockets('PortsInUse');
 }
 
 startUp();
