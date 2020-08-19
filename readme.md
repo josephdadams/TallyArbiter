@@ -186,11 +186,7 @@ Tally Arbiter can automatically send out TSL 3.1 data to any number of clients.
 * Specify the IP address, Port, and Transport Type (UDP or TCP).
 * Tally Arbiter will send TSL 3.1 data to these clients any time a device changes state.
 
-# BMD Tally Protocol Conversion
-Tally Arbiter can automatically send out tally data to your BlackMagic Design devices over SDI like BMD hardware does natively, using a BlackMagic Design Shield connected to an Arduino. 
-This is done automatically when an Arduino connects to the Tally Arbiter server and is running the Tally Arbiter BMD Arduino Listener sketch, included in the separate repository, [Tally Arbiter BMD Arduino Listener](http://github.com/josephdadams/tallyarbiter-bmdarduinolistener).
 
-For installation and use instructions for the BMD Tally Protocol Conversion, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-bmdarduinolistener/readme.md).
 
 # Configuring and Using Tally Arbiter Cloud
 Tally Arbiter can send source, device, and tally data from a local instance within a closed network to an instance of Tally Arbiter on another network that may be more acccessible for end users. This is helpful if your users need to access Tally Arbiter and you don't want to have them tunnel or connect into your private network, or if users are located remotely.
