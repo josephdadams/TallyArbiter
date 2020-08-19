@@ -12,10 +12,11 @@ To contact the author or for more information, please visit [www.techministry.bl
 ## Installing Sketch and Libraries
 1. Follow the [tutorial on the M5Stack website](https://docs.m5stack.com/#/en/arduino/arduino_development) to download, install, and configure the Arduino IDE program. This is necessary to compile the code for your device.
 1. Once you have the Arduino IDE installed and configured for your OS, install the following libraries (if not already installed):
-	* `M5StickC` (`<M5StickC.h>`)
-	* `SocketIoClient` (`<SocketIoClient.h>`)
-	* `Arduino_JSON` (`<Arduino_JSON.h>`)
-	* `MultiButton` (`<PinButton.h>`)
+	* `M5StickC`
+	* `Websockets`
+	* `SocketIoClient`
+	* `Arduino_JSON`
+	* `MultiButton`
 
 These will have to be included with the sketch file in order for it to compile properly.
 ### Modification of SocketIoClient file for ESP32 compatibility
