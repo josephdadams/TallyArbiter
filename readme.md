@@ -66,7 +66,7 @@ Once running, a web interface is available to view tally sources, devices, and o
 You can change the security of this area by adding the following section to your `config.json` file:
 ```javascript
 {
-	security:
+	"security":
 	{
 		"username_settings": "admin",
 		"password_settings": "12345",
@@ -93,7 +93,7 @@ The following source types are supported:
 When you add a source and the connection to the tally source (video switcher, software, etc.) is successfully made, the source will be green. If there is an error, the source will be red. Look at the logs for more error information.
 
 ### TSL 3.1 UDP/TCP
-Your switcher that uses this protocol must be configured to send the data to Tally Arbiter.
+Your switcher or service that uses this protocol must be configured to send the data to Tally Arbiter at the port you specify.
 
 ### Blackmagic ATEM
 You will need the IP address of the ATEM. The ATEM can only have 5 simultaneous connections, so you may need to disconnect another connection in order for Tally Arbiter to connect to the ATEM.
@@ -160,13 +160,13 @@ Navigate to `/producer` on the Tally Arbiter server in your browser to view all 
 **This page is restricted by a username and password. The default username is `producer` and the default password is `12345`.**
 
 ## Using a blink(1) for tally output
-Tally Arbiter supports the use of a blink(1) device as a tally light. A remote listening script is available in the separate repository, [Tally Arbiter Blink1 Listener](http://github.com/josephdadams/tallyarbiter-blink1listener). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-blink1listener/readme.md). It is compatible with and was designed to run on a Raspberry Pi Zero, making this an inexpensive option for *wireless* tally output. However, it can be run on any OS/device that supports Python such as MacOS or Windows, which can be helpful if you want to use this with graphics or video playback operators, for example.
+Tally Arbiter supports the use of a blink(1) device as a tally light. A remote listening script is available in the separate repository, [Tally Arbiter Blink1 Listener](http://github.com/josephdadams/tallyarbiter-blink1listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-Blink1Listener/blob/master/readme.md). It is compatible with and was designed to run on a Raspberry Pi Zero, making this an inexpensive option for *wireless* tally output. However, it can be run on any OS/device that supports Python such as MacOS or Windows, which can be helpful if you want to use this with graphics or video playback operators, for example.
 
 ## Using a Relay for contact-closure systems
-Many Camera CCUs and other devices support incoming tally via contact closure. A remote listening script that can trigger USB relays is available with the separate repository, [Tally Arbiter Relay Listener](http://github.com/josephdadams/tallyarbiter-relaylistener). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-relaylistener/readme.md).
+Many Camera CCUs and other devices support incoming tally via contact closure. A remote listening script that can trigger USB relays is available with the separate repository, [Tally Arbiter Relay Listener](http://github.com/josephdadams/tallyarbiter-relaylistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-RelayListener/blob/master/readme.md).
 
 ## Using a GPO output
-Lots of equipment support the use of GPIO (General Purpose In/Out) pins to interact. This could be for logic control, turning on LEDs, etc. A remote listening script that can run on a Raspberry Pi is available with the separate repository, [Tally Arbiter GPO Listener](http://github.com/josephdadams/tallyarbiter-gpolistener). For installation and use instructions, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-gpolistener/ readme.md).
+Lots of equipment support the use of GPIO (General Purpose In/Out) pins to interact. This could be for logic control, turning on LEDs, etc. A remote listening script that can run on a Raspberry Pi is available with the separate repository, [Tally Arbiter GPO Listener](http://github.com/josephdadams/tallyarbiter-gpolistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-GPOListener/blob/master/readme.md).
 
 ## Using an M5StickC for tally output
 Tally Arbiter can send tally data to an M5StickC Arduino Finger Computer. A remote script is available in the separate repository, [Tally Arbiter M5StickC Listener](http://github.com/josephdadams/tallyarbiter-m5stickclistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-M5StickCListener/blob/master/readme.md).
@@ -179,6 +179,19 @@ Tally Arbiter can send data over the socket.IO protocol to your listener. You ca
 * `device_listen`: Send a deviceId and a listener type (string); Returns a `device_states` event with an array of current device states for that device Id. This will add the listener client to the list in Tally Arbiter, making it manageable in the Settings interface.
 * `device_states`: Send a deviceId as the argument; Returns a `device_states` event with an array of current device states for that device Id.
 
+# TSL 3.1 Protocol Conversion
+Tally Arbiter can automatically send out TSL 3.1 data to any number of clients.
+* Each device must have a TSL Address configured. The default TSL address is `0`.
+* Add a TSL Client by using the "TSL Clients" configuration area in the Settings interface.
+* Specify the IP address, Port, and Transport Type (UDP or TCP).
+* Tally Arbiter will send TSL 3.1 data to these clients any time a device changes state.
+
+# BMD Tally Protocol Conversion
+Tally Arbiter can automatically send out tally data to your BlackMagic Design devices over SDI like BMD hardware does natively, using a BlackMagic Design Shield connected to an Arduino. 
+This is done automatically when an Arduino connects to the Tally Arbiter server and is running the Tally Arbiter BMD Arduino Listener sketch, included in the separate repository, [Tally Arbiter BMD Arduino Listener](http://github.com/josephdadams/tallyarbiter-bmdarduinolistener).
+
+For installation and use instructions for the BMD Tally Protocol Conversion, please check out that repository's [readme](http://github.com/josephdadams/tallyarbiter-bmdarduinolistener/readme.md).
+
 # Configuring and Using Tally Arbiter Cloud
 Tally Arbiter can send source, device, and tally data from a local instance within a closed network to an instance of Tally Arbiter on another network that may be more acccessible for end users. This is helpful if your users need to access Tally Arbiter and you don't want to have them tunnel or connect into your private network, or if users are located remotely.
 
@@ -187,7 +200,7 @@ Tally Arbiter can send source, device, and tally data from a local instance with
 * Once a connection is established, all sources, devices, and tally data from the local server will be relayed up to the cloud server.
 * Tally Arbiter will handle this incoming tally data as it would any local source.
 * You can also flash/ping listener clients the same way you would if they were local.
-* **If a Tally Arbiter Client is removed, all Sources and Devices will be removed.**
+* **If a Tally Arbiter Cloud Client is removed, all Sources and Devices associated with that Cloud Client will be removed.**
 
 # Using the REST API
 The Web GUI is the most complete way to interact with the software, however the following API's are available (`HTTP GET` method unless otherwise noted):
