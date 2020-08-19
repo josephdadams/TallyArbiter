@@ -51,8 +51,8 @@ These will have to be installed on the Pi in order for the script to function co
 
     *If `pip3` is not installed, you can get it by running `sudo apt-get install python3-pip`.*
 
-1. Now that all the necessary libraries are installed and compiled, you need to copy the `tallyarbiter_listener.py` file to your Pi. You can do this a number of ways, but one simple way is to execute this command through your SSH connection: `wget https://raw.githubusercontent.com/josephdadams/TallyArbiter-Blink1Listener/master/tallyarbiter-blink1listener.py`. This will copy the file into your current folder (you should still be the home folder for the `pi` account).
-1. Once the Python script has been copied over, go ahead and test it out to make sure everything is working properly. Run this in the SSH session: `sudo python3 tallyarbiter_listener.py 192.168.1.6 4455`
+1. Now that all the necessary libraries are installed and compiled, you need to copy the `tallyarbiter-blink1listener.py` file to your Pi. You can do this a number of ways, but one simple way is to execute this command through your SSH connection: `wget https://raw.githubusercontent.com/josephdadams/TallyArbiter-Blink1Listener/master/tallyarbiter-blink1listener.py`. This will copy the file into your current folder (you should still be the home folder for the `pi` account).
+1. Once the Python script has been copied over, go ahead and test it out to make sure everything is working properly. Run this in the SSH session: `sudo python3 tallyarbiter-blink1listener.py 192.168.1.6 4455`
     
     Be sure to replace the IP address `192.168.1.6` with the IP of your Tally Arbiter server. If you leave off the port, it will attempt to connect using port `4455`.
 
@@ -61,7 +61,7 @@ These will have to be installed on the Pi in order for the script to function co
 ## Setting up the script to start at boot
 Now that it is working properly, you will want to set up the script to run on boot so that all you have to do is turn on the Pi and wait for it to launch and connect to the server. There are several different methods in the Raspberry Pi OS to do this. The following describes how to do it using the `rc.local` file.
 1. In your SSH session, type `sudo nano /etc/rc.local`.
-1. Just before the last line of this file (`exit 0`), add the following: `sudo python3 /home/pi/tallyarbiter_listener.py 192.168.1.6 4455 &`. The `&` is important because it allows the script to launch in a separate thread since we want the program to continue running in the background.
+1. Just before the last line of this file (`exit 0`), add the following: `sudo python3 /home/pi/tallyarbiter-blink1listener.py 192.168.1.6 4455 &`. The `&` is important because it allows the script to launch in a separate thread since we want the program to continue running in the background.
 1. Now reboot the Pi to test that the script runs on boot: `sudo reboot`. This will end your SSH session.
 
 The program should now launch every time the Pi boots up, and automatically connect to your Tally Arbiter server once the server is available. The blink(1) device will flash white until it successfully connects to the server.
