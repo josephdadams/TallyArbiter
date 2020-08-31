@@ -1,320 +1,44 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
+
 <head>
-	<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'/>
-	<meta name='viewport' content='width=device-width, initial-scale=1'>
-	<title>Tally Arbiter</title>
-	<style type='text/css'>
-		* {
-			margin: 0;
-		}
-
-		html {
-			-webkit-text-size-adjust: none;
-			text-size-adjust: none;
-		}
-			
-		body {
-			font-family: Avenir, Helvetica, Arial;
-			background: #aaaaaa; 
-			color: #414141;
-		}
-		
-		.container {
-			position: relative;
-		}
-
-		#divSelectDevice {
-			display: none;
-			font-size: 14px;
-			position: absolute;
-			top: 50%;
-			left: 50%;
-			margin-right: -50%;
-			transform: translate(-50%, -50%);
-			justify-content: center;
-		}
-		
-		.select-css {
-			display: block;
-			font-size: 14px;
-			font-family: sans-serif;
-			font-weight: 700;
-			color: #444;
-			/*line-height: 1.0;*/
-			padding: .6em 1.4em .5em .8em;
-			width: 50%;
-			max-width: 50%;
-			box-sizing: border-box;
-			margin: auto;
-			border: 1px solid #aaa;
-			box-shadow: 0 1px 0 1px rgba(0,0,0,.04);
-			border-radius: .5em;
-			-moz-appearance: none;
-			-webkit-appearance: none;
-			appearance: none;
-			background-color: #fff;
-			background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'),
-			linear-gradient(to bottom, #ffffff 0%,#e5e5e5 100%);
-			background-repeat: no-repeat, repeat;
-			background-position: right .7em top 50%, 0 0;
-			background-size: .65em auto, 100%;
-		}
-		.select-css::-ms-expand {
-			display: none;
-		}
-		.select-css:hover {
-			border-color: #888;
-		}
-		.select-css:focus {
-			border-color: #aaa;
-			box-shadow: 0 0 1px 3px rgba(59, 153, 252, .7);
-			box-shadow: 0 0 0 3px -moz-mac-focusring;
-			color: #222;
-			outline: none;
-		}
-		.select-css option {
-			font-weight:normal;
-		}
-		
-		.imgLogo {
-			margin: auto;
-			display: block;
-			max-width: 50%;
-			max-height: 50%;
-		}
-		
-		#divTally {
-			display: none;
-			width: 100%;
-			height: 100%;
-		}
-
-		.tallyDeviceTitle {
-			text-align: center;
-			color: #eeeeee;
-			font-size: 5vmin;
-			font-weight: bold;
-			width: 100%;
-			display: block;
-		}
-
-		.tallyDeviceDescription {
-			text-align: center;
-			color: #aaaaaa;
-			font-size: 4vmin;
-			width: 100%;
-			display: block;
-		}
-
-		.flash {
-			-webkit-animation:	screen-flash 500ms 5; /* Safari 4+ */
-			-moz-animation:		screen-flash 500ms 5; /* Fx 5+ */
-			-o-animation:		screen-flash 500ms 5; /* Opera 12+ */
-			animation:			screen-flash 500ms 5; /* IE 10+, Fx 29+ */
-		}
-
-		@-webkit-keyframes screen-flash {
-		0%, 49% {
-			background-color: rgb(255, 255, 255);
-		}
-		50%, 100% {
-			background-color: rgb(0, 0, 0);
-		}
-		}
-</style>
-	<script src='/socket.io/socket.io.js'></script>
-	<script src='lib/nosleep.min.js'></script>
-	<script>
-	var socket = null;
-	var Devices = [];
-	var selectedDeviceId = null;
-
-	var noSleep = new NoSleep();
-	var KeepAwake = true;
-
-	var device_states = [];
-
-	var mode_preview = false;
-	var mode_program = false;
-
-	function onLoad() {
-		socket = io.connect();
-
-		socket.on('connect', function() {
-			//connected, let's get some data
-			socket.emit('devices');
-			socket.emit('bus_options');
-		});
-
-		socket.on('devices', function(deviceArray) {
-			//Returns a list of available Devices for the dropdown list
-			Devices = deviceArray;
-			updateDeviceList();
-		});
-
-		socket.on('bus_options', function(busOptionsArray) {
-			//Returns a list of available bus options (preview, program, etc.)
-			Bus_Options = busOptionsArray;
-		});
-		
-		socket.on('device_states', function(tallyDataArray) {
-			//process the data received and determine if it's in preview or program and color the screen accordingly
-			device_states = tallyDataArray;
-			ProcessTallyData();
-		});
-		
-		socket.on('flash', function() {
-			//flashes the screen to get the user's attention
-			document.body.className = 'flash';
-			setTimeout(function () {
-				document.body.classList.remove('flash');
-			}, 3000);
-		});
-
-		socket.on('reassign', function(oldDeviceId, deviceId) {
-			//processes a reassign request that comes from the Settings GUI and relays the command so it originates from this socket
-			socket.emit('listener_reassign', oldDeviceId, deviceId);
-			selectedDeviceId = deviceId;
-			updateTallyInfo();
-		});
-	}
-
-	function updateDeviceList() {
-		var selDeviceList = document.getElementById('selDeviceList');
-		selDeviceList.options.length = 0;
-
-		if (Devices.length > 1) { //build a dropdown list of available devices
-			let default_opt = document.createElement('option');
-			default_opt.value = '0';
-			default_opt.text = '(choose your device)';
-			selDeviceList.appendChild(default_opt);
-			for (let i = 0; i < Devices.length; i++) {
-				let opt = document.createElement('option');
-				opt.value = Devices[i].id;
-				opt.text = Devices[i].name;
-				selDeviceList.appendChild(opt);
-			}
-			selDeviceList.setAttribute('onchange', 'selectDeviceFromList();');			
-			
-			document.getElementById('divSelectDevice').style.display = 'block';
-		}
-		else if (Devices.length === 1) { // just load the only one available
-			selectDevice(Devices[0].id);
-		}
-		else {
-			//no devices are available
-			document.getElementById('container').innerHTML = 'No devices are available for tally monitoring at this time.';
-		}
-	}
-
-	function selectDeviceFromList() {
-		let sel = document.getElementById('selDeviceList');
-		let id = sel.options[sel.selectedIndex].value;
-		if (id !== '0') {
-			selectDevice(id);
-		}
-		KeepScreenAwake(true); //keeps the phone from falling asleep
-	}
-
-	function selectDevice(deviceId) {
-		socket.emit('device_listen', deviceId, 'web');
-		selectedDeviceId = deviceId;
-		document.getElementById('divSelectDevice').style.display = 'none';
-		updateTallyInfo();
-	}
-
-	function getBusTypeById(busId) {
-		//gets the bus type (preview/program) by the bus id
-		let bus = Bus_Options.find( ({ id }) => id === busId);
-		return bus.type;
-	}
-
-	function getDeviceById(deviceId) {
-		//gets the device by the id
-		let device = Devices.find( ({ id }) => id === deviceId);
-		return device;
-	}
-
-	function ProcessTallyData() {
-		for (let i = 0; i < device_states.length; i++) {
-			if (getBusTypeById(device_states[i].busId) === 'preview') {
-				if (device_states[i].sources.length > 0) {
-					mode_preview = true;
-				}
-				else {
-					mode_preview = false;
-				}
-			}
-			else if (getBusTypeById(device_states[i].busId) === 'program') {
-				if (device_states[i].sources.length > 0) {
-					mode_program = true;
-				}
-				else {
-					mode_program = false;
-				}
-			}
-		}
-
-		if ((mode_preview) && (!mode_program)) {
-			//preview mode, color it green
-			document.body.style.backgroundColor = '#00FF00';
-		}
-		else if ((!mode_preview) && (mode_program)) {
-			//program mode, color it red
-			document.body.style.backgroundColor = '#FF0000';
-		}
-		else if ((mode_preview) && (mode_program)) {
-			//both, color it yellow
-			document.body.style.backgroundColor = '#FFCC00';
-		}
-		else {
-			//none, color it black
-			document.body.style.backgroundColor = '#000000';
-		}
-	}
-
-	function updateTallyInfo() {
-		let deviceObj = getDeviceById(selectedDeviceId);
-		let divTally = document.getElementById('divTally');
-
-		let spanTitle = document.createElement('span');
-		spanTitle.innerHTML = deviceObj.name;
-		spanTitle.className = 'tallyDeviceTitle';
-
-		let spanDescription = document.createElement('span');
-		spanDescription.innerHTML = deviceObj.description;
-		spanDescription.className = 'tallyDeviceDescription';
-
-		divTally.innerHTML = '';
-		divTally.appendChild(spanTitle);
-		divTally.appendChild(spanDescription);
-		divTally.style.display = 'block';
-	}
-
-	function KeepScreenAwake(value) { //keeps the phone screen on if true by using the NoSleep library - playing a dummy video in the background
-		KeepAwake = value;
-
-		if (value) {
-			noSleep.enable();
-		}
-		else {
-			noSleep.disable();
-		}
-	}
-	</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="stylesheet" href="lib/css/bootstrap.min.css">
+  <title>Tally Arbiter</title>
 </head>
-<body onLoad='onLoad();'>
-	<div id='container'>
-		<div id='divSelectDevice'>
-				<div id='divLogo'>
-					<img src='logo.png' class='imgLogo' />
-				</div>
-				<div id='divSelect'><select id='selDeviceList' class='select-css'>
-					<option>Choose device</option>
-					</select></div>
-		</div>
-		<div id='divTally'></div>
-	</div>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="#"><img src="lib/img/logo_white.png" height="30" alt="" loading="lazy"></a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"></span> </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item"> <a class="nav-link" href="/">Home</a> </li>
+          <li class="nav-item"> <a class="nav-link active" href="/tally">Tally View</a> </li>
+          <li class="nav-item"> <a class="nav-link" href="/producer">Producer</a> </li>
+          <li class="nav-item"> <a class="nav-link" href="/settings">Settings</a> </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <div class=''>
+    <div class="container">
+      <div id='divSelect' class="form-group">
+        <label id='divTally' style="visibility: hidden"></label>
+        <select id='selDeviceList' class='form-control col-3'>
+          <option>Choose device</option>
+        </select>
+      </div>
+    </div>
+    
+    <script src="lib/js/jquery-3.5.1.slim.min.js"></script>
+    <script src="lib/js/bootstrap.min.js"></script>
+	<script src='/socket.io/socket.io.js'></script>
+	<script src='lib/js/nosleep.min.js'></script>
+    <script src="lib/js/tally.js"></script>
+  </div>
 </body>
+
 </html>

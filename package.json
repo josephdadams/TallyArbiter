@@ -39,7 +39,7 @@
         "tsl-umd": "^1.0.1",
         "xml2js": "^0.4.23"
     },
-    "main": "main.js",
+    "main": "index.js",
     "scripts": {},
     "devDependencies": {}
 }
