@@ -1,0 +1,94 @@
+{
+ "security": {
+  "username_settings": "admin",
+  "password_settings": "12345",
+  "username_producer": "producer",
+  "password_producer": "12345"
+ },
+ "sources": [
+  {
+   "sourceTypeId": "44b8bc4f",
+   "enabled": true,
+   "name": "Testing Atem",
+   "reconnect": true,
+   "data": {
+    "ip": "127.0.0.1"
+   },
+   "id": "29c9e04a",
+   "connected": true
+  }
+ ],
+ "devices": [
+  {
+   "name": "Cam 1",
+   "description": "",
+   "tslAddress": "",
+   "enabled": true,
+   "id": "6ae6f6c6"
+  },
+  {
+   "name": "Cam 2",
+   "description": "",
+   "tslAddress": "",
+   "enabled": true,
+   "id": "81cfb55c"
+  },
+  {
+   "name": "Cam 3",
+   "description": "",
+   "tslAddress": "0",
+   "enabled": true,
+   "id": "d7be79a3"
+  },
+  {
+   "name": "Cam 4",
+   "description": "",
+   "tslAddress": "",
+   "enabled": true,
+   "id": "106426f3"
+  },
+  {
+   "name": "Cam 5",
+   "description": "",
+   "tslAddress": "",
+   "enabled": true,
+   "id": "f853fb3a"
+  }
+ ],
+ "device_sources": [
+  {
+   "deviceId": "6ae6f6c6",
+   "sourceId": "29c9e04a",
+   "address": "1",
+   "id": "d331d9dd"
+  },
+  {
+   "deviceId": "81cfb55c",
+   "sourceId": "29c9e04a",
+   "address": "2",
+   "id": "542058b4"
+  },
+  {
+   "deviceId": "d7be79a3",
+   "sourceId": "29c9e04a",
+   "address": "3",
+   "id": "88203390"
+  },
+  {
+   "deviceId": "106426f3",
+   "sourceId": "29c9e04a",
+   "address": "4",
+   "id": "fab5da6a"
+  },
+  {
+   "deviceId": "f853fb3a",
+   "sourceId": "29c9e04a",
+   "address": "5",
+   "id": "f25d09e7"
+  }
+ ],
+ "device_actions": [],
+ "tsl_clients": [],
+ "cloud_destinations": [],
+ "cloud_keys": []
+}
