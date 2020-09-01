@@ -164,15 +164,20 @@ except:
 	print('No blink(1) devices found.')
 	exit (0)
 
-try:
-	sio.connect('http://' + server + ':' + port)
-	sio.wait()
-	print('Tally Arbiter Listener Running. Press CTRL-C to exit.')
-	print('Attempting to connect to Tally Arbiter server: ' + server + '(' + port + ')')
-except KeyboardInterrupt:
-	print('Exiting Tally Arbiter Listener.')
-	doBlink(0, 0, 0)
-except:
-	print('An error occurred internally.')
-	doBlink(0, 0, 0)
-	exit (0)
+while(1):
+	try:
+		sio.connect('http://' + server + ':' + port)
+		sio.wait()
+		print('Tally Arbiter Listener Running. Press CTRL-C to exit.')
+		print('Attempting to connect to Tally Arbiter server: ' + server + '(' + port + ')')
+	except KeyboardInterrupt:
+		print('Exiting Tally Arbiter Listener.')
+		doBlink(0, 0, 0)
+		exit(0)
+	except socketio.exceptions.ConnectionError:
+		doBlink(0, 0, 0)
+		time.sleep(15)
+	except:
+		print("Unexpected error:", sys.exc_info()[0])
+		print('An error occurred internally.')
+		doBlink(0, 0, 0)
