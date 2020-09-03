@@ -5,24 +5,34 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <link rel="stylesheet" href="lib/css/bootstrap.min.css">
+  <link rel="stylesheet" href="lib/css/custom.css">
   <title>Tally Arbiter</title>
 </head>
 
-<body>
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-      <a class="navbar-brand" href="/"><img src="lib/img/logo_white.png" height="30" alt="" loading="lazy"></a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"></span> </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav">
-          <li class="nav-item"> <a class="nav-link" href="/">Home</a> </li>
-          <li class="nav-item"> <a class="nav-link active" href="/tally">Tally View</a> </li>
-          <li class="nav-item"> <a class="nav-link" href="/producer">Producer</a> </li>
-          <li class="nav-item"> <a class="nav-link" href="/settings">Settings</a> </li>
-        </ul>
+<body class="bg-tally">
+  <div class="d-none d-md-block">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container">
+        <a class="navbar-brand" href="/"><img src="lib/img/logo_white.png" height="30" alt="" loading="lazy"></a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="navbar-toggler-icon"></span> </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav">
+            <li class="nav-item"> <a class="nav-link" href="/">Home</a> </li>
+            <li class="nav-item"> <a class="nav-link active" href="/tally">Tally View</a> </li>
+            <li class="nav-item"> <a class="nav-link" href="/producer">Producer</a> </li>
+            <li class="nav-item"> <a class="nav-link" href="/settings">Settings</a> </li>
+          </ul>
+        </div>
       </div>
-    </div>
-  </nav>
+    </nav>
+  </div>
+  <div class="d-md-none">
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <div class="container">
+        <a class="navbar-brand" href="/"><img src="lib/img/logo_white.png" height="30" alt="" loading="lazy"></a>
+      </div>
+    </nav>
+  </div>
   <div class="container">
     <div id='divSelect' class="form-group">
       <label id='divTally' style="visibility: hidden"></label>
