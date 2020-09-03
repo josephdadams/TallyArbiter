@@ -103,4 +103,8 @@ dist
 # TernJS port file
 .tern-port
 
+# Remove IntelIJ project files
 .idea/
+
+# Remove config.json from default repo
+config.json
