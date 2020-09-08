@@ -33,12 +33,18 @@
       </div>
     </nav>
   </div>
-  <div class="container">
+  <div class="container mt-5">
     <div id='divSelect' class="form-group">
-      <label id='divTally' style="visibility: hidden"></label>
-      <select id='selDeviceList' class='form-control col-3'>
-        <option>Choose device</option>
+      <select id='selDeviceList' class='form-control col-xs-6 col-md-3' placeholder="Choose device">
       </select>
+      <h2 class="lead mt-5" id="tallyErrorMessage">No devices are available for tally monitoring at this time.</h2>
+    </div>
+  </div>
+  <div class="container h-100">
+    <div class="row align-items-center h-100">
+      <div class="col-6 mx-auto">
+        <h1 id='divTally' style=""></h1>
+      </div>
     </div>
   </div>
   <script src="lib/js/jquery-3.5.1.min.js"></script>

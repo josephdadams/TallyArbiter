@@ -49,10 +49,6 @@ function updateDeviceList() {
   var selDeviceList = document.getElementById('selDeviceList');
   selDeviceList.options.length = 0;
   if (Devices.length > 1) { //build a dropdown list of available devices
-    let default_opt = document.createElement('option');
-    default_opt.value = '0';
-    default_opt.text = '(choose your device)';
-    selDeviceList.appendChild(default_opt);
     for (let i = 0; i < Devices.length; i++) {
       let opt = document.createElement('option');
       opt.value = Devices[i].id;
@@ -60,14 +56,15 @@ function updateDeviceList() {
       selDeviceList.appendChild(opt);
     }
     selDeviceList.setAttribute('onchange', 'selectDeviceFromList();');
-    document.getElementById('divSelectDevice');
+    document.getElementById('tallyErrorMessage').style.display = 'none';
   }
   else if (Devices.length === 1) { // just load the only one available
     selectDevice(Devices[0].id);
+    document.getElementById('tallyErrorMessage').style.display = 'none';
   }
   else {
     //no devices are available
-    document.getElementById('container').innerHTML = 'No devices are available for tally monitoring at this time.';
+    document.getElementById('tallyErrorMessage').style.display = 'block';
   }
 }
 
@@ -83,7 +80,7 @@ function selectDeviceFromList() {
 function selectDevice(deviceId) {
   socket.emit('device_listen', deviceId, 'web');
   selectedDeviceId = deviceId;
-  document.getElementById('divSelectDevice');
+  document.getElementById('selDeviceList').style.display = 'none';
   updateTallyInfo();
 }
 
@@ -135,7 +132,6 @@ function ProcessTallyData() {
     document.body.style.backgroundColor = '#FFCC00';
   }
   else {
-    //none, color it black
     document.body.style.backgroundColor = '#000000';
   }
 }
