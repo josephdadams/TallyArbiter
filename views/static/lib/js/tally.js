@@ -35,7 +35,7 @@ function onLoad() {
     document.body.className = 'flash';
     setTimeout(function () {
       document.body.classList.remove('flash');
-    }, 3000);
+    }, 500);
   });
   socket.on('reassign', function (oldDeviceId, deviceId) {
     //processes a reassign request that comes from the Settings GUI and relays the command so it originates from this socket

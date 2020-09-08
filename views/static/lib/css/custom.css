@@ -397,3 +397,14 @@
 @media (min-width: 1200px) {  
     
 }
+
+.flash {
+  animation: flasher 0.1s cubic-bezier(1, 0, 0, 1) infinite alternate;
+}
+
+@keyframes flasher {
+  to {
+    background-color: white;
+    opacity: 0;
+  }
+}
