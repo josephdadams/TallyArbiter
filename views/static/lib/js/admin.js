@@ -391,6 +391,7 @@ function loadSources() {
   let divSources = $('#divSources')[0];
   divSources.innerHTML = '';
   let tableSources = document.createElement('table');
+  tableSources.className = 'table';
   let trHeader = document.createElement('tr');
   let tdHeaderSourceName = document.createElement('td');
   tdHeaderSourceName.innerHTML = '<b>Name</b>';
@@ -456,6 +457,7 @@ function loadDevices() {
   let divDevices = $('#divDevices')[0];
   divDevices.innerHTML = '';
   let tableDevices = document.createElement('table');
+  tableDevices.className = 'table';
   let trHeader = document.createElement('tr');
   let tdHeaderDeviceTallyStatus_PVW = document.createElement('td');
   tdHeaderDeviceTallyStatus_PVW.innerHTML = 'PVW';
@@ -1143,9 +1145,11 @@ function Add_Source() {
   selSourceType.setAttribute('onchange', 'Add_Source_ShowFields();');
   selSourceType.style.display = 'block';
   selSourceType.options.length = 0;
+  
   let elChoose = document.createElement('option');
   elChoose.text = '(Choose Source Type)';
   elChoose.value = '-1';
+  
   selSourceType.appendChild(elChoose);
   for (let i = 0; i < source_types.length; i++) {
     if (source_types[i].enabled === true) {
@@ -2782,5 +2786,5 @@ function CheckPort(port, sourceId) {
 }
 
 function GettingStarted_Close() {
-  $('#divContainer_GettingStarted')[0].style.display = 'none';
+  $('#gettingStarted')[0].style.display = 'block';
 }
