@@ -43,6 +43,7 @@ var listener_clients = []; //array of connected listener clients (web, python, r
 var Logs 			= []; //array of actions, information, and errors
 var tallydata_OBS 	= []; //array of OBS sources and current tally data
 var tallydata_TC 	= []; //array of Tricaster sources and current tally data
+var tallydata_AWLivecore 	= []; //array of Analog Way sources and current tally data
 var PortsInUse		= []; //array of UDP/TCP ports in use, includes reserved ports
 var tsl_clients		= []; //array of TSL 3.1 clients that Tally Arbiter will send tally data to
 var cloud_destinations	= []; //array of Tally Arbiter Cloud Destinations (host, port, key)
@@ -91,7 +92,8 @@ var source_types 	= [ //available tally source types
 	{ id: '4a58f00f', label: 'Roland Smart Tally', type: 'roland', enabled: true, help: ''},
 	{ id: 'f2b7dc72', label: 'Newtek Tricaster', type: 'tc', enabled: true, help: 'Uses Port 5951.'},
 	{ id: '05d6bce1', label: 'Open Sound Control (OSC)', type: 'osc', enabled: true, help: ''},
-	{ id: 'cf51e3c9', label: 'Incoming Webhook', type: 'webhook', enabled: false, help: ''}
+	{ id: 'cf51e3c9', label: 'Incoming Webhook', type: 'webhook', enabled: false, help: ''},
+	{ id: 'a378e29d', label: 'Analog Way Livecore', type: 'awlivecore', enabled: true, help: 'Standard port is 10600. Source addresses are the input number.'}
 ];
 
 var source_types_datafields = [ //data fields for the tally source types
@@ -132,6 +134,11 @@ var source_types_datafields = [ //data fields for the tally source types
 	},
 	{ sourceTypeId: 'cf51e3c9', fields: [ //Incoming Webhook
 			{ fieldName: 'path', fieldLabel: 'Webhook path', fieldType: 'text' }
+		]
+	},
+	{ sourceTypeId: 'a378e29d', fields: [ //Analog Way Livecore
+			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' }
 		]
 	}
 ];
@@ -417,7 +424,7 @@ function initialSetup() {
 	appSettings.post('/manage', function (req, res) {
 		//adds the item based on the type defined in the object
 		let obj = req.body;
-		
+
 		let result = TallyArbiter_Manage(obj);
 		res.send(result);
 	});
@@ -468,10 +475,10 @@ function initialSetup() {
 			socket.join('device-' + deviceId);
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
-			
+
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
-			
+
 			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 		});
@@ -493,10 +500,10 @@ function initialSetup() {
 			socket.join('device-' + deviceId);
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
-			
+
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
-			
+
 			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 		});
@@ -517,10 +524,10 @@ function initialSetup() {
 			socket.join('device-' + deviceId);
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
-			
+
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
-			
+
 			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
 			//add relayGroupId to client
 			for (let i = 0; i < listener_clients.length; i++) {
@@ -550,10 +557,10 @@ function initialSetup() {
 			socket.join('device-' + deviceId);
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
-			
+
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
-			
+
 			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
 			//add gpoGroupId to client
 			for (let i = 0; i < listener_clients.length; i++) {
@@ -585,10 +592,10 @@ function initialSetup() {
 			socket.join('device-' + deviceId);
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
-			
+
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
-			
+
 			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected);
 		});
 
@@ -670,7 +677,7 @@ function initialSetup() {
 				//no other relay groups on this socket are using the old device ID, so we can safely leave that room
 				socket.leave('device-' + oldDeviceId);
 			}
-			
+
 			socket.join('device-' + deviceId);
 
 			for (let i = 0; i < listener_clients.length; i++) {
@@ -703,7 +710,7 @@ function initialSetup() {
 				//no other gpo groups on this socket are using the old device ID, so we can safely leave that room
 				socket.leave('device-' + oldDeviceId);
 			}
-			
+
 			socket.join('device-' + deviceId);
 
 			for (let i = 0; i < listener_clients.length; i++) {
@@ -783,7 +790,7 @@ function initialSetup() {
 			if (cloud_keys.includes(key)) {
 				for (let i = 0; i < data.length; i++) {
 					let found = false;
-	
+
 					for (j = 0; j < sources.length; j++) {
 						if (data[i].id === sources[j].id) {
 							found = true;
@@ -795,7 +802,7 @@ function initialSetup() {
 							break;
 						}
 					}
-	
+
 					if (!found) {
 						data[i].cloudConnection = true;
 						data[i].cloudClientId = cloudClientId;
@@ -813,7 +820,7 @@ function initialSetup() {
 								break;
 							}
 						}
-	
+
 						if (!found) {
 							//the client was deleted on the local source, so we should delete it here as well
 							sources.splice(i, 1);
@@ -858,7 +865,7 @@ function initialSetup() {
 						let busId_preview = null;
 						let busId_program = null;
 						//let busId_previewprogram = null;
-					
+
 						for (let i = 0; i < bus_options.length; i++) {
 							switch(bus_options[i].type) {
 								case 'preview':
@@ -874,19 +881,19 @@ function initialSetup() {
 									break;
 							}
 						}
-					
+
 						let deviceStateObj_preview = {};
 						deviceStateObj_preview.deviceId = data[i].id;
 						deviceStateObj_preview.busId = busId_preview;
 						deviceStateObj_preview.sources = [];
 						device_states.push(deviceStateObj_preview);
-					
+
 						let deviceStateObj_program = {};
 						deviceStateObj_program.deviceId = data[i].id;
 						deviceStateObj_program.busId = busId_program;
 						deviceStateObj_program.sources = [];
 						device_states.push(deviceStateObj_program);
-					
+
 						/*let deviceStateObj_previewprogram = {};
 						deviceStateObj_previewprogram.deviceId = data[i].id;
 						deviceStateObj_previewprogram.busId = busId_previewprogram;
@@ -905,7 +912,7 @@ function initialSetup() {
 								break;
 							}
 						}
-	
+
 						if (!found) {
 							//the client was deleted on the local source, so we should delete it here as well
 							devices.splice(i, 1);
@@ -953,7 +960,7 @@ function initialSetup() {
 								break;
 							}
 						}
-	
+
 						if (!found) {
 							//the client was deleted on the local source, so we should delete it here as well
 							device_sources.splice(i, 1);
@@ -974,7 +981,7 @@ function initialSetup() {
 			if (cloud_keys.includes(key)) {
 				for (let i = 0; i < data.length; i++) {
 					let found = false;
-	
+
 					for (j = 0; j < listener_clients.length; j++) {
 						if (data[i].id === listener_clients[j].id) {
 							found = true;
@@ -989,7 +996,7 @@ function initialSetup() {
 							break;
 						}
 					}
-	
+
 					if (!found) {
 						data[i].cloudConnection = true;
 						data[i].cloudClientId = cloudClientId;
@@ -1007,7 +1014,7 @@ function initialSetup() {
 								break;
 							}
 						}
-	
+
 						if (!found) {
 							//the client was deleted on the local source, so we should delete it here as well
 							listener_clients.splice(i, 1);
@@ -1085,7 +1092,7 @@ function initialSetup() {
 	}
 
 	logger('Starting HTTP Server.', 'info-quiet');
-	
+
 	httpServer.listen(listenPort, function () { // start up http server
 		logger(`Tally Arbiter running on port ${listenPort}`, 'info');
 	});
@@ -1114,7 +1121,7 @@ function logger(log, type) { //logs the item to the console, to the log array, a
 			console.log(`[${dtNow}]     ${util.inspect(log, {depth: null})}`);
 			break;
 	}
-	
+
 	if (type.indexOf('quiet') === -1) {
 		let logObj = {};
 		logObj.datetime = dtNow;
@@ -1160,7 +1167,7 @@ function loadConfig() { // loads the JSON data from the config file to memory
 			sources = [];
 			logger('Tally Arbiter Sources could not be loaded.', 'error');
 		}
-		
+
 		if (configJson.devices) {
 			devices = configJson.devices;
 			logger('Tally Arbiter Devices loaded.', 'info');
@@ -1170,7 +1177,7 @@ function loadConfig() { // loads the JSON data from the config file to memory
 			devices = [];
 			logger('Tally Arbiter Devices could not be loaded.', 'error');
 		}
-		
+
 		if (configJson.device_sources) {
 			device_sources = configJson.device_sources;
 			logger('Tally Arbiter Device Sources loaded.', 'info');
@@ -1231,7 +1238,7 @@ function loadConfig() { // loads the JSON data from the config file to memory
 			let sourceType = source_types.find( ({ id }) => id === sources[i].sourceTypeId);
 
 			logger(`Initiating Setup for Source: ${sources[i].name}. Type: ${sourceType.label}`, 'info-quiet');
-			
+
 			switch(sourceType.type) {
 				case 'tsl_31_udp':
 					SetUpTSLServer_UDP(sources[i].id);
@@ -1256,6 +1263,9 @@ function loadConfig() { // loads the JSON data from the config file to memory
 					break;
 				case 'tc':
 					SetUpTricasterServer(sources[i].id);
+					break;
+				case 'awlivecore':
+					SetUpAWLivecoreServer(sources[i].id);
 					break;
 				default:
 					logger(`Error initiating connection for Source: ${sources[i].name}. The specified Source Type is not implemented at this time: ${sourceType.type}`, 'error');
@@ -1293,7 +1303,7 @@ function SaveConfig() {
 			{ 
 				result.error = 'Error saving configuration to file: ' + error;
 			}
-		});	
+		});
 	}
 	catch (error) {
 		result.error = 'Error saving configuration to file: ' + error;
@@ -1367,7 +1377,7 @@ function SetUpTSLServer_UDP(sourceId)
 				source_connections[i].server.on('message', function (tally) {
 					processTSLTally(sourceId, tally);
 				});
-		
+
 				logger(`Source: ${source.name}  TSL 3.1 Server started. Listening for data on UDP Port: ${port}`, 'info');
 				for (let j = 0; j < sources.length; j++) {
 					if (sources[j].id === sourceId) {
@@ -1475,7 +1485,7 @@ function StopTSLServer_TCP(sourceId) {
 	RegisterDisconnect(sourceId);
 
 	try
-	{	
+	{
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
 				source_connections[i].server.close(function() {});
@@ -1620,7 +1630,7 @@ function SetUpOBSServer(sourceId) {
 		let ip = source.data.ip;
 		let port = source.data.port;
 		let password = source.data.password;
-	
+
 		let sourceConnectionObj = {};
 		sourceConnectionObj.sourceId = sourceId;
 		sourceConnectionObj.server = null;
@@ -1784,7 +1794,7 @@ function StopOBSServer(sourceId) {
 	let source = GetSourceBySourceId(sourceId);
 
 	RegisterDisconnect(sourceId);
-	
+
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
 			logger(`Source: ${source.name}  Closing OBS connection.`, 'info-quiet');
@@ -1877,7 +1887,7 @@ function StopVMixServer(sourceId) {
 	let source = GetSourceBySourceId(sourceId);
 
 	RegisterDisconnect(sourceId);
-	
+
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
 			logger(`Source: ${source.name}  Closing VMix connection.`, 'info-quiet');
@@ -1913,7 +1923,7 @@ function SetUpRolandSmartTally(sourceId) {
 								tallyObj.tally3 = 0;
 								tallyObj.tally2 = 0;
 								tallyObj.tally1 = 0;
-								
+
 								switch(response)
 								{
 									case "onair":
@@ -1930,7 +1940,7 @@ function SetUpRolandSmartTally(sourceId) {
 										tallyObj.tally1 = 0;
 										break;
 								}
-								processTSLTally(sourceId, tallyObj);							
+								processTSLTally(sourceId, tallyObj);
 							})
 							.catch(function (error) {
 								logger(`Source: ${source.name}  Roland Smart Tally Error: ${error}`, 'error');
@@ -1952,7 +1962,7 @@ function SetUpRolandSmartTally(sourceId) {
 
 function StopRolandSmartTally(sourceId) {
 	let source = GetSourceBySourceId(sourceId);
-	
+
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
 			clearInterval(source_connections[i].server);
@@ -1990,7 +2000,7 @@ function SetUpOSCServer(sourceId) {
 					localPort: source.data.port,
 					metadata: true
 				});
-			
+
 				source_connections[i].server.on('message', function (oscMsg, timeTag, info) {
 					logger(`Source: ${source.name} OSC message received: ${oscMsg.address} ${oscMsg.args[0].value.toString()}`, 'info-quiet');
 					let tallyObj = {};
@@ -2014,7 +2024,7 @@ function SetUpOSCServer(sourceId) {
 					}
 					processTSLTally(source.id, tallyObj);
 				});
-			
+
 				source_connections[i].server.on('error', function (error) {
 					console.log('An error occurred: ', error.message);
 				});
@@ -2030,7 +2040,7 @@ function SetUpOSCServer(sourceId) {
 						}
 					}
 				});
-			
+
 				source_connections[i].server.open();
 				break;
 			}
@@ -2100,14 +2110,14 @@ function SetUpTricasterServer(sourceId) {
 						data = '<data>' + data.toString() + '</data>';
 
 						let parseString = xml2js.parseString;
-						
+
 						parseString(data, function (error, result) {
 							if (error) {
 								console.log('error:' + error);
 							}
 							else {
 								let shortcut_states = Object.entries(result['data']['shortcut_states']);
-						
+
 								for (const [name, value] of shortcut_states) {
 									let shortcut_state = value['shortcut_state'];
 									for (let j = 0; j < shortcut_state.length; j++) {
@@ -2230,7 +2240,7 @@ function StopTricasterServer(sourceId) {
 	RegisterDisconnect(sourceId);
 
 	try
-	{	
+	{
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
 				let tallyCmd = '<unregister name="NTK_states"/>';
@@ -2243,6 +2253,269 @@ function StopTricasterServer(sourceId) {
 	}
 	catch (error) {
 		logger(`Source: ${source.name}  Tricaster Connection Error occurred: ${error}`, 'error');
+	}
+}
+
+function SetUpAWLivecoreServer(sourceId) {
+	let source = sources.find( ({ id }) => id === sourceId);
+	let ip = source.data.ip;
+	let port = source.data.port;
+
+	try
+	{
+		let sourceConnectionObj = {};
+		sourceConnectionObj.sourceId = sourceId;
+		sourceConnectionObj.server = null;
+		source_connections.push(sourceConnectionObj);
+
+		for (let i = 0; i < source_connections.length; i++) {
+			if (source_connections[i].sourceId === sourceId) {
+				logger(`Source: ${source.name}  Creating AW Livecore connection.`, 'info-quiet');
+				source_connections[i].server = new net.Socket();
+				source_connections[i].server.connect(port, ip, function() {
+					logger(`Source: ${source.name}  AW Livecore Connection Opened.`, 'info');
+					source_connections[i].server.write('?\n');
+					for (let j = 0; j < sources.length; j++) {
+						if (sources[j].id === sourceId) {
+							sources[j].connected = true;
+							UnregisterReconnect(sources[j].id);
+							break;
+						}
+					}
+					UpdateSockets('sources');
+					UpdateCloud('sources');
+
+					source_connections[i].last_heartbeat = Date.now();
+					source_connections[i].heartbeat_interval = setInterval(function(sourceId, connection) {
+						if(Date.now() - connection.last_heartbeat > 5000) {
+							for (let i = 0; i < source_connections.length; i++) {
+								if (source_connections[i].sourceId === sourceId) {
+									clearInterval(source_connections[i].heartbeat_interval);
+									source_connections[i].server.end();
+									source_connections[i].server.destroy();
+									CheckReconnect(sourceId);
+									break;
+								}
+							}
+						} else {
+							connection.server.write('PCdgs\n');
+						}
+					}, 1000, sourceId, source_connections[i]);
+				});
+
+				source_connections[i].server.on('data', function (data) {
+					//logger(`Source: ${source.name}  AW Livecore data received.`, 'info-quiet');
+					data = data
+					.toString()
+					.split(/\r?\n/);
+
+					deviceState = data.filter(text => text.startsWith('PCdgs'));
+					deviceData = data.filter(text => text.startsWith('DEV'));
+					tallyProgramData = data.filter(text => text.startsWith('TAopr'));
+					tallyPreviewData = data.filter(text => text.startsWith('TAopw'));
+
+					if (deviceState.length > 0) {
+						for (let i = 0; i < source_connections.length; i++) {
+							if (source_connections[i].sourceId === sourceId) {
+								source_connections[i].last_heartbeat = Date.now();
+								//let state = deviceState[0].substring(5);
+								//logger(`Source: ${source.name}  AW Livecore state: ` + state, 'info-quiet');
+							}
+						}
+					}
+
+					if (tallyProgramData.length > 0) {
+						logger(`Source: ${source.name}  AW Livecore tally program data received.`, 'info-quiet');
+
+						let address = tallyProgramData[0].substring(5, tallyProgramData[0].indexOf(','));
+						let value = tallyProgramData[0].charAt(tallyProgramData[0].indexOf(',') + 1);
+
+						let tallyObj = {};
+						tallyObj.address = address.toString();
+						tallyObj.tally2 = ((value === '1') ? 1 : 0); // Program
+						tallyObj.label = `Input ${address}`;
+						processAWLivecoreTally(sourceId, tallyObj);
+					}
+
+					if (tallyPreviewData.length > 0) {
+						logger(`Source: ${source.name}  AW Livecore tally preview data received.`, 'info-quiet');
+
+						let address = tallyPreviewData[0].substring(5, tallyPreviewData[0].indexOf(','));
+						let value = tallyPreviewData[0].charAt(tallyPreviewData[0].indexOf(',') + 1);
+
+						let tallyObj = {};
+						tallyObj.address = address.toString();
+						tallyObj.tally1 = ((value === '1') ? 1 : 0); // Preview
+						tallyObj.label = `Input ${address}`;
+						processAWLivecoreTally(sourceId, tallyObj);
+					}
+
+					if (deviceData.length > 0) {
+						let deviceType = deviceData[0].substring(3);
+						let deviceName = null;
+
+						switch(deviceType) {
+							case '97':
+								deviceName = 'ORX_1 NeXtage 16'
+								break;
+							case '98':
+								deviceName = 'ORX_2 SmartMatriX Ultra'
+								break;
+							case '99':
+								deviceName = 'ORX_3 Ascender 32'
+								break;
+							case '100':
+								deviceName = 'ORX_4 Ascender 48'
+								break;
+							case '102':
+								deviceName = 'LOE_16 Output Expander 16'
+								break;
+							case '103':
+								deviceName = 'LOE_32 Output Expander 32'
+								break;
+							case '104':
+								deviceName = 'LOE_48 Output Expander 48'
+								break;
+							case '105':
+								deviceName = 'NXT1604_4K NeXtage 16 4K'
+								break;
+							case '106':
+								deviceName = 'SMX12x4_4K SmartMatrix Ultra 4K'
+								break;
+							case '107':
+								deviceName = 'ASC3204_4K Ascender 32 4K'
+								break;
+							case '108':
+								deviceName = 'ASC4806_4K Ascender 48 4K'
+								break;
+							case '109':
+								deviceName = 'LOE016_4K Ouput Expander 16 4K'
+								break;
+							case '110':
+								deviceName = 'LOE032_4K Ouput Expander 32 4K'
+								break;
+							case '111':
+								deviceName = 'LOE048_4K Ouput Expander 48 4K'
+								break;
+							case '112':
+								deviceName = 'ASC016 Ascender 16'
+								break;
+							case '113':
+								deviceName = 'ASC016_4K Ascender 16 4K'
+								break;
+							case '114':
+								deviceName = 'ASC048_PL Ascender 48 4K PL'
+								break;
+							case '115':
+								deviceName = 'LOE48_PL Ouput Expander 48 4K PL'
+								break;
+							case '116':
+								deviceName = 'NXT0802 NeXtage 8'
+								break;
+							case '117':
+								deviceName = 'NXT0802_4K NeXtage 8 4K'
+								break;
+							case '118':
+								deviceName = 'ASC032_PL Ascender 32 4K PL'
+								break;
+							case '119':
+								deviceName = 'LOE032_PL Ouput Expander 32 4K PL'
+								break;
+							default:
+								deviceName = 'Unknown device'
+								break;
+						}
+						logger('AW device type: ' + deviceType + ' (' + deviceName + ')', 'info-quiet');
+					}
+				});
+
+				source_connections[i].server.on('close', function () {
+					logger(`Source: ${source.name}  AW Livecore Connection closed.`, 'info');
+					for (let j = 0; j < sources.length; j++) {
+						if (sources[j].id === sourceId) {
+							sources[j].connected = false;
+							CheckReconnect(sources[j].id);
+							break;
+						}
+					}
+					UpdateSockets('sources');
+					UpdateCloud('sources');
+				});
+
+				break;
+			}
+		}
+	}
+	catch (error) {
+		logger(`Source: ${source.name}. AW Livecore Error Occurred: ${error}`, 'error');
+	}
+}
+
+function StopAWLivecoreServer(sourceId) {
+	let source = GetSourceBySourceId(sourceId);
+
+	RegisterDisconnect(sourceId);
+
+	try {
+		for (let i = 0; i < source_connections.length; i++) {
+			if (source_connections[i].sourceId === sourceId) {
+				logger(`Source: ${source.name}  Closing AW Livecore connection.`, 'info-quiet');
+				clearInterval(source_connections[i].heartbeat_interval);
+				source_connections[i].server.end();
+				source_connections[i].server.destroy();
+				break;
+			}
+		}
+	}
+	catch (error) {
+		logger(`Source: ${source.name}  AW Livecore Connection Error occurred: ${error}`, 'error');
+	}
+}
+
+function processAWLivecoreTally(sourceId, tallyObj) {
+	let AWLivecoreSourceFound = false;
+	for (let j = 0; j < tallydata_AWLivecore.length; j++) {
+		if (tallydata_AWLivecore[j].sourceId === sourceId) {
+			if (tallydata_AWLivecore[j].address === tallyObj.address) {
+				AWLivecoreSourceFound = true;
+				break;
+			}
+		}
+	}
+
+	if (!AWLivecoreSourceFound) {
+		//console.log("Source not found, creating new tallyObj");
+		//the source is not in the AWLivecore array, we don't know anything about it, so add it to the array
+		let newTallyObj = {};
+		newTallyObj.sourceId = sourceId;
+		newTallyObj.label = tallyObj.label;
+		newTallyObj.address = tallyObj.address;
+		newTallyObj.tally4 = 0;
+		newTallyObj.tally3 = 0;
+		newTallyObj.tally2 = 0; // PGM
+		newTallyObj.tally1 = 0; // PVW
+		tallydata_AWLivecore.push(newTallyObj);
+	}
+
+	for (let i = 0; i < tallydata_AWLivecore.length; i++) {
+		if (tallydata_AWLivecore[i].sourceId === sourceId) {
+			if (tallydata_AWLivecore[i].address === tallyObj.address) {
+				if(tallyObj.tally1 !== undefined) { // PVW
+					tallydata_AWLivecore[i].tally1 = tallyObj.tally1;
+				}
+				if(tallyObj.tally2 !== undefined) { // PGM
+					tallydata_AWLivecore[i].tally2 = tallyObj.tally2;
+				}
+
+				let processedTallyObj =  Object.assign({}, tallydata_AWLivecore[i]);
+				if(processedTallyObj.tally2 === 1) { // PGM
+					processedTallyObj.tally1 = 0;
+				}
+
+				processTSLTally(sourceId, processedTallyObj);
+				break;
+			}
+		}
 	}
 }
 
@@ -2441,11 +2714,11 @@ function RunAction(deviceId, busId, active) {
 				if ((filteredActions[i].busId === busId) && (filteredActions[i].active === active)) {
 					logger(`Running Actions for Device: ${deviceObj.name}`, 'info');
 					actionObj = filteredActions[i];
-					
+
 					let outputType = output_types.find( ({ id }) => id === actionObj.outputTypeId);
-	
+
 					logger(`Running action: ${deviceObj.name}:${GetBusByBusId(filteredActions[i].busId).label}:${(active ? 'On' : 'Off')}  ${outputType.label}  ${filteredActions[i].id}`, 'info');
-	
+
 					switch(outputType.type) {
 						case 'tsl_31_udp':
 							RunAction_TSL_31_UDP(actionObj.data);
@@ -2474,7 +2747,7 @@ function RunAction(deviceId, busId, active) {
 		//the device is disabled, so don't run any actions against it
 		logger(`Device: ${deviceObj.name} is not enabled, so no actions will be run.`, 'info');
 	}
-	
+
 	logger(`Sending device states for: ${deviceObj.name}`, 'info-quiet');
 	io.to('device-' + deviceId).emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 }
@@ -2484,9 +2757,9 @@ function RunAction_TSL_31_UDP(data) {
 		let bufUMD = Buffer.alloc(18, 0); //ignores spec and pad with 0 for better aligning on Decimator etc
 		bufUMD[0] = 0x80 + parseInt(data.address);
 		bufUMD.write(data.label, 2);
-	
+
 		let bufTally = 0x30;
-		
+
 		if (data.tally1) {
 			bufTally |= 1;
 		}
@@ -2500,11 +2773,11 @@ function RunAction_TSL_31_UDP(data) {
 			bufTally |= 8;
 		}
 		bufUMD[1] = bufTally;
-	
+
 		let client = dgram.createSocket('udp4');
 		client.on('message',function(msg,info){
 		});
-	
+
 		client.send(bufUMD, data.port, data.ip, function(error) {
 			if (!error) {
 				logger(`TSL 3.1 UDP Data sent.`, 'info');
@@ -2522,9 +2795,9 @@ function RunAction_TSL_31_TCP(data) {
 		let bufUMD = Buffer.alloc(18, 0); //ignore spec and pad with 0 for better aligning on Decimator, etc.
 		bufUMD[0] = 0x80 + parseInt(data.address); //Address + 0x80
 		bufUMD.write(data.label, 2);
-	
+
 		let bufTally = 0x30;
-		
+
 		if (data.tally1) {
 			bufTally |= 1;
 		}
@@ -2538,16 +2811,16 @@ function RunAction_TSL_31_TCP(data) {
 			bufTally |= 8;
 		}
 		bufUMD[1] = bufTally;
-		
+
 		let client = new net.Socket();
 		client.connect(data.port, data.ip, function() {
 			client.write(bufUMD);
 		});
-	
+
 		client.on('data', function(data) {
 			client.destroy(); // kill client after server's response
 		});
-	
+
 		client.on('close', function() {
 		});
 	}
@@ -2742,6 +3015,9 @@ function StartConnection(sourceId) {
 		case 'tc':
 			SetUpTricasterServer(sourceId);
 			break;
+		case 'awlivecore':
+			SetUpAWLivecoreServer(sourceId);
+			break;
 		default:
 			break;
 	}
@@ -2776,6 +3052,9 @@ function StopConnection(sourceId) {
 		case 'tc':
 			StopTricasterServer(sourceId);
 			break;
+		case 'awlivecore':
+			StopAWLivecoreServer(sourceId);
+			break
 		default:
 			break;
 	}
@@ -2818,7 +3097,7 @@ function CheckReconnect(sourceId) {
 				break;
 			}
 		}
-	
+
 		if (!found) {
 			let reconnectObj = {};
 			reconnectObj.sourceId = sourceId;
@@ -2949,7 +3228,7 @@ function SendTSLClientData(deviceId) {
 		let bufUMD = Buffer.alloc(18, 0); //ignores spec and pad with 0 for better aligning on Decimator etc
 		bufUMD[0] = 0x80 + tslAddress;
 		bufUMD.write(device.name, 2);
-	
+
 		for (let i = 0; i < filtered_device_states.length; i++) {
 			if (GetBusByBusId(filtered_device_states[i].busId).type === 'preview') {
 				if (filtered_device_states[i].sources.length > 0) {
@@ -2968,28 +3247,28 @@ function SendTSLClientData(deviceId) {
 				}
 			}
 		}
-	
+
 		let data = {};
-	
+
 		if (mode_preview) {
 			data.tally1 = 1;
 		}
 		else {
 			data.tally1 = 0;
 		}
-	
+
 		if (mode_program) {
 			data.tally2 = 1;
 		}
 		else {
 			data.tally2 = 0;
 		}
-	
+
 		data.tally3 = 0;
 		data.tally4 = 0;
-	
+
 		let bufTally = 0x30;
-		
+
 		if (data.tally1) {
 			bufTally |= 1;
 		}
@@ -3003,7 +3282,7 @@ function SendTSLClientData(deviceId) {
 			bufTally |= 8;
 		}
 		bufUMD[1] = bufTally;
-	
+
 		for (let i = 0; i < tsl_clients.length; i++) {
 			if (tsl_clients[i].connected === true) {
 				switch(tsl_clients[i].transport) {
@@ -3060,7 +3339,7 @@ function StartCloudDestination(cloudDestinationId) {
 				cloud_destinations_sockets[i].socket.emit('cloud_device_sources', cloud_destinations_sockets[i].key, device_sources);
 				cloud_destinations_sockets[i].socket.emit('cloud_listeners', cloud_destinations_sockets[i].key, listener_clients);
 			});
-	
+
 			cloud_destinations_sockets[i].socket.on('invalidkey', function () {
 				cloud_destinations_sockets[i].error = true;
 				logger(`An error occurred with the connection to ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port} : The specified key could not be found on the host: ${cloud_destinations_sockets[i].key}`, 'error');
@@ -3447,7 +3726,7 @@ function TallyArbiter_Delete_Device(obj) {
 	}
 
 	UpdateCloud('device_sources');
-	
+
 	for (let i = device_actions.length - 1; i >= 0; i--) {
 		if (device_actions[i].deviceId === deviceId) {
 			device_actions.splice(i, 1);
@@ -3768,22 +4047,22 @@ function GetDeviceSourcesBySourceId(sourceId) {
 
 function GetTSLClientById(tslClientId) {
 	//gets the TSL Client by the Id
-	return tsl_clients.find( ({ id }) => id === tslClientId);	
+	return tsl_clients.find( ({ id }) => id === tslClientId);
 }
 
 function GetCloudDestinationById(cloudId) {
 	//gets the Cloud Destination by the Id
-	return cloud_destinations.find( ({ id }) => id === cloudId);	
+	return cloud_destinations.find( ({ id }) => id === cloudId);
 }
 
 function GetCloudClientById(cloudClientId) {
 	//gets the Cloud Client by the Id
-	return cloud_clients.find( ({ id }) => id === cloudClientId);	
+	return cloud_clients.find( ({ id }) => id === cloudClientId);
 }
 
 function GetCloudClientBySocketId(socket) {
 	//gets the Cloud Client by the Socket Id
-	return cloud_clients.find( ({ socketId }) => socketId === socket);	
+	return cloud_clients.find( ({ socketId }) => socketId === socket);
 }
 
 function GetDeviceStatesByDeviceId(deviceId) {
@@ -3802,7 +4081,7 @@ function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetime
 	clientObj.ipAddress = ipAddress;
 	clientObj.datetime_connected = datetimeConnected;
 	clientObj.inactive = false;
-	
+
 	listener_clients.push(clientObj);
 
 	UpdateSockets('listener_clients');
@@ -3898,7 +4177,7 @@ function AddCloudClient(socketId, key, ipAddress, datetimeConnected) {
 	cloudClientObj.ipAddress = ipAddress;
 	cloudClientObj.datetimeConnected = datetimeConnected;
 	cloudClientObj.inactive = false;
-	
+
 	cloud_clients.push(cloudClientObj);
 
 	UpdateSockets('cloud_clients');
@@ -3969,7 +4248,7 @@ function DeleteCloudArrays(cloudClientId) { //no other socket connections are us
 			}
 		}
 	}
-	
+
 	CheckListenerClients();
 
 	UpdateSockets('sources');
