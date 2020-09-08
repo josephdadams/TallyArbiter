@@ -84,6 +84,7 @@ function updateDeviceList() {
   let divDevices = $('#divDevices')[0];
   divDevices.innerHTML = '';
   let tableDevices = document.createElement('table');
+  tableDevices.className = 'table';
   let trHeader = document.createElement('tr');
   let tdHeaderDeviceTallyStatus_PVW = document.createElement('td');
   tdHeaderDeviceTallyStatus_PVW.innerHTML = 'PVW';
