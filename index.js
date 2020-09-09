@@ -2356,73 +2356,73 @@ function SetUpAWLivecoreServer(sourceId) {
 
 						switch(deviceType) {
 							case '97':
-								deviceName = 'ORX_1 NeXtage 16'
+								deviceName = 'ORX_1 NeXtage 16';
 								break;
 							case '98':
-								deviceName = 'ORX_2 SmartMatriX Ultra'
+								deviceName = 'ORX_2 SmartMatriX Ultra';
 								break;
 							case '99':
-								deviceName = 'ORX_3 Ascender 32'
+								deviceName = 'ORX_3 Ascender 32';
 								break;
 							case '100':
-								deviceName = 'ORX_4 Ascender 48'
+								deviceName = 'ORX_4 Ascender 48';
 								break;
 							case '102':
-								deviceName = 'LOE_16 Output Expander 16'
+								deviceName = 'LOE_16 Output Expander 16';
 								break;
 							case '103':
-								deviceName = 'LOE_32 Output Expander 32'
+								deviceName = 'LOE_32 Output Expander 32';
 								break;
 							case '104':
-								deviceName = 'LOE_48 Output Expander 48'
+								deviceName = 'LOE_48 Output Expander 48';
 								break;
 							case '105':
-								deviceName = 'NXT1604_4K NeXtage 16 4K'
+								deviceName = 'NXT1604_4K NeXtage 16 4K';
 								break;
 							case '106':
-								deviceName = 'SMX12x4_4K SmartMatrix Ultra 4K'
+								deviceName = 'SMX12x4_4K SmartMatrix Ultra 4K';
 								break;
 							case '107':
-								deviceName = 'ASC3204_4K Ascender 32 4K'
+								deviceName = 'ASC3204_4K Ascender 32 4K';
 								break;
 							case '108':
-								deviceName = 'ASC4806_4K Ascender 48 4K'
+								deviceName = 'ASC4806_4K Ascender 48 4K';
 								break;
 							case '109':
-								deviceName = 'LOE016_4K Ouput Expander 16 4K'
+								deviceName = 'LOE016_4K Ouput Expander 16 4K';
 								break;
 							case '110':
-								deviceName = 'LOE032_4K Ouput Expander 32 4K'
+								deviceName = 'LOE032_4K Ouput Expander 32 4K';
 								break;
 							case '111':
-								deviceName = 'LOE048_4K Ouput Expander 48 4K'
+								deviceName = 'LOE048_4K Ouput Expander 48 4K';
 								break;
 							case '112':
-								deviceName = 'ASC016 Ascender 16'
+								deviceName = 'ASC016 Ascender 16';
 								break;
 							case '113':
-								deviceName = 'ASC016_4K Ascender 16 4K'
+								deviceName = 'ASC016_4K Ascender 16 4K';
 								break;
 							case '114':
-								deviceName = 'ASC048_PL Ascender 48 4K PL'
+								deviceName = 'ASC048_PL Ascender 48 4K PL';
 								break;
 							case '115':
-								deviceName = 'LOE48_PL Ouput Expander 48 4K PL'
+								deviceName = 'LOE48_PL Ouput Expander 48 4K PL';
 								break;
 							case '116':
-								deviceName = 'NXT0802 NeXtage 8'
+								deviceName = 'NXT0802 NeXtage 8';
 								break;
 							case '117':
-								deviceName = 'NXT0802_4K NeXtage 8 4K'
+								deviceName = 'NXT0802_4K NeXtage 8 4K';
 								break;
 							case '118':
-								deviceName = 'ASC032_PL Ascender 32 4K PL'
+								deviceName = 'ASC032_PL Ascender 32 4K PL';
 								break;
 							case '119':
-								deviceName = 'LOE032_PL Ouput Expander 32 4K PL'
+								deviceName = 'LOE032_PL Ouput Expander 32 4K PL';
 								break;
 							default:
-								deviceName = 'Unknown device'
+								deviceName = 'Unknown device';
 								break;
 						}
 						logger('AW device type: ' + deviceType + ' (' + deviceName + ')', 'info-quiet');
