@@ -89,6 +89,7 @@ The following source types are supported:
 * Roland Smart Tally
 * Newtek Tricaster
 * Open Sound Control (OSC)
+* Analog Way Livecore Image Processors
 
 When you add a source and the connection to the tally source (video switcher, software, etc.) is successfully made, the source will be green. If there is an error, the source will be red. Look at the logs for more error information.
 
@@ -122,6 +123,9 @@ OSC paths must be one of the following:
 * `/tally/program_off`: Turns off Program mode for the device.
 
 Send one argument of any type (integer, float, or string). If you send multiple arguments, they will be ignored.
+
+### Analog Way Livecore Image Processors
+You will need the IP address of the device, and the port (standard port is 10600).
 
 ## Devices
 Devices represent your inputs (like cameras) that you want to track with tally data. Devices can be assigned different addresses or inputs by each source. In Tally Arbiter, you can create as many devices as you would like and give each one a helpful name and description.
