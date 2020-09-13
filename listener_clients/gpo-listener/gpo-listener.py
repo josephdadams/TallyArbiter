@@ -162,7 +162,7 @@ except IOError:
 
 while(1):
 	try:
-		sio.connect('http://' + server + ':' + port)
+		sio.connect('http://' + server_config['ip'] + ':' + str(server_config['port']))
 		sio.wait()
 		print('Tally Arbiter GPO Listener Running. Press CTRL-C to exit.')
 		print('Attempting to connect to Tally Arbiter server: {}:{}', server_config['ip'], str(server_config['port']))
