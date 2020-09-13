@@ -168,13 +168,10 @@ while(1):
 		print('Attempting to connect to Tally Arbiter server: {}:{}', server_config['ip'], str(server_config['port']))
 	except KeyboardInterrupt:
 		print('Exiting Tally Arbiter GPO Listener.')
-		doBlink(0, 0, 0)
 		exit(0)
 	except socketio.exceptions.ConnectionError:
-		doBlink(0, 0, 0)
 		time.sleep(15)
 	except:
 		print("Unexpected error:", sys.exc_info()[0])
 		print('An error occurred internally.')
-		doBlink(0, 0, 0)
 		exit(0)
