@@ -1438,6 +1438,7 @@ function Edit_Source(sourceId) {
   btnEdit_Source_Save.style.display = 'block';
   let divContainer_SourceFields = $('#divContainer_SourceFields')[0];
   divContainer_SourceFields.style.display = 'block';
+  $("#addSource").modal();
 }
 
 function Edit_Source_Save() {
@@ -1640,6 +1641,7 @@ function Edit_Device(deviceId) {
   $('#divContainer_DeviceActions')[0].style.display = 'none';
   $('#divContainer_DeviceActionFields')[0].style.display = 'none';
   selectedDeviceId = deviceId;
+  $("#addDevice").modal();
 }
 
 function Edit_Device_Save() {
@@ -2704,6 +2706,7 @@ function ProcessAPIResponse(response) {
   case 'source-added-successfully':
   case 'source-edited-successfully':
   case 'source-deleted-successfully':
+    $("#addSource").modal('hide');
     $('#divContainer_SourceFields')[0].style.display = 'none';
     $.when(getSources(), getDeviceSources()).done(function () {
       loadSources();
@@ -2714,6 +2717,7 @@ function ProcessAPIResponse(response) {
   case 'device-added-successfully':
   case 'device-edited-successfully':
   case 'device-deleted-successfully':
+    $("#addDevice").modal('hide');
     $('#divContainer_DeviceFields')[0].style.display = 'none';
     $.when(getDevices(), getDeviceSources(), getDeviceStates()).done(function () {
       loadDevices();
