@@ -432,12 +432,12 @@ function loadSources() {
     if (!sources[i].cloudConnection) {
       let tdSourceEdit = document.createElement('td');
       let btnEditSource = document.createElement('button');
-      btnEditSource.className = 'btn btn-dark mr-1';
+      btnEditSource.className = 'btn btn-dark m-1';
       btnEditSource.innerHTML = 'Edit';
       btnEditSource.setAttribute('onclick', 'Edit_Source(\'' + sources[i].id + '\');');
       tdSourceEdit.appendChild(btnEditSource);
       let btnDeleteSource = document.createElement('button');
-      btnDeleteSource.className = 'btn btn-dark mr-1';
+      btnDeleteSource.className = 'btn btn-dark m-1';
       btnDeleteSource.innerHTML = 'Delete';
       btnDeleteSource.setAttribute('onclick', 'Delete_Source(\'' + sources[i].id + '\');');
       tdSourceEdit.appendChild(btnDeleteSource);
@@ -570,24 +570,24 @@ function loadDevices() {
     trDeviceItem.appendChild(tdDeviceDescription);
     let tdDeviceEdit = document.createElement('td');
     let btnEditDevice = document.createElement('button');
-    btnEditDevice.className = 'btn btn-dark mr-1';
+    btnEditDevice.className = 'btn btn-dark m-1';
     btnEditDevice.innerHTML = 'Edit';
     btnEditDevice.setAttribute('onclick', 'Edit_Device(\'' + devices[i].id + '\');');
     tdDeviceEdit.appendChild(btnEditDevice);
     let btnEditDeviceSources = document.createElement('button');
-    btnEditDeviceSources.className = 'btn btn-dark mr-1';
+    btnEditDeviceSources.className = 'btn btn-dark m-1';
     let sourcesNum = GetDeviceSourcesByDeviceId(devices[i].id).length;
     btnEditDeviceSources.innerHTML = `Edit Sources (${sourcesNum})`;
     btnEditDeviceSources.setAttribute('onclick', 'Edit_Device_Sources(\'' + devices[i].id + '\');');
     tdDeviceEdit.appendChild(btnEditDeviceSources);
     let btnEditDeviceActions = document.createElement('button');
-    btnEditDeviceActions.className = 'btn btn-dark mr-1';
+    btnEditDeviceActions.className = 'btn btn-dark m-1';
     let actionsNum = GetDeviceActionsByDeviceId(devices[i].id).length;
     btnEditDeviceActions.innerHTML = `Edit Actions (${actionsNum})`;
     btnEditDeviceActions.setAttribute('onclick', 'Edit_Device_Actions(\'' + devices[i].id + '\');');
     tdDeviceEdit.appendChild(btnEditDeviceActions);
     let btnDeleteDevice = document.createElement('button');
-    btnDeleteDevice.className = 'btn btn-dark mr-1';
+    btnDeleteDevice.className = 'btn btn-dark m-1';
     btnDeleteDevice.innerHTML = 'Delete';
     btnDeleteDevice.setAttribute('onclick', 'Delete_Device(\'' + devices[i].id + '\');');
     tdDeviceEdit.appendChild(btnDeleteDevice);
@@ -755,14 +755,14 @@ function loadListeners() {
       if (listener_clients[i].inactive === true) {
         trClientItem.className = 'disabled';
         let btnDelete = document.createElement('button');
-        btnDelete.className = 'btn btn-dark mr-1';
+        btnDelete.className = 'btn btn-dark m-1';
         btnDelete.innerHTML = 'X';
         btnDelete.setAttribute('onclick', 'Listener_Delete(\'' + listener_clients[i].id + '\');');
         tdButtons.appendChild(btnDelete);
       }
       else {
         let btnFlash = document.createElement('button');
-        btnFlash.className = 'btn btn-dark mr-1';
+        btnFlash.className = 'btn btn-dark m-1';
         btnFlash.innerHTML = 'Flash';
         btnFlash.setAttribute('onclick', 'Listener_Flash(\'' + listener_clients[i].id + '\');');
         tdButtons.appendChild(btnFlash);
@@ -818,12 +818,12 @@ function loadTSLClients() {
     trItem.appendChild(tdTSLTransport);
     let tdTSLEdit = document.createElement('td');
     let btnEdit = document.createElement('button');
-    btnEdit.className = 'btn btn-dark mr-1';
+    btnEdit.className = 'btn btn-dark m-1';
     btnEdit.innerHTML = 'Edit';
     btnEdit.setAttribute('onclick', 'Edit_TSL_Client(\'' + tsl_clients[i].id + '\');');
     tdTSLEdit.appendChild(btnEdit);
     let btnDelete = document.createElement('button');
-    btnDelete.className = 'btn btn-dark mr-1';
+    btnDelete.className = 'btn btn-dark m-1';
     btnDelete.innerHTML = 'Delete';
     btnDelete.setAttribute('onclick', 'Delete_TSL_Client(\'' + tsl_clients[i].id + '\');');
     tdTSLEdit.appendChild(btnDelete);
@@ -886,25 +886,25 @@ function loadCloudDestinations() {
     trItem.appendChild(tdKey);
     let tdEdit = document.createElement('td');
     let btnEdit = document.createElement('button');
-    btnEdit.className = 'btn btn-dark mr-1';
+    btnEdit.className = 'btn btn-dark m-1';
     btnEdit.innerHTML = 'Edit';
     btnEdit.setAttribute('onclick', 'Edit_Cloud_Destination(\'' + cloud_destinations[i].id + '\');');
     tdEdit.appendChild(btnEdit);
     let btnDelete = document.createElement('button');
-    btnDelete.className = 'btn btn-dark mr-1';
+    btnDelete.className = 'btn btn-dark m-1';
     btnDelete.innerHTML = 'Delete';
     btnDelete.setAttribute('onclick', 'Delete_Cloud_Destination(\'' + cloud_destinations[i].id + '\');');
     tdEdit.appendChild(btnDelete);
     if (cloud_destinations[i].status === 'disconnected') {
       let btnReconnect = document.createElement('button');
-      btnReconnect.className = 'btn btn-dark mr-1';
+      btnReconnect.className = 'btn btn-dark m-1';
       btnReconnect.innerHTML = 'Reconnect';
       btnReconnect.setAttribute('onclick', 'Reconnect_Cloud_Destination(\'' + cloud_destinations[i].id + '\');');
       tdEdit.appendChild(btnReconnect);
     }
     else if (cloud_destinations[i].status === 'connected') {
       let btnDisconnect = document.createElement('button');
-      btnDisconnect.className = 'btn btn-dark mr-1';
+      btnDisconnect.className = 'btn btn-dark m-1';
       btnDisconnect.innerHTML = 'Disconnect';
       btnDisconnect.setAttribute('onclick', 'Disconnect_Cloud_Destination(\'' + cloud_destinations[i].id + '\');');
       tdEdit.appendChild(btnDisconnect);
@@ -933,7 +933,7 @@ function loadCloudKeys() {
     trItem.appendChild(tdKey);
     let tdDelete = document.createElement('td');
     let btnDelete = document.createElement('button');
-    btnDelete.className = 'btn btn-dark mr-1';
+    btnDelete.className = 'btn btn-dark m-1';
     btnDelete.innerHTML = 'Delete';
     btnDelete.setAttribute('onclick', 'Delete_Cloud_Key(\'' + cloud_keys[i] + '\');');
     tdDelete.appendChild(btnDelete);
@@ -965,7 +965,7 @@ function loadCloudClients() {
       trItem.appendChild(tdKey);
       let tdRemove = document.createElement('td');
       let btnRemove = document.createElement('button');
-      btnRemove.className = 'btn btn-dark mr-1';
+      btnRemove.className = 'btn btn-dark m-1';
       btnRemove.innerHTML = 'Remove';
       btnRemove.setAttribute('onclick', 'Remove_Cloud_Client(\'' + cloud_clients[i].id + '\');');
       tdRemove.appendChild(btnRemove);
@@ -1257,6 +1257,7 @@ function Add_Source_ShowFields() {
 }
 
 function Add_Source_Save() {
+  closeSourceModal();
   let sourceObj = {};
   let selSourceType = $('#selSourceType')[0];
   let selectedSourceTypeId = selSourceType.options[selSourceType.selectedIndex].value;
@@ -1441,6 +1442,7 @@ function Edit_Source(sourceId) {
 }
 
 function Edit_Source_Save() {
+  closeSourceModal();
   let sourceObj = {};
   sourceObj.id = $('#txtSourceId')[0].value;
   sourceObj.name = $('#txtSourceName')[0].value;
@@ -1553,6 +1555,7 @@ function Add_Device() {
 }
 
 function Add_Device_Save() {
+  closeDeviceModal();
   let deviceObj = {};
   deviceObj.name = $('#txtAddDeviceName')[0].value;
   deviceObj.description = $('#txtAddDeviceDescription')[0].value;
@@ -1643,6 +1646,7 @@ function Edit_Device(deviceId) {
 }
 
 function Edit_Device_Save() {
+  closeDeviceModal();
   let deviceObj = {};
   deviceObj.id = selectedDeviceId;
   deviceObj.name = $('#txtDeviceName')[0].value;
@@ -1739,12 +1743,12 @@ function Edit_Device_Sources(deviceId) {
       trDeviceSourceItem.appendChild(tdDeviceSourceAddress);
       let tdDeviceEdit = document.createElement('td');
       let btnEditDeviceSource = document.createElement('button');
-      btnEditDeviceSource.className = 'btn btn-dark mr-1';
+      btnEditDeviceSource.className = 'btn btn-dark m-1';
       btnEditDeviceSource.innerHTML = 'Edit';
       btnEditDeviceSource.setAttribute('onclick', 'Edit_Device_Source(\'' + device_sources[i].id + '\');');
       tdDeviceEdit.appendChild(btnEditDeviceSource);
       let btnDeleteDevice = document.createElement('button');
-      btnDeleteDevice.className = 'btn btn-dark mr-1';
+      btnDeleteDevice.className = 'btn btn-dark m-1';
       btnDeleteDevice.innerHTML = 'Delete';
       btnDeleteDevice.setAttribute('onclick', 'Delete_Device_Source(\'' + device_sources[i].id + '\');');
       tdDeviceEdit.appendChild(btnDeleteDevice);
@@ -1754,7 +1758,7 @@ function Edit_Device_Sources(deviceId) {
   }
   divDeviceSources.appendChild(tableDeviceSources);
   let btnAddDeviceSource = document.createElement('button');
-  btnAddDeviceSource.className = 'btn btn-dark mr-1';
+  btnAddDeviceSource.className = 'btn btn-dark m-1';
   btnAddDeviceSource.innerHTML = 'Add Source';
   btnAddDeviceSource.setAttribute('onclick', 'Add_Device_Source(\'' + deviceId + '\');');
   divDeviceSources.appendChild(btnAddDeviceSource);
@@ -1945,12 +1949,12 @@ function Edit_Device_Actions(deviceId) {
       trDeviceActionItem.appendChild(tdDeviceActionOutputType);
       let tdDeviceActionEdit = document.createElement('td');
       let btnEditDeviceAction = document.createElement('button');
-      btnEditDeviceAction.className = 'btn btn-dark mr-1';
+      btnEditDeviceAction.className = 'btn btn-dark m-1';
       btnEditDeviceAction.innerHTML = 'Edit';
       btnEditDeviceAction.setAttribute('onclick', 'Edit_Device_Action(\'' + device_actions[i].id + '\');');
       tdDeviceActionEdit.appendChild(btnEditDeviceAction);
       let btnDeleteDeviceAction = document.createElement('button');
-      btnDeleteDeviceAction.className = 'btn btn-dark mr-1';
+      btnDeleteDeviceAction.className = 'btn btn-dark m-1';
       btnDeleteDeviceAction.innerHTML = 'Delete';
       btnDeleteDeviceAction.setAttribute('onclick', 'Delete_Device_Action(\'' + device_actions[i].id + '\');');
       tdDeviceActionEdit.appendChild(btnDeleteDeviceAction);
@@ -1960,7 +1964,7 @@ function Edit_Device_Actions(deviceId) {
   }
   divDeviceActions.appendChild(tableDeviceActions);
   let btnAddDeviceAction = document.createElement('button');
-  btnAddDeviceAction.className = 'btn btn-dark mr-1';
+  btnAddDeviceAction.className = 'btn btn-dark m-1';
   btnAddDeviceAction.innerHTML = 'Add Action';
   btnAddDeviceAction.setAttribute('onclick', 'Add_Device_Action(\'' + deviceId + '\');');
   divDeviceActions.appendChild(btnAddDeviceAction);
@@ -2811,4 +2815,12 @@ function CheckPort(port, sourceId) {
 
 function GettingStarted_Close() {
   $('#gettingStarted')[0].style.display = 'block';
+}
+
+function closeSourceModal() {
+  $('#addSource').modal('hide');
+}
+
+function closeDeviceModal() {
+  $('#addDevice').modal('hide');
 }
