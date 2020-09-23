@@ -28,8 +28,9 @@ JSONVar Devices;
 JSONVar DeviceStates;
 String DeviceId = "unassigned";
 String DeviceName = "Unassigned";
-bool mode_preview = false;
+bool mode_preview = false;  
 bool mode_program = false;
+const byte led_program = 10;
 
 //General Variables
 bool networkConnected = false;
@@ -55,6 +56,10 @@ void setup() {
     delay(200);
   }
 
+  // Enable interal led for program trigger
+  pinMode(led_program, OUTPUT);
+  digitalWrite(led_program, LOW);
+  
   connectToServer();
 }
 
@@ -245,9 +250,11 @@ void processTallyData() {
     if (getBusTypeById(JSON.stringify(DeviceStates[i]["busId"])) == "\"program\"") {
       if (DeviceStates[i]["sources"].length() > 0) {
         mode_program = true;
+        digitalWrite(led_program, LOW);
       }
       else {
         mode_program = false;
+        digitalWrite(led_program, HIGH);
       }
     }
   }
