@@ -5,7 +5,7 @@ const net 			= require('net');
 const packet 		= require('packet');
 const TSLUMD 		= require('tsl-umd'); // TSL UDP package
 const dgram 		= require('dgram');
-const ATEM 			= require('atem');
+const { Atem }		= require('atem-connection');
 const OBS 			= require('obs-websocket-js');
 const fs 			= require('fs');
 const path 			= require('path');
@@ -41,6 +41,7 @@ var oscUDP			= null;
 const config_file 	= './config.json'; //local storage JSON file
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var Logs 			= []; //array of actions, information, and errors
+var tallydata_ATEM 	= []; //array of ATEM sources and current tally data
 var tallydata_OBS 	= []; //array of OBS sources and current tally data
 var tallydata_TC 	= []; //array of Tricaster sources and current tally data
 var tallydata_AWLivecore 	= []; //array of Analog Way sources and current tally data
@@ -106,7 +107,17 @@ var source_types_datafields = [ //data fields for the tally source types
 		]
 	},
 	{ sourceTypeId: '44b8bc4f', fields: [ //Blackmagic ATEM
-			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
+			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
+			{ fieldName: 'me_onair', fieldLabel: 'MEs to monitor', fieldType: 'multiselect',
+				options: [
+					{ id: '1', label: 'ME 1' },
+					{ id: '2', label: 'ME 2' },
+					{ id: '3', label: 'ME 3' },
+					{ id: '4', label: 'ME 4' },
+					{ id: '5', label: 'ME 5' },
+					{ id: '6', label: 'ME 6' } 
+				]
+			}
 		]
 	},
 	{ sourceTypeId: '4eb73542', fields: [ // OBS Studio
@@ -1524,49 +1535,22 @@ function SetUpATEMServer(sourceId) {
 			if (source_connections[i].sourceId === sourceId) {
 				try {
 					logger(`Source: ${source.name}  Creating ATEM Connection.`, 'info-quiet');
-					source_connections[i].server = new ATEM();
-					source_connections[i].server.ip = atemIP;
-					source_connections[i].server.connect();
+					source_connections[i].server = new Atem();
 
-					source_connections[i].server.on('connectionStateChange', function (state) {
-						switch (state.toString())
-						{
-							case 'closed':
-								for (let j = 0; j < sources.length; j++) {
-									if (sources[j].id === sourceId) {
-										sources[j].connected = false;
-										CheckReconnect(sources[j].id);
-										break;
-									}
-								}
-								logger(`Source: ${source.name} ATEM connection closed.`, 'info');
-								UpdateSockets('sources');
-								UpdateCloud('sources');
+					source_connections[i].server.on('connected', () => {
+						for (let j = 0; j < sources.length; j++) {
+							if (sources[j].id === sourceId) {
+								sources[j].connected = true;
 								break;
-							case 'attempting':
-								logger(`Source: ${source.name}  Initiating connection to ATEM: ${source.data.ip}`, 'info');
-								break;
-							case 'establishing':
-								logger(`Source: ${source.name}  Establishing ATEM connection.`, 'info-quiet');
-								break;
-							case 'open':
-								for (let j = 0; j < sources.length; j++) {
-									if (sources[j].id === sourceId) {
-										sources[j].connected = true;
-										break;
-									}
-								}
-								logger(`Source: ${source.name} ATEM connection opened.`, 'info');
-								UnregisterReconnect(source.id);
-								UpdateSockets('sources');
-								UpdateCloud('sources');
-								break;
-							default:
-								break;
+							}
 						}
+						logger(`Source: ${source.name} ATEM connection opened.`, 'info');
+						UnregisterReconnect(source.id);
+						UpdateSockets('sources');
+						UpdateCloud('sources');
 					});
 
-					source_connections[i].server.on('connectionLost', function () {
+					source_connections[i].server.on('disconnected', () => {
 						for (let j = 0; j < sources.length; j++) {
 							if (sources[j].id === sourceId) {
 								sources[j].connected = false;
@@ -1574,26 +1558,32 @@ function SetUpATEMServer(sourceId) {
 								break;
 							}
 						}
-
-						logger(`Source: ${source.name}  Connection to ATEM lost.`, 'info-quiet');
-
+						logger(`Source: ${source.name} ATEM connection closed.`, 'info');
 						UpdateSockets('sources');
 						UpdateCloud('sources');
 					});
-
-					source_connections[i].server.on('sourceTally', function (sourceNumber, tallyState) {
-						logger(`Source: ${source.name}  ATEM Source Tally Data received.`, 'info-quiet');
-						//build an object like the TSL module creates so we can use the same function to process it
-						let tallyObj = {};
-						tallyObj.address = sourceNumber;
-						tallyObj.brightness = 1;
-						tallyObj.tally1 = (tallyState.preview ? 1 : 0);
-						tallyObj.tally2 = (tallyState.program ? 1 : 0);
-						tallyObj.tally3 = 0;
-						tallyObj.tally4 = 0;
-						tallyObj.label = `Source ${sourceNumber}`;
-						processTSLTally(sourceId, tallyObj);
+					
+					source_connections[i].server.on('stateChanged', (state, path) => {
+						//console.log(path);
+						for (let h = 0; h < path.length; h++) {
+							if (path[h] === 'info.capabilities') {
+								//console.log(state.info.capabilities);
+								console.log('Total MEs:' + state.info.capabilities.MEs);
+								console.log('Total Super Sources: ' + state.info.capabilities.superSources);
+							}
+							else if (path[h].indexOf('video.ME') > -1) {
+								//console.log(state.video);
+								for (let i = 0; i < state.video.mixEffects.length; i++) {
+									processATEMTally(sourceId, state.video.mixEffects[i].index+1, state.video.mixEffects[i].programInput, state.video.mixEffects[i].previewInput);
+								}
+							}
+						}
 					});
+
+					source_connections[i].server.on('info', console.log);
+					source_connections[i].server.on('error', console.error);
+
+					source_connections[i].server.connect(atemIP);
 				}
 				catch(error) {
 					logger(`ATEM Error: ${error}`, 'error');
@@ -1605,6 +1595,130 @@ function SetUpATEMServer(sourceId) {
 	}
 	catch (error) {
 
+	}
+}
+
+function processATEMTally(sourceId, me, programInput, previewInput) {
+	let source = GetSourceBySourceId(sourceId);
+
+	let atemSourceFound = false;
+
+	//console.log(tallydata_ATEM);
+
+	//first loop through the ATEM tally data array, by SourceId and ME; if it's present, update the current program/preview inputs
+	for (let i = 0; i < tallydata_ATEM.length; i++) {
+		if (tallydata_ATEM[i].sourceId === sourceId) {
+			if (tallydata_ATEM[i].me === me.toString()) {
+				atemSourceFound = true;
+				tallydata_ATEM[i].me.programInput = programInput.toString();
+				tallydata_ATEM[i].me.previewInput = previewInput.toString();
+			}
+		}
+	}
+
+	//if it was not in the tally array for this SourceId and ME, add it
+	if (!atemSourceFound) {
+		let atemTallyObj = {};
+		atemTallyObj.sourceId = sourceId;
+		atemTallyObj.me = me.toString();
+		atemTallyObj.programInput = programInput.toString();
+		atemTallyObj.previewInput = previewInput.toString();
+		console.log(atemTallyObj);
+		tallydata_ATEM.push(atemTallyObj);
+	}
+
+	//now loop through the updated array, and if an ME is one chosen to monitor for this SourceId,
+	//grab the program input and put it into a temp array of program inputs
+	//grab the preview input and put it into a temp array of preview inputs
+
+	let allPrograms = [];
+	let allPreviews = [];
+
+	for (let i = 0; i < tallydata_ATEM.length; i++) {
+		if (tallydata_ATEM[i].sourceId === sourceId) {
+			if (source.data.me_onair.includes(tallydata_ATEM[i].me)) {
+				allPrograms.push(programInput.toString());
+				allPreviews.push(previewInput.toString());
+			}
+		}
+	}
+
+	//loop through the temp array of program inputs;
+	//if that program input is also in the preview array, build a TSL-type object that has it in pvw+pgm
+	//if only pgm, build an object of only pgm
+
+	for (let i = 0; i < allPrograms.length; i++) {
+		let includePreview = false;
+		if (allPreviews.includes(allPrograms[i])) {
+			includePreview = true;
+		}
+
+		let tallyObj = {};
+		tallyObj.address = allPrograms[i];
+		tallyObj.brightness = 1;
+		tallyObj.tally1 = (includePreview ? 1 : 0);
+		tallyObj.tally2 = 1;
+		tallyObj.tally3 = 0;
+		tallyObj.tally4 = 0;
+		tallyObj.label = `Source ${allPrograms[i]}`;
+		console.log('preview + program: ' +  includePreview);
+		console.log(tallyObj);
+		processTSLTally(sourceId, tallyObj);
+	}
+
+	//now loop through the temp array of pvw inputs
+	//if that input is not in the program array, build a TSL object of only pvw
+
+	for (let i = 0; i < allPreviews.length; i++) {
+		let onlyPreview = true;
+
+		if (allPrograms.includes(allPreviews[i])) {
+			onlyPreview = false;
+		}
+
+		if (onlyPreview) {
+			let tallyObj = {};
+			tallyObj.address = allPreviews[i];
+			tallyObj.brightness = 1;
+			tallyObj.tally1 = 1;
+			tallyObj.tally2 = 0;
+			tallyObj.tally3 = 0;
+			tallyObj.tally4 = 0;
+			tallyObj.label = `Source ${allPreviews[i]}`;
+			console.log('only in preview:');
+			console.log(tallyObj);
+			processTSLTally(sourceId, tallyObj);
+		}
+	}
+
+	//finally clear out any device state that is no longer in preview or program
+	let device_sources_atem = GetDeviceSourcesBySourceId(sourceId);
+	for (let i = 0; i < device_sources_atem.length; i++) {
+		let inProgram = false;
+		let inPreview = false;
+
+		if (allPrograms.includes(device_sources_atem[i].address)) {
+			//the device is still in program, somewhere
+			inProgram = true;
+		}
+		if (allPreviews.includes(device_sources_atem[i].address)) {
+			//the device is still in preview, somewhere
+			inPreview = true;
+		}
+
+		if ((!inProgram) && (!inPreview)) {
+			//the device is no longer in preview or program anywhere, so remove it
+			let tallyObj = {};
+			tallyObj.address = device_sources_atem[i].address;
+			tallyObj.brightness = 1;
+			tallyObj.tally1 = 0;
+			tallyObj.tally2 = 0;
+			tallyObj.tally3 = 0;
+			tallyObj.tally4 = 0;
+			tallyObj.label = `Source ${device_sources_atem[i].address}`;
+			console.log(tallyObj);
+			processTSLTally(sourceId, tallyObj);
+		}
 	}
 }
 
