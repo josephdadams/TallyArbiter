@@ -4139,15 +4139,18 @@ function GetBusByBusId(busId) {
 
 function GetDeviceByDeviceId(deviceId) {
 	//gets the Device object by id
+	let device = undefined;
+
 	if (deviceId !== 'unassigned') {
-		return devices.find( ({ id }) => id === deviceId);
+		device = devices.find( ({ id }) => id === deviceId);
 	}
-	else {
-		let deviceObj = {};
-		deviceObj.id = 'unassigned';
-		deviceObj.name = 'Unassigned';
-		return deviceObj;
+
+	if (!device) {
+		device.id = 'unassigned';
+		device.name = 'Unassigned';
 	}
+
+	return device;
 }
 
 function GetOutputTypeByOutputTypeId(outputTypeId) {
