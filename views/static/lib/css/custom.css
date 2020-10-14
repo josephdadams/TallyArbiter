@@ -1,0 +1,405 @@
+
+
+#divContainer_GettingStarted {
+  background: #ffffff;
+  padding: 5px;
+  display: block;
+  margin: 10px;
+}
+
+#divContainer_Sources,
+#divContainer_SourceFields,
+#divContainer_Devices,
+#divContainer_DeviceFields,
+#divContainer_DeviceSources,
+#divContainer_DeviceSourceFields,
+#divContainer_DeviceActions,
+#divContainer_DeviceActionFields,
+#divContainer_TSLClients,
+#divContainer_TSLClientFields,
+#divContainer_CloudDestinations,
+#divContainer_CloudDestinationFields,
+#divContainer_CloudKeys,
+#divContainer_CloudKeyFields,
+#divContainer_CloudClients,
+#divContainer_Listeners {
+  background: #ffffff;
+  padding: 5px;
+  float: left;
+  margin: 5px;
+}
+
+#divContainer_CloudSettings {
+  background: #ffffff;
+  padding: 5px;
+  float: left;
+  margin-top: 20px;
+}
+
+#divContainer_Logs {
+  background: #ffffff;
+  width: 600px;
+  padding: 5px;
+  float: left;
+  margin-top: 20px;
+  display: block;
+}
+
+#divContainer_TallyData {
+  background: #ffffff;
+  width: 600px;
+  padding: 5px;
+  float: left;
+  margin-top: 20px;
+}
+
+#divContainer_SourceFields,
+#divContainer_DeviceFields,
+#divContainer_DeviceSources,
+#divContainer_DeviceSourceFields,
+#divContainer_DeviceActions,
+#divContainer_DeviceActionFields,
+#divContainer_TSLClientFields,
+#divContainer_CloudDestinationFields,
+#divContainer_CloudKeyFields,
+#divContainer_Listeners {
+  display: none;
+}
+
+#divLogs {
+  background: #cdcdcd;
+  font-family: monospace;
+  height: 400px;
+  overflow-y: scroll;
+  -webkit-user-select: text;
+}
+
+#divTallyData {
+  background: #cdcdcd;
+  font-family: monospace;
+  height: 400px;
+  overflow-y: scroll;
+  -webkit-user-select: text;
+}
+
+.disabled {
+  color: #cccccc;
+}
+
+.title {
+  font-weight: bold;
+  font-size: 115%;
+}
+
+.listenercount {
+  font-size: 75%;
+  background: #cccccc;
+  color: #666666;
+  padding: 5px;
+  border: #ffffff 3px solid;
+}
+
+.device_state_tally {
+  width: 50px;
+  height: 30px;
+}
+
+.device_state_tally_preview {
+  position: relative;
+  /*display: inline-block;*/
+}
+
+.device_state_tally_preview .sources_pvw_tooltip {
+  visibility: hidden;
+  width: 120px;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.device_state_tally_preview .sources_pvw_tooltip::after {
+  content: "";
+  /*position: absolute;
+		top: 100%;
+		left: 50%;*/
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+.device_state_tally_preview:hover .sources_pvw_tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.device_state_tally_program {
+  position: relative;
+  /*display: inline-block;*/
+}
+
+.device_state_tally_program .sources_pgm_tooltip {
+  visibility: hidden;
+  width: 120px;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.device_state_tally_program .sources_pgm_tooltip::after {
+  content: "";
+  /*position: absolute;
+		top: 100%;
+		left: 50%;*/
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+.device_state_tally_program:hover .sources_pgm_tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.device_state_tally_preview {
+  background: #3fe481;
+  width: 50px;
+  height: 30px;
+}
+
+.device_state_tally_program {
+  background: #e43f5a;
+  width: 50px;
+  height: 30px;
+}
+
+.tsl_client_connected {
+  color: #3fe481;
+}
+
+.tsl_client_disconnected {
+  color: #999999;
+}
+
+.tsl_client_error {
+  color: #e43f5a;
+}
+
+.source_status_connected {
+  color: #3fe481;
+}
+
+.source_status_disconnected {
+  color: #e43f5a;
+}
+
+.cloud_destination_connected {
+  color: #3fe481;
+}
+
+.cloud_destination_disconnected {
+  color: #999999;
+}
+
+.cloud_destination_invalidkey {
+  color: #ffcc00;
+}
+
+.cloud_destination_error {
+  color: #e43f5a;
+}
+
+#divGettingStarted_Close {
+  top: 2px;
+  right: 2px;
+  float: right;
+}
+
+#divDevices {
+  margin: auto;
+  min-width: 100px;
+  float: left;
+}
+
+#divListeners {
+  padding: 10px;
+  margin: auto;
+  float: left;
+}
+
+.tallyDeviceTitle {
+  text-align: center;
+  color: #eeeeee;
+  font-size: 5vmin;
+  font-weight: bold;
+  width: 100%;
+  display: block;
+}
+
+.tallyDeviceDescription {
+  text-align: center;
+  color: #aaaaaa;
+  font-size: 4vmin;
+  width: 100%;
+  display: block;
+}
+
+.device_state_tally {
+  width: 50px;
+  height: 30px;
+}
+
+.device_state_tally_preview {
+  position: relative;
+  /*display: inline-block;*/
+}
+
+.device_state_tally_preview .sources_pvw_tooltip {
+  visibility: hidden;
+  width: 120px;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.device_state_tally_preview .sources_pvw_tooltip::after {
+  content: "";
+  /*position: absolute;
+			top: 100%;
+			left: 50%;*/
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+.device_state_tally_preview:hover .sources_pvw_tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.device_state_tally_program {
+  position: relative;
+  /*display: inline-block;*/
+}
+
+.device_state_tally_program .sources_pgm_tooltip {
+  visibility: hidden;
+  width: 120px;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.device_state_tally_program .sources_pgm_tooltip::after {
+  content: "";
+  /*position: absolute;
+			top: 100%;
+			left: 50%;*/
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+.device_state_tally_program:hover .sources_pgm_tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.device_state_tally_preview {
+  width: 50px;
+  height: 30px;
+  background: #3fe481;
+}
+
+.device_state_tally_program {
+  width: 50px;
+  height: 30px;
+  background: #e43f5a;
+}
+
+.listenercount {
+  font-size: 75%;
+  background: #162447;
+  color: #46B5D1;
+  padding: 5px;
+}
+
+.legal {
+  color: #cecece;
+  font-size: 12px;
+}
+
+.bg-tally {
+  background-color: #000;
+}
+
+/* Small devices (landscape phones, 576px and up) */
+@media (min-width: 576px) { 
+}
+ 
+/* Medium devices (tablets, 768px and up) The navbar toggle appears at this breakpoint */
+@media (min-width: 768px) {  
+  .bg-tally {
+    background-color: #fff;
+  }
+}
+ 
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) { 
+ 
+}
+ 
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {  
+    
+}
+
+.flash {
+  animation: flasher 0.1s cubic-bezier(1, 0, 0, 1) infinite alternate;
+}
+
+@keyframes flasher {
+  to {
+    background-color: white;
+    opacity: 0;
+  }
+}
