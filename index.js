@@ -1623,7 +1623,6 @@ function processATEMTally(sourceId, me, programInput, previewInput) {
 		atemTallyObj.me = me.toString();
 		atemTallyObj.programInput = programInput.toString();
 		atemTallyObj.previewInput = previewInput.toString();
-		console.log(atemTallyObj);
 		tallydata_ATEM.push(atemTallyObj);
 	}
 
@@ -1661,8 +1660,6 @@ function processATEMTally(sourceId, me, programInput, previewInput) {
 		tallyObj.tally3 = 0;
 		tallyObj.tally4 = 0;
 		tallyObj.label = `Source ${allPrograms[i]}`;
-		console.log('preview + program: ' +  includePreview);
-		console.log(tallyObj);
 		processTSLTally(sourceId, tallyObj);
 	}
 
@@ -1685,8 +1682,6 @@ function processATEMTally(sourceId, me, programInput, previewInput) {
 			tallyObj.tally3 = 0;
 			tallyObj.tally4 = 0;
 			tallyObj.label = `Source ${allPreviews[i]}`;
-			console.log('only in preview:');
-			console.log(tallyObj);
 			processTSLTally(sourceId, tallyObj);
 		}
 	}
@@ -1716,7 +1711,6 @@ function processATEMTally(sourceId, me, programInput, previewInput) {
 			tallyObj.tally3 = 0;
 			tallyObj.tally4 = 0;
 			tallyObj.label = `Source ${device_sources_atem[i].address}`;
-			console.log(tallyObj);
 			processTSLTally(sourceId, tallyObj);
 		}
 	}
@@ -2598,7 +2592,6 @@ function processAWLivecoreTally(sourceId, tallyObj) {
 	}
 
 	if (!AWLivecoreSourceFound) {
-		//console.log("Source not found, creating new tallyObj");
 		//the source is not in the AWLivecore array, we don't know anything about it, so add it to the array
 		let newTallyObj = {};
 		newTallyObj.sourceId = sourceId;
@@ -3005,7 +2998,6 @@ function RunAction_OSC(data) {
 	}
 
 	logger(`Sending OSC Message: ${data.ip}:${data.port} ${data.path} ${data.args}`, 'info');
-	console.log(args);
 	oscUDP.send({address: data.path, args: args}, data.ip, data.port);
 }
 
