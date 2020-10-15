@@ -29,7 +29,7 @@ function onLoad() {
 	});
 	socket.on('listener_clients', function (data) {
 		listener_clients = data;
-		if (devices.length > 0) {
+		if (listener_clients.length > 0) {
 			loadListeners();
 		}
 	});
@@ -176,7 +176,7 @@ function updateDeviceList() {
 		let tdDeviceCloud = document.createElement('td');
 		if (devices[i].cloudConnection) {
 			let imgCloud = document.createElement('img');
-			imgCloud.src = '/cloud.png';
+			imgCloud.src = 'lib/img/cloud.png';
 			imgCloud.width = '20';
 			tdDeviceCloud.appendChild(imgCloud);
 		}
@@ -316,7 +316,7 @@ function loadListeners() {
 			let tdListenerCloud = document.createElement('td');
 			if (listener_clients[i].cloudConnection) {
 				let imgCloud = document.createElement('img');
-				imgCloud.src = '/cloud.png';
+				imgCloud.src = 'lib/img/cloud.png';
 				imgCloud.width = '20';
 				tdListenerCloud.appendChild(imgCloud);
 			}
