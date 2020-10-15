@@ -418,7 +418,7 @@ function loadSources() {
 		let tdSourceCloud = document.createElement('td');
 		if (sources[i].cloudConnection) {
 			let imgCloud = document.createElement('img');
-			imgCloud.src = '/cloud.png';
+			imgCloud.src = 'lib/img/cloud.png';
 			imgCloud.width = '20';
 			tdSourceCloud.appendChild(imgCloud);
 		}
@@ -557,7 +557,7 @@ function loadDevices() {
 		let tdDeviceCloud = document.createElement('td');
 		if (devices[i].cloudConnection) {
 			let imgCloud = document.createElement('img');
-			imgCloud.src = '/cloud.png';
+			imgCloud.src = 'lib/img/cloud.png';
 			imgCloud.width = '20';
 			tdDeviceCloud.appendChild(imgCloud);
 		}
@@ -724,7 +724,7 @@ function loadListeners() {
 		let tdListenerCloud = document.createElement('td');
 		if (listener_clients[i].cloudConnection) {
 			let imgCloud = document.createElement('img');
-			imgCloud.src = '/cloud.png';
+			imgCloud.src = 'lib/img/cloud.png';
 			imgCloud.width = '20';
 			tdListenerCloud.appendChild(imgCloud);
 		}
