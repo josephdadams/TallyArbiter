@@ -1775,6 +1775,7 @@ function Edit_Device_Sources(deviceId) {
 	$('#divContainer_DeviceActions')[0].style.display = 'none';
 	$('#divContainer_DeviceActionFields')[0].style.display = 'none';
 	selectedDeviceId = deviceId;
+	$("#modalDeviceSources").modal();
 }
 
 function Add_Device_Source(deviceId) {
@@ -1981,6 +1982,7 @@ function Edit_Device_Actions(deviceId) {
 	$('#divContainer_DeviceActions')[0].style.display = 'block';
 	$('#divContainer_DeviceActionFields')[0].style.display = 'none';
 	selectedDeviceId = deviceId;
+	$("#modalDeviceActions").modal();
 }
 
 function Add_Device_Action(deviceId) {
@@ -2339,6 +2341,7 @@ function Add_TSL_Client() {
 	divTSLClientFields.appendChild(selTSLTransport);
 	$('#btnAdd_TSL_Client_Save')[0].style.display = 'block';
 	$('#btnEdit_TSL_Client_Save')[0].style.display = 'none';
+	$("#modalTSLClient").modal();
 }
 
 function Add_TSL_Client_Save() {
@@ -2421,6 +2424,7 @@ function Edit_TSL_Client(tslClientId) {
 	btnEdit_TSLClient_Save.style.display = 'block';
 	$('#divContainer_TSLClientFields')[0].style.display = 'block';
 	selectedTSLClientId = tslClientId;
+	$("#modalTSLClient").modal();
 }
 
 function Edit_TSL_Client_Save() {
@@ -2500,6 +2504,7 @@ function Add_Cloud_Destination() {
 	divCloudDestinationFields.appendChild(txtKey);
 	$('#btnAdd_Cloud_Destination_Save')[0].style.display = 'block';
 	$('#btnEdit_Cloud_Destination_Save')[0].style.display = 'none';
+	$("#modalCloudDestination").modal();
 }
 
 function Add_Cloud_Destination_Save() {
@@ -2574,6 +2579,7 @@ function Edit_Cloud_Destination(cloudId) {
 	btnEdit_TSLClient_Save.style.display = 'block';
 	$('#divContainer_CloudDestinationFields')[0].style.display = 'block';
 	selectedCloudId = cloudId;
+	$("#modalCloudDestination").modal();
 }
 
 function Edit_Cloud_Destination_Save() {
@@ -2641,6 +2647,7 @@ function Add_Cloud_Key() {
 	txtKey.style.display = 'block';
 	divCloudKeyFields.appendChild(txtKey);
 	$('#btnAdd_Cloud_Key_Save')[0].style.display = 'block';
+	$("#modalCloudKey").modal();
 }
 
 function Add_Cloud_Key_Save() {
@@ -2761,6 +2768,7 @@ function ProcessAPIResponse(response) {
 		case 'tsl-client-added-successfully':
 		case 'tsl-client-edited-successfully':
 		case 'tsl-client-deleted-successfully':
+			$("#modalTSLClient").modal('hide');
 			$('#divContainer_TSLClientFields')[0].style.display = 'none';
 			$.when(getTSLClients()).done(function () {
 				loadTSLClients();
@@ -2769,6 +2777,7 @@ function ProcessAPIResponse(response) {
 		case 'cloud-destination-added-successfully':
 		case 'cloud-destination-edited-successfully':
 		case 'cloud-destination-deleted-successfully':
+			$("#modalCloudDestination").modal('hide');
 			$('#divContainer_CloudDestinationFields')[0].style.display = 'none';
 			$.when(getCloudDestinations()).done(function () {
 				loadCloudDestinations();
@@ -2776,12 +2785,14 @@ function ProcessAPIResponse(response) {
 			break;
 		case 'cloud-key-added-successfully':
 		case 'cloud-key-deleted-successfully':
+			$("#modalCloudKey").modal('hide');
 			$('#divContainer_CloudKeyFields')[0].style.display = 'none';
 			$.when(getCloudKeys()).done(function () {
 				loadCloudKeys();
 			});
 			break;
 		case 'cloud-client-removed-successfully':
+			$("#modalCloudClient").modal('hide');
 			$.when(getCloudClients()).done(function () {
 				loadCloudClients();
 			});
