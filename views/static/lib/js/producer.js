@@ -29,9 +29,7 @@ function onLoad() {
 	});
 	socket.on('listener_clients', function (data) {
 		listener_clients = data;
-		if (listener_clients.length > 0) {
-			loadListeners();
-		}
+		loadListeners();
 	});
 	socket.on('device_states', function (tallyDataArray) {
 		//process the data received and determine if it's in preview or program and color the screen accordingly
@@ -335,6 +333,7 @@ function loadListeners() {
 			tableListeners.appendChild(trClientItem);
 		}
 		divListeners.appendChild(tableListeners);
+		divListeners.style.display = 'block';
 	}
 	else {
 		divListeners.style.display = 'none';
