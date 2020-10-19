@@ -4250,6 +4250,7 @@ function GetDeviceByDeviceId(deviceId) {
 	}
 
 	if (!device) {
+		device = {};
 		device.id = 'unassigned';
 		device.name = 'Unassigned';
 	}
