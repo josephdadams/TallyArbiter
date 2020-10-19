@@ -549,7 +549,7 @@ function loadDevices() {
 		}
 		trDeviceItem.appendChild(tdDeviceTallyStatus_PGM);
 		let tdDeviceName = document.createElement('td');
-		tdDeviceName.innerHTML = devices[i].name;
+		tdDeviceName.innerHTML = '<small><b>' + (i+1) + '</b></small>&nbsp;' + devices[i].name;
 		if (devices[i].enabled === false) {
 			tdDeviceName.className = 'disabled';
 		}
