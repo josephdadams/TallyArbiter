@@ -38,6 +38,8 @@ const socketupdates_Producer  = ['sources', 'devices', 'device_sources', 'device
 const socketupdates_Companion = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
 const oscPort 		= 5958;
 var oscUDP			= null;
+var vmix_emulator	= null; //TCP server for VMix Emulator
+var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
 const config_file 	= './config.json'; //local storage JSON file
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var Logs 			= []; //array of actions, information, and errors
@@ -1078,6 +1080,10 @@ function initialSetup() {
 		logger(`OSC Sending Port Ready. Broadcasting on Port: ${oscPort}`, 'info-quiet');
 	});
 
+	logger('Starting VMix Emulation Service.', 'info-quiet');
+
+	startVMixEmulator();
+
 	if (tsl_clients.length > 0) {
 		logger(`Initiating ${tsl_clients.length} TSL Client Connections.`, 'info');
 
@@ -1107,6 +1113,44 @@ function initialSetup() {
 	httpServer.listen(listenPort, function () { // start up http server
 		logger(`Tally Arbiter running on port ${listenPort}`, 'info');
 	});
+}
+
+function startVMixEmulator() {
+	vmix_emulator = net.createServer();
+
+	vmix_emulator.on('connection', handleConnection);
+
+	vmix_emulator.listen(8099, function() {
+		logger(`Finished VMix Emulation Setup. Listening for VMix Tally Connections on ${vmix_emulator.address()} TCP Port 8099.`, 'info-quiet');
+	});
+
+	function handleConnection(conn) {
+		var remoteAddress = conn.remoteAddress + ':' + conn.remotePort;
+		logger(`New VMix Emulator Connection from ${remoteAddress}`, 'info');
+		conn.on('data', onConnData);
+		conn.once('close', onConnClose);
+		conn.on('error', onConnError);
+
+		function onConnData(d) {
+			d = d.toString().split(/\r?\n/);
+
+			if (d[0] === 'SUBSCRIBE TALLY') {
+				vmix_clients.push(conn);
+				conn.write('SUBSCRIBE OK TALLY\r\n');
+			}
+		}
+		function onConnClose() {
+			logger(`VMix Emulator Connection from ${remoteAddress} closed`, 'info');
+			for (let i = 0; i < vmix_clients.length; i++) {
+				if (vmix_clients[i].remoteAddress === remoteAddress) {
+					vmix_clients.splice(i, 1);
+				}
+			}
+		}
+		function onConnError(err) {
+			logger(`VMix Emulator Connection ${remoteAddress} error: ${err.message}`, 'error');
+		}
+	}
 }
 
 function logger(log, type) { //logs the item to the console, to the log array, and sends the log item to the settings page
@@ -2221,7 +2265,8 @@ function SetUpTricasterServer(sourceId) {
 
 						parseString(data, function (error, result) {
 							if (error) {
-								console.log('error:' + error);
+								//the Tricaster will send a lot of data that will not parse correctly when it first connects
+								//console.log('error:' + error);
 							}
 							else {
 								let shortcut_states = Object.entries(result['data']['shortcut_states']);
@@ -2738,6 +2783,7 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 
 		UpdateDeviceState(deviceId);
 		UpdateSockets('device_states');
+		UpdateVMixClients();
 		SendTSLClientData(deviceId);
 		SendCloudData(sourceId, tallyObj);
 	}
@@ -3650,6 +3696,72 @@ function UpdateSockets(dataType) {
 			break;
 		default:
 			break;
+	}
+}
+
+function UpdateVMixClients() {
+	let vmixTallyString = 'TALLY OK ';
+
+	let busId_preview = null;
+	let busId_program = null;
+	//let busId_previewprogram = null;
+
+	for (let i = 0; i < bus_options.length; i++) {
+		switch(bus_options[i].type) {
+			case 'preview':
+				busId_preview = bus_options[i].id;
+				break;
+			case 'program':
+				busId_program = bus_options[i].id;
+				break;
+			default:
+				break;
+		}
+	}
+
+	for (let i = 0; i < devices.length; i++) {
+		let deviceId = devices[i].id;
+
+		let inPreview = false;
+		let inProgram = false;
+
+		for (let i = 0; i < device_states.length; i++) {
+			if (device_states[i].deviceId === deviceId) {
+				if (device_states[i].busId === busId_preview) {
+					if (device_states[i].sources.length > 0) {
+						inPreview = true;
+					}
+					else {
+						inPreview = false;
+					}
+				}
+
+				if (device_states[i].busId === busId_program) {
+					if (device_states[i].sources.length > 0) {
+						inProgram = true;
+					}
+					else {
+						inProgram = false;
+					}
+				}
+			}
+		}
+
+		if (inProgram) {
+			vmixTallyString += '1';
+		}
+		else if (inPreview) {
+			vmixTallyString += '2';
+		}
+		else {
+			vmixTallyString += '0';
+		}
+	}
+
+	vmixTallyString += '\r\n';
+
+	for (let i = 0; i < vmix_clients.length; i++) {
+		vmix_clients[i].write(vmixTallyString);
 	}
 }
 
