@@ -176,7 +176,7 @@ Lots of equipment support the use of GPIO (General Purpose In/Out) pins to inter
 ## Using an M5StickC for tally output
 Tally Arbiter can send tally data to an M5StickC Arduino Finger Computer. A remote script is available in the separate repository, [Tally Arbiter M5StickC Listener](http://github.com/josephdadams/tallyarbiter-m5stickclistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-M5StickCListener/blob/master/readme.md).
 
-## VMix Tally Emuluation
+## VMix Tally Emulation
 Tally Arbiter will also emulate a VMix server, which means you can use any compatible VMix tally client to view tally as well, such as the [VMix M5Stick Tally Light](https://github.com/guido-visser/vMix-M5Stick-Tally-Light) project by Guido Visser. Follow the instructions on that repository to set up your M5Stick device, and specify Tally Arbiter as your VMix server!
   
 
