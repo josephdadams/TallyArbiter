@@ -117,7 +117,7 @@ var source_types_datafields = [ //data fields for the tally source types
 					{ id: '3', label: 'ME 3' },
 					{ id: '4', label: 'ME 4' },
 					{ id: '5', label: 'ME 5' },
-					{ id: '6', label: 'ME 6' } 
+					{ id: '6', label: 'ME 6' }
 				]
 			}
 		]
@@ -470,6 +470,14 @@ function initialSetup() {
 			socket.emit('devices', devices);
 		});
 
+		socket.on('device_sources', function() { // sends the configured Device Sources to the socket
+			socket.emit('device_sources', device_sources);
+		});
+
+		socket.on('device_actions', function() { // sends the configured Device Actions to the socket
+			socket.emit('device_actions', device_actions);
+		});
+
 		socket.on('bus_options', function() { // sends the Bus Options (preview, program) to the socket
 			socket.emit('bus_options', bus_options);
 		});
@@ -618,8 +626,7 @@ function initialSetup() {
 
 		socket.on('settings', function () {
 			socket.join('settings');
-			socket.emit('sources', sources);
-			socket.emit('devices', devices);
+			socket.emit('initialdata', source_types, source_types_datafields, output_types, output_types_datafields, bus_options, sources, devices, device_sources, device_actions, device_states, tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
 			socket.emit('listener_clients', listener_clients);
 			socket.emit('logs', Logs);
 			socket.emit('PortsInUse', PortsInUse);
@@ -1051,6 +1058,31 @@ function initialSetup() {
 				socket.emit('invalidkey');
 				socket.disconnect();
 			}
+		});
+
+		socket.on('manage', function(arbiterObj) {
+			response = TallyArbiter_Manage(arbiterObj);
+			io.to('settings').emit('manage_response', response);
+		});
+
+		socket.on('listener_clients', function() {
+			socket.emit('listener_clients', listener_clients);
+		});
+		
+		socket.on('tsl_clients', function() {
+			socket.emit('tsl_clients', tsl_clients);
+		});
+		
+		socket.on('cloud_destinations', function() {
+			socket.emit('cloud_destinations', cloud_destinations);
+		});
+
+		socket.on('cloud_keys', function() {
+			socket.emit('cloud_keys', cloud_keys);
+		});
+
+		socket.on('cloud_clients', function() {
+			socket.emit('cloud_clients', cloud_clients);
 		});
 
 		socket.on('disconnect', function() { // emitted when any socket.io client disconnects from the server
@@ -1616,7 +1648,9 @@ function SetUpATEMServer(sourceId) {
 								console.log('Total Super Sources: ' + state.info.capabilities.superSources);
 							}
 							else if (path[h].indexOf('video.ME') > -1) {
-								//console.log(state.video);
+								console.log('*****start state.video****');
+								console.log(state.video);
+								console.log('*****end state.video****');
 								for (let i = 0; i < state.video.mixEffects.length; i++) {
 									processATEMTally(sourceId, state.video.mixEffects[i].index+1, state.video.mixEffects[i].programInput, state.video.mixEffects[i].previewInput);
 								}
@@ -1645,6 +1679,11 @@ function SetUpATEMServer(sourceId) {
 function processATEMTally(sourceId, me, programInput, previewInput) {
 	let source = GetSourceBySourceId(sourceId);
 
+	console.log('***Source ID: ' + sourceId);
+	console.log('***ME: ' + me);
+	console.log('***PVW: ' + previewInput);
+	console.log('***PGM: ' + programInput);
+
 	let atemSourceFound = false;
 
 	//console.log(tallydata_ATEM);
@@ -1654,6 +1693,7 @@ function processATEMTally(sourceId, me, programInput, previewInput) {
 		if (tallydata_ATEM[i].sourceId === sourceId) {
 			if (tallydata_ATEM[i].me === me.toString()) {
 				atemSourceFound = true;
+				console.log('This Source ID & ME already had tally data present.');
 				tallydata_ATEM[i].me.programInput = programInput.toString();
 				tallydata_ATEM[i].me.previewInput = previewInput.toString();
 			}
@@ -1662,6 +1702,7 @@ function processATEMTally(sourceId, me, programInput, previewInput) {
 
 	//if it was not in the tally array for this SourceId and ME, add it
 	if (!atemSourceFound) {
+		console.log('This Source ID & ME did not have tally data present already. Adding.');
 		let atemTallyObj = {};
 		atemTallyObj.sourceId = sourceId;
 		atemTallyObj.me = me.toString();
@@ -1685,6 +1726,9 @@ function processATEMTally(sourceId, me, programInput, previewInput) {
 			}
 		}
 	}
+
+	console.log('Inputs currently in PVW: ', allPreviews);
+	console.log('Inputs currently in PGM: ', allPrograms);
 
 	//loop through the temp array of program inputs;
 	//if that program input is also in the preview array, build a TSL-type object that has it in pvw+pgm

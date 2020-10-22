@@ -219,17 +219,8 @@ var TallyAddresses_ATEM = [
 window.onload = loadSettings;
 
 function loadSettings() {
-	//gets the latest data from the API
-	$.when(getSourceTypes(), getSourceTypesDataFields(), getOutputTypes(), getOutputTypesDataFields(), getBusOptions(), getSources(), getDevices(), getDeviceSources(), getDeviceActions(), getDeviceStates(), getTSLClients(), getCloudDestinations(), getCloudKeys(), getCloudClients()).done(function () {
-		//when all data has arrived, let's process it all together
-		loadSocket();
-		loadSources();
-		loadDevices();
-		loadTSLClients();
-		loadCloudDestinations();
-		loadCloudKeys();
-		loadCloudClients();
-	});
+	//gets the latest data from the server
+	loadSocket();
 }
 
 function loadSocket() {
@@ -247,6 +238,30 @@ function loadSocket() {
 		// the ports currently reserved or in use
 		PortsInUse = ports;
 	});
+	socket.on('initialdata', function (sourceTypes, sourceTypesDataFields, outputTypes, outputTypesDataFields, busOptions, sourcesData, devicesData, deviceSources, deviceActions, deviceStates, tslClients, cloudDestinations, cloudKeys, cloudClients) {
+		source_types = sourceTypes;
+		source_types_datafields = sourceTypesDataFields;
+		output_types = outputTypes;
+		output_types_datafields = outputTypesDataFields;
+		bus_options = busOptions;
+		sources = sourcesData;
+		devices = devicesData;
+		device_sources = deviceSources;
+		device_actions = deviceActions;
+		device_states = deviceStates;
+		tsl_clients = tslClients;
+		cloud_destinations = cloudDestinations;
+		cloud_keys = cloudKeys;
+		cloud_clients = cloudClients;
+
+		loadSources();
+		loadDevices();
+		loadTSLClients();
+		loadCloudDestinations();
+		loadCloudKeys();
+		loadCloudClients();
+	});
+
 	socket.on('device_states', function (data) {
 		//process the data received and determine if it's in preview or program and color the screen accordingly
 		device_states = data;
@@ -264,21 +279,16 @@ function loadSocket() {
 		device_sources = data;
 		loadDevices();
 	});
+
+	socket.on('device_actions', function (data) {
+		device_actions = data;
+		loadDevices();
+	});
+
 	socket.on('listener_clients', function (data) {
 		listener_clients = data;
 		loadDevices();
 		loadListeners();
-	});
-	socket.on('logs', function (logs) {
-		Logs = logs;
-		loadLogs();
-	});
-	socket.on('log_item', function (logObj) {
-		Logs.push(logObj);
-		AddLog(logObj);
-	});
-	socket.on('tally_data', function (sourceId, tallyObj) {
-		AddTallyData(sourceId, tallyObj);
 	});
 	socket.on('tsl_clients', function (data) {
 		tsl_clients = data;
@@ -296,95 +306,121 @@ function loadSocket() {
 		cloud_clients = data;
 		loadCloudClients();
 	});
+	socket.on('logs', function (logs) {
+		Logs = logs;
+		loadLogs();
+	});
+	socket.on('log_item', function (logObj) {
+		Logs.push(logObj);
+		AddLog(logObj);
+	});
+	socket.on('tally_data', function (sourceId, tallyObj) {
+		AddTallyData(sourceId, tallyObj);
+	});
+	socket.on('manage_response', function(response) {
+		let responseText = '';
+		console.log(response);
+		switch (response.result) {
+			case 'source-added-successfully':
+			case 'source-edited-successfully':
+			case 'source-deleted-successfully':
+				$("#addSource").modal('hide');
+				$('#divContainer_SourceFields')[0].style.display = 'none';
+				socket.emit('sources');
+				socket.emit('devices');
+				$('#divContainer_DeviceSources')[0].style.display = 'none';
+				$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+				loadSources();
+				loadDevices();
+				break;
+			case 'device-added-successfully':
+			case 'device-edited-successfully':
+			case 'device-deleted-successfully':
+				$("#addDevice").modal('hide');
+				$('#divContainer_DeviceFields')[0].style.display = 'none';
+				socket.emit('devices');
+				socket.emit('device_sources');
+				socket.emit('device_actions');
+				socket.emit('device_states');
+				socket.emit('listener_clients');
+				loadDevices();
+				loadListeners();
+				$('#divContainer_DeviceFields')[0].style.display = 'none';
+				$('#divContainer_DeviceSources')[0].style.display = 'none';
+				$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+				$('#divContainer_DeviceActions')[0].style.display = 'none';
+				$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+				break;
+			case 'device-source-added-successfully':
+			case 'device-source-edited-successfully':
+			case 'device-source-deleted-successfully':
+				$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+				socket.emit('device_sources');
+				$("#modalDeviceSources").modal('hide');
+				loadDevices();
+				//Edit_Device_Sources(response.deviceId);
+				$('#divContainer_DeviceFields')[0].style.display = 'none';
+				$('#divContainer_DeviceSources')[0].style.display = 'block';
+				$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+				$('#divContainer_DeviceActions')[0].style.display = 'none';
+				$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+				break;
+			case 'device-action-added-successfully':
+			case 'device-action-edited-successfully':
+			case 'device-action-deleted-successfully':
+				$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+				socket.emit('devices');
+				socket.emit('device_actions');
+				$("#modalDeviceActions").modal('hide');
+				loadDevices();
+				//Edit_Device_Actions(response.deviceId);
+				$('#divContainer_DeviceFields')[0].style.display = 'none';
+				$('#divContainer_DeviceSources')[0].style.display = 'none';
+				$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
+				$('#divContainer_DeviceActions')[0].style.display = 'block';
+				$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+				break;
+			case 'tsl-client-added-successfully':
+			case 'tsl-client-edited-successfully':
+			case 'tsl-client-deleted-successfully':
+				$("#modalTSLClient").modal('hide');
+				$('#divContainer_TSLClientFields')[0].style.display = 'none';
+				socket.emit('tsl_clients');
+				loadTSLClients();
+				break;
+			case 'cloud-destination-added-successfully':
+			case 'cloud-destination-edited-successfully':
+			case 'cloud-destination-deleted-successfully':
+				$("#modalCloudDestination").modal('hide');
+				$('#divContainer_CloudDestinationFields')[0].style.display = 'none';
+				socket.emit('cloud_destinations');
+				loadCloudDestinations();
+				break;
+			case 'cloud-key-added-successfully':
+			case 'cloud-key-deleted-successfully':
+				$("#modalCloudKey").modal('hide');
+				$('#divContainer_CloudKeyFields')[0].style.display = 'none';
+				socket.emit('cloud_keys');
+				loadCloudKeys();
+				break;
+			case 'cloud-client-removed-successfully':
+				$("#modalCloudClient").modal('hide');
+				socket.emit('cloud_clients');
+				loadCloudClients();
+				break;
+			case 'error':
+				responseText = 'Unexpected Error Occurred: ' + response.error;
+				break;
+			default:
+				responseText = response.result;
+				break;
+		}
+	});
 }
 
 function loadVersion() {
 	let divVersion = $('#version')[0];
 	divVersion.innerHTML = `Version ${Version}`;
-}
-
-function getSourceTypes() {
-	return $.getJSON('/settings/source_types', function (data) {
-		source_types = data;
-	});
-}
-
-function getSourceTypesDataFields() {
-	return $.getJSON('/settings/source_types_datafields', function (data) {
-		source_types_datafields = data;
-	});
-}
-
-function getOutputTypes() {
-	return $.getJSON('/settings/output_types', function (data) {
-		output_types = data;
-	});
-}
-
-function getOutputTypesDataFields() {
-	return $.getJSON('/settings/output_types_datafields', function (data) {
-		output_types_datafields = data;
-	});
-}
-
-function getBusOptions() {
-	return $.getJSON('/settings/bus_options', function (data) {
-		bus_options = data;
-	});
-}
-
-function getSources() {
-	return $.getJSON('/settings/sources', function (data) {
-		sources = data;
-	});
-}
-
-function getDevices() {
-	return $.getJSON('/settings/devices', function (data) {
-		devices = data;
-	});
-}
-
-function getDeviceSources() {
-	return $.getJSON('/settings/device_sources', function (data) {
-		device_sources = data;
-	});
-}
-
-function getDeviceActions() {
-	return $.getJSON('/settings/device_actions', function (data) {
-		device_actions = data;
-	});
-}
-
-function getDeviceStates() {
-	return $.getJSON('/settings/device_states', function (data) {
-		device_states = data;
-	});
-}
-
-function getTSLClients() {
-	return $.getJSON('/settings/tsl_clients', function (data) {
-		tsl_clients = data;
-	});
-}
-
-function getCloudDestinations() {
-	return $.getJSON('/settings/cloud_destinations', function (data) {
-		cloud_destinations = data;
-	});
-}
-
-function getCloudKeys() {
-	return $.getJSON('/settings/cloud_keys', function (data) {
-		cloud_keys = data;
-	});
-}
-
-function getCloudClients() {
-	return $.getJSON('/settings/cloud_clients', function (data) {
-		cloud_clients = data;
-	});
 }
 
 function loadSources() {
@@ -1295,16 +1331,7 @@ function Add_Source_Save() {
 	arbiterObj.action = 'add';
 	arbiterObj.type = 'source';
 	arbiterObj.source = sourceObj;
-	jQuery.ajax({
-		contentType: 'application/json'
-		, url: '/settings/manage'
-		, type: 'POST'
-		, data: JSON.stringify(arbiterObj)
-		, dataType: 'json'
-		, success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Edit_Source(sourceId) {
@@ -1493,16 +1520,7 @@ function Edit_Source_Save() {
 	arbiterObj.action = 'edit';
 	arbiterObj.type = 'source';
 	arbiterObj.source = sourceObj;
-	jQuery.ajax({
-		contentType: 'application/json'
-		, url: '/settings/manage'
-		, type: 'POST'
-		, data: JSON.stringify(arbiterObj)
-		, dataType: 'json'
-		, success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Delete_Source(sourceId) {
@@ -1514,16 +1532,7 @@ function Delete_Source(sourceId) {
 	arbiterObj.action = 'delete';
 	arbiterObj.type = 'source';
 	arbiterObj.sourceId = sourceId;
-	jQuery.ajax({
-		contentType: 'application/json'
-		, url: '/settings/manage'
-		, type: 'POST'
-		, data: JSON.stringify(arbiterObj)
-		, dataType: 'json'
-		, success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Cancel_Source() {
@@ -1572,16 +1581,7 @@ function Add_Device_Save() {
 	arbiterObj.action = 'add';
 	arbiterObj.type = 'device';
 	arbiterObj.device = deviceObj;
-	jQuery.ajax({
-		contentType: 'application/json'
-		, url: '/settings/manage'
-		, type: 'POST'
-		, data: JSON.stringify(arbiterObj)
-		, dataType: 'json'
-		, success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Edit_Device(deviceId) {
@@ -1664,16 +1664,7 @@ function Edit_Device_Save() {
 	arbiterObj.action = 'edit';
 	arbiterObj.type = 'device';
 	arbiterObj.device = deviceObj;
-	jQuery.ajax({
-		contentType: 'application/json'
-		, url: '/settings/manage'
-		, type: 'POST'
-		, data: JSON.stringify(arbiterObj)
-		, dataType: 'json'
-		, success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Cancel_Device() {
@@ -1696,16 +1687,7 @@ function Delete_Device(deviceId) {
 			return false;
 		}
 	}
-	jQuery.ajax({
-		contentType: 'application/json'
-		, url: '/settings/manage'
-		, type: 'POST'
-		, data: JSON.stringify(arbiterObj)
-		, dataType: 'json'
-		, success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Edit_Device_Sources(deviceId) {
@@ -1817,16 +1799,7 @@ function Add_Device_Source_Save() {
 	arbiterObj.action = 'add';
 	arbiterObj.type = 'device_source';
 	arbiterObj.device_source = deviceSourceObj;
-	jQuery.ajax({
-		contentType: 'application/json'
-		, url: '/settings/manage'
-		, type: 'POST'
-		, data: JSON.stringify(arbiterObj)
-		, dataType: 'json'
-		, success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Edit_Device_Source(deviceSourceId) {
@@ -1882,16 +1855,7 @@ function Edit_Device_Source_Save() {
 	arbiterObj.type = 'device_source';
 	arbiterObj.device_source = deviceSourceObj;
 	console.log(arbiterObj);
-	jQuery.ajax({
-		contentType: 'application/json'
-		, url: '/settings/manage'
-		, type: 'POST'
-		, data: JSON.stringify(arbiterObj)
-		, dataType: 'json'
-		, success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Cancel_Device_Source() {
@@ -1908,16 +1872,7 @@ function Delete_Device_Source(deviceSourceId) {
 	arbiterObj.type = 'device_source';
 	arbiterObj.device_source = {};
 	arbiterObj.device_source.id = deviceSourceId;
-	jQuery.ajax({
-		contentType: 'application/json'
-		, url: '/settings/manage'
-		, type: 'POST'
-		, data: JSON.stringify(arbiterObj)
-		, dataType: 'json'
-		, success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Close_Device_Sources() {
@@ -2123,16 +2078,7 @@ function Add_Device_Action_Save() {
 	arbiterObj.action = 'add';
 	arbiterObj.type = 'device_action';
 	arbiterObj.device_action = deviceActionObj;
-	jQuery.ajax({
-		contentType: 'application/json'
-		, url: '/settings/manage'
-		, type: 'POST'
-		, data: JSON.stringify(arbiterObj)
-		, dataType: 'json'
-		, success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Edit_Device_Action(deviceActionId) {
@@ -2263,16 +2209,7 @@ function Edit_Device_Action_Save() {
 	arbiterObj.action = 'edit';
 	arbiterObj.type = 'device_action';
 	arbiterObj.device_action = deviceActionObj;
-	jQuery.ajax({
-		contentType: 'application/json',
-		url: '/settings/manage',
-		type: 'POST',
-		data: JSON.stringify(arbiterObj),
-		dataType: 'json',
-		success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Cancel_Device_Action() {
@@ -2289,16 +2226,7 @@ function Delete_Device_Action(deviceActionId) {
 	arbiterObj.type = 'device_action';
 	arbiterObj.device_action = {};
 	arbiterObj.device_action.id = deviceActionId;
-	jQuery.ajax({
-		contentType: 'application/json',
-		url: '/settings/manage',
-		type: 'POST',
-		data: JSON.stringify(arbiterObj),
-		dataType: 'json',
-		success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Close_Device_Actions() {
@@ -2353,16 +2281,7 @@ function Add_TSL_Client_Save() {
 	arbiterObj.action = 'add';
 	arbiterObj.type = 'tsl_client';
 	arbiterObj.tslClient = tslClientObj;
-	jQuery.ajax({
-		contentType: 'application/json',
-		url: '/settings/manage',
-		type: 'POST',
-		data: JSON.stringify(arbiterObj),
-		dataType: 'json',
-		success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Edit_TSL_Client(tslClientId) {
@@ -2437,16 +2356,7 @@ function Edit_TSL_Client_Save() {
 	arbiterObj.action = 'edit';
 	arbiterObj.type = 'tsl_client';
 	arbiterObj.tslClient = tslClientObj;
-	jQuery.ajax({
-		contentType: 'application/json',
-		url: '/settings/manage',
-		type: 'POST',
-		data: JSON.stringify(arbiterObj),
-		dataType: 'json',
-		success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Cancel_TSL_Client() {
@@ -2458,16 +2368,7 @@ function Delete_TSL_Client(tslClientId) {
 	arbiterObj.action = 'delete';
 	arbiterObj.type = 'tsl_client';
 	arbiterObj.tslClientId = tslClientId;
-	jQuery.ajax({
-		contentType: 'application/json',
-		url: '/settings/manage',
-		type: 'POST',
-		data: JSON.stringify(arbiterObj),
-		dataType: 'json',
-		success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Add_Cloud_Destination() {
@@ -2516,16 +2417,7 @@ function Add_Cloud_Destination_Save() {
 	arbiterObj.action = 'add';
 	arbiterObj.type = 'cloud_destination';
 	arbiterObj.cloudDestination = cloudObj;
-	jQuery.ajax({
-		contentType: 'application/json',
-		url: '/settings/manage',
-		type: 'POST',
-		data: JSON.stringify(arbiterObj),
-		dataType: 'json',
-		success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Edit_Cloud_Destination(cloudId) {
@@ -2592,16 +2484,7 @@ function Edit_Cloud_Destination_Save() {
 	arbiterObj.action = 'edit';
 	arbiterObj.type = 'cloud_destination';
 	arbiterObj.cloudDestination = cloudObj;
-	jQuery.ajax({
-		contentType: 'application/json',
-		url: '/settings/manage',
-		type: 'POST',
-		data: JSON.stringify(arbiterObj),
-		dataType: 'json',
-		success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Cancel_Cloud_Destination() {
@@ -2613,16 +2496,7 @@ function Delete_Cloud_Destination(cloudId) {
 	arbiterObj.action = 'delete';
 	arbiterObj.type = 'cloud_destination';
 	arbiterObj.cloudId = cloudId;
-	jQuery.ajax({
-		contentType: 'application/json',
-		url: '/settings/manage',
-		type: 'POST',
-		data: JSON.stringify(arbiterObj),
-		dataType: 'json',
-		success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Reconnect_Cloud_Destination(cloudDestinationId) {
@@ -2655,16 +2529,7 @@ function Add_Cloud_Key_Save() {
 	arbiterObj.action = 'add';
 	arbiterObj.type = 'cloud_key';
 	arbiterObj.key = $('#txtCloudKey')[0].value;
-	jQuery.ajax({
-		contentType: 'application/json',
-		url: '/settings/manage',
-		type: 'POST',
-		data: JSON.stringify(arbiterObj),
-		dataType: 'json',
-		success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
+	socket.emit('manage', arbiterObj);
 }
 
 function Cancel_Cloud_Key() {
@@ -2677,16 +2542,7 @@ function Delete_Cloud_Key(key) {
 		arbiterObj.action = 'delete';
 		arbiterObj.type = 'cloud_key';
 		arbiterObj.key = key;
-		jQuery.ajax({
-			contentType: 'application/json',
-			url: '/settings/manage',
-			type: 'POST',
-			data: JSON.stringify(arbiterObj),
-			dataType: 'json',
-			success: function (data) {
-				ProcessAPIResponse(data);
-			}
-		});
+		socket.emit('manage', arbiterObj);
 	}
 }
 
@@ -2695,115 +2551,8 @@ function Remove_Cloud_Client(id) {
 	arbiterObj.action = 'remove';
 	arbiterObj.type = 'cloud_client';
 	arbiterObj.id = id;
-	jQuery.ajax({
-		contentType: 'application/json',
-		url: '/settings/manage',
-		type: 'POST',
-		data: JSON.stringify(arbiterObj),
-		dataType: 'json',
-		success: function (data) {
-			ProcessAPIResponse(data);
-		}
-	});
-}
 
-function ProcessAPIResponse(response) {
-	//process the various responses from the API and display them in the log				
-	let responseText = '';
-	switch (response.result) {
-		case 'source-added-successfully':
-		case 'source-edited-successfully':
-		case 'source-deleted-successfully':
-			$("#addSource").modal('hide');
-			$('#divContainer_SourceFields')[0].style.display = 'none';
-			$.when(getSources(), getDeviceSources()).done(function () {
-				loadSources();
-				$('#divContainer_DeviceSources')[0].style.display = 'none';
-				$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
-			});
-			break;
-		case 'device-added-successfully':
-		case 'device-edited-successfully':
-		case 'device-deleted-successfully':
-			$("#addDevice").modal('hide');
-			$('#divContainer_DeviceFields')[0].style.display = 'none';
-			$.when(getDevices(), getDeviceSources(), getDeviceStates()).done(function () {
-				loadDevices();
-				loadListeners();
-				$('#divContainer_DeviceFields')[0].style.display = 'none';
-				$('#divContainer_DeviceSources')[0].style.display = 'none';
-				$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
-				$('#divContainer_DeviceActions')[0].style.display = 'none';
-				$('#divContainer_DeviceActionFields')[0].style.display = 'none';
-			});
-			break;
-		case 'device-source-added-successfully':
-		case 'device-source-edited-successfully':
-		case 'device-source-deleted-successfully':
-			$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
-			$.when(getDeviceSources(), getDevices()).done(function () {
-				loadDevices();
-				Edit_Device_Sources(response.deviceId);
-				$('#divContainer_DeviceFields')[0].style.display = 'none';
-				$('#divContainer_DeviceSources')[0].style.display = 'block';
-				$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
-				$('#divContainer_DeviceActions')[0].style.display = 'none';
-				$('#divContainer_DeviceActionFields')[0].style.display = 'none';
-			});
-			break;
-		case 'device-action-added-successfully':
-		case 'device-action-edited-successfully':
-		case 'device-action-deleted-successfully':
-			$('#divContainer_DeviceActionFields')[0].style.display = 'none';
-			$.when(getDeviceActions(), getDevices()).done(function () {
-				loadDevices();
-				Edit_Device_Actions(response.deviceId);
-				$('#divContainer_DeviceFields')[0].style.display = 'none';
-				$('#divContainer_DeviceSources')[0].style.display = 'none';
-				$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
-				$('#divContainer_DeviceActions')[0].style.display = 'block';
-				$('#divContainer_DeviceActionFields')[0].style.display = 'none';
-			});
-			break;
-		case 'tsl-client-added-successfully':
-		case 'tsl-client-edited-successfully':
-		case 'tsl-client-deleted-successfully':
-			$("#modalTSLClient").modal('hide');
-			$('#divContainer_TSLClientFields')[0].style.display = 'none';
-			$.when(getTSLClients()).done(function () {
-				loadTSLClients();
-			});
-			break;
-		case 'cloud-destination-added-successfully':
-		case 'cloud-destination-edited-successfully':
-		case 'cloud-destination-deleted-successfully':
-			$("#modalCloudDestination").modal('hide');
-			$('#divContainer_CloudDestinationFields')[0].style.display = 'none';
-			$.when(getCloudDestinations()).done(function () {
-				loadCloudDestinations();
-			});
-			break;
-		case 'cloud-key-added-successfully':
-		case 'cloud-key-deleted-successfully':
-			$("#modalCloudKey").modal('hide');
-			$('#divContainer_CloudKeyFields')[0].style.display = 'none';
-			$.when(getCloudKeys()).done(function () {
-				loadCloudKeys();
-			});
-			break;
-		case 'cloud-client-removed-successfully':
-			$("#modalCloudClient").modal('hide');
-			$.when(getCloudClients()).done(function () {
-				loadCloudClients();
-			});
-			break;
-		case 'error':
-			responseText = 'Unexpected Error Occurred: ' + response.error;
-			break;
-		default:
-			responseText = response.result;
-			break;
-	}
+	socket.emit('manage', arbiterObj);
 }
 
 function CheckPort(port, sourceId) {
