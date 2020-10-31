@@ -250,11 +250,9 @@ void processTallyData() {
     if (getBusTypeById(JSON.stringify(DeviceStates[i]["busId"])) == "\"program\"") {
       if (DeviceStates[i]["sources"].length() > 0) {
         mode_program = true;
-        digitalWrite(led_program, LOW);
       }
       else {
         mode_program = false;
-        digitalWrite(led_program, HIGH);
       }
     }
   }
@@ -285,6 +283,7 @@ void SetDeviceName() {
 void evaluateMode() {
   M5.Lcd.setCursor(0, 30);
   M5.Lcd.setTextSize(2);
+  digitalWrite(led_program, HIGH);
   
   if (mode_preview && !mode_program) {
     logger("The device is in preview.", "info-quiet");
@@ -295,6 +294,7 @@ void evaluateMode() {
     logger("The device is in program.", "info-quiet");
     M5.Lcd.setTextColor(BLACK);
     M5.Lcd.fillScreen(RED);
+    digitalWrite(led_program, LOW);
   }
   else if (mode_preview && mode_program) {
     logger("The device is in preview+program.", "info-quiet");
