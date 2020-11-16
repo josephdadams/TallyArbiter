@@ -178,6 +178,7 @@ var output_types = [ //output actions that Tally Arbiter can perform
 	{ id: '7dcd66b5', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true},
 	{ id: '276a8dcc', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true },
 	{ id: 'ffe2b0b6', label: 'Outgoing Webhook', type: 'webhook', enabled: true},
+	{ id: '79e3ce27', label: 'Generic TCP', type: 'tcp', enabled: true},
 	{ id: '6dbb7bf7', label: 'Local Console Output', type: 'console', enabled: true },
 	{ id: '58da987d', label: 'OSC Message', type: 'osc', enabled: true }
 ];
@@ -211,6 +212,12 @@ var output_types_datafields = [ //data fields for the outgoing actions
 			{ fieldName: 'path', fieldLabel: 'Path', fieldType: 'text' },
 			{ fieldName: 'method', fieldLabel: 'Method', fieldType: 'dropdown', options: [ { id: 'GET', label: 'GET' }, { id: 'POST', label: 'POST'} ] },
 			{ fieldName: 'postdata', fieldLabel: 'POST Data', fieldType: 'text' }
+		]
+	},
+	{ outputTypeId: '79e3ce27', fields: [ //Generic TCP
+			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
+			{ fieldName: 'string', fieldLabel: 'TCP String', fieldType: 'text' }
 		]
 	},
 	{ outputTypeId: '6dbb7bf7', fields: [ //Local Console Output
@@ -1169,6 +1176,9 @@ function startVMixEmulator() {
 			if (d[0] === 'SUBSCRIBE TALLY') {
 				vmix_clients.push(conn);
 				conn.write('SUBSCRIBE OK TALLY\r\n');
+			}
+			else if (d[0] === 'QUIT') {
+				conn.close();
 			}
 		}
 		function onConnClose() {
@@ -2926,6 +2936,9 @@ function RunAction(deviceId, busId, active) {
 						case 'webhook':
 							RunAction_Webhook(actionObj.data);
 							break;
+						case 'tcp':
+							RunAction_TCP(actionObj.data);
+							break;
 						case 'console':
 							logger(actionObj.data, 'console_action');
 							break;
@@ -3050,6 +3063,34 @@ function RunAction_Webhook(data) {
 	}
 	catch (error) {
 		logger(`An error occured sending the Outgoing Webhook: ${error}`, 'error');
+	}
+}
+
+function RunAction_TCP(data) {
+	try {
+		let tcpClient = new net.Socket();
+		tcpClient.connect(data.port, data.ip);
+
+		tcpClient.on('connect', function() {
+			let sendBuf = Buffer.from(data.string, 'latin1');
+			if (sendBuf !== '') {
+				tcpClient.write(sendBuf);
+				logger(`Generic TCP sent: ${data.ip}:${data.port} : ${data.string}`, 'info');
+				console.log(sendBuf);
+			}
+		});
+
+		tcpClient.on('data', function(data) {
+			tcpClient.end();
+			tcpClient.destroy(); // kill client after server's response
+		});
+
+		tcpClient.on('error', function(error) {
+			logger(`An error occured sending the Generic TCP: ${error}`, 'error');
+		});
+	}
+	catch (error) {
+		logger(`An error occured sending the Generic TCP: ${error}`, 'error');
 	}
 }
 
