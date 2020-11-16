@@ -147,6 +147,7 @@ Once a device is assigned to a source(s), if a matching condition is met, an act
 The following output types are supported:
 * TSL 3.1 UDP/TCP
 * Outgoing Webhook
+* Generic TCP
 * Local Console Output/Logging (useful for testing)
 * Open Sound Control (OSC) (multiple arguments supported)
 
