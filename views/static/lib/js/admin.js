@@ -552,7 +552,7 @@ function loadDevices() {
 			spanSourcesText.className = 'sources_pvw_tooltip';
 			let sourceText = '';
 			for (let j = 0; j < sources_pvw.length; j++) {
-				sourceText += GetSourceById(sources_pvw[j]).name;
+				sourceText += GetSourceById(sources_pvw[j].sourceId).name;
 				if ((j > 0) && (j < sources_pvw.length - 1)) {
 				sourceText += ', ';
 				}
@@ -573,7 +573,7 @@ function loadDevices() {
 			spanSourcesText.className = 'sources_pgm_tooltip';
 			let sourceText = '';
 			for (let j = 0; j < sources_pgm.length; j++) {
-				sourceText += GetSourceById(sources_pgm[j]).name;
+				sourceText += GetSourceById(sources_pgm[j].sourceId).name;
 				if ((j > 0) && (j < sources_pgm.length - 1)) {
 				sourceText += ', ';
 				}
@@ -680,10 +680,10 @@ function loadDeviceStates() {
 					spanSourcesText.className = 'sources_pvw_tooltip';
 					let sourceText = '';
 					for (let j = 0; j < sources_pvw.length; j++) {
-					sourceText += GetSourceById(sources_pvw[j]).name;
-					if ((j > 0) && (j < sources_pvw.length - 1)) {
-						sourceText += ', ';
-					}
+						sourceText += GetSourceById(sources_pvw[j].sourceId).name;
+						if ((j > 0) && (j < sources_pvw.length - 1)) {
+							sourceText += ', ';
+						}
 					}
 					spanSourcesText.innerHTML = sourceText;
 					tdDeviceTallyStatus_PVW.innerHTML = '';
@@ -704,10 +704,10 @@ function loadDeviceStates() {
 					spanSourcesText.className = 'sources_pgm_tooltip';
 					let sourceText = '';
 					for (let j = 0; j < sources_pgm.length; j++) {
-					sourceText += GetSourceById(sources_pgm[j]).name;
-					if ((j > 0) && (j < sources_pgm.length - 1)) {
-						sourceText += ', ';
-					}
+						sourceText += GetSourceById(sources_pgm[j].sourceId).name;
+						if ((j > 0) && (j < sources_pgm.length - 1)) {
+							sourceText += ', ';
+						}
 					}
 					spanSourcesText.innerHTML = sourceText;
 					tdDeviceTallyStatus_PGM.innerHTML = '';

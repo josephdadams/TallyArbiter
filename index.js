@@ -891,7 +891,6 @@ function initialSetup() {
 
 						let busId_preview = null;
 						let busId_program = null;
-						//let busId_previewprogram = null;
 
 						for (let i = 0; i < bus_options.length; i++) {
 							switch(bus_options[i].type) {
@@ -901,9 +900,6 @@ function initialSetup() {
 								case 'program':
 									busId_program = bus_options[i].id;
 									break;
-								/*case 'previewprogram':
-									busId_previewprogram = bus_options[i].id;
-									break;*/
 								default:
 									break;
 							}
@@ -920,12 +916,6 @@ function initialSetup() {
 						deviceStateObj_program.busId = busId_program;
 						deviceStateObj_program.sources = [];
 						device_states.push(deviceStateObj_program);
-
-						/*let deviceStateObj_previewprogram = {};
-						deviceStateObj_previewprogram.deviceId = data[i].id;
-						deviceStateObj_previewprogram.busId = busId_previewprogram;
-						deviceStateObj_previewprogram.sources = [];
-						device_states.push(deviceStateObj_previewprogram);*/
 					}
 				}
 
@@ -1412,7 +1402,6 @@ function initializeDeviceStates() { // initializes each device state in the arra
 
 	let busId_preview = null;
 	let busId_program = null;
-	//let busId_previewprogram = null;
 
 	for (let i = 0; i < bus_options.length; i++) {
 		switch(bus_options[i].type) {
@@ -1422,9 +1411,6 @@ function initializeDeviceStates() { // initializes each device state in the arra
 			case 'program':
 				busId_program = bus_options[i].id;
 				break;
-			/*case 'previewprogram':
-				busId_previewprogram = bus_options[i].id;
-				break;*/
 			default:
 				break;
 		}
@@ -1442,12 +1428,6 @@ function initializeDeviceStates() { // initializes each device state in the arra
 		deviceStateObj_program.busId = busId_program;
 		deviceStateObj_program.sources = [];
 		device_states.push(deviceStateObj_program);
-
-		/*let deviceStateObj_previewprogram = {};
-		deviceStateObj_previewprogram.deviceId = devices[i].id;
-		deviceStateObj_previewprogram.busId = busId_previewprogram;
-		deviceStateObj_previewprogram.sources = [];
-		device_states.push(deviceStateObj_previewprogram);*/
 	}
 
 	logger('Device States Initialized.', 'info-quiet');
@@ -2736,13 +2716,14 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 	for (let i = 0; i < device_sources.length; i++) {
 		if ((device_sources[i].sourceId === sourceId) && (device_sources[i].address === tallyObj.address.toString())) {
 			deviceId = device_sources[i].deviceId;
-			break;
+			CheckDeviceState(deviceId, sourceId, tallyObj);
 		}
 	}
+}
 
+function CheckDeviceState(deviceId, sourceId, tallyObj) {
 	let busId_preview = null;
 	let busId_program = null;
-	//let busId_previewprogram = null;
 
 	for (let i = 0; i < bus_options.length; i++) {
 		switch(bus_options[i].type) {
@@ -2752,9 +2733,6 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 			case 'program':
 				busId_program = bus_options[i].id;
 				break;
-			/*case 'previewprogram':
-				busId_previewprogram = bus_options[i].id;
-				break;*/
 			default:
 				break;
 		}
@@ -2763,77 +2741,57 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 	if (deviceId !== null) {
 		//do something with the device given the current state
 
-		let inPreview = false;
-		let inProgram = false;
-
 		for (let i = 0; i < device_states.length; i++) {
 			if (device_states[i].deviceId === deviceId) {
 				if (device_states[i].busId === busId_preview) {
-					if (device_states[i].sources.includes(sourceId)) {
-						//if the device is currently marked as in preview, let's check and see if we should remove it
-						if (!tallyObj.tally1) {
-							//remove it, it's no longer in preview on that source
-							device_states[i].sources.splice(device_states[i].sources.indexOf(sourceId));
-							inPreview = false;
-						}
-						else {
-							inPreview = true;
+					let sourceAddressFound = false;
+					for (let j = 0; j < device_states[i].sources.length; j++) {
+						if (device_states[i].sources[j].sourceId === sourceId) {
+							if (device_states[i].sources[j].address === tallyObj.address) {
+								sourceAddressFound = true;
+								if (!tallyObj.tally1) {
+									device_states[i].sources.splice(j, 1);
+								}
+							}
 						}
 					}
-					else {
-						//if the device is currently not marked as in preview, let's check and see if we should include it
+
+					if (!sourceAddressFound) {
 						if (tallyObj.tally1) {
-							//add it, it's not already in preview on this source
-							device_states[i].sources.push(sourceId);
-							inPreview = true;
+							//add it, it's not already in preview on this source and address
+							let sourceObj = {};
+							sourceObj.sourceId = sourceId;
+							sourceObj.address = tallyObj.address;
+							device_states[i].sources.push(sourceObj);
 						}
 					}
 				}
 
 				if (device_states[i].busId === busId_program) {
-					if (device_states[i].sources.includes(sourceId)) {
-						//if the device is currently marked as in program, let's check and see if we should remove it
-						if (!tallyObj.tally2) {
-							//remove it, it's no longer in program on that source
-							device_states[i].sources.splice(device_states[i].sources.indexOf(sourceId));
-							inProgram = false;
-						}
-						else {
-							inProgram = true;
+					let sourceAddressFound = false;
+					for (let j = 0; j < device_states[i].sources.length; j++) {
+						if (device_states[i].sources[j].sourceId === sourceId) {
+							if (device_states[i].sources[j].address === tallyObj.address) {
+								sourceAddressFound = true;
+								if (!tallyObj.tally2) {
+									device_states[i].sources.splice(j, 1);
+								}
+							}
 						}
 					}
-					else {
-						//if the device is currently not marked as in program, let's check and see if we should include it
+
+					if (!sourceAddressFound) {
 						if (tallyObj.tally2) {
-							//add it, it's not already in program on this source
-							device_states[i].sources.push(sourceId);
-							inProgram = true;
+							//add it, it's not already in preview on this source and address
+							let sourceObj = {};
+							sourceObj.sourceId = sourceId;
+							sourceObj.address = tallyObj.address;
+							device_states[i].sources.push(sourceObj);
 						}
 					}
 				}
 			}
 		}
-
-		/*for (let i = 0; i < device_states.length; i++) {
-			if (device_states[i].deviceId === deviceId) {
-				if (device_states[i].busId === busId_previewprogram) {
-					if (device_states[i].sources.includes(sourceId)) {
-						//if the device is currently marked as in preview+program, let's check and see if we should remove it
-						if ((!inPreview) && (!inProgram)) {
-							//remove it, it's no longer in preview+program on that source
-							device_states[i].sources.splice(device_states[i].sources.indexOf(sourceId));
-						}
-					}
-					else {
-						//if the device is currently not marked as in preview+program, let's check and see if we should include it
-						if ((inPreview) && (inProgram)) {
-							//add it, it's not already in preview+program on this source
-							device_states[i].sources.push(sourceId);
-						}
-					}
-				}
-			}
-		}*/
 
 		UpdateDeviceState(deviceId);
 		UpdateSockets('device_states');
@@ -2846,7 +2804,6 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 function UpdateDeviceState(deviceId) {
 	let busId_preview = null;
 	let busId_program = null;
-	//let busId_previewprogram = null;
 
 	for (let i = 0; i < bus_options.length; i++) {
 		switch(bus_options[i].type) {
@@ -2856,16 +2813,10 @@ function UpdateDeviceState(deviceId) {
 			case 'program':
 				busId_program = bus_options[i].id;
 				break;
-			/*case 'previewprogram':
-				busId_previewprogram = bus_options[i].id;
-				break;*/
 			default:
 				break;
 		}
 	}
-
-	let inPreview = null;
-	let inProgram = null;
 
 	for (let i = 0; i < device_states.length; i++) {
 		if (device_states[i].deviceId === deviceId) {
@@ -2893,18 +2844,6 @@ function UpdateDeviceState(deviceId) {
 					device_states[i].active = false;
 				}
 			}
-			/*else if (device_states[i].busId === busId_previewprogram) {
-				if ((device_states[i].sources.length > 0) && (!device_states[i].active)) {
-					//if the sources list is now greater than zero and the state is not already marked active for this device, run the action and make it active
-					RunAction(deviceId, device_states[i].busId, true);
-					device_states[i].active = true;
-				}
-				else if ((device_states[i].sources.length < 1) && (device_states[i].active)) {
-					//if the source list is now zero and the state is marked active, run the action and make it inactive
-					RunAction(deviceId, device_states[i].busId, false);
-					device_states[i].active = false;
-				}
-			}*/
 		}
 	}
 }
@@ -3317,47 +3256,40 @@ function RegisterDisconnect(sourceId) {
 function CheckReconnect(sourceId) {
 	let source = GetSourceBySourceId(sourceId);
 
-	if (source.connected === false) {
-		let found = false;
-
-		for (let i = 0; i < source_reconnects.length; i++) {
-			if (source_reconnects[i].sourceId === sourceId) {
-				found = true;
-				if (source_reconnects[i].forcibly !== true) {
-					if (source_reconnects[i].attempts < 5) {
-						source_reconnects[i].attempts = source_reconnects[i].attempts + 1;
-						logger(`Attempting to reconnect to ${source.name} (${source_reconnects[i].attempts} of 5)`, 'info');
-						StartConnection(sourceId);
-						setTimeout(CheckReconnect, 5000, sourceId);
+	if (source) {
+		if (source.connected === false) {
+			let found = false;
+	
+			for (let i = 0; i < source_reconnects.length; i++) {
+				if (source_reconnects[i].sourceId === sourceId) {
+					found = true;
+					if (source_reconnects[i].forcibly !== true) {
+						if (source_reconnects[i].attempts < 5) {
+							source_reconnects[i].attempts = source_reconnects[i].attempts + 1;
+							logger(`Attempting to reconnect to ${source.name} (${source_reconnects[i].attempts} of 5)`, 'info');
+							StartConnection(sourceId);
+							setTimeout(CheckReconnect, 5000, sourceId);
+						}
 					}
+					break;
 				}
-				break;
+			}
+	
+			if (!found) {
+				let reconnectObj = {};
+				reconnectObj.sourceId = sourceId;
+				reconnectObj.forcibly = false;
+				reconnectObj.attempts = 1;
+				source_reconnects.push(reconnectObj);
+				logger(`Attempting to reconnect to ${source.name} (${reconnectObj.attempts} of 5)`, 'info');
+				StartConnection(sourceId);
+				setTimeout(CheckReconnect, 5000, sourceId);
 			}
 		}
-
-		if (!found) {
-			let reconnectObj = {};
-			reconnectObj.sourceId = sourceId;
-			reconnectObj.forcibly = false;
-			reconnectObj.attempts = 1;
-			source_reconnects.push(reconnectObj);
-			logger(`Attempting to reconnect to ${source.name} (${reconnectObj.attempts} of 5)`, 'info');
-			StartConnection(sourceId);
-			setTimeout(CheckReconnect, 5000, sourceId);
+		else {
+			UnregisterReconnect(sourceId);
 		}
 	}
-	else {
-		UnregisterReconnect(sourceId);
-	}
-
-	/*
-	if there's an entry here, check to see if forcibly = true
-	if forcibly = true, then it was purposely closed or stopped, so don't reconnect it
-	if forcibly = false, then let's try to reconnect, but check how many retries have happened so far
-	if there's no entry, let's add one but mark forcibly = false since this was just a close that happened unexpectedly
-
-	When a connection is re-estalished, then the entry in this array needs to be removed
-	*/
 }
 
 function UnregisterReconnect(sourceId) {
@@ -3946,7 +3878,6 @@ function TallyArbiter_Add_Device(obj) {
 
 	let busId_preview = null;
 	let busId_program = null;
-	//let busId_previewprogram = null;
 
 	for (let i = 0; i < bus_options.length; i++) {
 		switch(bus_options[i].type) {
@@ -3956,9 +3887,6 @@ function TallyArbiter_Add_Device(obj) {
 			case 'program':
 				busId_program = bus_options[i].id;
 				break;
-			/*case 'previewprogram':
-				busId_previewprogram = bus_options[i].id;
-				break;*/
 			default:
 				break;
 		}
@@ -3975,12 +3903,6 @@ function TallyArbiter_Add_Device(obj) {
 	deviceStateObj_program.busId = busId_program;
 	deviceStateObj_program.sources = [];
 	device_states.push(deviceStateObj_program);
-
-	/*let deviceStateObj_previewprogram = {};
-	deviceStateObj_previewprogram.deviceId = deviceObj.id;
-	deviceStateObj_previewprogram.busId = busId_previewprogram;
-	deviceStateObj_previewprogram.sources = [];
-	device_states.push(deviceStateObj_previewprogram);*/
 
 	SendTSLClientData(deviceObj.id);
 
