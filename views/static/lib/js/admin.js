@@ -1763,38 +1763,57 @@ function Edit_Device_Sources(deviceId) {
 function Add_Device_Source(deviceId) {
 	let divDeviceSourceFields = $('#divDeviceSourceFields')[0];
 	divDeviceSourceFields.innerHTML = '';
-	let selDeviceSource = document.createElement('select');
-	selDeviceSource.style.display = 'block';
-	selDeviceSource.id = 'selDeviceSource';
-	for (let i = 0; i < sources.length; i++) {
-		if (sources[i].enabled === true) {
-			let opt = sources[i];
-			let el = document.createElement('option');
-			el.textContent = opt.name;
-			el.value = opt.id;
-			selDeviceSource.appendChild(el);
-		}
-	}
-	divDeviceSourceFields.appendChild(selDeviceSource);
-	let spanDeviceSourceAddressName = document.createElement('span');
-	spanDeviceSourceAddressName.innerHTML = 'Address:';
-	divDeviceSourceFields.appendChild(spanDeviceSourceAddressName);
-	let txtDeviceSourceAddress = document.createElement('input');
-	txtDeviceSourceAddress.type = 'text';
-	txtDeviceSourceAddress.id = 'txtAddDeviceSourceAddress';
-	txtDeviceSourceAddress.style.display = 'block';
-	divDeviceSourceFields.appendChild(txtDeviceSourceAddress);
+    
+    $(divDeviceSourceFields).append($('<select>',{
+        id:'selDeviceSource',
+        style:'display:block'
+    }));
+    $.each( sources.filter(src => src.enabled === true), function( key, source ) {
+        $('#selDeviceSource').append($('<option>',{
+            value:source.id,
+            text:source.name
+        }));
+    });    
+    $(divDeviceSourceFields).append($('<span>', {
+        text: 'Select Address:'
+    }));
+    $(divDeviceSourceFields).append('<select id="addDeviceSourceAddressSelect" style="display:block;"></select>');
+    $(divDeviceSourceFields).append($('<span>', {
+        text: 'Or Enter Manually:'
+    }));
+    $(divDeviceSourceFields).append($('<input>', {
+        id: 'txtAddDeviceSourceAddress',
+        style: 'display:block;margin-bottom:5px;'
+    }));
 	$('#divContainer_DeviceSourceFields')[0].style.display = 'block';
 	$('#btnAdd_DeviceSource_Save')[0].style.display = 'block';
 	$('#btnEdit_DeviceSource_Save')[0].style.display = 'none';
 	selectedDeviceId = deviceId;
+    //Trigger a change of selDeviceSource to fetch up to date source list using the below event listener
+    $('#selDeviceSource').change();
 }
+//Triggered when a new device source is selected, and when the modal is initially loaded by the Add_Device_Source method
+$(document).on( "change", '#selDeviceSource',function(){
+    $('#addDeviceSourceAddressSelect').empty().append($('<option>'));
+    $.getJSON( "/settings/source_tallydata/" + $('#selDeviceSource').find(":selected").val(), function( tallydata ) {
+        $.each( tallydata, function( key, data ) {
+            $('#addDeviceSourceAddressSelect').append($('<option>', {
+                text: data.address
+            }));
+        });        
+    });
+});
 
 function Add_Device_Source_Save() {
 	let deviceSourceObj = {};
 	deviceSourceObj.deviceId = selectedDeviceId;
 	deviceSourceObj.sourceId = $('#selDeviceSource')[0].options[$('#selDeviceSource')[0].selectedIndex].value;
-	deviceSourceObj.address = $('#txtAddDeviceSourceAddress')[0].value;
+    //Prefer a manual address over a selected one
+    if($('#txtAddDeviceSourceAddress').val().length > 0){
+        deviceSourceObj.address = $('#txtAddDeviceSourceAddress').val();
+    }else{
+        deviceSourceObj.address = $('#addDeviceSourceAddressSelect').find(":selected").text();
+    }
 	let arbiterObj = {};
 	arbiterObj.action = 'add';
 	arbiterObj.type = 'device_source';

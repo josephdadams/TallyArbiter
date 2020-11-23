@@ -398,6 +398,38 @@ function initialSetup() {
 		//gets all Tally Device Sources
 		res.send(device_sources);
 	});
+    
+    appSettings.get('/source_tallydata/:sourceid', function (req, res) {
+		//gets all Source Tally Data
+        let sourceId = req.params.sourceid;
+        let source = sources.find(src => src.id === req.params.sourceid);
+        let result = false;
+        
+        //Note: results from all except OBS and Tricaster commented out as either no device currently in warehouse to test with and/or
+        //the data structure of these objects seems to differ, perhaps a common structure for tally data objects would be good in the future
+        //so it can be dealt with in the same manner elsewhere.
+        
+        switch(source.sourceTypeId){
+            case '44b8bc4f': //Blackmagic ATEM
+                //result = tallydata_ATEM;
+                break;
+            case '4eb73542': //OBS
+                result = tallydata_OBS;
+                break;
+            case 'f2b7dc72': //Tricaster
+                result = tallydata_TC;
+                break;
+            case 'a378e29d': //Analog Way Livecore
+                //result = tallydata_AWLivecore;
+                break;
+        }
+        if(result !== false){
+            result = result.filter(tally => tally.sourceId == sourceId);
+            res.send(result);
+        }else{
+            res.send(new Array());
+        }
+	});    
 
 	appSettings.get('/device_actions', function (req, res) {
 		//gets all Tally Device Actions
@@ -1843,13 +1875,19 @@ function SetUpOBSServer(sourceId) {
 
 					source_connections[i].server.on('ConnectionOpened', function (data) {
 						logger(`Source: ${source.name}  OBS Connection opened.`, 'info');
-						for (let j = 0; j < sources.length; j++) {
-							if (sources[j].id === sourceId) {
-								sources[j].connected = true;
-								UnregisterReconnect(sources[j].id);
-								break;
-							}
-						}
+                        //Retrieve all the current sources and add them
+                        source_connections[i].server.sendCallback('GetSourcesList', function(err,data){
+                            if(err || data.sources == undefined) return;
+                            data.sources.forEach(source => {
+                                addOBSSource(sourceId,source.name);
+                            });
+                        });
+                        var sourceIndex = sources.findIndex(src => src.id == sourceId);
+                        if(sourceIndex !== undefined){
+                            console.log('found index',sourceIndex);
+                            sources[sourceIndex].connected = true; //todo fix
+                            UnregisterReconnect(sources[sourceIndex].id);
+                        }
 						UpdateSockets('sources');
 						UpdateCloud('sources');
 					});
@@ -1896,6 +1934,21 @@ function SetUpOBSServer(sourceId) {
 							}
 						}
 					});
+                    
+                    source_connections[i].server.on('SourceCreated', function (data) {
+						logger(`Source: ${source.name}  New source created`, 'info-quiet');
+                        addOBSSource(sourceId,data.sourceName);
+					});
+                    
+                    source_connections[i].server.on('SourceDestroyed', function (data) {
+                        deleteOBSSource(sourceId,data.sourceName);
+					});
+                    
+                    source_connections[i].server.on('SourceRenamed', function (data) {
+						logger(`Source: ${source.name}  Source renamed`, 'info-quiet');
+                        renameOBSSource(sourceId,data.previousName,data.newName);                        
+					});
+                    
 				}
 				catch(error) {
 					logger(`Source: ${source.name}  OBS Error: ${error}`, 'error');
@@ -1910,30 +1963,50 @@ function SetUpOBSServer(sourceId) {
 	}
 }
 
+function addOBSSource(sourceId,name){
+    //Double check its not there already, this also allows methods like processOBSTally to call this without caring whether it already exists or not
+    var exists = tallydata_OBS.find(function(src){
+        return (src.sourceId == sourceId && src.address == name);
+    });
+    if(exists !== undefined) return;
+    //Doesn't exist, add it
+    tallydata_OBS.push({
+        sourceId: sourceId,
+        label: name,
+        address: name,
+        tally1: 0,
+        tally2: 0,
+        tally3: 0,
+        tally4: 0
+    });
+    logger(`OBS Tally Source: ${sourceId} Added new source: ${name}`, 'info-quiet');
+}
+
+function renameOBSSource(sourceId,oldname,newname){
+    let sourceIndex = tallydata_OBS.findIndex(src => src.sourceId === sourceId && src.address === oldname);
+    if(sourceIndex === undefined) return;
+    tallydata_OBS[sourceIndex].label = newname;
+    tallydata_OBS[sourceIndex].address = newname;
+    logger(`OBS Tally Source: ${sourceId} Renamed source: ${oldname} to ${newname}`, 'info-quiet');
+    let deviceSourceIndex = device_sources.findIndex(src => src.sourceId === sourceId && src.address === oldname);
+    if(deviceSourceIndex > -1){
+        device_sources[deviceSourceIndex].address = newname;
+        UpdateCloud('device_sources');
+        logger(`Device Source Edited: ${deviceName} - ${sourceName}`, 'info');
+    }    
+}
+
+function deleteOBSSource(sourceId,name){
+    let sourceIndex = tallydata_OBS.findIndex(src => src.sourceId === sourceId && src.address === name);
+    if(!sourceIndex) return;
+    tallydata_OBS.splice(sourceIndex, 1);
+    logger(`OBS Tally Source: ${sourceId}  Source: ${name} removed`, 'info-quiet');
+    //Note: currently will not delete the mapping from device_sources, in case its needed again?
+}
+
 function processOBSTally(sourceId, sourceArray, tallyType) {
 	for (let i = 0; i < sourceArray.length; i++) {
-		let obsSourceFound = false;
-		for (let j = 0; j < tallydata_OBS.length; j++) {
-			if (tallydata_OBS[j].sourceId === sourceId) {
-				if (tallydata_OBS[j].address === sourceArray[i].name) {
-					obsSourceFound = true;
-					break;
-				}
-			}
-		}
-
-		if (!obsSourceFound) {
-			//the source is not in the OBS array, we don't know anything about it, so add it to the array
-			let obsTallyObj = {};
-			obsTallyObj.sourceId = sourceId;
-			obsTallyObj.label = sourceArray[i].name;
-			obsTallyObj.address = sourceArray[i].name;
-			obsTallyObj.tally4 = 0;
-			obsTallyObj.tally3 = 0;
-			obsTallyObj.tally2 = 0; // PGM
-			obsTallyObj.tally1 = 0; // PVW
-			tallydata_OBS.push(obsTallyObj);
-		}
+        addOBSSource(sourceId,sourceArray[i].name);
 	}
 
 	for (let i = 0; i < tallydata_OBS.length; i++) {
