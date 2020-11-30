@@ -88,14 +88,34 @@
 					<div class="modal-dialog modal-dialog-centered" role="document">
 						<div class="modal-content">
 							<div class="modal-header">
-							<h5 class="modal-title" id="">Device Sources</h5>
+							<h5 class="modal-title" id="hDeviceSources">Device Sources</h5>
 							<button type="button" class="close" data-dismiss="modal" aria-label="Close"  id='btnDeviceSources_Close' onclick='Close_Device_Sources();'>
 								<span aria-hidden="true">&times;</span>
 							</button>
 							</div>
 							<div class="modal-body">
 								<div id='divContainer_DeviceSources'>
-									<div id='divDeviceSources_DeviceName'></div>
+									<div id='divDeviceSourcesLinking'>
+										<b>Device Source Linking - Preview Bus:</b>
+										<div class="form-check">
+											<input type="radio" class="form-check-input" id="rdoDeviceSourcesPVWUnlinked" name="deviceSourcePVWLinking" onClick="UpdateDeviceSourceLink('preview', false);">
+											<label class="form-check-label" for="rdoDeviceSourcesPVWUnlinked">Unlinked: The device can be in PVW if it is in PVW in <b>any</b> Device Source (default)</label>
+										</div>
+										<div class="form-check">
+											<input type="radio" class="form-check-input" id="rdoDeviceSourcesPVWLinked" name="deviceSourcePVWLinking" onClick="UpdateDeviceSourceLink('preview', true);">
+											<label class="form-check-label" for="rdoDeviceSourcesPVWLinked">Linked: The device is only considered to be in PVW if it is in PVW across <b>all</b> Device Sources.</label>
+										</div>
+										<br />
+										<b>Device Source Linking - Program Bus:</b>
+										<div class="form-check">
+											<input type="radio" class="form-check-input" id="rdoDeviceSourcesPGMUnlinked" name="deviceSourcePGMLinking" onClick="UpdateDeviceSourceLink('program', false);">
+											<label class="form-check-label" for="rdoDeviceSourcesPGMUnlinked">Unlinked: The device can be in PGM if it is in PGM in <b>any</b> Device Source (default)</label>
+										</div>
+										<div class="form-check">
+											<input type="radio" class="form-check-input" id="rdoDeviceSourcesPGMLinked" name="deviceSourcePGMLinking" onClick="UpdateDeviceSourceLink('program', true);">
+											<label class="form-check-label" for="rdoDeviceSourcesPGMLinked">Linked: The device is only considered to be in PGM if it is in PGM across <b>all</b> Device Sources.</label>
+										</div>
+									</div>
 									<div id='divDeviceSources'></div>
 								</div>
 						
@@ -113,14 +133,13 @@
 					<div class="modal-dialog modal-dialog-centered" role="document">
 						<div class="modal-content">
 							<div class="modal-header">
-							<h5 class="modal-title" id="">Device Actions</h5>
+							<h5 class="modal-title" id="hDeviceActions">Device Actions</h5>
 							<button type="button" class="close" data-dismiss="modal" aria-label="Close"  id='btnDeviceActions_Close' onclick='Close_Device_Actions();'>
 								<span aria-hidden="true">&times;</span>
 							</button>
 							</div>
 							<div class="modal-body">
 								<div id='divContainer_DeviceActions'>
-									<div id='divDeviceActions_DeviceName'></div>
 									<div id='divDeviceActions'></div>
 								</div>
 
@@ -196,12 +215,12 @@
 						<button type="button" class="btn btn-dark" id='btnAdd_Cloud_Destination' onclick='Add_Cloud_Destination();'>Add</button>
 					</div>
 
-					<div id='divContainer_CloudKeys'> <span class='title'>Cloud Keys</span>
+					<div id='divContainer_CloudKeys'> <span class='title'>Keys</span>
 						<div id='divCloudKeys'></div>
 						<button type="button" class="btn btn-dark" id='btnAdd_Cloud_Key' onclick='Add_Cloud_Key();'>Add</button>
 					</div>
 
-					<div class="col-xs-4" id='divContainer_CloudClients'> <span class='title'>Cloud Clients</span>
+					<div class="col-xs-4" id='divContainer_CloudClients'> <span class='title'>Clients</span>
 						<div id='divCloudClients'></div>
 					</div>
 				</div>
