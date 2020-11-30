@@ -726,87 +726,97 @@ function loadListeners() {
 	let divContainer_Listeners = $('#divContainer_Listeners')[0];
 	let divListeners = $('#divListeners')[0];
 	if (listener_clients.length > 0) {
-	divContainer_Listeners.style.display = 'block';
-	divListeners.innerHTML = '';
-	let tableListeners = document.createElement('table');
-	tableListeners.className = 'table';
-	let trHeader = document.createElement('tr');
-	let tdHeaderIPAddress = document.createElement('td');
-	tdHeaderIPAddress.innerHTML = '<b>IP Address</b>';
-	trHeader.appendChild(tdHeaderIPAddress);
-	let tdHeaderListenerType = document.createElement('td');
-	tdHeaderListenerType.innerHTML = '<b>Type</b>';
-	tdHeaderListenerType.style.background = '#eeeeee';
-	trHeader.appendChild(tdHeaderListenerType);
-	let tdHeaderListenerCloud = document.createElement('td');
-	tdHeaderListenerCloud.innerHTML = '&nbsp;';
-	trHeader.appendChild(tdHeaderListenerCloud);
-	let tdHeaderDeviceName = document.createElement('td');
-	tdHeaderDeviceName.innerHTML = '<b>Device</b>';
-	trHeader.appendChild(tdHeaderDeviceName);
-	let tdHeaderButtons = document.createElement('td');
-	tdHeaderButtons.innerHTML = '&nbsp;';
-	trHeader.appendChild(tdHeaderButtons);
-	tableListeners.appendChild(trHeader);
-	for (let i = 0; i < listener_clients.length; i++) {
-		let trClientItem = document.createElement('tr');
-		let tdIPAddress = document.createElement('td');
-		tdIPAddress.innerHTML = listener_clients[i].ipAddress.replace('::ffff:', '');
-		trClientItem.appendChild(tdIPAddress);
-		let tdListenerType = document.createElement('td');
-		tdListenerType.innerHTML = listener_clients[i].listenerType;
-		tdListenerType.style.background = '#eeeeee';
-		trClientItem.appendChild(tdListenerType);
-		let tdListenerCloud = document.createElement('td');
-		if (listener_clients[i].cloudConnection) {
-			let imgCloud = document.createElement('img');
-			imgCloud.src = 'lib/img/cloud.png';
-			imgCloud.width = '20';
-			tdListenerCloud.appendChild(imgCloud);
-		}
-		trClientItem.appendChild(tdListenerCloud);
-		let tdDevice = document.createElement('td');
-		if (listener_clients[i].cloudConnection) {
-			let spanDevice = document.createElement('span');
-			spanDevice.innerHTML = GetDeviceById(listener_clients[i].deviceId).name;
-			tdDevice.appendChild(spanDevice);
-		}
-		else {
-			let selDevices = document.createElement('select');
-			for (let j = 0; j < devices.length; j++) {
-				let optDevice = document.createElement('option');
-				optDevice.textContent = devices[j].name;
-				optDevice.value = devices[j].id;
-				if (devices[j].id === listener_clients[i].deviceId) {
-					optDevice.selected = true;
-				}
-				selDevices.appendChild(optDevice);
+		divContainer_Listeners.style.display = 'block';
+		divListeners.innerHTML = '';
+		let tableListeners = document.createElement('table');
+		tableListeners.className = 'table';
+		let trHeader = document.createElement('tr');
+		let tdHeaderIPAddress = document.createElement('td');
+		tdHeaderIPAddress.innerHTML = '<b>IP Address</b>';
+		trHeader.appendChild(tdHeaderIPAddress);
+		let tdHeaderListenerType = document.createElement('td');
+		tdHeaderListenerType.innerHTML = '<b>Type</b>';
+		tdHeaderListenerType.style.background = '#eeeeee';
+		trHeader.appendChild(tdHeaderListenerType);
+		let tdHeaderListenerCloud = document.createElement('td');
+		tdHeaderListenerCloud.innerHTML = '&nbsp;';
+		trHeader.appendChild(tdHeaderListenerCloud);
+		let tdHeaderDeviceName = document.createElement('td');
+		tdHeaderDeviceName.innerHTML = '<b>Device</b>';
+		trHeader.appendChild(tdHeaderDeviceName);
+		let tdHeaderButtons = document.createElement('td');
+		tdHeaderButtons.innerHTML = '&nbsp;';
+		trHeader.appendChild(tdHeaderButtons);
+		tableListeners.appendChild(trHeader);
+		for (let i = 0; i < listener_clients.length; i++) {
+			let trClientItem = document.createElement('tr');
+			let tdIPAddress = document.createElement('td');
+			tdIPAddress.innerHTML = listener_clients[i].ipAddress.replace('::ffff:', '');
+			trClientItem.appendChild(tdIPAddress);
+			let tdListenerType = document.createElement('td');
+			tdListenerType.innerHTML = listener_clients[i].listenerType;
+			tdListenerType.style.background = '#eeeeee';
+			trClientItem.appendChild(tdListenerType);
+			let tdListenerCloud = document.createElement('td');
+			if (listener_clients[i].cloudConnection) {
+				let imgCloud = document.createElement('img');
+				imgCloud.src = 'lib/img/cloud.png';
+				imgCloud.width = '20';
+				tdListenerCloud.appendChild(imgCloud);
 			}
-			selDevices.id = 'selListenerReassign_' + listener_clients[i].id;
-			selDevices.setAttribute('onchange', 'Listener_Reassign(\'' + listener_clients[i].id + '\');');
-			tdDevice.appendChild(selDevices);
+			trClientItem.appendChild(tdListenerCloud);
+			let tdDevice = document.createElement('td');
+			if ((listener_clients[i].cloudConnection) || (listener_clients[i].canBeReassigned === false)) {
+				let spanDevice = document.createElement('span');
+				if (listener_clients[i].deviceId !== null) {
+					spanDevice.innerHTML = GetDeviceById(listener_clients[i].deviceId).name;
+				}
+				else {
+					spanDevice.innerHTML = '(Device unknown)';
+				}
+				tdDevice.appendChild(spanDevice);
+			}
+			else {
+				let selDevices = document.createElement('select');
+				for (let j = 0; j < devices.length; j++) {
+					let optDevice = document.createElement('option');
+					optDevice.textContent = devices[j].name;
+					optDevice.value = devices[j].id;
+					if (devices[j].id === listener_clients[i].deviceId) {
+						optDevice.selected = true;
+					}
+					selDevices.appendChild(optDevice);
+				}
+				selDevices.id = 'selListenerReassign_' + listener_clients[i].id;
+				selDevices.setAttribute('onchange', 'Listener_Reassign(\'' + listener_clients[i].id + '\');');
+				tdDevice.appendChild(selDevices);
+			}
+			trClientItem.appendChild(tdDevice);
+			let tdButtons = document.createElement('td');
+			if (listener_clients[i].inactive === true) {
+				trClientItem.className = 'disabled';
+				let btnDelete = document.createElement('button');
+				btnDelete.className = 'btn btn-dark mr-1';
+				btnDelete.innerHTML = 'X';
+				btnDelete.setAttribute('onclick', 'Listener_Delete(\'' + listener_clients[i].id + '\');');
+				tdButtons.appendChild(btnDelete);
+			}
+			else if (listener_clients[i].canBeFlashed === false) {
+				let spanFlash = document.createElement('span');
+				spanFlash.innerHTML = '&nbsp;';
+				tdButtons.appendChild(spanFlash);
+			}
+			else {
+				let btnFlash = document.createElement('button');
+				btnFlash.className = 'btn btn-dark mr-1';
+				btnFlash.innerHTML = 'Flash';
+				btnFlash.setAttribute('onclick', 'Listener_Flash(\'' + listener_clients[i].id + '\');');
+				tdButtons.appendChild(btnFlash);
+			}
+			trClientItem.appendChild(tdButtons);
+			tableListeners.appendChild(trClientItem);
 		}
-		trClientItem.appendChild(tdDevice);
-		let tdButtons = document.createElement('td');
-		if (listener_clients[i].inactive === true) {
-			trClientItem.className = 'disabled';
-			let btnDelete = document.createElement('button');
-			btnDelete.className = 'btn btn-dark mr-1';
-			btnDelete.innerHTML = 'X';
-			btnDelete.setAttribute('onclick', 'Listener_Delete(\'' + listener_clients[i].id + '\');');
-			tdButtons.appendChild(btnDelete);
-		}
-		else {
-			let btnFlash = document.createElement('button');
-			btnFlash.className = 'btn btn-dark mr-1';
-			btnFlash.innerHTML = 'Flash';
-			btnFlash.setAttribute('onclick', 'Listener_Flash(\'' + listener_clients[i].id + '\');');
-			tdButtons.appendChild(btnFlash);
-		}
-		trClientItem.appendChild(tdButtons);
-		tableListeners.appendChild(trClientItem);
-	}
-	divListeners.appendChild(tableListeners);
+		divListeners.appendChild(tableListeners);
 	}
 	else {
 	divContainer_Listeners.style.display = 'block';
@@ -1453,7 +1463,7 @@ function Edit_Source(sourceId) {
 	chkEnabled.id = 'chkSourceEnabled';
 	chkEnabled.type = 'checkbox';
 	if (source.enabled === true) {
-	chkEnabled.checked = true;
+		chkEnabled.checked = true;
 	}
 	divSourceFields.appendChild(chkEnabled);
 	let spanReconnect = document.createElement('span');
@@ -1464,7 +1474,7 @@ function Edit_Source(sourceId) {
 	chkReconnect.id = 'chkSourceReconnect';
 	chkReconnect.type = 'checkbox';
 	if (source.reconnect === true) {
-	chkReconnect.checked = true;
+		chkReconnect.checked = true;
 	}
 	divSourceFields.appendChild(chkReconnect);
 	let btnAdd_Source_Save = $('#btnAdd_Source_Save')[0];
@@ -1693,7 +1703,6 @@ function Delete_Device(deviceId) {
 function Edit_Device_Sources(deviceId) {
 	let divDeviceSources = $('#divDeviceSources')[0];
 	divDeviceSources.innerHTML = '';
-	$('#divDeviceSources_DeviceName')[0].innerHTML = GetDeviceById(deviceId).name;
 	let tableDeviceSources = document.createElement('table');
 	let trHeader = document.createElement('tr');
 	let tdHeaderDeviceSource = document.createElement('td');
@@ -1756,8 +1765,46 @@ function Edit_Device_Sources(deviceId) {
 	$('#divContainer_DeviceSourceFields')[0].style.display = 'none';
 	$('#divContainer_DeviceActions')[0].style.display = 'none';
 	$('#divContainer_DeviceActionFields')[0].style.display = 'none';
+
 	selectedDeviceId = deviceId;
+
+	let linkedPreview = GetDeviceById(deviceId).linkedPreview;
+	let linkedProgram = GetDeviceById(deviceId).linkedProgram;
+	
+	if (linkedPreview === undefined) {
+		UpdateDeviceSourceLink('preview', false); //update to false (unlinked) for any device that doesn't already have this defined
+		linkedPreview = false;
+	}
+
+	if (linkedProgram === undefined) {
+		UpdateDeviceSourceLink('program', false); //update to false (unlinked) for any device that doesn't already have this defined
+		linkedProgram = false;
+	}
+
+	if (linkedPreview) {
+		$('#rdoDeviceSourcesPVWLinked').prop( "checked", true);
+		$('#rdoDeviceSourcesPVWUnlinked').prop( "checked", false);
+	}
+	else {
+		$('#rdoDeviceSourcesPVWLinked').prop( "checked", false);
+		$('#rdoDeviceSourcesPVWUnlinked').prop( "checked", true);
+	}
+
+	if (linkedProgram) {
+		$('#rdoDeviceSourcesPGMLinked').prop( "checked", true);
+		$('#rdoDeviceSourcesPGMUnlinked').prop( "checked", false);
+	}
+	else {
+		$('#rdoDeviceSourcesPGMLinked').prop( "checked", false);
+		$('#rdoDeviceSourcesPGMUnlinked').prop( "checked", true);
+	}
+
+	$('#hDeviceSources').text('Device Sources: ' + GetDeviceById(deviceId).name);
 	$("#modalDeviceSources").modal();
+}
+
+function UpdateDeviceSourceLink(bus, choice) {
+	socket.emit('device_sources_link', selectedDeviceId, bus, choice);
 }
 
 function Add_Device_Source(deviceId) {
@@ -1882,7 +1929,6 @@ function Close_Device_Sources() {
 function Edit_Device_Actions(deviceId) {
 	let divDeviceActions = $('#divDeviceActions')[0];
 	divDeviceActions.innerHTML = '';
-	$('#divDeviceActions_DeviceName')[0].innerHTML = GetDeviceById(deviceId).name;
 	let tableDeviceActions = document.createElement('table');
 	let trHeader = document.createElement('tr');
 	let tdHeaderDeviceActionBus = document.createElement('td');
@@ -1937,6 +1983,7 @@ function Edit_Device_Actions(deviceId) {
 	$('#divContainer_DeviceActions')[0].style.display = 'block';
 	$('#divContainer_DeviceActionFields')[0].style.display = 'none';
 	selectedDeviceId = deviceId;
+	$('#hDeviceActions').text('Device Actions: ' + GetDeviceById(deviceId).name);
 	$("#modalDeviceActions").modal();
 }
 

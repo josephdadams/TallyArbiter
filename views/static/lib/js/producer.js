@@ -323,7 +323,7 @@ function loadListeners() {
 			tdDevice.innerHTML = getDeviceById(listener_clients[i].deviceId).name;
 			trClientItem.appendChild(tdDevice);
 			let tdButtons = document.createElement('td');
-			if (listener_clients[i].inactive === false) {
+			if ((listener_clients[i].inactive === false) && (listener_clients[i].canBeFlashed)) {
 				let btnFlash = document.createElement('button');
 				btnFlash.innerHTML = 'Flash';
 				btnFlash.setAttribute('onclick', 'Listener_Flash(\'' + listener_clients[i].id + '\');');
