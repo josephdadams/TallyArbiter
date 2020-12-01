@@ -481,7 +481,6 @@ function initialSetup() {
 		});
 
 		socket.on('source_tallydata', function(sourceId) { //gets all Source Tally Data
-			console.log('source id: ' + sourceId);
 			let source = GetSourceBySourceId(sourceId);
 			let sourceType = GetSourceTypeBySourceTypeId(source.sourceTypeId);
 			let result = false;
@@ -2039,7 +2038,7 @@ function SetUpOBSServer(sourceId) {
 	}
 }
 
-function addOBSSource(sourceId,name){
+function addOBSSource(sourceId, name) {
     //Double check its not there already, this also allows methods like processOBSTally to call this without caring whether it already exists or not
     var exists = tallydata_OBS.find(function(src){
         return (src.sourceId == sourceId && src.address == name);
@@ -2058,7 +2057,7 @@ function addOBSSource(sourceId,name){
     logger(`OBS Tally Source: ${sourceId} Added new source: ${name}`, 'info-quiet');
 }
 
-function renameOBSSource(sourceId,oldname,newname){
+function renameOBSSource(sourceId, oldname, newname) {
     let sourceIndex = tallydata_OBS.findIndex(src => src.sourceId === sourceId && src.address === oldname);
     if(sourceIndex === undefined) return;
     tallydata_OBS[sourceIndex].label = newname;
@@ -2072,7 +2071,7 @@ function renameOBSSource(sourceId,oldname,newname){
     }    
 }
 
-function deleteOBSSource(sourceId,name){
+function deleteOBSSource(sourceId, name) {
     let sourceIndex = tallydata_OBS.findIndex(src => src.sourceId === sourceId && src.address === name);
     if(!sourceIndex) return;
     tallydata_OBS.splice(sourceIndex, 1);
@@ -2918,7 +2917,6 @@ function CheckDeviceState(deviceId, sourceId, tallyObj) {
 						}
 	
 						if (!sourceAddressFound) {
-							console.log('source address not found');
 							if (tallyObj.tally1) {
 								//add it, it's not already in preview on this source and address
 								let sourceObj = {};
@@ -2932,9 +2930,6 @@ function CheckDeviceState(deviceId, sourceId, tallyObj) {
 						let devSources = GetDeviceSourcesByDeviceId(deviceId);
 						let sourcesLength = devSources.length;
 						let linkedSourcesLength = device_states[i].linkedSources.length;
-
-						console.log('sources length: ' + sourcesLength);
-						console.log('linkedSources length: ' + linkedSourcesLength);
 
 						if (sourcesLength === linkedSourcesLength) { //all source mappings are in this bus, so copy them over to the actual sources array now for processing
 							device_states[i].sources = device_states[i].linkedSources;
@@ -3309,7 +3304,6 @@ function RunAction_TCP(data) {
 			if (sendBuf !== '') {
 				tcpClient.write(sendBuf);
 				logger(`Generic TCP sent: ${data.ip}:${data.port} : ${data.string}`, 'info');
-				console.log(sendBuf);
 			}
 		});
 
