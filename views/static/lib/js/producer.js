@@ -134,7 +134,7 @@ function updateDeviceList() {
 				let sourceText = '';
 				for (let j = 0; j < sources_pvw.length; j++) {
 					sourceText += GetSourceById(sources_pvw[j].sourceId).name;
-					if ((j > 0) && (j < sources_pvw.length - 1)) {
+					if ((j >= 0) && (j < sources_pvw.length - 1)) {
 					sourceText += ', ';
 					}
 				}
@@ -155,7 +155,7 @@ function updateDeviceList() {
 				let sourceText = '';
 				for (let j = 0; j < sources_pgm.length; j++) {
 					sourceText += GetSourceById(sources_pgm[j].sourceId).name;
-					if ((j > 0) && (j < sources_pgm.length - 1)) {
+					if ((j >= 0) && (j < sources_pgm.length - 1)) {
 						sourceText += ', ';
 					}
 				}
@@ -240,7 +240,7 @@ function loadDeviceStates() {
 					let sourceText = '';
 					for (let j = 0; j < sources_pvw.length; j++) {
 					sourceText += GetSourceById(sources_pvw[j].sourceId).name;
-					if ((j > 0) && (j < sources_pvw.length - 1)) {
+					if ((j >= 0) && (j < sources_pvw.length - 1)) {
 						sourceText += ', ';
 					}
 					}
@@ -264,7 +264,7 @@ function loadDeviceStates() {
 					let sourceText = '';
 					for (let j = 0; j < sources_pgm.length; j++) {
 					sourceText += GetSourceById(sources_pgm[j].sourceId).name;
-					if ((j > 0) && (j < sources_pgm.length - 1)) {
+					if ((j >= 0) && (j < sources_pgm.length - 1)) {
 						sourceText += ', ';
 					}
 					}

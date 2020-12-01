@@ -262,6 +262,14 @@ function loadSocket() {
 		loadCloudClients();
 	});
 
+	socket.on('source_tallydata', function(sourceId, tallydata) {
+		$.each( tallydata, function( key, data ) {
+			$('#addDeviceSourceAddressSelect').append($('<option>', {
+				text: data.address
+			}));
+		});
+	});
+
 	socket.on('device_states', function (data) {
 		//process the data received and determine if it's in preview or program and color the screen accordingly
 		device_states = data;
@@ -319,7 +327,6 @@ function loadSocket() {
 	});
 	socket.on('manage_response', function(response) {
 		let responseText = '';
-		console.log(response);
 		switch (response.result) {
 			case 'source-added-successfully':
 			case 'source-edited-successfully':
@@ -553,7 +560,7 @@ function loadDevices() {
 			let sourceText = '';
 			for (let j = 0; j < sources_pvw.length; j++) {
 				sourceText += GetSourceById(sources_pvw[j].sourceId).name;
-				if ((j > 0) && (j < sources_pvw.length - 1)) {
+				if ((j >= 0) && (j < sources_pvw.length - 1)) {
 				sourceText += ', ';
 				}
 			}
@@ -574,7 +581,7 @@ function loadDevices() {
 			let sourceText = '';
 			for (let j = 0; j < sources_pgm.length; j++) {
 				sourceText += GetSourceById(sources_pgm[j].sourceId).name;
-				if ((j > 0) && (j < sources_pgm.length - 1)) {
+				if ((j >= 0) && (j < sources_pgm.length - 1)) {
 				sourceText += ', ';
 				}
 			}
@@ -681,7 +688,7 @@ function loadDeviceStates() {
 					let sourceText = '';
 					for (let j = 0; j < sources_pvw.length; j++) {
 						sourceText += GetSourceById(sources_pvw[j].sourceId).name;
-						if ((j > 0) && (j < sources_pvw.length - 1)) {
+						if ((j >= 0) && (j < sources_pvw.length - 1)) {
 							sourceText += ', ';
 						}
 					}
@@ -705,7 +712,7 @@ function loadDeviceStates() {
 					let sourceText = '';
 					for (let j = 0; j < sources_pgm.length; j++) {
 						sourceText += GetSourceById(sources_pgm[j].sourceId).name;
-						if ((j > 0) && (j < sources_pgm.length - 1)) {
+						if ((j >= 0) && (j < sources_pgm.length - 1)) {
 							sourceText += ', ';
 						}
 					}
@@ -1839,16 +1846,12 @@ function Add_Device_Source(deviceId) {
     //Trigger a change of selDeviceSource to fetch up to date source list using the below event listener
     $('#selDeviceSource').change();
 }
+
 //Triggered when a new device source is selected, and when the modal is initially loaded by the Add_Device_Source method
 $(document).on( "change", '#selDeviceSource',function(){
-    $('#addDeviceSourceAddressSelect').empty().append($('<option>'));
-    $.getJSON( "/settings/source_tallydata/" + $('#selDeviceSource').find(":selected").val(), function( tallydata ) {
-        $.each( tallydata, function( key, data ) {
-            $('#addDeviceSourceAddressSelect').append($('<option>', {
-                text: data.address
-            }));
-        });        
-    });
+	$('#addDeviceSourceAddressSelect').empty().append($('<option>'));
+	let sourceId = $('#selDeviceSource').find(":selected").val();
+	socket.emit('source_tallydata', sourceId);
 });
 
 function Add_Device_Source_Save() {
@@ -1892,7 +1895,7 @@ function Edit_Device_Source(deviceSourceId) {
 			let el = document.createElement('option');
 			el.textContent = opt.name;
 			el.value = opt.id;
-			if (opt.id === deviceSourceId) {
+			if (opt.id === deviceSourceObj.sourceId) {
 				el.selected = true;
 			}
 			selDeviceSource.appendChild(el);
@@ -1920,7 +1923,6 @@ function Edit_Device_Source_Save() {
 	arbiterObj.action = 'edit';
 	arbiterObj.type = 'device_source';
 	arbiterObj.device_source = deviceSourceObj;
-	console.log(arbiterObj);
 	socket.emit('manage', arbiterObj);
 }
 

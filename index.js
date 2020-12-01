@@ -405,38 +405,6 @@ function initialSetup() {
 		//gets all Tally Device Sources
 		res.send(device_sources);
 	});
-    
-    appSettings.get('/source_tallydata/:sourceid', function (req, res) {
-		//gets all Source Tally Data
-        let sourceId = req.params.sourceid;
-        let source = sources.find(src => src.id === req.params.sourceid);
-        let result = false;
-        
-        //Note: results from all except OBS and Tricaster commented out as either no device currently in warehouse to test with and/or
-        //the data structure of these objects seems to differ, perhaps a common structure for tally data objects would be good in the future
-        //so it can be dealt with in the same manner elsewhere.
-        
-        switch(source.sourceTypeId){
-            case '44b8bc4f': //Blackmagic ATEM
-                //result = tallydata_ATEM;
-                break;
-            case '4eb73542': //OBS
-                result = tallydata_OBS;
-                break;
-            case 'f2b7dc72': //Tricaster
-                result = tallydata_TC;
-                break;
-            case 'a378e29d': //Analog Way Livecore
-                //result = tallydata_AWLivecore;
-                break;
-        }
-        if(result !== false){
-            result = result.filter(tally => tally.sourceId == sourceId);
-            res.send(result);
-        }else{
-            res.send(new Array());
-        }
-	});    
 
 	appSettings.get('/device_actions', function (req, res) {
 		//gets all Tally Device Actions
@@ -510,6 +478,39 @@ function initialSetup() {
 
 		socket.on('sources', function() { // sends the configured Sources to the socket
 			socket.emit('sources', sources);
+		});
+
+		socket.on('source_tallydata', function(sourceId) { //gets all Source Tally Data
+			console.log('source id: ' + sourceId);
+			let source = GetSourceBySourceId(sourceId);
+			let sourceType = GetSourceTypeBySourceTypeId(source.sourceTypeId);
+			let result = false;
+			
+			//Note: results from all except OBS and Tricaster commented out as either no device currently in warehouse to test with and/or
+			//the data structure of these objects seems to differ, perhaps a common structure for tally data objects would be good in the future
+			//so it can be dealt with in the same manner elsewhere.
+			
+			switch(sourceType.type) {
+				case 'atem': //Blackmagic ATEM
+					//result = tallydata_ATEM;
+					break;
+				case 'obs': //OBS
+					result = tallydata_OBS;
+					break;
+				case 'tricaster': //Tricaster
+					result = tallydata_TC;
+					break;
+				case 'awlivecore': //Analog Way Livecore
+					//result = tallydata_AWLivecore;
+					break;
+			}
+			if (result !== false) {
+				result = result.filter(tally => tally.sourceId == sourceId);
+				socket.emit('source_tallydata', sourceId, result);
+			}
+			else {
+				socket.emit('source_tallydata', sourceId, new Array());
+			}
 		});
 
 		socket.on('devices', function() { // sends the configured Devices to the socket
