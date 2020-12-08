@@ -21,6 +21,7 @@ const socketio		= require('socket.io');
 const ioClient		= require('socket.io-client');
 const osc 			= require('osc');
 const xml2js		= require('xml2js');
+const { ETIME, SSL_OP_SSLEAY_080_CLIENT_DH_BUG } = require('constants');
 
 //Tally Arbiter variables
 const listenPort 	= process.env.PORT || 4455;
@@ -44,6 +45,9 @@ const config_file 	= './config.json'; //local storage JSON file
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var Logs 			= []; //array of actions, information, and errors
 var tallydata_ATEM 	= []; //array of ATEM sources and current tally data
+var labels_VideoHub = []; //array of VideoHub source labels
+var destinations_VideoHub = []; //array of VideoHub destination/source assignments
+var tallydata_VideoHub = []; //array of VideoHub sources and current tally data
 var tallydata_OBS 	= []; //array of OBS sources and current tally data
 var tallydata_TC 	= []; //array of Tricaster sources and current tally data
 var tallydata_AWLivecore 	= []; //array of Analog Way sources and current tally data
@@ -90,7 +94,7 @@ var source_types 	= [ //available tally source types
 	{ id: '5e0a1d8c', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true, help: ''},
 	{ id: 'dc75100e', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true , help: ''},
 	{ id: '44b8bc4f', label: 'Blackmagic ATEM', type: 'atem', enabled: true, help: 'Uses Port 9910.' },
-	{ id: '627a5902', label: 'Blackmagic VideHub', type: 'videohub', enabled: false, help: 'Uses Port 9990.' },
+	{ id: '627a5902', label: 'Blackmagic VideoHub', type: 'videohub', enabled: true, help: 'Uses Port 9990.' },
 	{ id: '4eb73542', label: 'OBS Studio', type: 'obs', enabled: true, help: 'The OBS Websocket plugin must be installed on the source.'},
 	{ id: '58b6af42', label: 'VMix', type: 'vmix', enabled: true, help: 'Uses Port 8099.'},
 	{ id: '4a58f00f', label: 'Roland Smart Tally', type: 'roland', enabled: true, help: ''},
@@ -125,7 +129,8 @@ var source_types_datafields = [ //data fields for the tally source types
 	},
 	{ sourceTypeId: '627a5902', fields: [ //Blackmagic VideoHub
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'destinations_onair', fieldLabel: 'Destinations to monitor', fieldType: 'text'}
+			{ fieldName: 'destinations_pvw', fieldLabel: 'Destinations to monitor as PVW', fieldType: 'text'},
+			{ fieldName: 'destinations_pgm', fieldLabel: 'Destinations to monitor as PGM', fieldType: 'text'}
 		]
 	},
 	
@@ -492,6 +497,9 @@ function initialSetup() {
 			switch(sourceType.type) {
 				case 'atem': //Blackmagic ATEM
 					//result = tallydata_ATEM;
+					break;
+				case 'videohub': //Blackmagic VideoHub
+					result = tallydata_VideoHub;
 					break;
 				case 'obs': //OBS
 					result = tallydata_OBS;
@@ -1898,7 +1906,267 @@ function StopATEMServer(sourceId) {
 }
 
 function SetUpVideoHubServer(sourceId) {
+	let source = sources.find( ({ id }) => id === sourceId);
 
+	try {
+		let ip = source.data.ip;
+		let port = 9990;
+
+		let sourceConnectionObj = {};
+		sourceConnectionObj.sourceId = sourceId;
+		sourceConnectionObj.server = null;
+		source_connections.push(sourceConnectionObj);
+
+		for (let i = 0; i < source_connections.length; i++) {
+			if (source_connections[i].sourceId === sourceId) {
+				try {
+					logger(`Source: ${source.name}  Creating VideoHub connection.`, 'info-quiet');
+
+					source_connections[i].server = new net.Socket();
+
+					source_connections[i].receiveBuffer = '';
+					source_connections[i].command = null;
+					source_connections[i].stash = [];
+
+					source_connections[i].server.on('error', function(error) {
+						logger(`VideoHub Error: ${error}`, 'error');
+					});
+
+					source_connections[i].server.on('connect', function() {
+						logger(`Source: ${source.name}  VideoHub connected.`, 'info-quiet');
+						for (let j = 0; j < sources.length; j++) {
+							if (sources[j].id === sourceId) {
+								sources[j].connected = true;
+								UnregisterReconnect(sources[j].id);
+								break;
+							}
+						}
+						UpdateSockets('sources');
+						UpdateCloud('sources');
+					});
+
+					source_connections[i].server.on('data', function(chunk) {
+						let j = 0, line = '', offset = 0;
+						source_connections[i].receiveBuffer += chunk;
+		
+						while ( (j = source_connections[i].receiveBuffer.indexOf('\n', offset)) !== -1) {
+							line = source_connections[i].receiveBuffer.substr(offset, j - offset);
+							offset = j + 1;
+							source_connections[i].server.emit('receiveline', line.toString());
+						}
+		
+						source_connections[i].receiveBuffer = source_connections[i].receiveBuffer.substr(offset);
+					});
+
+					source_connections[i].server.on('receiveline', function(line) {
+						if (source_connections[i].command === null && line.match(/:/) ) {
+							source_connections[i].command = line;
+						}
+						else if (source_connections[i].command !== null && line.length > 0) {
+							source_connections[i].stash.push(line.trim());
+						}
+						else if (line.length === 0 && source_connections[i].command !== null) {
+							let cmd = source_connections[i].command.trim().split(/:/)[0];
+		
+							processVideohubInformation(sourceId, cmd, source_connections[i].stash);
+		
+							source_connections[i].stash = [];
+							source_connections[i].command = null;
+						}
+					});
+
+					source_connections[i].server.on('close', function() {
+						logger(`Source: ${source.name}  VideoHub Connection closed.`, 'info');
+						for (let j = 0; j < sources.length; j++) {
+							if (sources[j].id === sourceId) {
+								sources[j].connected = false;
+								CheckReconnect(sources[j].id);
+								break;
+							}
+						}
+						UpdateSockets('sources');
+						UpdateCloud('sources');
+					});
+
+					source_connections[i].server.connect(port, ip);
+				}
+				catch(error) {
+					logger(`Source: ${source.name}  VideoHub Error: ${error}`, 'error');
+				}
+			}
+		}
+
+	}
+	catch(error) {
+		logger(`Source: ${source.name}  VideoHub Error: ${error}`, 'error');
+	}
+}
+
+function processVideohubInformation(sourceId, cmd, stash) {
+	if (cmd.match(/VIDEO OUTPUT ROUTING/)) {
+		for (let i = 0; i < stash.length; i++) {
+			let destination = parseInt(stash[i].substr(0, stash[i].indexOf(' ')));
+			let source = parseInt(stash[i].substr(stash[i].indexOf(' ')));
+			destination++; //zero-based so we increment it
+			source++;//zero-based so we increment it
+
+			processVideoHubTally(sourceId, destination, source);
+		}
+	}
+	else if (cmd.match(/INPUT LABELS/)) {
+		for (let i = 0; i < stash.length; i++) {
+			let source = parseInt(stash[i].substr(0, stash[i].indexOf(' ')));
+			source++; //zero-based so we increment it
+			let name = stash[i].substr(stash[i].indexOf(' '));
+			addVideoHubInformation(sourceId, source, name);
+		}
+	}
+}
+
+function addVideoHubInformation(sourceId, source, name) {
+	let found = false;
+	for (let i = 0; i < labels_VideoHub.length; i++) {
+		if (labels_VideoHub[i].sourceId === sourceId) {
+			if (labels_VideoHub[i].source === source) {
+				found = true;
+				labels_VideoHub[i].name = name;
+				break;
+			}
+		}
+	}
+
+	if (!found) {
+		let labelObj = {};
+		labelObj.sourceId = sourceId;
+		labelObj.source = source;
+		labelObj.name = name;
+		labels_VideoHub.push(labelObj);
+	}
+}
+
+function processVideoHubTally(sourceId, destination, src) {
+	//this builds the tallydata_Videohub array and makes sure it has an initial state
+	let tallyFound = false;
+
+	for (let i = 0; i < tallydata_VideoHub.length; i++) {
+		if (tallydata_VideoHub[i].sourceId === sourceId) {
+			if (tallydata_VideoHub[i].address === src) {
+				tallyFound = true;
+				break;
+			}
+		}
+	}
+
+	if (!tallyFound) {
+		let tallyObj = {};
+		tallyObj.sourceId = sourceId;
+		tallyObj.address = src;
+		tallyObj.label = getVideoHubSourceName(sourceId, src);
+		tallydata_VideoHub.push(tallyObj);
+	}
+
+	updateVideoHubDestination(sourceId, destination, src);
+}
+
+function updateVideoHubDestination(sourceId, destination, src) {
+	//maintains an array of videohub destinations and their active sources
+
+	let source = GetSourceBySourceId(sourceId);
+
+	let found = false;
+
+	let recheck_sources = [];
+
+	//loop through and update the destinations array with the new source
+	//if the source has changed, add the previous source to a new array to recheck the state of that source
+	for (let i = 0; i < destinations_VideoHub.length; i++) {
+		if (destinations_VideoHub[i].sourceId === sourceId) {
+			if (destinations_VideoHub[i].destination === destination) {
+				if (destinations_VideoHub[i].source !== src) {
+					//the source has changed, so we will need to recheck that old source to make sure it is not in pvw/pgm anywhere else
+					recheck_sources.push(destinations_VideoHub[i].source);
+				}
+				destinations_VideoHub[i].source = src;
+				found = true;
+				break;
+			}
+		}
+	}
+
+	if (!found) {
+		let destinationObj = {};
+		destinationObj.sourceId = sourceId;
+		destinationObj.destination = destination;
+		destinationObj.source = src;
+		destinations_VideoHub.push(destinationObj);
+	}
+
+	//check to see if any of the destinations currently have this source and if that destination is configured as a preview or program bus
+	let inPreview = false;
+	let inProgram = false;
+
+	for (let i = 0; i < destinations_VideoHub.length; i++) {
+		if (destinations_VideoHub[i].source === src) {
+			if (source.data.destinations_pvw.includes(destinations_VideoHub[i].destination)) {
+				inPreview = true;
+			}
+			if (source.data.destinations_pgm.includes(destinations_VideoHub[i].destination)) {
+				inProgram = true;
+			}
+		}
+	}
+
+	for (let i = 0; i < tallydata_VideoHub.length; i++) {
+		if (tallydata_VideoHub[i].sourceId === sourceId) {
+			if (tallydata_VideoHub[i].address === src) {
+				tallydata_VideoHub[i].tally1 = (inPreview ? 1 : 0);
+				tallydata_VideoHub[i].tally2 = (inProgram ? 1 : 0);	
+				processTSLTally(sourceId, tallydata_VideoHub[i]);
+			}
+		}
+	}
+
+	//now recheck any source that used to be in this destination and make sure they are not in pvw/pgm elsewhere
+	for (let i = 0; i < recheck_sources.length; i++) {
+		let inPreview = false;
+		let inProgram = false;
+		for (let j = 0; j < destinations_VideoHub.length; j++) {
+			if (destinations_VideoHub[j].source === recheck_sources[i]) {
+				//check and see if this destination is a pvw or pgm type
+				if (source.data.destinations_pvw.includes(destinations_VideoHub[j].destination)) {
+					inPreview = true;
+				}
+				if (source.data.destinations_pgm.includes(destinations_VideoHub[j].destination)) {
+					inProgram = true;
+				}
+			}
+		}
+
+		for (let j = 0; j < tallydata_VideoHub.length; j++) {
+			if (tallydata_VideoHub[j].sourceId === sourceId) {
+				if (tallydata_VideoHub[j].address === recheck_sources[i]) {
+					tallydata_VideoHub[j].tally1 = (inPreview ? 1 : 0);
+					tallydata_VideoHub[j].tally2 = (inProgram ? 1 : 0);	
+					processTSLTally(sourceId, tallydata_VideoHub[j]);
+				}
+			}
+		}
+	}
+}
+
+function getVideoHubSourceName(sourceId, source) {
+	let returnVal = null;
+
+	for (let i = 0; i < labels_VideoHub.length; i++) {
+		if (labels_VideoHub[i].sourceId === sourceId) {
+			if (labels_VideoHub[i].source === source) {
+				returnVal = labels_VideoHub[i].name;
+				break;
+			}
+		}
+	}
+
+	return returnVal;
 }
 
 function StopVideoHubServer(sourceId) {
@@ -1908,7 +2176,7 @@ function StopVideoHubServer(sourceId) {
 
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
-			source_connections[i].server.disconnect(null);
+			source_connections[i].server.end();
 			logger(`Source: ${source.name}  VideoHub connection closed.`, 'info');
 			break;
 		}
@@ -3464,6 +3732,9 @@ function StartConnection(sourceId) {
 		case 'atem':
 			SetUpATEMServer(sourceId);
 			break;
+		case 'videohub':
+			SetUpVideoHubServer(sourceId);
+			break;
 		case 'obs':
 			SetUpOBSServer(sourceId);
 			break;
@@ -3500,6 +3771,9 @@ function StopConnection(sourceId) {
 			break;
 		case 'atem':
 			StopATEMServer(sourceId);
+			break;
+		case 'videohub':
+			StopVideoHubServer(sourceId);
 			break;
 		case 'obs':
 			StopOBSServer(sourceId);
