@@ -3171,7 +3171,6 @@ function CheckDeviceState(deviceId, sourceId, tallyObj) {
 				if (device_states[i].busId === busId_preview) {
 					if (device.linkedPreview) {
 						//the preview bus is linked across device sources, so add this tally information to the linkedSources array
-						console.log(device.name + ' ' + device.id + ' is linked');
 						let sourceAddressFound = false;
 						for (let j = 0; j < device_states[i].linkedSources.length; j++) {
 							if (device_states[i].linkedSources[j].sourceId === sourceId) {
@@ -3253,7 +3252,6 @@ function CheckDeviceState(deviceId, sourceId, tallyObj) {
 								sourceObj.sourceId = sourceId;
 								sourceObj.address = tallyObj.address;
 								device_states[i].linkedSources.push(sourceObj);
-								console.log(device_states[i]);
 							}
 						}
 
@@ -3261,9 +3259,6 @@ function CheckDeviceState(deviceId, sourceId, tallyObj) {
 						let devSources = GetDeviceSourcesByDeviceId(deviceId);
 						let sourcesLength = devSources.length;
 						let linkedSourcesLength = device_states[i].linkedSources.length;
-
-						console.log('PGM sources length: ' + sourcesLength);
-						console.log('PGM linkedSources length: ' + linkedSourcesLength);
 
 						if (sourcesLength === linkedSourcesLength) { //all source mappings are in this bus, so copy them over to the actual sources array now for processing
 							device_states[i].sources = device_states[i].linkedSources;
