@@ -21,7 +21,6 @@ const socketio		= require('socket.io');
 const ioClient		= require('socket.io-client');
 const osc 			= require('osc');
 const xml2js		= require('xml2js');
-const { ETIME, SSL_OP_SSLEAY_080_CLIENT_DH_BUG } = require('constants');
 
 //Tally Arbiter variables
 const listenPort 	= process.env.PORT || 4455;
