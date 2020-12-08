@@ -5,7 +5,7 @@ It is not sold, authorized, or associated with any other company or product.
 
 To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
 
-Tally Arbiter is software that allows you to combine incoming tally data from multiple sources such as TSL UMD 3.1, Blackmagic ATEM, OBS Studio, VMix, Roland Smart Tally, etc. and arbitrate the bus state across all of the sources so that devices like cameras can accurately reflect tally data coming from those multiple locations without each device having to be connected to all sources simultaneously.
+Tally Arbiter is software that allows you to combine incoming tally data from multiple sources such as TSL UMD 3.1, Blackmagic ATEM, Blackmagic VideoHub, OBS Studio, VMix, Roland Smart Tally, etc. and arbitrate the bus state across all of the sources so that devices like cameras can accurately reflect tally data coming from those multiple locations without each device having to be connected to all sources simultaneously.
 
 # Features
 * Supports many different tally sources/switchers
@@ -85,6 +85,7 @@ Sources represent all of the tally data that is generated. This is usually your 
 The following source types are supported:
 * TSL 3.1 UDP/TCP (Ross switchers, etc.)
 * Blackmagic ATEM
+* Blackmagic VideoHub
 * OBS Studio
 * StudioCoast VMix
 * Roland Smart Tally
@@ -99,6 +100,9 @@ Your switcher or service that uses this protocol must be configured to send the 
 
 ### Blackmagic ATEM
 You will need the IP address of the ATEM. The ATEM can only have 5 simultaneous connections, so you may need to disconnect another connection in order for Tally Arbiter to connect to the ATEM.
+
+### Blackmagic VideoHub
+You will need the IP address of the VideoHub. You can choose to have any destination be configured as a preview bus, program bus, or both. Enter multiple destination routes by separating them with commas.
 
 ### OBS Studio
 The `obs-websockets` plugin must be installed and configured in order for Tally Arbiter to connect. You can get the plugin here: https://github.com/Palakis/obs-websocket/releases

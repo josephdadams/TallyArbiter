@@ -265,7 +265,8 @@ function loadSocket() {
 	socket.on('source_tallydata', function(sourceId, tallydata) {
 		$.each( tallydata, function( key, data ) {
 			$('#addDeviceSourceAddressSelect').append($('<option>', {
-				text: data.address
+				text: data.address + ' ' + data.label,
+				value: data.address
 			}));
 		});
 	});
@@ -582,7 +583,7 @@ function loadDevices() {
 			for (let j = 0; j < sources_pgm.length; j++) {
 				sourceText += GetSourceById(sources_pgm[j].sourceId).name;
 				if ((j >= 0) && (j < sources_pgm.length - 1)) {
-				sourceText += ', ';
+					sourceText += ', ';
 				}
 			}
 			spanSourcesText.innerHTML = sourceText;
@@ -1862,7 +1863,7 @@ function Add_Device_Source_Save() {
     if($('#txtAddDeviceSourceAddress').val().length > 0){
         deviceSourceObj.address = $('#txtAddDeviceSourceAddress').val();
     }else{
-        deviceSourceObj.address = $('#addDeviceSourceAddressSelect').find(":selected").text();
+        deviceSourceObj.address = $('#addDeviceSourceAddressSelect').find(":selected").val();
     }
 	let arbiterObj = {};
 	arbiterObj.action = 'add';
