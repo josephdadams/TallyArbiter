@@ -59,6 +59,8 @@ var cloud_clients		= []; //array of Tally Arbiter Cloud Clients that have connec
 
 var source_reconnects	= []; //array of sources and their reconnect timers/intervals
 
+var TestMode = false; //if the system is in test mode or not
+
 let portObj = {};
 portObj.port = '9910'; //ATEM
 portObj.sourceId = 'reserved';
@@ -100,7 +102,8 @@ var source_types 	= [ //available tally source types
 	{ id: 'f2b7dc72', label: 'Newtek Tricaster', type: 'tc', enabled: true, help: 'Uses Port 5951.'},
 	{ id: '05d6bce1', label: 'Open Sound Control (OSC)', type: 'osc', enabled: true, help: ''},
 	{ id: 'cf51e3c9', label: 'Incoming Webhook', type: 'webhook', enabled: false, help: ''},
-	{ id: 'a378e29d', label: 'Analog Way Livecore', type: 'awlivecore', enabled: true, help: 'Standard port is 10600. Source addresses are the input number.'}
+	{ id: 'a378e29d', label: 'Analog Way Livecore', type: 'awlivecore', enabled: true, help: 'Standard port is 10600. Source addresses are the input number.'},
+	{ id: 'TESTMODE', label: 'Internal Test Mode', type: 'testmode', enabled: false, help: 'Used for Test Mode functionality.'}
 ];
 
 var source_types_datafields = [ //data fields for the tally source types
@@ -164,7 +167,11 @@ var source_types_datafields = [ //data fields for the tally source types
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' }
 		]
-	}
+	},
+	{ sourceTypeId: 'TESTMODE', fields: [ //Internal Test Mode
+		{ fieldName: 'info', fieldLabel: 'Information', text: 'This source generates preview/program tally data for the purposes of testing equipment.', fieldType: 'info' }
+	]
+},
 ];
 
 if (isPi()) {
@@ -1146,6 +1153,10 @@ function initialSetup() {
 			socket.emit('cloud_clients', cloud_clients);
 		});
 
+		socket.on('testmode', function(value) {
+			EnableTestMode(value);
+		})
+
 		socket.on('disconnect', function() { // emitted when any socket.io client disconnects from the server
 			DeactivateListenerClient(socket.id);
 			CheckCloudClients(socket.id);
@@ -1206,6 +1217,91 @@ function initialSetup() {
 	httpServer.listen(listenPort, function () { // start up http server
 		logger(`Tally Arbiter running on port ${listenPort}`, 'info');
 	});
+}
+
+function EnableTestMode(value) {
+	TestMode = value;
+	if (TestMode) {
+		//turn on test mode
+		let testSource = {};
+		testSource.id = 'TEST';
+		testSource.name = 'TEST MODE';
+		testSource.sourceTypeId = 'TESTMODE';
+		testSource.enabled = true;
+		testSource.reconnect = false;
+		testSource.connected = true;
+		sources.push(testSource);
+		UpdateSockets('sources');
+		UpdateCloud('sources');
+		TestTallies();
+	}
+	else {
+		//turn off test mode
+		ClearTallies();
+		for (let i = 0; i < sources.length; i++) {
+			if (sources[i].id === 'TEST') {
+				sources.splice(i, 1);
+				UpdateSockets('sources');
+				UpdateCloud('sources');
+				break;
+			}
+		}
+	}
+
+	io.to('settings').emit('testmode', value);
+}
+
+function TestTallies() {
+	InsertTestTally(0);
+}
+
+function InsertTestTally(i) {
+	let sourceObj = {};
+	sourceObj.sourceId = 'TEST';
+	sourceObj.address = 'TEST';
+
+	device_states[i].sources.push(sourceObj);
+	UpdateDeviceState(device_states[i].deviceId); //Runs any outgoing actions for the device, if needed
+	UpdateSockets('device_states');
+	UpdateVMixClients();
+	SendTSLClientData(device_states[i].deviceId);
+	//SendCloudData(sourceId, tallyObj);
+	setTimeout(ClearTestTally, 1000, i);
+}
+
+function ClearTestTally(i) {
+	for (let j = 0; j < device_states[i].sources.length; j++) {
+		if (device_states[i].sources[j].sourceId === 'TEST' ) {
+			device_states[i].sources.splice(j, 1);
+			UpdateDeviceState(device_states[i].deviceId); //Runs any outgoing actions for the device, if needed
+			UpdateSockets('device_states');
+			UpdateVMixClients();
+			SendTSLClientData(device_states[i].deviceId);
+		}
+	}
+
+	if (TestMode) {
+		if (i < (device_states.length -1)) {
+			InsertTestTally(i+1);
+		}
+		else {
+			InsertTestTally(0);
+		}
+	}
+}
+
+function ClearTallies() {
+	for (let i = 0; i < device_states.length; i++) {
+		for (let j = 0; j < device_states[i].sources.length; j++) {
+			if (device_states[i].sources[j].sourceId === 'TEST') {
+				device_states[i].sources.splice(j, 1);
+				UpdateDeviceState(device_states[i].deviceId); //Runs any outgoing actions for the device, if needed
+				UpdateSockets('device_states');
+				UpdateVMixClients();
+				SendTSLClientData(device_states[i].deviceId);
+			}
+		}
+	}
 }
 
 function startVMixEmulator() {
@@ -3747,6 +3843,8 @@ function StartConnection(sourceId) {
 		case 'awlivecore':
 			SetUpAWLivecoreServer(sourceId);
 			break;
+		case 'testmode':
+			EnableTestMode(true);
 		default:
 			break;
 	}
@@ -3786,7 +3884,9 @@ function StopConnection(sourceId) {
 			break;
 		case 'awlivecore':
 			StopAWLivecoreServer(sourceId);
-			break
+			break;
+		case 'testmode':
+			EnableTestMode(false);
 		default:
 			break;
 	}
@@ -4390,11 +4490,13 @@ function TallyArbiter_Delete_Source(obj) {
 
 	for (let i = 0; i < sources.length; i++) {
 		if (sources[i].id === sourceId) {
+			sourceName = sources[i].name;
 			if (sources[i].connected === true) {
 				StopConnection(sourceId);
 			}
-			sourceName = sources[i].name;
-			sources.splice(i, 1);
+			if (sourceId !== 'TEST') {
+				sources.splice(i, 1);
+			}
 			break;
 		}
 	}
