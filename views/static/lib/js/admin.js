@@ -424,6 +424,16 @@ function loadSocket() {
 				break;
 		}
 	});
+	socket.on('testmode', function(value) {
+		if (value) {
+			$('#btnTestMode').html('Turn Off Test Mode');
+			$('#btnTestMode').attr('onclick','TestMode(false)');
+		}
+		else {
+			$('#btnTestMode').html('Turn On Test Mode');
+			$('#btnTestMode').attr('onclick','TestMode(true)');
+		}
+	});
 }
 
 function loadVersion() {
@@ -2647,4 +2657,8 @@ function CheckPort(port, sourceId) {
 
 function GettingStarted_Close() {
 	$('#gettingStarted')[0].style.display = 'block';
+}
+
+function TestMode(value) {
+	socket.emit('testmode', value);
 }
