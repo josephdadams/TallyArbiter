@@ -169,9 +169,9 @@ var source_types_datafields = [ //data fields for the tally source types
 		]
 	},
 	{ sourceTypeId: 'TESTMODE', fields: [ //Internal Test Mode
-		{ fieldName: 'info', fieldLabel: 'Information', text: 'This source generates preview/program tally data for the purposes of testing equipment.', fieldType: 'info' }
-	]
-},
+			{ fieldName: 'info', fieldLabel: 'Information', text: 'This source generates preview/program tally data for the purposes of testing equipment.', fieldType: 'info' }
+		]
+	}
 ];
 
 if (isPi()) {
