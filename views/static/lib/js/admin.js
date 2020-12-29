@@ -485,16 +485,27 @@ function loadSources() {
 		trSourceItem.appendChild(tdSourceType);
 		if (!sources[i].cloudConnection) {
 			let tdSourceEdit = document.createElement('td');
+
 			let btnEditSource = document.createElement('button');
 			btnEditSource.className = 'btn btn-dark mr-1';
 			btnEditSource.innerHTML = 'Edit';
 			btnEditSource.setAttribute('onclick', 'Edit_Source(\'' + sources[i].id + '\');');
 			tdSourceEdit.appendChild(btnEditSource);
+
 			let btnDeleteSource = document.createElement('button');
 			btnDeleteSource.className = 'btn btn-dark mr-1';
 			btnDeleteSource.innerHTML = 'Delete';
 			btnDeleteSource.setAttribute('onclick', 'Delete_Source(\'' + sources[i].id + '\');');
 			tdSourceEdit.appendChild(btnDeleteSource);
+
+			let btnReconnectSource = document.createElement('button');
+			btnReconnectSource.className = 'btn btn-dark mr-1';
+			btnReconnectSource.innerHTML = 'Reconnect';
+			btnReconnectSource.setAttribute('onclick', 'Reconnect_Source(\'' + sources[i].id + '\');');
+			if ((sources[i].connected === false) && (sources[i].enabled)) {
+				tdSourceEdit.appendChild(btnReconnectSource);
+			}
+
 			trSourceItem.appendChild(tdSourceEdit);
 		}
 		tableSources.appendChild(trSourceItem);
@@ -1279,10 +1290,10 @@ function Add_Source_ShowFields() {
 			let selDropdown = document.createElement('select');
 			selDropdown.id = fields[i].fieldName;
 			for (let j = 0; j < fields[i].options.length; j++) {
-			let elOption = document.createElement('option');
-			elOption.textContent = fields[i].options[j].label;
-			elOption.value = fields[i].options[j].id;
-			selDropdown.appendChild(elOption);
+				let elOption = document.createElement('option');
+				elOption.textContent = fields[i].options[j].label;
+				elOption.value = fields[i].options[j].id;
+				selDropdown.appendChild(elOption);
 			}
 			divSourceFields.appendChild(selDropdown);
 			break;
@@ -1561,6 +1572,10 @@ function Delete_Source(sourceId) {
 	arbiterObj.type = 'source';
 	arbiterObj.sourceId = sourceId;
 	socket.emit('manage', arbiterObj);
+}
+
+function Reconnect_Source(sourceId) {
+	socket.emit('reconnect_source', sourceId);
 }
 
 function Cancel_Source() {
