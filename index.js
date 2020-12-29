@@ -1115,6 +1115,10 @@ function initialSetup() {
 			io.to('settings').emit('manage_response', response);
 		});
 
+		socket.on('reconnect_source', function(sourceId) {
+			StartConnection(sourceId);
+		});
+
 		socket.on('device_sources_link', function(deviceId, bus, choice) {
 			for (let i = 0; i < devices.length; i++) {
 				if (devices[i].id === deviceId) {
@@ -1310,7 +1314,7 @@ function startVMixEmulator() {
 	vmix_emulator.on('connection', handleConnection);
 
 	vmix_emulator.listen(8099, function() {
-		logger(`Finished VMix Emulation Setup. Listening for VMix Tally Connections on ${vmix_emulator.address()} TCP Port 8099.`, 'info-quiet');
+		logger(`Finished VMix Emulation Setup. Listening for VMix Tally Connections on TCP Port 8099.`, 'info-quiet');
 	});
 
 	function handleConnection(conn) {
