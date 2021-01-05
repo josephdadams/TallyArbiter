@@ -1,18 +1,24 @@
 # TallyArbiter-M5AtomMatrixListener
-This is a Tally Viewer using a M5 Atom Matrix.
-<br>
+This is a Tally Viewer using a M5 Atom Matrix as a TallyArbiter Client.
+This is my attempt at 'mushing' arduino code.
+* Buy them here:
 https://m5stack.com/collections/m5-atom/products/atom-matrix-esp32-development-kit
-<br>
-At some point I will write a guide for how to install this on the M5 ATOM Matrix devices.
-<br>
+
 # Video Demo
-<p><br>
+
 https://youtu.be/Mc_PCxg6qdc
-<br></p>
-# Update Planes
-<p>Next Update will have Internal Motion Unit functionality to automatically rotate the screen.</p>
-<br>
+
+# Current Updates:
+* Tidyed up things a little bit
+* Changed the way the LED's are written to now using the M5 library
+* Added Blank and 1 thru 16 camera numbers by pushing the screen (M5 Action button)
+* Fixed bugs
+
+Note if deploying yourself, one of the librarys has an error where you have to manually comment out hexdump by changing it to //hexdump
+
+# Planned Updates:
+Next Update will have Internal Motion Unit functionality to automatically rotate the screen.
+
 # Thanks
-<p>Thanks to mg-1999 for the code base, and huge thanks to josephdadams for his amazing work on TallyArbiter.</p>
-<br>
+Thanks to mg-1999 for the code base, and huge thanks to josephdadams for his amazing work on TallyArbiter, and the origional M5StickC implementation.
 https://github.com/josephdadams/TallyArbiter
