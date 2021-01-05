@@ -6,7 +6,8 @@ https://m5stack.com/collections/m5-atom/products/atom-matrix-esp32-development-k
 At some point I will write a guide for how to install this on the M5 ATOM Matrix devices.
 <br>
 # Video Demo
-<p>https://www.youtube.com/embed/Mc_PCxg6qdc</p>
+<br>
+https://www.youtube.com/embed/Mc_PCxg6qdc
 <br>
 # Updates
 <p>Next Update will have Internal Motion Unit functionality to automatically rotate the screen.</p>
