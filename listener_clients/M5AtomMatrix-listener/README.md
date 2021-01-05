@@ -9,7 +9,7 @@ https://m5stack.com/collections/m5-atom/products/atom-matrix-esp32-development-k
 * What this does when used with TallyArbiter - https://youtu.be/hNhU22OkXek
 * Demo of the M5Atom Matrix code in this git - https://youtu.be/Mc_PCxg6qdc
 
-# Current Updates:
+# Current Updates
 * Tidyed up things a little bit
 * Changed the way the LED's are written to now using the M5 library
 * Added Blank and 1 thru 16 camera numbers by pushing the screen (M5 Action button)
@@ -17,7 +17,7 @@ https://m5stack.com/collections/m5-atom/products/atom-matrix-esp32-development-k
 
 Note if deploying yourself, one of the librarys has an error where you have to manually comment out hexdump by changing it to //hexdump
 
-# Planned Updates:
+# Planned Updates
 Next Update will have Internal Motion Unit functionality to automatically rotate the screen.
 
 # Thanks
