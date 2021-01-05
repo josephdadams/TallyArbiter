@@ -3,215 +3,200 @@
 #include <SocketIoClient.h>
 #include <Arduino_JSON.h>
 #include <PinButton.h>
-
 #include <stdint.h>
-
 #include <Arduino.h>
-#include <FastLED.h>
-
 #define DATA_PIN_LED 27
 
+//General Variables
+bool networkConnected = false;
+int currentScreen;
+uint8_t FSM = 0;
+
+//M5StickC variables
+PinButton btnAction(39); //the "Action" button on the device
+
 /* USER CONFIG VARIABLES
- *  Change the following variables before compiling and sending the code to your device.
- */
+    Change the following variables before compiling and sending the code to your device.
+*/
 
 //Wifi SSID and password
-const char * networkSSID = "YourNetwork";
-const char * networkPass = "YourPassword";
+const char * networkSSID = "WifiSSID";
+const char * networkPass = "WifiPassword";
 
 //Tally Arbiter Server
-const char * tallyarbiter_host = "192.168.1.100";
+const char * tallyarbiter_host = "TALLYARBITERSERVERIP";
 const int tallyarbiter_port = 4455;
 
-//Colors Colors
-const CRGB preview_color = CRGB::Green;
-const CRGB program_color = CRGB::Red;
-const CRGB mixed_color = CRGB::Green;
-const CRGB connected_color = CRGB::Green;
-const CRGB flash_color = CRGB::Green;
-
-// Numbers for matrix
-const int pushButton = 39;
-static CRGB leds[25];
-static int cubestartpoint[] = {5,0,0};
-static int state = 0;
-static int camNumber = 8;
-const int cube[11][25] ={{0,1,1,1,0,
-                          0,1,0,1,0,
-                          0,1,0,1,0,
-                          0,1,0,1,0,
-                          0,1,1,1,0},
-                         {0,0,1,0,0,
-                          0,1,1,0,0,
-                          0,0,1,0,0,
-                          0,0,1,0,0,
-                          0,1,1,1,0},
-                         {0,1,1,1,0,
-                          0,0,0,1,0,
-                          0,1,1,1,0,
-                          0,1,0,0,0,
-                          0,1,1,1,0},
-                         {0,1,1,1,0,
-                          0,0,0,1,0,
-                          0,1,1,1,0,
-                          0,0,0,1,0,
-                          0,1,1,1,0},
-                         {0,1,0,1,0,
-                          0,1,0,1,0,
-                          0,1,1,1,0,
-                          0,0,0,1,0,
-                          0,0,0,1,0},
-                         {0,1,1,1,0,
-                          0,1,0,0,0,
-                          0,1,1,1,0,
-                          0,0,0,1,0,
-                          0,1,1,1,0},
-                         {0,1,1,1,0,
-                          0,1,0,0,0,
-                          0,1,1,1,0,
-                          0,1,0,1,0,
-                          0,1,1,1,0},
-                         {0,1,1,1,0,
-                          0,0,0,1,0,
-                          0,0,1,0,0,
-                          0,1,0,0,0,
-                          0,1,0,0,0},
-                         {0,1,1,1,0,
-                          0,1,0,1,0,
-                          0,1,1,1,0,
-                          0,1,0,1,0,
-                          0,1,1,1,0},
-                         {0,1,1,1,0,
-                          0,1,0,1,0,
-                          0,1,1,1,0,
-                          0,0,0,1,0,
-                          0,1,1,1,0},
-                         {1,0,1,1,1,
-                          1,0,1,0,1,
-                          1,0,1,1,1,
-                          1,0,1,0,1,
-                          1,0,1,1,1},
-                        };
+//Local Default Camera Number
+int camNumber = 0;
 
 //Tally Arbiter variables
 SocketIoClient socket;
 JSONVar BusOptions;
 JSONVar Devices;
 JSONVar DeviceStates;
-String DeviceId = "unassigned";
-String DeviceName = "unassigned";
-bool mode_preview = false;  
+String DeviceId = "01";
+String DeviceName = "M5AtomMatrix";
+bool mode_preview = true;
 bool mode_program = false;
-const byte led_program = 10;
-
-//General Variables
-bool networkConnected = false;
-
-void setup() {
-  Serial.begin(115200);
-  while (!Serial);
-  logger("Initializing M5StickC object.", "info-quiet");
-  
-  FastLED.addLeds < WS2812B, DATA_PIN_LED, GRB > (leds, 25);
-  FastLED.setBrightness(20);
-
-  delay(100); //wait 100ms before moving on
-  connectToNetwork(); //starts Wifi connection
-  while (!networkConnected) {
-    delay(200);
-  }
-  // Flash screen blue if connected to wifi.
-
-  // Enable interal led for program trigger
-  pinMode(led_program, OUTPUT);
-  digitalWrite(led_program, LOW);
-  
-  connectToServer();
-}
-
-void loop() {
-  socket.loop();
-  btnM5.update();
-  
-  if (btnM5.isClick()) {
-    switch (currentScreen) {
-      case 0:
-        showSettings();
-        currentScreen = 1;
-        break;
-      case 1:
-        showDeviceInfo();
-        currentScreen = 0;
-        break;
-    }
-  }
-}
-    /*if(Numbersprite){
-        if(place < 25){
-            int state = { cube[Numbersprite][place]};
-            if(state){
-                leds[place] = CRGB::White;
-            };
-            if(!state){
-                leds[place] = CRGB::Black;
-            };    
-            place++;
-        };
-        if(place > 24){
-            Numbersprite--;
-            place = 0;
-            delay(1000);
-            FastLED.show();
-            };
-        };*/
+// const byte led_program = 10;
 
 
-void showSettings() {
-  static int place = 0;
-  if(place < 25){
-    int state = { cube[camNumber][place]};
-    if(state){
-      leds[place] = CRGB::White;
-    };
-    if(!state){
-      leds[place] = CRGB::Black;
-    };    
-    place++;
-  };
-  if(place > 24){
-    Numbersprite--;
-    place = 0;
-    delay(1000);
-    FastLED.show();
-  };
- 
-}
+// default color values
+int GRB_COLOR_WHITE = 0xffffff;
+int GRB_COLOR_BLACK = 0x000000;
+int GRB_COLOR_RED = 0x00ff00;
+int GRB_COLOR_ORANGE = 0xa5ff00;
+int GRB_COLOR_YELLOW = 0xffff00;
+int GRB_COLOR_GREEN = 0xff0000;
+int GRB_COLOR_BLUE = 0x0000ff;
+int GRB_COLOR_PURPLE = 0x008080;
 
-void showDeviceInfo() {
-  //displays the currently assigned device and tally data
-  evaluateMode();
-}
+int numbercolor = GRB_COLOR_ORANGE;
 
+int programcolor[] = {GRB_COLOR_RED, numbercolor};
+int previewcolor[] = {GRB_COLOR_GREEN, numbercolor};
+int mixedcolor[] = {GRB_COLOR_YELLOW, numbercolor};
+int flashcolor[] = {GRB_COLOR_WHITE, GRB_COLOR_WHITE};
+int offcolor[] = {GRB_COLOR_BLACK, numbercolor};
+int readycolour[] = {GRB_COLOR_BLUE, GRB_COLOR_BLUE};
+int alloffcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_BLACK};
+
+int currentBrightness = 20;
+
+//this is the array that stores the number layout
+int number[18][25] = {{
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 1, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0
+  },
+  { 0, 0, 1, 0, 0,
+    0, 1, 1, 0, 0,
+    0, 0, 1, 0, 0,
+    0, 0, 1, 0, 0,
+    0, 1, 1, 1, 0
+  },
+  { 0, 1, 1, 1, 0,
+    0, 0, 0, 1, 0,
+    0, 1, 1, 1, 0,
+    0, 1, 0, 0, 0,
+    0, 1, 1, 1, 0
+  },
+  { 0, 1, 1, 1, 0,
+    0, 0, 0, 1, 0,
+    0, 1, 1, 1, 0,
+    0, 0, 0, 1, 0,
+    0, 1, 1, 1, 0
+  },
+  { 0, 1, 0, 1, 0,
+    0, 1, 0, 1, 0,
+    0, 1, 1, 1, 0,
+    0, 0, 0, 1, 0,
+    0, 0, 0, 1, 0
+  },
+  { 0, 1, 1, 1, 0,
+    0, 1, 0, 0, 0,
+    0, 1, 1, 1, 0,
+    0, 0, 0, 1, 0,
+    0, 1, 1, 1, 0
+  },
+  { 0, 1, 1, 1, 0,
+    0, 1, 0, 0, 0,
+    0, 1, 1, 1, 0,
+    0, 1, 0, 1, 0,
+    0, 1, 1, 1, 0
+  },
+  { 0, 1, 1, 1, 0,
+    0, 0, 0, 1, 0,
+    0, 0, 1, 0, 0,
+    0, 1, 0, 0, 0,
+    0, 1, 0, 0, 0
+  },
+  { 0, 1, 1, 1, 0,
+    0, 1, 0, 1, 0,
+    0, 1, 1, 1, 0,
+    0, 1, 0, 1, 0,
+    0, 1, 1, 1, 0
+  },
+  { 0, 1, 1, 1, 0,
+    0, 1, 0, 1, 0,
+    0, 1, 1, 1, 0,
+    0, 0, 0, 1, 0,
+    0, 1, 1, 1, 0
+  },
+  { 1, 0, 1, 1, 1,
+    1, 0, 1, 0, 1,
+    1, 0, 1, 0, 1,
+    1, 0, 1, 0, 1,
+    1, 0, 1, 1, 1
+  },
+  { 0, 1, 0, 1, 0,
+    0, 1, 0, 1, 0,
+    0, 1, 0, 1, 0,
+    0, 1, 0, 1, 0,
+    0, 1, 0, 1, 0
+  },
+  { 1, 0, 1, 1, 1,
+    1, 0, 0, 0, 1,
+    1, 0, 1, 1, 1,
+    1, 0, 1, 0, 0,
+    1, 0, 1, 1, 1
+  },
+  { 1, 0, 1, 1, 1,
+    1, 0, 0, 0, 1,
+    1, 0, 1, 1, 1,
+    1, 0, 0, 0, 1,
+    1, 0, 1, 1, 1
+  },
+  { 1, 0, 1, 0, 1,
+    1, 0, 1, 0, 1,
+    1, 0, 1, 1, 1,
+    1, 0, 0, 0, 1,
+    1, 0, 0, 0, 1
+  },
+  { 1, 0, 1, 1, 1,
+    1, 0, 1, 0, 0,
+    1, 0, 1, 1, 1,
+    1, 0, 0, 0, 1,
+    1, 0, 1, 1, 1
+  },
+  { 1, 0, 1, 1, 1,
+    1, 0, 1, 0, 0,
+    1, 0, 1, 1, 1,
+    1, 0, 1, 0, 1,
+    1, 0, 1, 1, 1
+  },
+  {
+    1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1
+  },
+};
+
+
+//Logger
 void logger(String strLog, String strType) {
   if (strType == "info") {
     Serial.println(strLog);
-    M5.Lcd.println(strLog);
   }
   else {
     Serial.println(strLog);
   }
 }
 
-void connectToNetwork() {
-  logger("Connecting to SSID: " + String(networkSSID), "info");
-
-  WiFi.disconnect(true);
-  WiFi.onEvent(WiFiEvent);
-
-  WiFi.mode(WIFI_STA); //station
-  WiFi.setSleep(false);
-
-  WiFi.begin(networkSSID, networkPass);
+void setDeviceName()
+{
+  for (int i = 0; i < Devices.length(); i++) {
+    if (JSON.stringify(Devices[i]["id"]) == "\"" + DeviceId + "\"") {
+      String strDevice = JSON.stringify(Devices[i]["Type"]);
+      DeviceName = strDevice.substring(1, strDevice.length() - 1);
+      break;
+    }
+  }
 }
 
 void WiFiEvent(WiFiEvent_t event) {
@@ -226,6 +211,87 @@ void WiFiEvent(WiFiEvent_t event) {
       networkConnected = false;
       break;
   }
+}
+
+//---------------------------------------------------------------
+//HERE IS THE MAIN LED DRAWING ROUTINE aka drawNumber
+void drawNumber(int arr[], int colors[])
+{
+  for (int i = 0; i < 25; i++)
+  {
+    M5.dis.drawpix(i, colors[arr[i]]);
+  }
+}
+//---------------------------------------------------------------
+
+// This is the main status checking part of the code, weird name but eh.
+void evaluateMode() {
+  if (mode_preview && !mode_program) {
+    logger("The device is in preview.", "info-quiet");
+    M5.dis.clear();
+    drawNumber(number[camNumber], previewcolor);
+  }
+  else if (!mode_preview && mode_program) {
+    logger("The device is in program.", "info-quiet");
+    M5.dis.clear();
+    drawNumber(number[camNumber], programcolor);
+  }
+  else if (mode_preview && mode_program) {
+    M5.dis.clear();
+    drawNumber(number[camNumber], mixedcolor);
+  }
+  else {
+    M5.dis.clear();
+    drawNumber(number[camNumber], offcolor);
+  }
+}
+
+void showDeviceInfo() {
+  //displays the currently assigned device and tally data
+  evaluateMode();
+}
+
+
+void socket_Flash(const char * payload, size_t length) {
+  //flash the screen white 3 times
+  // TODO
+  drawNumber(number[17], alloffcolor);
+  delay(100);
+  drawNumber(number[17], flashcolor);
+  delay(100);
+  drawNumber(number[17], alloffcolor);
+  delay(100);
+  drawNumber(number[17], flashcolor);
+  delay(100);
+  drawNumber(number[17], alloffcolor);
+  delay(100);
+  drawNumber(number[17], flashcolor);
+  delay(100);
+  drawNumber(number[17], alloffcolor);
+  delay(100);
+  //then resume normal operation
+  switch (currentScreen) {
+    case 0:
+      showDeviceInfo();
+      break;
+    case 1:
+      //  showSettings();
+      break;
+  }
+}
+
+
+void socket_Reassign(const char * payload, size_t length) {
+  String oldDeviceId = String(payload).substring(0, 8);
+  String newDeviceId = String(payload).substring(11);
+  String reassignObj = "{\"oldDeviceId\": \"" + oldDeviceId + "\", \"newDeviceId\": \"" + newDeviceId + "\"}";
+  char charReassignObj[1024];
+  strcpy(charReassignObj, reassignObj.c_str());
+  socket.emit("listener_reassign_object", charReassignObj);
+  // Flash 2 times
+
+  DeviceId = newDeviceId;
+  setDeviceName();
 }
 
 void connectToServer() {
@@ -254,46 +320,14 @@ void socket_BusOptions(const char * payload, size_t length) {
 
 void socket_Devices(const char * payload, size_t length) {
   Devices = JSON.parse(payload);
-  SetDeviceName();
+  setDeviceName();
 }
 
 void socket_DeviceId(const char * payload, size_t length) {
   DeviceId = String(payload);
-  SetDeviceName();
-}
-
-void socket_DeviceStates(const char * payload, size_t length) {
-  DeviceStates = JSON.parse(payload);
-  processTallyData();
-}
-
-void socket_Flash(const char * payload, size_t length) {
-  //flash the screen white 3 times
-  // TODO
-  
-  //then resume normal operation
-  switch (currentScreen) {
-      case 0:
-        showDeviceInfo();
-        break;
-      case 1:
-        showSettings();
-        break;
-  }
-}
-
-void socket_Reassign(const char * payload, size_t length) {
-  String oldDeviceId = String(payload).substring(0,8);
-  String newDeviceId = String(payload).substring(11);
-  String reassignObj = "{\"oldDeviceId\": \"" + oldDeviceId + "\", \"newDeviceId\": \"" + newDeviceId + "\"}";
-  char charReassignObj[1024];
-  strcpy(charReassignObj, reassignObj.c_str());
-  socket.emit("listener_reassign_object", charReassignObj);
-  // Flash 2 times
-  
-  DeviceId = newDeviceId;
   setDeviceName();
 }
+
 
 void processTallyData() {
   for (int i = 0; i < DeviceStates.length(); i++) {
@@ -328,28 +362,142 @@ String getBusTypeById(String busId) {
   return "invalid";
 }
 
-void setDeviceName() {
-  for (int i = 0; i < Devices.length(); i++) {
-    if (JSON.stringify(Devices[i]["id"]) == "\"" + DeviceId + "\"") {
-      String strDevice = JSON.stringify(Devices[i]["name"]);
-      DeviceName = strDevice.substring(1, strDevice.length() - 1);
-      break;
-    }
-  }
+
+void socket_DeviceStates(const char * payload, size_t length) {
+  DeviceStates = JSON.parse(payload);
+  processTallyData();
 }
 
-void evaluateMode() {
-  if (mode_preview && !mode_program) {
-    logger("The device is in preview.", "info-quiet");
+
+void connectToNetwork() {
+  logger("Connecting to SSID: " + String(networkSSID), "info");
+
+  WiFi.disconnect(true);
+  WiFi.onEvent(WiFiEvent);
+
+  WiFi.mode(WIFI_STA); //station
+  WiFi.setSleep(false);
+
+  WiFi.begin(networkSSID, networkPass);
+}
+
+
+void setup() {
+  Serial.begin(115200);
+  while (!Serial);
+  logger("Initializing M5StickC object.", "info-quiet");
+
+  M5.begin(true, false, true);
+  delay(50);
+  M5.dis.drawpix(0, 0xf00000);
+
+  drawNumber(number[17], alloffcolor);
+  delay(100); //wait 100ms before moving on
+
+  connectToNetwork(); //starts Wifi connection
+  while (!networkConnected) {
+    delay(200);
   }
-  else if (!mode_preview && mode_program) {
-    logger("The device is in program.", "info-quiet");
+  // Flash screen if connected to wifi.
+  drawNumber(number[17], alloffcolor);
+  delay(100);
+  drawNumber(number[17], readycolour);
+  delay(300);
+  drawNumber(number[17], alloffcolor);
+  delay(100);
+
+  // Enable interal led for program trigger
+  // pinMode(led_program, OUTPUT);
+  // digitalWrite(led_program, HIGH);
+
+  connectToServer();
+  delay (100);
+}
+
+void loop()
+{
+  socket.loop();
+  if (M5.Btn.wasPressed())
+  {
+    switch (FSM)
+    {
+      default:
+        camNumber = 0;
+        drawNumber(number[0], offcolor);
+        break;
+      case 1:
+        camNumber = 1;
+        drawNumber(number[1], offcolor);
+        break;
+      case 2:
+        camNumber = 2;
+        drawNumber(number[2], offcolor);
+        break;
+      case 3:
+        camNumber = 3;
+        drawNumber(number[3], offcolor);
+        break;
+      case 4:
+        camNumber = 4;
+        drawNumber(number[4], offcolor);
+        break;
+      case 5:
+        camNumber = 5;
+        drawNumber(number[5], offcolor);
+        break;
+      case 6:
+        camNumber = 6;
+        drawNumber(number[6], offcolor);
+        break;
+      case 7:
+        camNumber = 7;
+        drawNumber(number[7], offcolor);
+        break;
+      case 8:
+        camNumber = 8;
+        drawNumber(number[8], offcolor);
+        break;
+      case 9:
+        camNumber = 9;
+        drawNumber(number[9], offcolor);
+        break;
+      case 10:
+        camNumber = 10;
+        drawNumber(number[10], offcolor);
+        break;
+      case 11:
+        camNumber = 11;
+        drawNumber(number[11], offcolor);
+        break;
+      case 12:
+        camNumber = 12;
+        drawNumber(number[12], offcolor);
+        break;
+      case 13:
+        camNumber = 13;
+        drawNumber(number[13], offcolor);
+        break;
+      case 14:
+        camNumber = 14;
+        drawNumber(number[14], offcolor);
+        break;
+      case 15:
+        camNumber = 15;
+        drawNumber(number[15], offcolor);
+        break;
+      case 16:
+        camNumber = 16;
+        drawNumber(number[16], offcolor);
+        break;
+
+    };
+    FSM++;
+    if (FSM >= 17)
+    {
+      FSM = 0;
+    };
   }
-  else if (mode_preview && mode_program) {
-    logger("The device is in preview+program.", "info-quiet");
-  }
-  else {
-    // Screen empty
-  }
-  }
+
+  delay(50);
+  M5.update();
 }
