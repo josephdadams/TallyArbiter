@@ -4,7 +4,7 @@ This is a Tally Viewer using a M5 Atom Matrix.
 At some point I will write a guide for how to install this on the M5 ATOM Matrix devices.
 <br>
 # Video Demo
-<iframe width="560" height="315" src="https://www.youtube.com/embed/Mc_PCxg6qdc" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<p>https://www.youtube.com/embed/Mc_PCxg6qdc</p>
 <br>
 # Updates
 Next Update will have Internal Motion Unit functionality to automatically rotate the screen.
