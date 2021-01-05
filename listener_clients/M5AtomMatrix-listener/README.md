@@ -4,9 +4,10 @@ This is my attempt at 'mushing' arduino code.
 * Buy them here:
 https://m5stack.com/collections/m5-atom/products/atom-matrix-esp32-development-kit
 
-# Video Demo
+# Videos
 
-https://youtu.be/Mc_PCxg6qdc
+* What this does when used with TallyArbiter - https://youtu.be/hNhU22OkXek
+* Demo of the M5Atom Matrix code in this git - https://youtu.be/Mc_PCxg6qdc
 
 # Current Updates:
 * Tidyed up things a little bit
