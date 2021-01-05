@@ -1,7 +1,9 @@
 # TallyArbiter-M5AtomMatrixListener
-<p>This is a Tally Viewer using a M5 Atom Matrix.
+This is a Tally Viewer using a M5 Atom Matrix.
 <br>
-At some point I will write a guide for how to install this on the M5 ATOM Matrix devices.</p>
+https://m5stack.com/collections/m5-atom/products/atom-matrix-esp32-development-kit
+<br>
+At some point I will write a guide for how to install this on the M5 ATOM Matrix devices.
 <br>
 # Video Demo
 <p>https://www.youtube.com/embed/Mc_PCxg6qdc</p>
