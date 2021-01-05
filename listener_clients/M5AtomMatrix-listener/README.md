@@ -7,8 +7,9 @@ At some point I will write a guide for how to install this on the M5 ATOM Matrix
 <br>
 https://www.youtube.com/watch?v=Mc_PCxg6qdc&ab_channel=AdrianDavis
 <br>
+# Updates
 Next Update will have Internal Motion Unit functionality to automatically rotate the screen.
-<br>
+# Thanks
 Thanks to mg-1999 for the code base, and huge thanks to josephdadams for his amazing work on TallyArbiter.
 <br>
 https://github.com/josephdadams/TallyArbiter
