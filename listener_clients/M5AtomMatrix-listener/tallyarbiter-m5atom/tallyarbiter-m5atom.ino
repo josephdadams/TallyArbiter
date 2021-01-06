@@ -417,83 +417,16 @@ void loop()
   socket.loop();
   if (M5.Btn.wasPressed())
   {
-    switch (FSM)
+    if (FSM < 17)
     {
-      default:
-        camNumber = 0;
-        drawNumber(number[0], offcolor);
-        break;
-      case 1:
-        camNumber = 1;
-        drawNumber(number[1], offcolor);
-        break;
-      case 2:
-        camNumber = 2;
-        drawNumber(number[2], offcolor);
-        break;
-      case 3:
-        camNumber = 3;
-        drawNumber(number[3], offcolor);
-        break;
-      case 4:
-        camNumber = 4;
-        drawNumber(number[4], offcolor);
-        break;
-      case 5:
-        camNumber = 5;
-        drawNumber(number[5], offcolor);
-        break;
-      case 6:
-        camNumber = 6;
-        drawNumber(number[6], offcolor);
-        break;
-      case 7:
-        camNumber = 7;
-        drawNumber(number[7], offcolor);
-        break;
-      case 8:
-        camNumber = 8;
-        drawNumber(number[8], offcolor);
-        break;
-      case 9:
-        camNumber = 9;
-        drawNumber(number[9], offcolor);
-        break;
-      case 10:
-        camNumber = 10;
-        drawNumber(number[10], offcolor);
-        break;
-      case 11:
-        camNumber = 11;
-        drawNumber(number[11], offcolor);
-        break;
-      case 12:
-        camNumber = 12;
-        drawNumber(number[12], offcolor);
-        break;
-      case 13:
-        camNumber = 13;
-        drawNumber(number[13], offcolor);
-        break;
-      case 14:
-        camNumber = 14;
-        drawNumber(number[14], offcolor);
-        break;
-      case 15:
-        camNumber = 15;
-        drawNumber(number[15], offcolor);
-        break;
-      case 16:
-        camNumber = 16;
-        drawNumber(number[16], offcolor);
-        break;
-
-    };
+      camNumber = FSM;
+      drawNumber(number[FSM], offcolor);
+    }
     FSM++;
-    if (FSM >= 17)
+    if (FSM > 16)
     {
-      FSM = 0;
-    };
+      FSM = 0;  
+    }
   }
 
   delay(50);
