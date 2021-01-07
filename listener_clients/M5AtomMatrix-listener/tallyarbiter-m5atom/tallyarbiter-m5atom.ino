@@ -5,6 +5,7 @@
 #include <PinButton.h>
 #include <stdint.h>
 #include <Arduino.h>
+#include <Preferences.h>
 #define DATA_PIN_LED 27
 
 //General Variables
@@ -12,19 +13,20 @@ bool networkConnected = false;
 int currentScreen;
 uint8_t FSM = 0;
 
-//M5StickC variables
+//M5 variables
 PinButton btnAction(39); //the "Action" button on the device
+Preferences preferences;
 
 /* USER CONFIG VARIABLES
     Change the following variables before compiling and sending the code to your device.
 */
 
 //Wifi SSID and password
-const char * networkSSID = "WifiSSID";
-const char * networkPass = "WifiPassword";
+const char * networkSSID = "FG_TECH";
+const char * networkPass = "Bezalel31";
 
 //Tally Arbiter Server
-const char * tallyarbiter_host = "TALLYARBITERSERVERIP";
+const char * tallyarbiter_host = "192.168.11.139";
 const int tallyarbiter_port = 4455;
 
 //Local Default Camera Number
@@ -35,8 +37,9 @@ SocketIoClient socket;
 JSONVar BusOptions;
 JSONVar Devices;
 JSONVar DeviceStates;
-String DeviceId = "01";
-String DeviceName = "M5AtomMatrix";
+String DeviceId = "unassigned";
+String DeviceName = "Unassigned";
+String ListenerType = "m5-atom";
 bool mode_preview = true;
 bool mode_program = false;
 // const byte led_program = 10;
@@ -195,6 +198,9 @@ void setDeviceName()
       break;
     }
   }
+  preferences.begin("tally-arbiter", false);
+  preferences.putString("devicename", DeviceName);
+  preferences.end();
 }
 
 void WiFiEvent(WiFiEvent_t event) {
@@ -222,7 +228,7 @@ void drawNumber(int arr[], int colors[])
 }
 //---------------------------------------------------------------
 
-// This is the main status checking part of the code, weird name but eh.
+// Determine if the device is currently in preview, program, or both
 void evaluateMode() {
   if (mode_preview && !mode_program) {
     logger("The device is in preview.", "info-quiet");
@@ -289,6 +295,9 @@ void socket_Reassign(const char * payload, size_t length) {
   // Flash 2 times
 
   DeviceId = newDeviceId;
+  preferences.begin("tally-arbiter", false);
+  preferences.putString("deviceid", newDeviceId);
+  preferences.end();
   setDeviceName();
 }
 
@@ -305,11 +314,11 @@ void connectToServer() {
 }
 
 void socket_Connected(const char * payload, size_t length) {
-  String deviceObj = "{\"deviceId\": \"" + DeviceId + "\"}";
+  String deviceObj = "{\"deviceId\": \"" + DeviceId + "\", \"listenerType\": \"" + ListenerType + "\"}";
   char charDeviceObj[1024];
   strcpy(charDeviceObj, deviceObj.c_str());
   socket.emit("bus_options");
-  socket.emit("device_listen_m5stick", charDeviceObj);
+  socket.emit("device_listen_m5", charDeviceObj);
 }
 
 void socket_BusOptions(const char * payload, size_t length) {
@@ -383,7 +392,7 @@ void connectToNetwork() {
 void setup() {
   Serial.begin(115200);
   while (!Serial);
-  logger("Initializing M5StickC object.", "info-quiet");
+  logger("Initializing M5.", "info-quiet");
 
   M5.begin(true, false, true);
   delay(50);
@@ -404,9 +413,14 @@ void setup() {
   drawNumber(number[17], alloffcolor);
   delay(100);
 
-  // Enable interal led for program trigger
-  // pinMode(led_program, OUTPUT);
-  // digitalWrite(led_program, HIGH);
+  preferences.begin("tally-arbiter", false);
+  if(preferences.getString("deviceid").length() > 0){
+    DeviceId = preferences.getString("deviceid");
+  }
+  if(preferences.getString("devicename").length() > 0){
+    DeviceName = preferences.getString("devicename");
+  }
+  preferences.end();
 
   connectToServer();
   delay (100);
