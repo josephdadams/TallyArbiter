@@ -653,9 +653,11 @@ function initialSetup() {
 			socket.emit('listener_relay_assignment', gpoGroupId, deviceId);
 		});
 
-		socket.on('device_listen_m5stick', function(obj) { // emitted by the M5StickC Arduino client that has selected a Device to listen for state information
+		socket.on('device_listen_m5', function(obj) { // emitted by the M5 Arduino clients (Atom, Stick C, Stick C Plus, etc.) that has selected a Device to listen for state information
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
+			let listenerType = 'm5';
+
 			if ((deviceId === 'null') || (device.id === 'unassigned')) {
 				if (devices.length > 0) {
 					deviceId = devices[0].id;
@@ -668,7 +670,9 @@ function initialSetup() {
 				}
 			}
 
-			let listenerType = 'm5stick-c';
+			if (obj.listenerType) {
+				listenerType = obj.listenerType;
+			}
 
 			socket.join('device-' + deviceId);
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
