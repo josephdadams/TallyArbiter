@@ -180,11 +180,14 @@ Tally Arbiter supports the use of a blink(1) device as a tally light. A remote l
 ## Using a Relay for contact-closure systems
 Many Camera CCUs and other devices support incoming tally via contact closure. A remote listening script that can trigger USB relays is available with the separate repository, [Tally Arbiter Relay Listener](http://github.com/josephdadams/tallyarbiter-relaylistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-RelayListener/blob/master/readme.md).
 
-## Using a GPO output of a Raspberry Pi
+## Using a GPO output
 Lots of equipment support the use of GPIO (General Purpose In/Out) pins to interact. This could be for logic control, turning on LEDs, etc. A remote listening script that can run on a Raspberry Pi is available with the separate repository, [Tally Arbiter GPO Listener](http://github.com/josephdadams/tallyarbiter-gpolistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-GPOListener/blob/master/readme.md).
 
 ## Using an M5StickC for tally output
 Tally Arbiter can send tally data to an M5StickC Arduino Finger Computer. A remote script is available in the separate repository, [Tally Arbiter M5StickC Listener](http://github.com/josephdadams/tallyarbiter-m5stickclistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-M5StickCListener/blob/master/readme.md).
+
+## Using an M5 Atom Matrix for tally output
+Tally Arbiter can send tally data to an M5 Atom Matrix. A remote script is available in the separate repository, [Tally Arbiter M5 Atom Matrix Listener](http://github.com/josephdadams/tallyarbiter-m5atommatrixlistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-M5AtomMatrixListener/blob/master/readme.md).
 
 ## Arduino ESP8266 with Neopixel
 Use AdaFruit NeoPixel LED strips connected to an Arduino. Check out [NoahCallaway](http://github.com/noahcallaway/)'s repository for more information: https://github.com/NoahCallaway/TallyArbiter-arduino-neopixel
