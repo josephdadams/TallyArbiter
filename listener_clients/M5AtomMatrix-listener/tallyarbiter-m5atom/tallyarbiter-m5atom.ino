@@ -22,8 +22,8 @@ Preferences preferences;
 */
 
 //Wifi SSID and password
-const char * networkSSID = "FG_TECH";
-const char * networkPass = "Bezalel31";
+const char * networkSSID = "YourNetwork";
+const char * networkPass = "YourPassword";
 
 //Tally Arbiter Server
 const char * tallyarbiter_host = "192.168.11.139";
