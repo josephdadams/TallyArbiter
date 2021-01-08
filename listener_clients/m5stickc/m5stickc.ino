@@ -12,16 +12,25 @@
 #include <PinButton.h>
 #include <Preferences.h>
 
+
+#define GRAY  0x0020 //   8  8  8
+#define GREEN 0x0200 //   0 64  0
+#define RED   0xF800 // 255  0  0
+
 /* USER CONFIG VARIABLES
  *  Change the following variables before compiling and sending the code to your device.
  */
-
+ 
 //Wifi SSID and password
-const char * networkSSID = "YourNetwork";
-const char * networkPass = "YourPassword";
+const char * networkSSID = "MyHomeNetwork";
+const char * networkPass = "MyHomePass";
+
+IPAddress clientIp(2, 39, 2, 184);       // SETUP Static IP address of the M5Stick
+IPAddress subnet(255, 255, 255, 0);
+IPAddress gateway(2, 39, 2, 10);
 
 //Tally Arbiter Server
-const char * tallyarbiter_host = "192.168.11.139";
+const char * tallyarbiter_host = "2.39.2.99"; //SETUP IP address of the TA server
 const int tallyarbiter_port = 4455;
 
 
@@ -29,6 +38,7 @@ const int tallyarbiter_port = 4455;
 PinButton btnM5(37); //the "M5" button on the device
 PinButton btnAction(39); //the "Action" button on the device
 Preferences preferences;
+uint8_t wasPressed();
 
 //Tally Arbiter variables
 SocketIoClient socket;
@@ -52,13 +62,15 @@ void setup() {
   while (!Serial);
 
   // Initialize the M5StickC object
-  logger("Initializing M5StickC.", "info-quiet");
+  logger("Initializing M5StickC+.", "info-quiet");
   M5.begin();
+  setCpuFrequencyMhz(80);    //Save battery
+  btStop();                 //Save battery
   M5.Lcd.setRotation(3);
   M5.Lcd.setCursor(0, 0);
   M5.Lcd.fillScreen(TFT_BLACK);
   M5.Lcd.setTextSize(1);
-  logger("Tally Arbiter M5StickC Listener Client booting.", "info");
+  logger("Tally Arbiter M5StickC+ Listener Client booting.", "info");
 
   delay(100); //wait 100ms before moving on
   connectToNetwork(); //starts Wifi connection
@@ -80,6 +92,10 @@ void setup() {
   preferences.end();
   
   connectToServer();
+  
+  delay(10000);        // go to Tally when finished booting
+  showDeviceInfo();
+  currentScreen = 0; 
 }
 
 void loop() {
@@ -120,7 +136,12 @@ void showSettings() {
   M5.Lcd.println("Battery:");
   int batteryLevel = floor(100.0 * (((M5.Axp.GetVbatData() * 1.1 / 1000) - 3.0) / (4.07 - 3.0)));
   batteryLevel = batteryLevel > 100 ? 100 : batteryLevel;
-  M5.Lcd.println(String(batteryLevel) + "%");
+   if(batteryLevel >= 100){
+  M5.Lcd.println("Battery charging...");   // show when M5 is plugged in
+  }
+  else {
+    M5.Lcd.println("Battery:" + String(batteryLevel) + "%");
+    }
 }
 
 void showDeviceInfo() {
@@ -153,6 +174,8 @@ void connectToNetwork() {
 
   WiFi.disconnect(true);
   WiFi.onEvent(WiFiEvent);
+  WiFi.config(clientIp, gateway, subnet);  //set a complete set of network settings
+
 
   WiFi.mode(WIFI_STA); //station
   WiFi.setSleep(false);
@@ -327,7 +350,7 @@ void evaluateMode() {
     M5.Lcd.fillScreen(YELLOW);
   }
   else {
-    M5.Lcd.setTextColor(WHITE);
+    M5.Lcd.setTextColor(GRAY);
     M5.Lcd.fillScreen(TFT_BLACK);
   }
 
