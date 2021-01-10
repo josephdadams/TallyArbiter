@@ -25,10 +25,13 @@
 const char * networkSSID = "MyHomeNetwork";
 const char * networkPass = "MyHomePass";
 
-IPAddress clientIp(2, 39, 2, 184);       // SETUP Static IP address of the M5Stick
-IPAddress subnet(255, 255, 255, 0);
-IPAddress gateway(2, 39, 2, 10);
+bool USE_STATIC = false; // false = DHCP
 
+    IPAddress clientIp(2, 39, 2, 181);       // SETUP Static IP address of the M5Stick if wanted
+    IPAddress subnet(255, 255, 255, 0);
+    IPAddress gateway(2, 39, 2, 10);
+
+   
 //Tally Arbiter Server
 const char * tallyarbiter_host = "2.39.2.99"; //SETUP IP address of the TA server
 const int tallyarbiter_port = 4455;
@@ -92,10 +95,7 @@ void setup() {
   preferences.end();
   
   connectToServer();
-  
-  delay(10000);        // go to Tally when finished booting
-  showDeviceInfo();
-  currentScreen = 0; 
+ 
 }
 
 void loop() {
@@ -174,12 +174,14 @@ void connectToNetwork() {
 
   WiFi.disconnect(true);
   WiFi.onEvent(WiFiEvent);
-  WiFi.config(clientIp, gateway, subnet);  //set a complete set of network settings
-
-
+  
   WiFi.mode(WIFI_STA); //station
   WiFi.setSleep(false);
-
+  
+  if(USE_STATIC = true) {
+    WiFi.config(clientIp, gateway, subnet);
+    }
+   
   WiFi.begin(networkSSID, networkPass);
 }
 
@@ -215,6 +217,9 @@ void socket_Connected(const char * payload, size_t length) {
   strcpy(charDeviceObj, deviceObj.c_str());
   socket.emit("bus_options");
   socket.emit("device_listen_m5", charDeviceObj);
+    delay(5000);        // go to Tally when connected
+    showDeviceInfo();
+    currentScreen = 0; 
 }
 
 void socket_BusOptions(const char * payload, size_t length) {
