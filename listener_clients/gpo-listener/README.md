@@ -17,8 +17,8 @@ The Tally Arbiter GPO Listener Client uses the following libraries:
 These will have to be installed on the Pi in order for the script to function correctly.
 
 1. In your SSH terminal session, run the following:
-    * `sudo pip3 install "python-socketio[client]"`: This library is used to communicate with a Tally Arbiter server over websockets.
-	* `sudo pip3 install RPi.GPIO`: This is the GPIO library used to communicate with the General Purpose In/Out pins on your Raspberry Pi.
+    * `sudo pip3 install "python-socketio[client]<5`: This library is used to communicate with a Tally Arbiter server over websockets.
+    * `sudo pip3 install RPi.GPIO`: This is the GPIO library used to communicate with the General Purpose In/Out pins on your Raspberry Pi.
 
     *If `pip3` is not installed, you can get it by running `sudo apt-get install python3-pip`.*
 
