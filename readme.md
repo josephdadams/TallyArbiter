@@ -83,12 +83,13 @@ Tally Arbiter consists of the following sections:
 Sources represent all of the tally data that is generated. This is usually your video switcher or mixing software. Multiple sources can be added and they can all be different types.
 
 The following source types are supported:
-* TSL 3.1 UDP/TCP (Ross switchers, etc.)
+* TSL 3.1 UDP/TCP (Ross switchers, Streamstar, etc.)
 * Blackmagic ATEM
 * Blackmagic VideoHub
 * OBS Studio
 * StudioCoast VMix
 * Roland Smart Tally
+* Roland VR-50HD-MKII
 * Newtek Tricaster
 * Open Sound Control (OSC)
 * Analog Way Livecore Image Processors
@@ -115,6 +116,9 @@ You will need the IP address of the computer running VMix.
 ### Roland Smart Tally
 You will need the IP address of the Roland switcher.
 
+### Roland VR-50HD-MKII
+You will need the IP address of the Roland switcher.
+
 ### Newtek Tricaster
 You will need the IP address of the Tricaster.
 
@@ -127,7 +131,7 @@ OSC paths must be one of the following:
 * `/tally/program_on`: Puts the device in Program mode.
 * `/tally/program_off`: Turns off Program mode for the device.
 * `/tally/previewprogram_on`: Puts the device in both Preview and Program mode.
-* `/tally/prevoewprogram_off`: Turns off both Preview and Program Program mode for the device.
+* `/tally/previewprogram_off`: Turns off both Preview and Program Program mode for the device.
 
 Send one argument of any type (integer, float, or string). If you send multiple arguments, they will be ignored.
 
