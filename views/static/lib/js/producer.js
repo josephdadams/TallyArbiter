@@ -357,7 +357,7 @@ function Listener_Flash(id) {
 	socket.emit('flash', id);
 }
 
-function KeepScreenAwake(value) { //kemv v,  c v                               
+function KeepScreenAwake(value) { //keeps the phone screen on if true by using the NoSleep library - playing a dummy video in the background
 	if (value) {                        
 		noSleep.enable();                                                                                                                                
 	}                                                                                                                                                                            
