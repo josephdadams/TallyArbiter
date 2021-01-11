@@ -12,7 +12,6 @@
 #include <PinButton.h>
 #include <Preferences.h>
 
-
 #define GRAY  0x0020 //   8  8  8
 #define GREEN 0x0200 //   0 64  0
 #define RED   0xF800 // 255  0  0
@@ -22,20 +21,20 @@
  */
  
 //Wifi SSID and password
-const char * networkSSID = "MyHomeNetwork";
-const char * networkPass = "MyHomePass";
+const char * networkSSID = "NetworkSSID";
+const char * networkPass = "NetworkPass";
 
-bool USE_STATIC = false; // false = DHCP
+//For static IP Configuration, change USE_STATIC to true and define your IP address settings below
+bool USE_STATIC = false; // true = use static, false = use DHCP
+IPAddress clientIp(192, 168, 2, 5); // Static IP
+IPAddress subnet(255, 255, 255, 0); // Subnet Mask
+IPAddress gateway(192, 168, 2, 1); // Gateway
 
-    IPAddress clientIp(2, 39, 2, 181);       // SETUP Static IP address of the M5Stick if wanted
-    IPAddress subnet(255, 255, 255, 0);
-    IPAddress gateway(2, 39, 2, 10);
-
-   
 //Tally Arbiter Server
-const char * tallyarbiter_host = "2.39.2.99"; //SETUP IP address of the TA server
+const char * tallyarbiter_host = "192.168.2.99"; //IP address of the Tally Arbiter Server
 const int tallyarbiter_port = 4455;
 
+/* END OF USER CONFIG */
 
 //M5StickC variables
 PinButton btnM5(37); //the "M5" button on the device
@@ -67,8 +66,8 @@ void setup() {
   // Initialize the M5StickC object
   logger("Initializing M5StickC+.", "info-quiet");
   M5.begin();
-  setCpuFrequencyMhz(80);    //Save battery
-  btStop();                 //Save battery
+  setCpuFrequencyMhz(80);    //Save battery by turning down the CPU clock
+  btStop();                 //Save battery by turning off BlueTooth
   M5.Lcd.setRotation(3);
   M5.Lcd.setCursor(0, 0);
   M5.Lcd.fillScreen(TFT_BLACK);
@@ -95,7 +94,6 @@ void setup() {
   preferences.end();
   
   connectToServer();
- 
 }
 
 void loop() {
@@ -180,7 +178,7 @@ void connectToNetwork() {
   
   if(USE_STATIC = true) {
     WiFi.config(clientIp, gateway, subnet);
-    }
+  }
    
   WiFi.begin(networkSSID, networkPass);
 }
@@ -217,9 +215,6 @@ void socket_Connected(const char * payload, size_t length) {
   strcpy(charDeviceObj, deviceObj.c_str());
   socket.emit("bus_options");
   socket.emit("device_listen_m5", charDeviceObj);
-    delay(5000);        // go to Tally when connected
-    showDeviceInfo();
-    currentScreen = 0; 
 }
 
 void socket_BusOptions(const char * payload, size_t length) {
@@ -234,6 +229,8 @@ void socket_Devices(const char * payload, size_t length) {
 void socket_DeviceId(const char * payload, size_t length) {
   DeviceId = String(payload);
   SetDeviceName();
+  showDeviceInfo();
+  currentScreen = 0;
 }
 
 void socket_DeviceStates(const char * payload, size_t length) {
@@ -331,6 +328,8 @@ void SetDeviceName() {
   preferences.begin("tally-arbiter", false);
   preferences.putString("devicename", DeviceName);
   preferences.end();
+
+  evaluateMode();
 }
 
 void evaluateMode() {
