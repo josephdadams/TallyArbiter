@@ -6,6 +6,8 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 	<link rel="stylesheet" href="lib/css/bootstrap.min.css">
 	<link rel="stylesheet" href="lib/css/custom.css">
+	<link rel="stylesheet" href="lib/css/chat.css">
+	<link rel="stylesheet" href="lib/css/producer.css">
 	<title>Tally Arbiter</title>
 </head>
 <body>
@@ -26,11 +28,28 @@
 	<div id='container' class="container mt-5">
 		<div id='divDevices'></div>
 		<div id='divListeners'></div>
+		<div id='divMessages'>
+			<div class="col-sm-5 col-sm-offset-4 frame">
+				<ul id='message-ul'></ul>
+				<div>
+					<div class="msj-rta macro">                        
+						<div class="text text-r" style="background:whitesmoke !important">
+							<input id='chat-text' class="mytext" placeholder="Type a message"/>
+						</div> 
+	
+					</div>
+					<div style="padding:10px;">
+						<span id='sendchat'><img src='/lib/img/chat_send.png' width=35 /></span>
+					</div>                
+				</div>
+			</div> 
+		</div>
 	</div>
-	<script src="lib/js/jquery-3.5.1.min.js"></script>
-	<script src="lib/js/bootstrap.min.js"></script>
+	<script src='lib/js/jquery-3.5.1.min.js'></script>
+	<script src='lib/js/bootstrap.min.js'></script>
 	<script src='/socket.io/socket.io.js'></script>
 	<script src='lib/js/nosleep.min.js'></script>
+	<script src='lib/js/chat.js'></script>
 	<script src="lib/js/producer.js"></script>
 </body>
 
