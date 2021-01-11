@@ -43,6 +43,9 @@ function onLoad() {
 		selectedDeviceId = deviceId;
 		updateTallyInfo();
 	});
+	socket.on('messaging', function(type, socketid, message) {
+		insertChat(type, socketid, message);
+	});
 }
 
 function updateDeviceList() {
@@ -85,6 +88,7 @@ function selectDevice(deviceId) {
 	socket.emit('device_listen', deviceId, 'web');
 	selectedDeviceId = deviceId;
 	document.getElementById('selDeviceList').style.display = 'none';
+	document.getElementById('divMessages').style.display = 'block';
 	updateTallyInfo();
 }
 
@@ -134,6 +138,13 @@ function ProcessTallyData() {
 	else {
 		document.body.style.backgroundColor = '#000000';
 	}
+
+	if (mode_program) {
+		let successBool = window.navigator.vibrate(400);
+	}
+	else if (mode_preview) {
+		let successBool = window.navigator.vibrate(100, 30, 100, 30, 100);
+	}
 }
 
 function updateTallyInfo() {
@@ -160,3 +171,6 @@ function KeepScreenAwake(value) { //keeps the phone screen on if true by using t
 		noSleep.disable();
 	}
 }
+
+//CHAT/MESSAGING
+var chat_me = client;

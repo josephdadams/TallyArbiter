@@ -30,11 +30,15 @@ function onLoad() {
 	socket.on('listener_clients', function (data) {
 		listener_clients = data;
 		loadListeners();
+		loadChatTags();
 	});
 	socket.on('device_states', function (tallyDataArray) {
 		//process the data received and determine if it's in preview or program and color the screen accordingly
 		device_states = tallyDataArray;
 		loadDeviceStates();
+	});
+	socket.on('messaging', function(type, socketid, message) {
+		insertChat(type, socketid, message);
 	});
 	KeepScreenAwake(true); //keeps the phone from falling asleep
 }
@@ -323,8 +327,17 @@ function loadListeners() {
 			tdDevice.innerHTML = getDeviceById(listener_clients[i].deviceId).name;
 			trClientItem.appendChild(tdDevice);
 			let tdButtons = document.createElement('td');
-			if ((listener_clients[i].inactive === false) && (listener_clients[i].canBeFlashed)) {
+			if (listener_clients[i].inactive === true) {
+				trClientItem.className = 'disabled';
+			}
+			else if (listener_clients[i].canBeFlashed === false) {
+				let spanFlash = document.createElement('span');
+				spanFlash.innerHTML = '&nbsp;';
+				tdButtons.appendChild(spanFlash);
+			}
+			else {
 				let btnFlash = document.createElement('button');
+				btnFlash.className = 'btn btn-dark mr-1';
 				btnFlash.innerHTML = 'Flash';
 				btnFlash.setAttribute('onclick', 'Listener_Flash(\'' + listener_clients[i].id + '\');');
 				tdButtons.appendChild(btnFlash);
@@ -344,14 +357,28 @@ function Listener_Flash(id) {
 	socket.emit('flash', id);
 }
 
-function KeepScreenAwake(value) { //keeps the phone screen on if true by using the NoSleep library - playing a dummy video in the background
-	KeepAwake = value;
-	if (value) {
-		noSleep.enable();
-	}
+function KeepScreenAwake(value) { //kemv v,  c v                               
+	if (value) {                        
+		noSleep.enable();                                                                                                                                
+	}                                                                                                                                                                            
 	else {
 		noSleep.disable();
 	}
+}
+
+//CHAT/MESSAGING
+var chat_me = producer;
+
+function loadChatTags() {
+	chatTags = [];
+	for (let i = 0; i < listener_clients.length; i++) {
+		let listenerString = listener_clients[i].ipAddress.replace('::ffff:', '') + '::' + listener_clients[i].socketId;
+		chatTags.push(listenerString);
+	}
+	/*$('input#chat-text').autocomplete({
+		source: chatTags,
+		minLength: 0
+	});*/
 }
 
 window.onload = onLoad;

@@ -99,6 +99,7 @@ var source_types 	= [ //available tally source types
 	{ id: '4eb73542', label: 'OBS Studio', type: 'obs', enabled: true, help: 'The OBS Websocket plugin must be installed on the source.'},
 	{ id: '58b6af42', label: 'VMix', type: 'vmix', enabled: true, help: 'Uses Port 8099.'},
 	{ id: '4a58f00f', label: 'Roland Smart Tally', type: 'roland', enabled: true, help: ''},
+	{ id: '1190d7be', label: 'Roland VR-50HD-MKII', type: 'roland-vr', enabled: true, help: 'Uses Port 8023'},
 	{ id: 'f2b7dc72', label: 'Newtek Tricaster', type: 'tc', enabled: true, help: 'Uses Port 5951.'},
 	{ id: '05d6bce1', label: 'Open Sound Control (OSC)', type: 'osc', enabled: true, help: ''},
 	{ id: 'cf51e3c9', label: 'Incoming Webhook', type: 'webhook', enabled: false, help: ''},
@@ -147,6 +148,10 @@ var source_types_datafields = [ //data fields for the tally source types
 		]
 	},
 	{ sourceTypeId: '4a58f00f', fields: [ // Roland Smart Tally
+			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
+		]
+	},
+	{ sourceTypeId: '1190d7be', fields: [ // Roland VR-50HD-MKII
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
 		]
 	},
@@ -554,6 +559,9 @@ function initialSetup() {
 			}
 
 			socket.join('device-' + deviceId);
+			if (listenerType === 'web') {
+				socket.join('messaging');
+			}
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
 
@@ -675,6 +683,9 @@ function initialSetup() {
 			}
 
 			socket.join('device-' + deviceId);
+			if (listenerType === 'm5-stick') {
+				socket.join('messaging');
+			}
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
 
@@ -690,6 +701,7 @@ function initialSetup() {
 
 		socket.on('settings', function () {
 			socket.join('settings');
+			socket.join('messaging');
 			socket.emit('initialdata', source_types, source_types_datafields, output_types, output_types_datafields, bus_options, sources, devices, device_sources, device_actions, device_states, tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
 			socket.emit('listener_clients', listener_clients);
 			socket.emit('logs', Logs);
@@ -698,6 +710,7 @@ function initialSetup() {
 
 		socket.on('producer', function () {
 			socket.join('producer');
+			socket.join('messaging');
 			socket.emit('sources', sources);
 			socket.emit('devices', devices);
 			socket.emit('bus_options', bus_options);
@@ -718,6 +731,10 @@ function initialSetup() {
 
 		socket.on('flash', function(clientId) {
 			FlashListenerClient(clientId);
+		});
+
+		socket.on('messaging_client', function(clientId, type, socketid, message) {
+			MessageListenerClient(clientId, type, socketid, message);
 		});
 
 		socket.on('reassign', function(clientId, oldDeviceId, deviceId) {
@@ -1163,7 +1180,11 @@ function initialSetup() {
 
 		socket.on('testmode', function(value) {
 			EnableTestMode(value);
-		})
+		});
+
+		socket.on('messaging', function(type, message) {
+			SendMessage(type, socket.id, message);
+		});
 
 		socket.on('disconnect', function() { // emitted when any socket.io client disconnects from the server
 			DeactivateListenerClient(socket.id);
@@ -1242,6 +1263,7 @@ function EnableTestMode(value) {
 		UpdateSockets('sources');
 		UpdateCloud('sources');
 		TestTallies();
+		SendMessage('server', null, 'Test Mode Enabled.');
 	}
 	else {
 		//turn off test mode
@@ -1254,6 +1276,7 @@ function EnableTestMode(value) {
 				break;
 			}
 		}
+		SendMessage('server', null, 'Test Mode Disabled.');
 	}
 
 	io.to('settings').emit('testmode', value);
@@ -1542,6 +1565,9 @@ function loadConfig() { // loads the JSON data from the config file to memory
 					break;
 				case 'roland':
 					SetUpRolandSmartTally(sources[i].id);
+					break;
+				case 'roland-vr':
+					SetUpRolandVR(sources[i].id);
 					break;
 				case 'osc':
 					SetUpOSCServer(sources[i].id);
@@ -2685,6 +2711,134 @@ function StopRolandSmartTally(sourceId) {
 
 	UpdateSockets('sources');
 	UpdateCloud('sources');
+}
+
+function SetUpRolandVR(sourceId) {
+	let source = sources.find( ({ id }) => id === sourceId);
+	let ip = source.data.ip;
+	let port = 8023;
+
+	try
+	{
+		let sourceConnectionObj = {};
+		sourceConnectionObj.sourceId = sourceId;
+		sourceConnectionObj.server = null;
+		source_connections.push(sourceConnectionObj);
+
+		for (let i = 0; i < source_connections.length; i++) {
+			if (source_connections[i].sourceId === sourceId) {
+				logger(`Source: ${source.name}  Creating Roland VR Connection.`, 'info-quiet');
+				source_connections[i].server = new net.Socket();
+				source_connections[i].server.connect({port: port, host: ip}, function() {
+					let tallyCmd = '\u0002CPG:1;';
+					source_connections[i].server.write(tallyCmd + '\n');
+					logger(`Source: ${source.name}  Roland VR Connection opened. Listening for data.`, 'info');
+					for (let j = 0; j < sources.length; j++) {
+						if (sources[j].id === sourceId) {
+							sources[j].connected = true;
+							UnregisterReconnect(sources[j].id);
+							break;
+						}
+					}
+					UpdateSockets('sources');
+					UpdateCloud('sources');
+				});
+
+				source_connections[i].server.on('data', function(data) {
+					try {
+						let dataString = data.toString();
+						if (dataString.indexOf('\u0002QPG:') > -1) {
+							//clear out any old tally values
+							for (let j = 0; j <= 4; j++) {
+								let tallyObj = {};
+								tallyObj.address = j;
+								tallyObj.label = j;
+								tallyObj.tally1 = 0;
+								tallyObj.tally2 = 0;
+								processTSLTally(sourceId, tallyObj);
+							}
+							//now enter the new PGM value based on the received data
+							let tallyObj = {};
+							tallyObj.address = dataString.substring(dataString.length - 1, dataString.length - 2);
+							switch(tallyObj.address) {
+								case '0':
+									tallyObj.label = 'INPUT 1';
+									break;
+								case '1':
+									tallyObj.label = 'INPUT 2';
+									break;
+								case '2':
+									tallyObj.label = 'INPUT 3';
+									break;
+								case '3':
+									tallyObj.label = 'INPUT 4';
+									break;
+								case '4':
+									tallyObj.label = 'STILL';
+									break;
+								default:
+									tallyObj.label = tallyObj.address;
+									break;
+							}
+							tallyObj.tally1 = 0;
+							tallyObj.tally2 = 1;
+							processTSLTally(sourceId, tallyObj);
+						}
+					}
+					catch(error) {
+						logger(`Source: ${source.name}  Roland VR Connection Error occurred: ${error}`, 'error');
+					}
+				});
+
+				source_connections[i].server.on('close', function() {
+
+					logger(`Source: ${source.name}  Roland VR Connection Stopped.`, 'info');
+					for (let j = 0; j < sources.length; j++) {
+						if (sources[j].id === sourceId) {
+							sources[j].connected = false;
+							CheckReconnect(sources[j].id);
+							break;
+						}
+					}
+
+					UpdateSockets('sources');
+					UpdateCloud('sources');
+				});
+
+				source_connections[i].server.on('error', function(error) {
+					logger(`Source: ${source.name}  Roland VR Connection Error occurred: ${error}`, 'error');
+				});
+				break;
+			}
+		}
+	}
+	catch (error) {
+		logger(`Source: ${source.name}  Roland VR Error occurred: ${error}`, 'error');
+	}
+}
+
+function processRolandVRTally(data) {
+
+}
+
+function StopRolandVR(sourceId) {
+	let source = sources.find( ({ id }) => id === sourceId);
+
+	RegisterDisconnect(sourceId);
+
+	try
+	{
+		for (let i = 0; i < source_connections.length; i++) {
+			if (source_connections[i].sourceId === sourceId) {
+				source_connections[i].server.end();
+				source_connections[i].server.destroy();
+				break;
+			}
+		}
+	}
+	catch (error) {
+		logger(`Source: ${source.name}  Roland VR Connection Error occurred: ${error}`, 'error');
+	}
 }
 
 function SetUpOSCServer(sourceId) {
@@ -3842,6 +3996,9 @@ function StartConnection(sourceId) {
 		case 'roland':
 			SetUpRolandSmartTally(sourceId);
 			break;
+		case 'roland-vr':
+			SetUpRolandVR(sourceId);
+			break;
 		case 'osc':
 			SetUpOSCServer(sourceId);
 			break;
@@ -3853,6 +4010,7 @@ function StartConnection(sourceId) {
 			break;
 		case 'testmode':
 			EnableTestMode(true);
+			break;
 		default:
 			break;
 	}
@@ -3884,6 +4042,9 @@ function StopConnection(sourceId) {
 		case 'roland':
 			StopRolandSmartTally(sourceId);
 			break;
+		case 'roland-vr':
+			StopRolandVR(sourceId);
+			break;
 		case 'osc':
 			StopOSCServer(sourceId);
 			break;
@@ -3895,6 +4056,7 @@ function StopConnection(sourceId) {
 			break;
 		case 'testmode':
 			EnableTestMode(false);
+			break;
 		default:
 			break;
 	}
@@ -4179,8 +4341,12 @@ function StartCloudDestination(cloudDestinationId) {
 				SetCloudDestinationStatus(cloud_destinations_sockets[i].id, 'invalid-key');
 			});
 
-			cloud_destinations_sockets[i].socket.on('flash', function (listnerClientId) {
-				FlashListenerClient(listnerClientId);
+			cloud_destinations_sockets[i].socket.on('flash', function (listenerClientId) {
+				FlashListenerClient(listenerClientId);
+			});
+
+			cloud_destinations_sockets[i].socket.on('messaging_client', function (listenerClientId, type, socketid, message) {
+				MessageListenerClient(listenerClientId, type, socketid, message);
 			});
 
 			cloud_destinations_sockets[i].socket.on('error', function(error) {
@@ -4985,6 +5151,9 @@ function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetime
 
 	listener_clients.push(clientObj);
 
+	let message = `Listener Client Connected: ${clientObj.ipAddress.replace('::ffff:', '')} (${clientObj.listenerType}) at ${new Date()}`;
+	SendMessage('server', null, message);
+
 	UpdateSockets('listener_clients');
 	UpdateCloud('listener_clients');
 
@@ -5015,6 +5184,8 @@ function DeactivateListenerClient(socketId) {
 		if (listener_clients[i].socketId === socketId) {
 			listener_clients[i].inactive = true;
 			listener_clients[i].datetime_inactive = new Date().getTime();
+			let message = `Listener Client Disconnected: ${listener_clients[i].ipAddress.replace('::ffff:', '')} (${listener_clients[i].listenerType}) at ${new Date()}`;
+			SendMessage('server', null, message);
 		}
 	}
 
@@ -5074,6 +5245,37 @@ function FlashListenerClient(listenerClientId) {
 	}
 	else {
 		return {result: 'flash-not-sent', listenerClientId: listenerClientId, error: 'listener-client-not-found'};
+	}
+}
+
+function MessageListenerClient(listenerClientId, type, socketid, message) {
+	let listenerClientObj = listener_clients.find( ({ id }) => id === listenerClientId);
+
+	if (listenerClientObj) {
+		if (listenerClientObj.cloudConnection) {
+			let cloudClientSocketId = GetCloudClientById(listenerClientObj.cloudClientId).socketId;
+			if (io.sockets.connected[cloudClientSocketId]) {
+				io.sockets.connected[cloudClientSocketId].emit('messaging_client', listenerClientId, type, socketid, message);
+			}
+		}
+		else {
+			if (listenerClientObj.canBeFlashed) {
+				if ((!listenerClientObj.relayGroupId) && (!listenerClientId.gpoGroupId)) {
+					io.to(listenerClientObj.socketId).emit('messaging_client', type, socketid, message);
+					return {result: 'message-sent-successfully', listenerClientId: listenerClientId};
+				}
+				else {
+					return {result: 'message-not-sent', listenerClientId: listenerClientId, error: 'listener-client-not-supported'};
+				}
+			}
+			else {
+				return {result: 'message-not-sent', listenerClientId: listenerClientId, error: 'listener-client-not-supported'};
+			}
+		}
+		
+	}
+	else {
+		return {result: 'message-not-sent', listenerClientId: listenerClientId, error: 'listener-client-not-found'};
 	}
 }
 
@@ -5196,6 +5398,10 @@ function DeletePort(port) { //Deletes the port from the list of reserved or in-u
 		}
 	}
 	UpdateSockets('PortsInUse');
+}
+
+function SendMessage(type, socketid, message) {
+	io.to('messaging').emit('messaging', type, socketid, message);
 }
 
 startUp();

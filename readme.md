@@ -133,7 +133,7 @@ OSC paths must be one of the following:
 * `/tally/previewprogram_on`: Puts the device in both Preview and Program mode.
 * `/tally/previewprogram_off`: Turns off both Preview and Program Program mode for the device.
 
-Send one argument of any type (integer, float, or string). If you send multiple arguments, they will be ignored.
+The device source address should be sent as an integer or a string. Send one argument of any type (integer, float, or string). If you send multiple arguments, they will be ignored.
 
 ### Analog Way Livecore Image Processors
 You will need the IP address of the device, and the port (standard port is 10600).
