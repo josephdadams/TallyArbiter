@@ -1856,17 +1856,11 @@ function SetUpATEMServer(sourceId) {
 					});
 					
 					source_connections[i].server.on('stateChanged', (state, path) => {
-						//console.log(path);
 						for (let h = 0; h < path.length; h++) {
 							if (path[h] === 'info.capabilities') {
 								//console.log(state.info.capabilities);
-								console.log('Total MEs:' + state.info.capabilities.MEs);
-								console.log('Total Super Sources: ' + state.info.capabilities.superSources);
 							}
 							else if (path[h].indexOf('video.ME') > -1) {
-								console.log('*****start state.video****');
-								console.log(state.video);
-								console.log('*****end state.video****');
 								for (let i = 0; i < state.video.mixEffects.length; i++) {
 									processATEMTally(sourceId, state.video.mixEffects[i].index+1, state.video.mixEffects[i].programInput, state.video.mixEffects[i].previewInput);
 								}
@@ -1888,37 +1882,28 @@ function SetUpATEMServer(sourceId) {
 		}
 	}
 	catch (error) {
-
+		logger(`ATEM Error: ${error}`, 'error');
 	}
 }
 
 function processATEMTally(sourceId, me, programInput, previewInput) {
 	let source = GetSourceBySourceId(sourceId);
 
-	console.log('***Source ID: ' + sourceId);
-	console.log('***ME: ' + me);
-	console.log('***PVW: ' + previewInput);
-	console.log('***PGM: ' + programInput);
-
 	let atemSourceFound = false;
-
-	//console.log(tallydata_ATEM);
 
 	//first loop through the ATEM tally data array, by SourceId and ME; if it's present, update the current program/preview inputs
 	for (let i = 0; i < tallydata_ATEM.length; i++) {
 		if (tallydata_ATEM[i].sourceId === sourceId) {
 			if (tallydata_ATEM[i].me === me.toString()) {
 				atemSourceFound = true;
-				console.log('This Source ID & ME already had tally data present.');
-				tallydata_ATEM[i].me.programInput = programInput.toString();
-				tallydata_ATEM[i].me.previewInput = previewInput.toString();
+				tallydata_ATEM[i].programInput = programInput.toString();
+				tallydata_ATEM[i].previewInput = previewInput.toString();
 			}
 		}
 	}
 
 	//if it was not in the tally array for this SourceId and ME, add it
 	if (!atemSourceFound) {
-		console.log('This Source ID & ME did not have tally data present already. Adding.');
 		let atemTallyObj = {};
 		atemTallyObj.sourceId = sourceId;
 		atemTallyObj.me = me.toString();
@@ -1937,14 +1922,11 @@ function processATEMTally(sourceId, me, programInput, previewInput) {
 	for (let i = 0; i < tallydata_ATEM.length; i++) {
 		if (tallydata_ATEM[i].sourceId === sourceId) {
 			if (source.data.me_onair.includes(tallydata_ATEM[i].me)) {
-				allPrograms.push(programInput.toString());
-				allPreviews.push(previewInput.toString());
+				allPrograms.push(tallydata_ATEM[i].programInput.toString());
+				allPreviews.push(tallydata_ATEM[i].previewInput.toString());
 			}
 		}
 	}
-
-	console.log('Inputs currently in PVW: ', allPreviews);
-	console.log('Inputs currently in PGM: ', allPrograms);
 
 	//loop through the temp array of program inputs;
 	//if that program input is also in the preview array, build a TSL-type object that has it in pvw+pgm
@@ -2817,10 +2799,6 @@ function SetUpRolandVR(sourceId) {
 	}
 }
 
-function processRolandVRTally(data) {
-
-}
-
 function StopRolandVR(sourceId) {
 	let source = sources.find( ({ id }) => id === sourceId);
 
@@ -2893,7 +2871,7 @@ function SetUpOSCServer(sourceId) {
 				});
 
 				source_connections[i].server.on('error', function (error) {
-					console.log('An error occurred: ', error.message);
+					logger(`Source: ${source.name} OSC Error: ${error}`, 'error');
 				});
 
 				source_connections[i].server.on('ready', function () {
