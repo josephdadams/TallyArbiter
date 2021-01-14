@@ -5,15 +5,17 @@ It is not sold, authorized, or associated with any other company or product.
 
 To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
 
-Tally Arbiter is software that allows you to combine incoming tally data from multiple sources such as TSL UMD 3.1, Blackmagic ATEM, Blackmagic VideoHub, OBS Studio, VMix, Roland Smart Tally, etc. and arbitrate the bus state across all of the sources so that devices like cameras can accurately reflect tally data coming from those multiple locations without each device having to be connected to all sources simultaneously.
+Tally Arbiter is software that allows you to combine incoming tally data from multiple sources or video switchers such as Ross Carbonite (through the TSL 3.1 protocol), Blackmagic ATEM or VideoHub, OBS Studio, VMix, etc. and arbitrate the bus state across all of the sources so that devices like cameras can accurately reflect tally data coming from those multiple locations without each device having to be connected to all sources simultaneously.
 
 # Features
 * Supports many different tally sources/switchers
-* Supports output of tally data to several different types (web/phone, blink(1), relay, GPO, M5StickC/Arduino)
-* Outgoing webhooks or OSC based on tally states
+* Supports output of tally data to several different types (web/phone, blink(1) USB light, relay, GPO, M5StickC/Arduino)
+* Outgoing webhooks, TCP messages, or OSC based on tally states
 * Unlimited tally sources and devices
 * Cloud Support - send data from your closed production network to a server in the cloud
 * Feedbacks and Control through Bitfocus Companion - view tally data live on your stream deck!
+* Emulates a VMix Server, making it compatible with your favorite VMix Tally Client
+* Send Messages from the Server to supported clients
 
 # Videos
 * Introduction and Walkthrough: https://youtu.be/msfAL631ARw
@@ -27,6 +29,8 @@ Tally Arbiter is software that allows you to combine incoming tally data from mu
 The software is written in Node.js and is therefore cross-platform and can be run on MacOS, Linux, or Windows.
 
 You must have Node.js installed for the software to run. You can download it here: <https://nodejs.org/en/download/>
+
+If on MacOS, you may need to download and install XCode Command Line Tools.
 
 Download the Tallly Arbiter source code. You can download it directly from GitHub, or you can use `git` from the command line to download the files.
 
@@ -149,15 +153,15 @@ For example, a Camera can be connected to a `Blackmagic ATEM` on `Input 1`, but 
 To assign a Source to a Device, click "Device Sources" next to a Device in the list. Choose the enabled Source from the drop down list, type in the address, and click Add.
 
 #### Linking Device Sources
-Device Sources can now be "linked" on either the Preview Bus, the Program Bus, or both. If linked, this means that a Device is not considered to be active in that Bus unless Tally Arbiter has determined that the Device is active in that Bus **across all Sources** assigned to that Device.
+Device Sources can be "linked" on either the Preview Bus, the Program Bus, or both. If linked, this means that a Device is not considered to be active in that Bus unless Tally Arbiter has determined that the Device is active in that Bus **across all Sources** assigned to that Device.
 
 #### A Note About Addresses
-The source address is typically the actual input number on the switcher. So, if your camera on your ATEM comes in on Input 5, just enter `5`. However, if you're using a source like OBS Studio, your address might be a string, like `Scene 2`. Some Source Types also support selecting the Device Address via a list.
+The source address is typically the actual input number on the switcher. So, if your camera on your ATEM comes in on Input 5, just enter `5`. However, if you're using a source like OBS Studio, your address might be a string, like `Scene 2` or `Image 1`. Some Source Types also support selecting the Device Address via a list.
 
 ### Device Actions
 Once a device is assigned to a source(s), if a matching condition is met, an action can be performed. You can specify whether the action should be run when the device is entering a bus or leaving a bus, which is helpful for bus-specific actions like operating a relay. Multiple actions are supported per device and per bus (preview and program).
 
-The following output types are supported:
+The following Device Actions are implemented:
 * TSL 3.1 UDP/TCP
 * Outgoing Webhook
 * Generic TCP
@@ -167,25 +171,16 @@ The following output types are supported:
 Device Actions can only be run once when the device state enters or exits that bus. This is to prevent actions from being run continuously if tally data is received in chunks. To run an action again, a device must change state on that specific bus (Preview or Program) before it can be run again.
 
 # Remote Tally Viewing (Listener Clients)
-In addition to the multiple output action types that can be used to trigger any number of remote devices for a tally state, Tally Arbiter also supports "listeners", devices and software that open websocket connections to the Tally Arbiter server and can receive data in real time to utilize tally information.
+In addition to the multiple output action types that can be used to trigger any number of remote devices for a tally state, Tally Arbiter also supports "listener clients": devices and software that open websocket connections to the Tally Arbiter server and can receive data in real time to utilize tally information.
 
 All connected listener clients are tracked and listed in the Settings page. You can "flash" a particular listener by clicking the Flash button next to it in the list. This is useful if you need to get the operator's attention or determine which listener is which. You can also reassign the listener to receive tally information of another Device at any time using the Tally Arbiter interface.
 
 ## Using a web page for tally output
-Navigate to `/tally` on the Tally Arbiter server in your browser and select a Device from the list. As long as the page remains connected to the system, it will display tally data (Preview, Program, Preview+Program, Clear) in real time.
+Navigate to `/tally` on the Tally Arbiter server in your browser and select a Device from the list. As long as the page remains connected to the system, it will display tally data (Preview, Program, Preview+Program, Clear) in real time. Web clients can also send/receive messages with the Producer, like a chat room.
 
 ## Viewing all tally data
-Navigate to `/producer` on the Tally Arbiter server in your browser to view all Devices and their current states. This information is also available in the Settings GUI but is displayed in a minimal fashion here for in-service viewing.
+Navigate to `/producer` on the Tally Arbiter server in your browser to view all Devices and their current states. This information is also available in the Settings GUI but is displayed in a minimal fashion here for in-service viewing. Messages can be sent and received to supported clients.
 **This page is restricted by a username and password. The default username is `producer` and the default password is `12345`.**
-
-## Using a blink(1) for tally output
-Tally Arbiter supports the use of a blink(1) device as a tally light. A remote listening script is available in the separate repository, [Tally Arbiter Blink1 Listener](http://github.com/josephdadams/tallyarbiter-blink1listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-Blink1Listener/blob/master/readme.md). It is compatible with and was designed to run on a Raspberry Pi Zero, making this an inexpensive option for *wireless* tally output. However, it can be run on any OS/device that supports Python such as MacOS or Windows, which can be helpful if you want to use this with graphics or video playback operators, for example.
-
-## Using a Relay for contact-closure systems
-Many Camera CCUs and other devices support incoming tally via contact closure. A remote listening script that can trigger USB relays is available with the separate repository, [Tally Arbiter Relay Listener](http://github.com/josephdadams/tallyarbiter-relaylistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-RelayListener/blob/master/readme.md).
-
-## Using a GPO output
-Lots of equipment support the use of GPIO (General Purpose In/Out) pins to interact. This could be for logic control, turning on LEDs, etc. A remote listening script that can run on a Raspberry Pi is available with the separate repository, [Tally Arbiter GPO Listener](http://github.com/josephdadams/tallyarbiter-gpolistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-GPOListener/blob/master/readme.md).
 
 ## Using an M5StickC for tally output
 Tally Arbiter can send tally data to an M5StickC Arduino Finger Computer. A remote script is available in the separate repository, [Tally Arbiter M5StickC Listener](http://github.com/josephdadams/tallyarbiter-m5stickclistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-M5StickCListener/blob/master/readme.md).
@@ -193,28 +188,34 @@ Tally Arbiter can send tally data to an M5StickC Arduino Finger Computer. A remo
 ## Using an M5 Atom Matrix for tally output
 Tally Arbiter can send tally data to an M5 Atom Matrix. A remote script is available in the separate repository, [Tally Arbiter M5 Atom Matrix Listener](http://github.com/josephdadams/tallyarbiter-m5atommatrixlistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-M5AtomMatrixListener/blob/master/readme.md).
 
+## Using a blink(1) for tally output
+Tally Arbiter supports the use of a USB blink(1) device as a tally light. A remote listening script is available in the separate repository, [Tally Arbiter Blink1 Listener](http://github.com/josephdadams/tallyarbiter-blink1listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-Blink1Listener/blob/master/readme.md). It is compatible with and was designed to run on a Raspberry Pi Zero, making this an inexpensive option for *wireless* tally output. However, it can be run on any OS/device that supports Python such as MacOS or Windows, which can be helpful if you want to use this with graphics or video playback operators, for example.
+
+## Using a Relay for contact-closure systems
+Many Camera CCUs and other devices support incoming tally via contact closure. A remote listening script that can trigger USB relays is available with the separate repository, [Tally Arbiter Relay Listener](http://github.com/josephdadams/tallyarbiter-relaylistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-RelayListener/blob/master/readme.md).
+
+## Using a GPO output
+Lots of equipment support the use of GPIO (General Purpose In/Out) pins to interact. This could be for logic control, turning on LEDs, etc. A remote listening script that can run on a Raspberry Pi is available with the separate repository, [Tally Arbiter GPO Listener](http://github.com/josephdadams/tallyarbiter-gpolistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-GPOListener/blob/master/readme.md).
+
 ## Arduino ESP8266 with Neopixel
 Use AdaFruit NeoPixel LED strips connected to an Arduino. Check out [NoahCallaway](http://github.com/noahcallaway/)'s repository for more information: https://github.com/NoahCallaway/TallyArbiter-arduino-neopixel
 
 ## VMix Tally Emulation
 Tally Arbiter will also emulate a VMix server, which means you can use any compatible VMix tally client to view tally as well, such as the [VMix M5Stick Tally Light](https://github.com/guido-visser/vMix-M5Stick-Tally-Light) project by Guido Visser. Follow the instructions on that repository to set up your M5Stick device, and specify Tally Arbiter as your VMix server!
-  
 
 ## Creating your own listener client
-Tally Arbiter can send data over the socket.IO protocol to your listener. You can make use of the following event emitters:
+Tally Arbiter can send data over the socket.io protocol to your listener. You can make use of the following event emitters:
 * `bus_options`: Send no arguments; Returns a `bus_options` event with an array of available busses (preview and program).
 * `devices`: Send no arguments; Returns a `devices` event with an array of configured Tally Arbiter Devices.
 * `device_listen`: Send a deviceId and a listener type (string); Returns a `device_states` event with an array of current device states for that device Id. This will add the listener client to the list in Tally Arbiter, making it manageable in the Settings interface.
 * `device_states`: Send a deviceId as the argument; Returns a `device_states` event with an array of current device states for that device Id.
 
 # TSL 3.1 Protocol Conversion
-Tally Arbiter can automatically send out TSL 3.1 data to any number of clients.
+Tally Arbiter can automatically send out TSL 3.1 data to any number of clients. This is helpful if you want to have Tally Arbiter aggregate all of your tally data and then send out updates to UMDs, multiviewers, etc.
 * Each device must have a TSL Address configured. The default TSL address is `0`.
 * Add a TSL Client by using the "TSL Clients" configuration area in the Settings interface.
 * Specify the IP address, Port, and Transport Type (UDP or TCP).
 * Tally Arbiter will send TSL 3.1 data to these clients any time a device changes state.
-
-
 
 # Configuring and Using Tally Arbiter Cloud
 Tally Arbiter can send source, device, and tally data from a local instance within a closed network to an instance of Tally Arbiter on another network that may be more acccessible for end users. This is helpful if your users need to access Tally Arbiter and you don't want to have them tunnel or connect into your private network, or if users are located remotely.
