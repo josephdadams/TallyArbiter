@@ -221,6 +221,9 @@ window.onload = loadSettings;
 function loadSettings() {
 	//gets the latest data from the server
 	loadSocket();
+	$('#addDevice').on('shown.bs.modal', function () {
+		$(this).find('input:visible:first').focus();
+	});
 }
 
 function loadSocket() {
@@ -1268,56 +1271,56 @@ function Add_Source_ShowFields() {
 		spanFieldName.style.display = 'block';
 		divSourceFields.appendChild(spanFieldName);
 		switch (fields[i].fieldType) {
-		case 'text':
-			let txtInput = document.createElement('input');
-			txtInput.type = 'text';
-			txtInput.id = fields[i].fieldName;
-			divSourceFields.appendChild(txtInput);
-			break;
-		case 'number':
-			let txtInputNumber = document.createElement('input');
-			txtInputNumber.type = 'text';
-			txtInputNumber.id = fields[i].fieldName;
-			divSourceFields.appendChild(txtInputNumber);
-			break;
-		case 'port':
-			let txtInputPort = document.createElement('input');
-			txtInputPort.type = 'text';
-			txtInputPort.id = fields[i].fieldName;
-			divSourceFields.appendChild(txtInputPort);
-			break;
-		case 'dropdown':
-			let selDropdown = document.createElement('select');
-			selDropdown.id = fields[i].fieldName;
-			for (let j = 0; j < fields[i].options.length; j++) {
-				let elOption = document.createElement('option');
-				elOption.textContent = fields[i].options[j].label;
-				elOption.value = fields[i].options[j].id;
-				selDropdown.appendChild(elOption);
-			}
-			divSourceFields.appendChild(selDropdown);
-			break;
-		case 'multiselect':
-			let selMultiselect = document.createElement('select');
-			selMultiselect.multiple = true;
-			selMultiselect.id = fields[i].fieldName;
-			for (let j = 0; j < fields[i].options.length; j++) {
-				let elOption = document.createElement('option');
-				elOption.textContent = fields[i].options[j].label;
-				elOption.value = fields[i].options[j].id;
-				selMultiselect.appendChild(elOption);
-			}
-			divSourceFields.appendChild(selMultiselect);
-			$('#' + fields[i].fieldName).multiselect();
-			break;
-		case 'info':
-			let spanInfo = document.createElement('span');
-			spanInfo.id = fields[i].fieldName;
-			spanInfo.innerHTML = fields[i].text;
-			divSourceFields.appendChild(spanInfo);
-			break;
-		default:
-			break;
+			case 'text':
+				let txtInput = document.createElement('input');
+				txtInput.type = 'text';
+				txtInput.id = fields[i].fieldName;
+				divSourceFields.appendChild(txtInput);
+				break;
+			case 'number':
+				let txtInputNumber = document.createElement('input');
+				txtInputNumber.type = 'text';
+				txtInputNumber.id = fields[i].fieldName;
+				divSourceFields.appendChild(txtInputNumber);
+				break;
+			case 'port':
+				let txtInputPort = document.createElement('input');
+				txtInputPort.type = 'text';
+				txtInputPort.id = fields[i].fieldName;
+				divSourceFields.appendChild(txtInputPort);
+				break;
+			case 'dropdown':
+				let selDropdown = document.createElement('select');
+				selDropdown.id = fields[i].fieldName;
+				for (let j = 0; j < fields[i].options.length; j++) {
+					let elOption = document.createElement('option');
+					elOption.textContent = fields[i].options[j].label;
+					elOption.value = fields[i].options[j].id;
+					selDropdown.appendChild(elOption);
+				}
+				divSourceFields.appendChild(selDropdown);
+				break;
+			case 'multiselect':
+				let selMultiselect = document.createElement('select');
+				selMultiselect.multiple = true;
+				selMultiselect.id = fields[i].fieldName;
+				for (let j = 0; j < fields[i].options.length; j++) {
+					let elOption = document.createElement('option');
+					elOption.textContent = fields[i].options[j].label;
+					elOption.value = fields[i].options[j].id;
+					selMultiselect.appendChild(elOption);
+				}
+				divSourceFields.appendChild(selMultiselect);
+				$('#' + fields[i].fieldName).multiselect();
+				break;
+			case 'info':
+				let spanInfo = document.createElement('span');
+				spanInfo.id = fields[i].fieldName;
+				spanInfo.innerHTML = fields[i].text;
+				divSourceFields.appendChild(spanInfo);
+				break;
+			default:
+				break;
 		}
 	}
 }
