@@ -47,10 +47,13 @@
 			<div class="col-12 mt-50">
 				<h1 id='divTally'></h1>
 				<div id='divMessages'>
-					<div class="col-sm-12 frame">
+					<button id="btnShowHideChat" class="btn btn-primary" type="button" data-toggle="collapse" data-target="#divMessagesDiv" aria-expanded="false" aria-controls="divMessagesDiv">
+						Hide Chat
+					</button>
+					<div id='divMessagesDiv' data-toggle="false" class="col-sm-12 frame">
 						<ul id='message-ul'></ul>
 						<div>
-							<div class="msj-rta macro">                        
+							<div class="msj-rta macro">
 								<div class="text text-r" style="background:whitesmoke !important">
 									<input id='chat-text' class="mytext" placeholder="Type a message"/>
 								</div> 
@@ -58,7 +61,7 @@
 							</div>
 							<div style="padding:10px;">
 								<span id='sendchat'><img src='/lib/img/chat_send.png' width=35 /></span>
-							</div>                
+							</div>
 						</div>
 					</div> 
 				</div>
