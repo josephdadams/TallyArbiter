@@ -21,8 +21,8 @@
  */
  
 //Wifi SSID and password
-const char * networkSSID = "MyWifiSSID";
-const char * networkPass = "MyWifiPass";
+const char * networkSSID = "NetworkSSID";
+const char * networkPass = "NetworkPass";
 
 //For static IP Configuration, change USE_STATIC to true and define your IP address settings below
 bool USE_STATIC = false; // true = use static, false = use DHCP
