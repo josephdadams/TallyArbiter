@@ -21,8 +21,8 @@
  */
  
 //Wifi SSID and password
-const char * networkSSID = "NetworkSSID";
-const char * networkPass = "NetworkPass";
+const char * networkSSID = "MyWifiSSID";
+const char * networkPass = "MyWifiPass";
 
 //For static IP Configuration, change USE_STATIC to true and define your IP address settings below
 bool USE_STATIC = false; // true = use static, false = use DHCP
@@ -53,6 +53,7 @@ String ListenerType = "m5-stickc";
 bool mode_preview = false;  
 bool mode_program = false;
 const byte led_program = 10;
+String LastMessage = "";
 
 //General Variables
 bool networkConnected = false;
@@ -82,7 +83,7 @@ void setup() {
 
   // Enable interal led for program trigger
   pinMode(led_program, OUTPUT);
-  digitalWrite(led_program, LOW);
+  digitalWrite(led_program, HIGH);
 
   preferences.begin("tally-arbiter", false);
   if(preferences.getString("deviceid").length() > 0){
@@ -206,6 +207,7 @@ void connectToServer() {
   socket.on("device_states", socket_DeviceStates);
   socket.on("flash", socket_Flash);
   socket.on("reassign", socket_Reassign);
+  socket.on("messaging", socket_Messaging);
   socket.begin(tallyarbiter_host, tallyarbiter_port);
 }
 
@@ -285,6 +287,16 @@ void socket_Reassign(const char * payload, size_t length) {
   SetDeviceName();
 }
 
+void socket_Messaging(const char * payload, size_t length) {
+  String strPayload = String(payload);
+  int typeQuoteIndex = strPayload.indexOf("\"");
+  String messageType = strPayload.substring(0, typeQuoteIndex);
+  int messageQuoteIndex = strPayload.lastIndexOf("\"");
+  String message = strPayload.substring(messageQuoteIndex+1);
+  LastMessage = messageType + ": " + message;
+  evaluateMode();
+}
+
 void processTallyData() {
   for (int i = 0; i < DeviceStates.length(); i++) {
     if (getBusTypeById(JSON.stringify(DeviceStates[i]["busId"])) == "\"preview\"") {
@@ -336,28 +348,31 @@ void SetDeviceName() {
 void evaluateMode() {
   M5.Lcd.setCursor(0, 30);
   M5.Lcd.setTextSize(2);
-  digitalWrite(led_program, HIGH);
   
   if (mode_preview && !mode_program) {
     logger("The device is in preview.", "info-quiet");
+    digitalWrite(led_program, HIGH);
     M5.Lcd.setTextColor(BLACK);
     M5.Lcd.fillScreen(GREEN);
   }
   else if (!mode_preview && mode_program) {
     logger("The device is in program.", "info-quiet");
+    digitalWrite(led_program, LOW);
     M5.Lcd.setTextColor(BLACK);
     M5.Lcd.fillScreen(RED);
-    digitalWrite(led_program, LOW);
   }
   else if (mode_preview && mode_program) {
     logger("The device is in preview+program.", "info-quiet");
+    digitalWrite(led_program, LOW);
     M5.Lcd.setTextColor(BLACK);
     M5.Lcd.fillScreen(YELLOW);
   }
   else {
+    digitalWrite(led_program, HIGH);
     M5.Lcd.setTextColor(GRAY);
     M5.Lcd.fillScreen(TFT_BLACK);
   }
 
-  M5.Lcd.print(DeviceName);
+  M5.Lcd.println(DeviceName);
+  M5.Lcd.println(LastMessage);
 }
