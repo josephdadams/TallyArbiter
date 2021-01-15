@@ -31,7 +31,7 @@ IPAddress subnet(255, 255, 255, 0); // Subnet Mask
 IPAddress gateway(192, 168, 2, 1); // Gateway
 
 //Tally Arbiter Server
-const char * tallyarbiter_host = "192.168.2.99"; //IP address of the Tally Arbiter Server
+const char * tallyarbiter_host = "192.168.0.137"; //IP address of the Tally Arbiter Server
 const int tallyarbiter_port = 4455;
 
 /* END OF USER CONFIG */
@@ -176,7 +176,7 @@ void connectToNetwork() {
   WiFi.mode(WIFI_STA); //station
   WiFi.setSleep(false);
   
-  if(USE_STATIC = true) {
+  if(USE_STATIC == true) {
     WiFi.config(clientIp, gateway, subnet);
   }
    
@@ -187,7 +187,7 @@ void WiFiEvent(WiFiEvent_t event) {
   switch (event) {
     case SYSTEM_EVENT_STA_GOT_IP:
       logger("Network connected!", "info");
-      logger(String(WiFi.localIP()), "info");
+      logger(WiFi.localIP().toString(), "info");
       networkConnected = true;
       break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
@@ -210,6 +210,7 @@ void connectToServer() {
 }
 
 void socket_Connected(const char * payload, size_t length) {
+  logger("Connected to Tally Arbiter server.", "info");
   String deviceObj = "{\"deviceId\": \"" + DeviceId + "\", \"listenerType\": \"" + ListenerType + "\"}";
   char charDeviceObj[1024];
   strcpy(charDeviceObj, deviceObj.c_str());
