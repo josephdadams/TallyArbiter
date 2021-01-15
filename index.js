@@ -683,7 +683,7 @@ function initialSetup() {
 			}
 
 			socket.join('device-' + deviceId);
-			if (listenerType === 'm5-stick') {
+			if (listenerType === 'm5-stickc') {
 				socket.join('messaging');
 			}
 			let deviceName = GetDeviceByDeviceId(deviceId).name;

@@ -174,3 +174,15 @@ function KeepScreenAwake(value) { //keeps the phone screen on if true by using t
 
 //CHAT/MESSAGING
 var chat_me = client;
+
+$(document).ready(function () {
+	$('[data-toggle="collapse"]').click(function() {
+		$(this).toggleClass("active");
+		if ($(this).hasClass("active")) {
+			$(this).text("Hide Chat");
+		}
+		else {
+			$(this).text("Show Chat");
+		}
+	});
+});
