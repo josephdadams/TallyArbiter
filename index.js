@@ -157,7 +157,7 @@ var source_types_datafields = [ //data fields for the tally source types
 	},
 	{ sourceTypeId: '05d6bce1', fields: [ // OSC Listener
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
-			{ fieldName: 'info', fieldLabel: 'Information', text: 'The device source address should be sent as an integer or a string to the server\'s IP address on the specified port. Sending to /tally/preview_on designates it as a Preview command, and /tally/program_on designates it as a Program command. To turn off a preview or program, use preview_off and program_off. The first OSC argument received will be used for the device source address.', fieldType: 'info' }
+			{ fieldName: 'info', fieldLabel: 'Information', text: 'The device source address should be sent as an integer or a string to the server\'s IP address on the specified port. Sending to /tally/preview_on designates it as a Preview command, and /tally/program_on designates it as a Program command. Sending /tally/previewprogram_on and /tally/previewprogram_off will send both bus states at the same time. To turn off a preview or program, use preview_off and program_off. The first OSC argument received will be used for the device source address.', fieldType: 'info' }
 		]
 	},
 	{ sourceTypeId: 'f2b7dc72', fields: [ // Newtek Tricaster
@@ -2612,7 +2612,6 @@ function StopVMixServer(sourceId) {
 
 function SetUpRolandSmartTally(sourceId) {
 	let source = sources.find( ({ id }) => id === sourceId);
-	let ip = source.data.ip;
 
 	try {
 		let sourceConnectionObj = {};
@@ -2623,44 +2622,14 @@ function SetUpRolandSmartTally(sourceId) {
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
 				logger(`Source: ${source.name}  Opening Roland Smart Tally connection.`, 'info-quiet');
-				source_connections[i].server = setInterval(function() {
-					for (let j = 0; j < device_sources.length; j++) {
-						if (device_sources[j].sourceId === sourceId) {
-							let address = device_sources[j].address;
-							axios.get(`http://${ip}/tally/${address}/status`)
-							.then(function (response) {
-								let tallyObj = {};
-								tallyObj.address = address;
-								tallyObj.label = "Input " + address;
-								tallyObj.tally4 = 0;
-								tallyObj.tally3 = 0;
-								tallyObj.tally2 = 0;
-								tallyObj.tally1 = 0;
-
-								switch(response)
-								{
-									case "onair":
-										tallyObj.tally2 = 1;
-										tallyObj.tally1 = 0;
-										break;
-									case "selected":
-										tallyObj.tally2 = 0;
-										tallyObj.tally1 = 1;
-										break;
-									case "unselected":
-									default:
-										tallyObj.tally2 = 0;
-										tallyObj.tally1 = 0;
-										break;
-								}
-								processTSLTally(sourceId, tallyObj);
-							})
-							.catch(function (error) {
-								logger(`Source: ${source.name}  Roland Smart Tally Error: ${error}`, 'error');
-							});
-						}
+				for (let j = 0; j < sources.length; j++) {
+					if (sources[j].id === sourceId) {
+						sources[j].connected = true;
+						UnregisterReconnect(sources[j].id);
+						break;
 					}
-				}, 1000, sourceId);
+				}
+				source_connections[i].server = setInterval(checkRolandStatus, 500, sourceId);
 				break;
 			}
 		}
@@ -2670,6 +2639,48 @@ function SetUpRolandSmartTally(sourceId) {
 	}
 	catch (error) {
 		logger(`Source: ${source.name}. Roland Smart Tally Error: ${error}`, 'error');
+	}
+}
+
+function checkRolandStatus(sourceId) {
+	let source = sources.find( ({ id }) => id === sourceId);
+	let ip = source.data.ip;
+
+	for (let j = 0; j < device_sources.length; j++) {
+		if (device_sources[j].sourceId === sourceId) {
+			let address = device_sources[j].address;
+			axios.get(`http://${ip}/tally/${address}/status`)
+			.then(function (response) {
+				let tallyObj = {};
+				tallyObj.address = address;
+				tallyObj.label = address;
+				tallyObj.tally4 = 0;
+				tallyObj.tally3 = 0;
+				tallyObj.tally2 = 0;
+				tallyObj.tally1 = 0;
+
+				switch(response.data)
+				{
+					case "onair":
+						tallyObj.tally2 = 1;
+						tallyObj.tally1 = 0;
+						break;
+					case "selected":
+						tallyObj.tally2 = 0;
+						tallyObj.tally1 = 1;
+						break;
+					case "unselected":
+					default:
+						tallyObj.tally2 = 0;
+						tallyObj.tally1 = 0;
+						break;
+				}
+				processTSLTally(sourceId, tallyObj);
+			})
+			.catch(function (error) {
+				logger(`Source: ${source.name}  Roland Smart Tally Error: ${error}`, 'error');
+			});
+		}
 	}
 }
 
