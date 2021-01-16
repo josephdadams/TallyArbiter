@@ -24,6 +24,7 @@ Tally Arbiter is software that allows you to combine incoming tally data from mu
 * Feedback and Control with Bitfocus Companion: https://youtu.be/osvbW4XHu0I
 * Using an M5StickC Arduino for viewing tally: https://youtu.be/WMrRKD63Jrw
 * Tally Arbiter 1.4: https://youtu.be/F_Y8Rflo8cY
+* Tally Arbiter 1.5: https://youtu.be/zar6-x7hT4M
 
 # Installing the software
 The software is written in Node.js and is therefore cross-platform and can be run on MacOS, Linux, or Windows.
