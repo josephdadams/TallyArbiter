@@ -178,6 +178,10 @@
 		<hr>
 		<div class="mt-5">
 			<h1>TSL Clients <button type="button" class="btn btn-dark" data-toggle="modal" data-target="#modalTSLClient" id='btnAdd_TSL_Client' onclick='Add_TSL_Client();'>Add</button></h1>
+			<div class="custom-control custom-switch">
+				<input type="checkbox" class="custom-control-input" onclick="TSLClients_1SecUpdate();" id="chkTSLClients_1SecUpdate">
+				<label class="custom-control-label" for="chkTSLClients_1SecUpdate">1-Second Updates</label>
+			  </div>
 			<div class="row">
 				<div id='divContainer_TSLClients'>
 					<div id='divTSLClients'></div>

@@ -52,6 +52,9 @@ var tallydata_TC 	= []; //array of Tricaster sources and current tally data
 var tallydata_AWLivecore 	= []; //array of Analog Way sources and current tally data
 var PortsInUse		= []; //array of UDP/TCP ports in use, includes reserved ports
 var tsl_clients		= []; //array of TSL 3.1 clients that Tally Arbiter will send tally data to
+var tsl_clients_sockets = []; //array of actual socket connections
+var tsl_clients_1secupdate = false;
+var tsl_clients_interval = null;
 var cloud_destinations	= []; //array of Tally Arbiter Cloud Destinations (host, port, key)
 var cloud_destinations_sockets = []; //array of actual socket connections
 var cloud_keys 			= []; //array of Tally Arbiter Cloud Sources (key only)
@@ -706,6 +709,7 @@ function initialSetup() {
 			socket.emit('listener_clients', listener_clients);
 			socket.emit('logs', Logs);
 			socket.emit('PortsInUse', PortsInUse);
+			socket.emit('tslclients_1secupdate', tsl_clients_1secupdate);
 		});
 
 		socket.on('producer', function () {
@@ -1182,6 +1186,12 @@ function initialSetup() {
 			EnableTestMode(value);
 		});
 
+		socket.on('tslclients_1secupdate', function(value) {
+			tsl_clients_1secupdate = value;
+			SaveConfig();
+			TSLClients_1SecUpdate(value);
+		})
+
 		socket.on('messaging', function(type, message) {
 			SendMessage(type, socket.id, message);
 		});
@@ -1510,6 +1520,15 @@ function loadConfig() { // loads the JSON data from the config file to memory
 			logger('Tally Arbiter TSL Clients could not be loaded.', 'error');
 		}
 
+		if (configJson.tsl_clients_1secupdate) {
+			tsl_clients_1secupdate = true;
+			TSLClients_1SecUpdate(true);
+		}
+		else {
+			tsl_clients_1secupdate = false;
+			TSLClients_1SecUpdate(false);
+		}
+
 		if (configJson.cloud_destinations) {
 			cloud_destinations = configJson.cloud_destinations;
 			logger('Tally Arbiter Cloud Destinations loaded.', 'info');
@@ -1598,13 +1617,24 @@ function SaveConfig() {
 		securityObj.username_producer = username_producer;
 		securityObj.password_producer = password_producer;
 
+		let tsl_clients_clean = [];
+
+		for (let i = 0; i < tsl_clients.length; i++) {
+			let tslClientObj = {};
+			tslClientObj.ip = tsl_clients[i].ip;
+			tslClientObj.port = tsl_clients[i].port;
+			tslClientObj.transport = tsl_clients[i].transport;
+			tsl_clients_clean.push(tslClientObj);
+		}
+
 		let configJson = {
 			security: securityObj,
 			sources: sources,
 			devices: devices,
 			device_sources: device_sources,
 			device_actions: device_actions,
-			tsl_clients: tsl_clients,
+			tsl_clients: tsl_clients_clean,
+			tsl_clients_1secupdate: tsl_clients_1secupdate,
 			cloud_destinations: cloud_destinations,
 			cloud_keys: cloud_keys,
 		};
@@ -1612,12 +1642,14 @@ function SaveConfig() {
 		fs.writeFileSync(config_file, JSON.stringify(configJson, null, 1), 'utf8', function(error) {
 			if (error)
 			{ 
-				result.error = 'Error saving configuration to file: ' + error;
+				logger(`Error saving configuration to file: ${error}`, 'error');
 			}
 		});
+
+		logger('Config file saved to disk.', 'info-quiet');
 	}
 	catch (error) {
-		result.error = 'Error saving configuration to file: ' + error;
+		logger(`Error saving configuration to file: ${error}`, 'error');
 	}
 }
 
@@ -4269,13 +4301,14 @@ function SendTSLClientData(deviceId) {
 
 		for (let i = 0; i < tsl_clients.length; i++) {
 			if (tsl_clients[i].connected === true) {
+				logger(`Sending TSL data for ${device.name} to ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info');
 				switch(tsl_clients[i].transport) {
 					case 'udp':
 						try {
 							tsl_clients[i].socket.send(bufUMD, parseInt(tsl_clients[i].port), tsl_clients[i].ip);
 						}
 						catch(error) {
-							logger(`An error occurred sending TSL data to ${tsl_clients[i].ip}:${tsl_clients[i].port}  ${error}`, 'error');
+							logger(`An error occurred sending TSL data for ${device.name} to ${tsl_clients[i].ip}:${tsl_clients[i].port}  ${error}`, 'error');
 							tsl_clients[i].error = true;
 						}
 						break;
@@ -4284,7 +4317,7 @@ function SendTSLClientData(deviceId) {
 							tsl_clients[i].socket.write(bufUMD);
 						}
 						catch(error) {
-							logger(`An error occurred sending TSL data to ${tsl_clients[i].ip}:${tsl_clients[i].port}  ${error}`, 'error');
+							logger(`An error occurred sending TSL data for ${device.name} to ${tsl_clients[i].ip}:${tsl_clients[i].port}  ${error}`, 'error');
 							tsl_clients[i].error = true;
 						}
 						break;
@@ -4293,6 +4326,26 @@ function SendTSLClientData(deviceId) {
 				}
 			}
 		}
+	}
+}
+
+function TSLClients_1SecUpdate(value) {
+	if (tsl_clients_interval !== null) {
+		clearInterval(tsl_clients_interval);
+	}
+
+	logger(`TSL Clients 1 Second Updates are turned ${ (value ? 'on' : 'off')}.`, 'info');
+
+	if (value) {
+		logger('Starting TSL Clients 1 Second Interval.');
+		tsl_clients_interval = setInterval(TSLClients_UpdateAll, 1000);
+	}
+}
+
+function TSLClients_UpdateAll() {
+	//loops through all devices and sends out the state, 1 per second
+	for (let i = 0; i < devices.length; i++) {
+		SendTSLClientData(devices[i].id);
 	}
 }
 
