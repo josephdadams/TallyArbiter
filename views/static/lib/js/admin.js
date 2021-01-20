@@ -437,6 +437,14 @@ function loadSocket() {
 			$('#btnTestMode').attr('onclick','TestMode(true)');
 		}
 	});
+	socket.on('tslclients_1secupdate', function(value) {
+		if (value) {
+			$('#chkTSLClients_1SecUpdate')[0].checked = true;
+		}
+		else {
+			$('#chkTSLClients_1SecUpdate')[0].checked = false;
+		}
+	})
 }
 
 function loadVersion() {
@@ -2679,4 +2687,8 @@ function GettingStarted_Close() {
 
 function TestMode(value) {
 	socket.emit('testmode', value);
+}
+
+function TSLClients_1SecUpdate() {
+	socket.emit('tslclients_1secupdate', $('#chkTSLClients_1SecUpdate')[0].checked);
 }
