@@ -1621,6 +1621,7 @@ function SaveConfig() {
 
 		for (let i = 0; i < tsl_clients.length; i++) {
 			let tslClientObj = {};
+			tslClientObj.id = tsl_clients[i].id;
 			tslClientObj.ip = tsl_clients[i].ip;
 			tslClientObj.port = tsl_clients[i].port;
 			tslClientObj.transport = tsl_clients[i].transport;
@@ -2401,8 +2402,7 @@ function SetUpOBSServer(sourceId) {
 
 					source_connections[i].server.on('PreviewSceneChanged', function (data) {
 						logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
-						if (data)
-						{
+						if (data) {
 							if (data.sources)
 							{
 								processOBSTally(sourceId, data.sources, 'preview');
@@ -2412,8 +2412,7 @@ function SetUpOBSServer(sourceId) {
 
 					source_connections[i].server.on('SwitchScenes', function (data) {
 						logger(`Source: ${source.name}  Program Scene Changed.`, 'info-quiet');
-						if (data)
-						{
+						if (data) {
 							if (data.sources)
 							{
 								processOBSTally(sourceId, data.sources, 'program');
@@ -3445,6 +3444,10 @@ function CheckDeviceState(deviceId, sourceId, tallyObj) {
 		let device = GetDeviceByDeviceId(deviceId);
 
 		for (let i = 0; i < device_states.length; i++) {
+			if (typeof device_states[i].linkedSources === 'undefined') {
+				device_states[i].linkedSources = [];
+			}
+
 			if (device_states[i].deviceId === deviceId) {
 				if (device_states[i].busId === busId_preview) {
 					if (device.linkedPreview) {
