@@ -4859,11 +4859,27 @@ function TallyArbiter_Add_Device_Source(obj) {
 function TallyArbiter_Edit_Device_Source(obj) {
 	let deviceSourceObj = obj.device_source;
 	let deviceId = null;
+	let oldAddress = null;
 	for (let i = 0; i < device_sources.length; i++) {
 		if (device_sources[i].id === deviceSourceObj.id) {
 			deviceId = device_sources[i].deviceId;
 			device_sources[i].sourceId = deviceSourceObj.sourceId;
+			oldAddress = device_sources[i].address;
 			device_sources[i].address = deviceSourceObj.address;
+		}
+	}
+
+	//also remove this device source address from device_states where device = this device, source = this source, address = this old address
+	for (let i = 0; i < device_states.length; i++) {
+		if (device_states[i].deviceId === deviceId) {
+			for (let j = device_states[i].sources.length - 1; j >= 0; j--) {
+				if (device_states[i].sources[j].sourceId === sourceId) {
+					if (device_states[i].sources[j].address === oldAddress) {
+						//remove this one, it's no longer valid for this device
+						device_states[i].sources.splice(j, 1);
+					}
+				}
+			}
 		}
 	}
 
@@ -4881,13 +4897,30 @@ function TallyArbiter_Delete_Device_Source(obj) {
 	let deviceSourceId = obj.device_source.id;
 	let deviceId = null;
 	let sourceId = null;
+	let oldAddress = null;
 
+	//remove it from the device_sources array
 	for (let i = 0; i < device_sources.length; i++) {
 		if (device_sources[i].id === deviceSourceId) {
 			deviceId = device_sources[i].deviceId;
 			sourceId = device_sources[i].sourceId;
+			oldAddress = device_sources[i].address;
 			device_sources.splice(i, 1);
 			break;
+		}
+	}
+
+	//also remove this device source address from device_states where device = this device, source = this source, address = this old address
+	for (let i = 0; i < device_states.length; i++) {
+		if (device_states[i].deviceId === deviceId) {
+			for (let j = device_states[i].sources.length -1; j >= 0; j--) {
+				if (device_states[i].sources[j].sourceId === sourceId) {
+					if (device_states[i].sources[j].address === oldAddress) {
+						//remove this one, it's no longer valid for this device
+						device_states[i].sources.splice(j, 1);
+					}
+				}
+			}
 		}
 	}
 
