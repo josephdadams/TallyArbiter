@@ -3650,7 +3650,7 @@ function UpdateDeviceState(deviceId) {
 						if (device_states[i].linkedSources.length === deviceSources.length) {
 							//if the lengths are the same, then the device states match the device source mappings
 							RunAction(deviceId, device_states[i].busId, true);
-							device_states[i].active = true;	
+							device_states[i].active = true;
 						}
 					}
 					else {
@@ -3679,6 +3679,9 @@ function UpdateDeviceState(deviceId) {
 			}
 		}
 	}
+
+	logger(`Sending device states for: ${device.name}`, 'info-quiet');
+	io.to('device-' + deviceId).emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 }
 
 function RunAction(deviceId, busId, active) {
@@ -3729,9 +3732,6 @@ function RunAction(deviceId, busId, active) {
 		//the device is disabled, so don't run any actions against it
 		logger(`Device: ${deviceObj.name} is not enabled, so no actions will be run.`, 'info');
 	}
-
-	logger(`Sending device states for: ${deviceObj.name}`, 'info-quiet');
-	io.to('device-' + deviceId).emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 }
 
 function RunAction_TSL_31_UDP(data) {
