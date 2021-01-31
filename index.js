@@ -303,9 +303,9 @@ function startUp() {
 	initialSetup();
 	DeleteInactiveListenerClients();
 
-	/*process.on('uncaughtException', function (err) {
+	process.on('uncaughtException', function (err) {
 		logger(`Caught exception: ${err}`, 'error');
-	});*/
+	});
 }
 
 //sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
