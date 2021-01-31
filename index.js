@@ -2606,6 +2606,10 @@ function SetUpVMixServer(sourceId) {
 					}
 				});
 
+				source_connections[i].server.on('error', function(error) {
+					logger(`Source: ${source.name}  VMix Connection Error occurred: ${error}`, 'error');
+				});
+
 				source_connections[i].server.on('close', function () {
 					logger(`Source: ${source.name}  VMix Connection closed.`, 'info');
 					for (let j = 0; j < sources.length; j++) {
