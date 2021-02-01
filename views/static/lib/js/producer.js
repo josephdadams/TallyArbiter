@@ -308,6 +308,8 @@ function loadListeners() {
 		trHeader.appendChild(tdHeaderButtons);
 		tableListeners.appendChild(trHeader);
 		for (let i = 0; i < listener_clients.length; i++) {
+			let listenerDevice = getDeviceById(listener_clients[i].deviceId);
+
 			let trClientItem = document.createElement('tr');
 			let tdIPAddress = document.createElement('td');
 			tdIPAddress.innerHTML = listener_clients[i].ipAddress.replace('::ffff:', '');
@@ -324,7 +326,12 @@ function loadListeners() {
 			}
 			trClientItem.appendChild(tdListenerCloud);
 			let tdDevice = document.createElement('td');
-			tdDevice.innerHTML = getDeviceById(listener_clients[i].deviceId).name;
+			if (listenerDevice) {
+				tdDevice.innerHTML = listenerDevice.name;
+			}
+			else {
+				tdDevice.innerHTML = '';
+			}
 			trClientItem.appendChild(tdDevice);
 			let tdButtons = document.createElement('td');
 			if (listener_clients[i].inactive === true) {
