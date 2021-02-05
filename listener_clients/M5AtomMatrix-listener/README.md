@@ -9,6 +9,7 @@ https://m5stack.com/collections/m5-atom/products/atom-matrix-esp32-development-k
 * What this does when used with TallyArbiter - https://youtu.be/hNhU22OkXek
 * Demo of the M5Atom Matrix code in this git - https://youtu.be/Mc_PCxg6qdc
 * Demo running on 10 M5Atom Matrix units via a cloud server - https://youtu.be/TiqjmXdzPic
+* RAW Step-By-Step Install - With warts and all on a fresh windows installation - https://youtu.be/soj1Cxv3mLY
 
 # Current Updates
 * Tidyed up things a little bit
