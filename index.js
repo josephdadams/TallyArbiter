@@ -2362,6 +2362,8 @@ function SetUpOBSServer(sourceId) {
 
 					source_connections[i].server.on('ConnectionOpened', function (data) {
 						logger(`Source: ${source.name}  OBS Connection opened.`, 'info');
+						addOBSSource(sourceId,'{{STREAMING}}');
+						addOBSSource(sourceId,'{{RECORDING}}');
                         //Retrieve all the current sources and add them
                         source_connections[i].server.sendCallback('GetSourcesList', function(err,data){
                             if(err || data.sources == undefined) return;
@@ -2415,6 +2417,7 @@ function SetUpOBSServer(sourceId) {
 						if (data) {
 							if (data.sources)
 							{
+								console.log(data.sources);
 								processOBSTally(sourceId, data.sources, 'program');
 							}
 						}
@@ -2433,7 +2436,46 @@ function SetUpOBSServer(sourceId) {
 						logger(`Source: ${source.name}  Source renamed`, 'info-quiet');
                         renameOBSSource(sourceId,data.previousName,data.newName);                        
 					});
-                    
+
+					source_connections[i].server.on('StreamStarted', function(data) {
+						let obsTally = [
+							{
+								name: '{{STREAMING}}',
+								render: true
+							}
+						];
+						processOBSTally(sourceId, obsTally, 'program');
+					});
+			
+					source_connections[i].server.on('StreamStopped', function() {
+						let obsTally = [
+							{
+								name: '{{STREAMING}}',
+								render: false
+							}
+						];
+						processOBSTally(sourceId, obsTally, 'program');
+					});
+
+					source_connections[i].server.on('RecordingStarted', function() {
+						let obsTally = [
+							{
+								name: '{{RECORDING}}',
+								render: true
+							}
+						];
+						processOBSTally(sourceId, obsTally, 'program');
+					});
+			
+					source_connections[i].server.on('RecordingStopped', function() {
+						let obsTally = [
+							{
+								name: '{{RECORDING}}',
+								render: false
+							}
+						];
+						processOBSTally(sourceId, obsTally, 'program');
+					});
 				}
 				catch(error) {
 					logger(`Source: ${source.name}  OBS Error: ${error}`, 'error');
