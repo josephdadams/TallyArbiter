@@ -2417,7 +2417,6 @@ function SetUpOBSServer(sourceId) {
 						if (data) {
 							if (data.sources)
 							{
-								console.log(data.sources);
 								processOBSTally(sourceId, data.sources, 'program');
 							}
 						}
