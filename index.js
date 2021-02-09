@@ -48,6 +48,7 @@ var labels_VideoHub = []; //array of VideoHub source labels
 var destinations_VideoHub = []; //array of VideoHub destination/source assignments
 var tallydata_VideoHub = []; //array of VideoHub sources and current tally data
 var tallydata_OBS 	= []; //array of OBS sources and current tally data
+var tallydata_VMix 	= []; //array of VMix sources and current tally data
 var tallydata_TC 	= []; //array of Tricaster sources and current tally data
 var tallydata_AWLivecore 	= []; //array of Analog Way sources and current tally data
 var PortsInUse		= []; //array of UDP/TCP ports in use, includes reserved ports
@@ -517,6 +518,9 @@ function initialSetup() {
 					break;
 				case 'obs': //OBS
 					result = tallydata_OBS;
+					break;
+				case 'vmix': //VMix
+					result = tallydata_VMix;
 					break;
 				case 'tricaster': //Tricaster
 					result = tallydata_TC;
@@ -2607,7 +2611,13 @@ function SetUpVMixServer(sourceId) {
 				source_connections[i].server = new net.Socket();
 				source_connections[i].server.connect(port, ip, function() {
 					logger(`Source: ${source.name}  VMix Connection Opened.`, 'info');
+
 					source_connections[i].server.write('SUBSCRIBE TALLY\r\n');
+					source_connections[i].server.write('SUBSCRIBE ACTS\r\n');
+
+					addVMixSource(sourceId, '{{RECORDING}}', 'Recording');
+					addVMixSource(sourceId, '{{STREAMING}}', 'Streaming');
+
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = true;
@@ -2643,6 +2653,44 @@ function SetUpVMixServer(sourceId) {
 							tallyObj.tally4 = 0;
 							tallyObj.label = `Input ${address}`;
 							processTSLTally(sourceId, tallyObj);
+							addVMixSource(sourceId, tallyObj.address, tallyObj.label);
+						}
+					}
+					else {
+						//we received some other command, so lets process it
+						if (data[0].indexOf('ACTS OK Recording ') > -1) {
+							console.log('recording status change');
+							let value = false;
+							if (data.indexOf('ACTS OK Recording 1') > -1) {
+								value = true;
+							}
+							//build an object like the TSL module creates so we can use the same function to process it
+							let tallyObj = {};
+							tallyObj.address = '{{RECORDING}}';
+							tallyObj.brightness = 1;
+							tallyObj.tally1 = 0;
+							tallyObj.tally2 = value;
+							tallyObj.tally3 = 0;
+							tallyObj.tally4 = 0;
+							tallyObj.label = `Recording: ${value}`;
+							processTSLTally(sourceId, tallyObj);
+						}
+
+						if (data[0].indexOf('ACTS OK Streaming ') > -1) {
+							let value = false;
+							if (data.indexOf('ACTS OK Streaming 1') > -1) {
+								value = true;
+							}
+							//build an object like the TSL module creates so we can use the same function to process it
+							let tallyObj = {};
+							tallyObj.address = '{{STREAMING}}';
+							tallyObj.brightness = 1;
+							tallyObj.tally1 = 0;
+							tallyObj.tally2 = value;
+							tallyObj.tally3 = 0;
+							tallyObj.tally4 = 0;
+							tallyObj.label = `Streaming: ${value}`;
+							processTSLTally(sourceId, tallyObj);
 						}
 					}
 				});
@@ -2670,6 +2718,28 @@ function SetUpVMixServer(sourceId) {
 	catch (error) {
 		logger(`Source: ${source.name}. VMix Error Occurred: ${error}`, 'error');
 	}
+}
+
+function addVMixSource(sourceId, address, label) {
+    //Double check its not there already
+    var exists = tallydata_VMix.find(function(src){
+        return (src.sourceId == sourceId && src.address == address);
+	});
+	
+    if (exists !== undefined) return;
+	
+	//Doesn't exist, add it
+    tallydata_VMix.push({
+        sourceId: sourceId,
+        label: label,
+        address: address,
+        tally1: 0,
+        tally2: 0,
+        tally3: 0,
+        tally4: 0
+	});
+	
+    logger(`VMix Tally Source: ${sourceId} Added new source: ${label}`, 'info-quiet');
 }
 
 function StopVMixServer(sourceId) {
