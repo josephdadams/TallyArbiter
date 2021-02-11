@@ -244,7 +244,8 @@ var output_types_datafields = [ //data fields for the outgoing actions
 	{ outputTypeId: '79e3ce27', fields: [ //Generic TCP
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
-			{ fieldName: 'string', fieldLabel: 'TCP String', fieldType: 'text' }
+			{ fieldName: 'string', fieldLabel: 'TCP String', fieldType: 'text' },
+			{ fieldName: 'end', fieldLabel: 'End Character', fieldType: 'dropdown', options: [{ id: '', label: 'None' }, { id: '\n',   label: 'LF - \\n' }, { id: '\r\n', label: 'CRLF - \\r\\n' }, { id: '\r',   label: 'CR - \\r' }, { id: '\x00', label: 'NULL - \\x00' }]}
 		]
 	},
 	{ outputTypeId: '6dbb7bf7', fields: [ //Local Console Output
@@ -3959,16 +3960,13 @@ function RunAction_TCP(data) {
 		tcpClient.connect(data.port, data.ip);
 
 		tcpClient.on('connect', function() {
-			let sendBuf = Buffer.from(data.string, 'latin1');
+			let sendBuf = Buffer.from(unescape(data.string) + data.end, 'latin1');
 			if (sendBuf !== '') {
 				tcpClient.write(sendBuf);
+				tcpClient.end();
+				tcpClient.destroy(); // kill client after sending data
 				logger(`Generic TCP sent: ${data.ip}:${data.port} : ${data.string}`, 'info');
 			}
-		});
-
-		tcpClient.on('data', function(data) {
-			tcpClient.end();
-			tcpClient.destroy(); // kill client after server's response
 		});
 
 		tcpClient.on('error', function(error) {
@@ -3982,8 +3980,6 @@ function RunAction_TCP(data) {
 
 function RunAction_OSC(data) {
 	let args = [];
-
-
 
 	if (data.args !== '') {
 		let arguments = data.args.split(' ');
