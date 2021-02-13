@@ -12,23 +12,15 @@ To contact the author or for more information, please visit [www.techministry.bl
 ## Installing Sketch and Libraries
 1. Follow the [tutorial on the M5Stack website](https://docs.m5stack.com/#/en/arduino/arduino_development) to download, install, and configure the Arduino IDE program. This is necessary to compile the code for your device.
 1. Once you have the Arduino IDE installed and configured for your OS, install the following libraries (if not already installed):
-	* `M5StickC`
-	* `Websockets`
-	* `SocketIoClient`
-	* `Arduino_JSON`
-	* `MultiButton`
+	* `M5StickC` / `M5StickCPlus` (depending on the device you are using)
+	* `WebSockets` by Markus Sattler
+	* `Arduino_JSON` by Arduino
+	* `MultiButton` by Martin Poelstra
 
 These will have to be included with the sketch file in order for it to compile properly.
-### Modification of SocketIoClient file for ESP32 compatibility
-One library file will need to be modified in order to work properly: `SocketIoClient.cpp`.
-
-Line `41` of this file reads, `hexdump(payload, length);`. This function is not declared properly and thus will error out.
-
-The fix is to simply comment out this line as it is not needed and is only for debugging purposes. Modify the line so it now reads, `//hexdump(payload, length);`.
-
 ## Compile and Upload the Sketch to the Device
 1. Once all libraries are downloaded, open the `tallyarbiter-m5stickc.ino` file in the Arduino IDE.
-1. Modify these lines are the top of the file to reflect your wireless network and Tally Arbiter server settings:
+1. Modify these lines at the top of the file to reflect your wireless network and Tally Arbiter server settings:
 	```c++
 	//Wifi SSID and password
 	const char * networkSSID = "YourNetwork";
