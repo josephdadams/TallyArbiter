@@ -673,19 +673,25 @@ function initialSetup() {
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
 			let listenerType = 'm5';
+			
+			if (devices.length > 0) {
+				socket.emit('devices', devices);
+			}
 
 			if ((deviceId === 'null') || (device.id === 'unassigned')) {
 				if (devices.length > 0) {
 					deviceId = devices[0].id;
 					socket.emit('deviceId', deviceId);
-					socket.emit('devices', devices);
-					socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
 				}
 				else {
 					deviceId = 'unassigned';
 				}
 			}
-
+			
+			if (devices.length > 0) {
+				socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
+			}
+			
 			if (obj.listenerType) {
 				listenerType = obj.listenerType;
 			}
@@ -695,7 +701,7 @@ function initialSetup() {
 				socket.join('messaging');
 			}
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
-			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
+			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName} DeviceID: ${deviceId}`, 'info');
 
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
