@@ -2569,19 +2569,22 @@ function processOBSTally(sourceId, sourceArray, tallyType) {
 			}
 		}
 
-		if (!obsSourceFound) {
-			//it is no longer in the bus, mark it as such
-			switch(tallyType) {
-				case 'preview':
-					tallydata_OBS[i].tally1 = 0;
-					break;
-				case 'program':
-					tallydata_OBS[i].tally2 = 0;
-					break;
-				default:
-					break;
+		if ((tallydata_OBS[i].address !== '{{STREAMING}}') && (tallydata_OBS[i].address !== '{{RECORDING}}'))
+		{
+			if (!obsSourceFound) {
+				//it is no longer in the bus, mark it as such
+				switch(tallyType) {
+					case 'preview':
+						tallydata_OBS[i].tally1 = 0;
+						break;
+					case 'program':
+						tallydata_OBS[i].tally2 = 0;
+						break;
+					default:
+						break;
+				}
+				processTSLTally(sourceId, tallydata_OBS[i]);
 			}
-			processTSLTally(sourceId, tallydata_OBS[i]);
 		}
 	}
 }
