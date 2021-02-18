@@ -88,7 +88,7 @@ Tally Arbiter consists of the following sections:
 Sources represent all of the tally data that is generated. This is usually your video switcher or mixing software. Multiple sources can be added and they can all be different types.
 
 The following source types are supported:
-* TSL 3.1 UDP/TCP (Ross switchers, Streamstar, etc.)
+* TSL 3.1/5.0 UDP/TCP (Ross switchers, Streamstar, FOR-A, etc. - any device that uses the TSL UMD protocol))
 * Blackmagic ATEM
 * Blackmagic VideoHub
 * OBS Studio
