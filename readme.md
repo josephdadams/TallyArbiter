@@ -59,7 +59,7 @@ Now run `npm install` to make sure all packages are up to date.
 1. Open a terminal window and change directory to the folder where you placed the source code.
 1. Install the Node.js library, `pm2`, by typing `npm install -g pm2`. This will install it globally on your system.
 1. After `pm2` is installed, type `pm2 start index.js --name TallyArbiter` to daemonize it as a service.
-1. If you would like it to start automatically upon bootup, type `pm2 startup` and follow the instructions on-screen.
+1. If you would like it to start automatically upon bootup, type `pm2 save` and then `pm2 startup` and follow the instructions on-screen.
 1. To view the console output while running the software with `pm2`, type `pm2 logs TallyArbiter`.
 
 This program runs an HTTP server listening on port `4455`. If this port is in use and cannot be opened, you will receive an error.
@@ -88,7 +88,7 @@ Tally Arbiter consists of the following sections:
 Sources represent all of the tally data that is generated. This is usually your video switcher or mixing software. Multiple sources can be added and they can all be different types.
 
 The following source types are supported:
-* TSL 3.1 UDP/TCP (Ross switchers, Streamstar, etc.)
+* TSL 3.1/5.0 UDP/TCP (Ross switchers, Streamstar, FOR-A, etc. - any device that uses the TSL UMD protocol))
 * Blackmagic ATEM
 * Blackmagic VideoHub
 * OBS Studio
