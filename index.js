@@ -49,6 +49,7 @@ var labels_VideoHub = []; //array of VideoHub source labels
 var destinations_VideoHub = []; //array of VideoHub destination/source assignments
 var tallydata_VideoHub = []; //array of VideoHub sources and current tally data
 var tallydata_OBS 	= []; //array of OBS sources and current tally data
+var tallydata_RossCarbonite = []; //array of Ross Carbonite sources and current tally data by bus
 var tallydata_VMix 	= []; //array of VMix sources and current tally data
 var tallydata_TC 	= []; //array of Tricaster sources and current tally data
 var tallydata_AWLivecore 	= []; //array of Analog Way sources and current tally data
@@ -107,6 +108,7 @@ var source_types 	= [ //available tally source types
 	{ id: '58b6af42', label: 'VMix', type: 'vmix', enabled: true, help: 'Uses Port 8099.'},
 	{ id: '4a58f00f', label: 'Roland Smart Tally', type: 'roland', enabled: true, help: ''},
 	{ id: '1190d7be', label: 'Roland VR-50HD-MKII', type: 'roland-vr', enabled: true, help: 'Uses Port 8023'},
+	{ id: '039bb9d6', label: 'Ross Carbonite', type: 'ross_carbonite', enabled: true, help: ''},
 	{ id: 'f2b7dc72', label: 'Newtek Tricaster', type: 'tc', enabled: true, help: 'Uses Port 5951.'},
 	{ id: '05d6bce1', label: 'Open Sound Control (OSC)', type: 'osc', enabled: true, help: ''},
 	{ id: 'cf51e3c9', label: 'Incoming Webhook', type: 'webhook', enabled: false, help: ''},
@@ -170,6 +172,15 @@ var source_types_datafields = [ //data fields for the tally source types
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
 		]
 	},
+	{ sourceTypeId: '039bb9d6', fields: [ //Ross Carbonite
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
+			{ fieldName: 'transport_type', fieldLabel: 'Transport Type', fieldType: 'dropdown',
+			options: [
+				{ id: 'udp', label: 'UDP'},
+				{ id: 'tcp', label: 'TCP'}
+			] }
+		]
+	},
 	{ sourceTypeId: '05d6bce1', fields: [ // OSC Listener
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'info', fieldLabel: 'Information', text: 'The device source address should be sent as an integer or a string to the server\'s IP address on the specified port. Sending to /tally/preview_on designates it as a Preview command, and /tally/program_on designates it as a Program command. Sending /tally/previewprogram_on and /tally/previewprogram_off will send both bus states at the same time. To turn off a preview or program, use preview_off and program_off. The first OSC argument received will be used for the device source address.', fieldType: 'info' }
@@ -192,6 +203,55 @@ var source_types_datafields = [ //data fields for the tally source types
 			{ fieldName: 'info', fieldLabel: 'Information', text: 'This source generates preview/program tally data for the purposes of testing equipment.', fieldType: 'info' }
 		]
 	}
+];
+
+var source_types_busoptions = [
+	{ sourceTypeId: '039bb9d6', busses: [ //Ross Carbonite
+			{ bus: 'onair', name: 'Follow OnAir Setting' },
+			{ bus: 'me1', name: 'ME 1' },
+			{ bus: 'me2', name: 'ME 2' },
+			{ bus: 'me3', name: 'ME 3' },
+			{ bus: 'mme1', name: 'MiniME 1' },
+			{ bus: 'mme2', name: 'MiniME 2' },
+			{ bus: 'mme3', name: 'MiniME 3' },
+			{ bus: 'mme4', name: 'MiniME 4' },
+			{ bus: 'aux1', name: 'Aux 1' },
+			{ bus: 'aux2', name: 'Aux 2' },
+			{ bus: 'aux3', name: 'Aux 3' },
+			{ bus: 'aux4', name: 'Aux 4' },
+			{ bus: 'aux5', name: 'Aux 5' },
+			{ bus: 'aux6', name: 'Aux 6' },
+			{ bus: 'aux7', name: 'Aux 7' },
+			{ bus: 'aux8', name: 'Aux 8' }
+		]
+	}
+];
+
+const RossCarbonite_Busses = [
+	{address: 'onair_program', bus: 'onair', label: "OnAir Program", type: "program"},
+	{address: 'onair_preview', bus: 'onair', label: "OnAir Preview", type: "preview"},
+	{address: '25', bus: 'me1', label: "ME 1 BKGD", type: "program"},
+	{address: '26', bus: 'me1', label: "ME 1 PST", type: "preview"},
+	{address: '35', bus: 'me2', label: "ME 2 BKGD", type: "program"},
+	{address: '36', bus: 'me2', label: "ME 2 PST", type: "preview"},
+	{address: '45', bus: 'me3', label: "ME 3 BKGD", type: "program"},
+	{address: '46', bus: 'me3', label: "ME 3 PST", type: "preview"},
+	{address: '65', bus: 'aux1', label: "Aux 1", type: "program"},
+	{address: '66', bus: 'aux2', label: "Aux 2", type: "program"},
+	{address: '67', bus: 'aux3', label: "Aux 3", type: "program"},
+	{address: '68', bus: 'aux4', label: "Aux 4", type: "program"},
+	{address: '69', bus: 'aux5', label: "Aux 5", type: "program"},
+	{address: '70', bus: 'aux6', label: "Aux 6", type: "program"},
+	{address: '71', bus: 'aux7', label: "Aux 7", type: "program"},
+	{address: '72', bus: 'aux8', label: "Aux 8", type: "program"},
+	{address: '81', bus: 'mme1', label: "MiniME™ 1 BKGD", type: "program"},
+	{address: '82', bus: 'mme1', label: "MiniME™ 1 PST", type: "preview"},
+	{address: '86', bus: 'mme2', label: "MiniME™ 2 BKGD", type: "program"},
+	{address: '87', bus: 'mme2', label: "MiniME™ 2 PST", type: "preview"},
+	{address: '91', bus: 'mme3', label: "MiniME™ 3 BKGD", type: "program"},
+	{address: '92', bus: 'mme3', label: "MiniME™ 3 PST", type: "preview"},
+	{address: '96', bus: 'mme4', label: "MiniME™ 4 BKGD", type: "program"},
+	{address: '97', bus: 'mme4', label: "MiniME™ 4 PST", type: "preview"}
 ];
 
 if (isPi()) {
@@ -316,9 +376,9 @@ function startUp() {
 	initialSetup();
 	DeleteInactiveListenerClients();
 
-	process.on('uncaughtException', function (err) {
+	/*process.on('uncaughtException', function (err) {
 		logger(`Caught exception: ${err}`, 'error');
-	});
+	});*/
 }
 
 //sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
@@ -406,6 +466,11 @@ function initialSetup() {
 	appSettings.get('/source_types_datafields', function (req, res) {
 		//gets all Tally Source Types Data Fields
 		res.send(source_types_datafields);
+	});
+
+	appSettings.get('/source_types_busoptions', function (req, res) {
+		//gets all Tally Source Types Bus Options
+		res.send(source_types_busoptions);
 	});
 
 	appSettings.get('/output_types', function (req, res) {
@@ -727,7 +792,7 @@ function initialSetup() {
 		socket.on('settings', function () {
 			socket.join('settings');
 			socket.join('messaging');
-			socket.emit('initialdata', source_types, source_types_datafields, output_types, output_types_datafields, bus_options, sources, devices, device_sources, device_actions, device_states, tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
+			socket.emit('initialdata', source_types, source_types_datafields, source_types_busoptions, output_types, output_types_datafields, bus_options, sources, devices, device_sources, device_actions, device_states, tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
 			socket.emit('listener_clients', listener_clients);
 			socket.emit('logs', Logs);
 			socket.emit('PortsInUse', PortsInUse);
@@ -1616,6 +1681,9 @@ function loadConfig() { // loads the JSON data from the config file to memory
 				case 'roland-vr':
 					SetUpRolandVR(sources[i].id);
 					break;
+				case 'ross_carbonite':
+					SetUpRossCarbonite(sources[i].id);
+					break;
 				case 'osc':
 					SetUpOSCServer(sources[i].id);
 					break;
@@ -1869,7 +1937,7 @@ function StopTSLServer_TCP(sourceId) {
 		}
 	}
 	catch (error) {
-		logger(`Source: ${source.name}  TSL 3.1 UDP Server Error occurred: ${error}`, 'error');
+		logger(`Source: ${source.name}  TSL 3.1 TCP Server Error occurred: ${error}`, 'error');
 	}
 }
 
@@ -2015,7 +2083,7 @@ function StopTSL5Server_TCP(sourceId) {
 		}
 	}
 	catch (error) {
-		logger(`Source: ${source.name}  TSL 5.0 UDP Server Error occurred: ${error}`, 'error');
+		logger(`Source: ${source.name}  TSL 5.0 TCP Server Error occurred: ${error}`, 'error');
 	}
 }
 
@@ -2909,7 +2977,6 @@ function SetUpVMixServer(sourceId) {
 					else {
 						//we received some other command, so lets process it
 						if (data[0].indexOf('ACTS OK Recording ') > -1) {
-							console.log('recording status change');
 							let value = false;
 							if (data.indexOf('ACTS OK Recording 1') > -1) {
 								value = true;
@@ -3223,6 +3290,274 @@ function StopRolandVR(sourceId) {
 	}
 	catch (error) {
 		logger(`Source: ${source.name}  Roland VR Connection Error occurred: ${error}`, 'error');
+	}
+}
+
+function SetUpRossCarbonite(sourceId)
+{
+	let source = sources.find( ({ id }) => id === sourceId);
+	let port = source.data.port;
+	let transport = source.data.transport_type;
+
+	if (transport === 'udp') {
+		try
+		{
+			let sourceConnectionObj = {};
+			sourceConnectionObj.sourceId = sourceId;
+			sourceConnectionObj.server = null;
+			source_connections.push(sourceConnectionObj);
+	
+			for (let i = 0; i < source_connections.length; i++) {
+				if (source_connections[i].sourceId === sourceId) {
+					AddPort(port, sourceId);
+					logger(`Source: ${source.name}  Creating Ross Carbonite UDP Connection.`, 'info-quiet');
+					source_connections[i].server = new TSLUMD(port);
+	
+					source_connections[i].server.on('message', function (tally) {
+						processRossCarboniteTally(sourceId, tally);
+					});
+	
+					logger(`Source: ${source.name}  Ross Carbonite Server started. Listening for data on UDP Port: ${port}`, 'info');
+					for (let j = 0; j < sources.length; j++) {
+						if (sources[j].id === sourceId) {
+							sources[j].connected = true;
+							break;
+						}
+					}
+					UpdateSockets('sources');
+					UpdateCloud('sources');
+					break;
+				}
+			}
+		} catch (error)
+		{
+			logger(`Source: ${source.name}  Ross Carbonite UDP Server Error occurred: ${error}`, 'error');
+		}
+	}
+	else {
+		try
+		{
+			let parser = packet.createParser();
+			parser.packet('tsl', 'b8{x1, b7 => address},b8{x2, b2 => brightness, b1 => tally4, b1 => tally3, b1 => tally2, b1 => tally1 }, b8[16] => label');
+	
+			let sourceConnectionObj = {};
+			sourceConnectionObj.sourceId = sourceId;
+			sourceConnectionObj.server = null;
+			source_connections.push(sourceConnectionObj);
+	
+			for (let i = 0; i < source_connections.length; i++) {
+				if (source_connections[i].sourceId === sourceId) {
+					AddPort(port, sourceId);
+					logger(`Source: ${source.name}  Creating Ross Carbonite TCP Connection.`, 'info-quiet');
+					source_connections[i].server = net.createServer(function (socket) {
+						socket.on('data', function (data) {
+							parser.extract('tsl', function (result) {
+								result.label = Buffer.from(result.label).toString();
+								processRossCarboniteTally(sourceId, result);
+							});
+							parser.parse(data);
+						});
+	
+						socket.on('close', function () {
+							logger(`Source: ${source.name}  Ross Carbonite TCP Server connection closed.`, 'info');
+							CheckReconnect(source.id);
+						});
+					}).listen(port, function() {
+						logger(`Source: ${source.name}  Ross Carbonite Server started. Listening for data on TCP Port: ${port}`, 'info');
+						for (let j = 0; j < sources.length; j++) {
+							if (sources[j].id === sourceId) {
+								sources[j].connected = true;
+								UnregisterReconnect(sources[j].id);
+								break;
+							}
+						}
+						UpdateSockets('sources');
+						UpdateCloud('sources');
+	
+					});
+					break;
+				}
+			}
+		}
+		catch (error) {
+			logger(`Source: ${source.name}  Ross Carbonite TCP Server Error occurred: ${error}`, 'error');
+		}
+	}
+}
+
+function processRossCarboniteTally(sourceId, tallyObj) {
+	let labelAddress = parseInt(tallyObj.label.substring(0, tallyObj.label.indexOf(':')));
+
+	if (!isNaN(labelAddress)) {
+		//if it's a number, then the address in the label field is the "real" tally address we care about
+		labelAddress = labelAddress.toString(); //convert it to a string since all other addresses are stored as strings
+		addRossCarboniteTally(sourceId, tallyObj.address.toString(), labelAddress);
+	}
+	else {
+		//if it's not a number, then process the normal tally address
+		for (let i = 0; i < device_sources.length; i++) {
+			if (device_sources[i].sourceId === sourceId) { //this device_source is associated with the tally data of this source
+				if (device_sources[i].address === tallyObj.address.toString()) { //this device_source's address matches what was in the address field
+					if (device_sources[i].bus === 'onair') {
+						if (tallyObj.tally1) {
+							addRossCarboniteTally(sourceId, 'onair_preview', tallyObj.address.toString());
+						}
+						else {
+							removeRossCarboniteTally(sourceId, 'onair_preview', tallyObj.address.toString());
+						}
+						if (tallyObj.tally2) {
+							addRossCarboniteTally(sourceId, 'onair_program', tallyObj.address.toString());
+						}
+						else {
+							removeRossCarboniteTally(sourceId, 'onair_program', tallyObj.address.toString());
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+function addRossCarboniteTally(sourceId, busAddress, address) {
+	let found = false;
+
+	for (let i = 0; i < tallydata_RossCarbonite.length; i++) {
+		if (tallydata_RossCarbonite[i].sourceId === sourceId) {
+			if (tallydata_RossCarbonite[i].address === address) {
+				found = true;
+				if (!tallydata_RossCarbonite[i].busses.includes(busAddress)) {
+					tallydata_RossCarbonite[i].busses.push(busAddress); //add the bus address to this item
+					updateRossCarboniteTallyData(sourceId, tallydata_RossCarbonite[i].address);
+				}
+			}
+			else {
+				if (tallydata_RossCarbonite[i].busses.includes(busAddress)) {
+					//remove this bus from this entry, as it is no longer in it (the label field can only hold one entry at a time)
+					if ((busAddress !== 'onair_preview') && (busAddress !== 'onair_program')) {
+						removeRossCarboniteTally(sourceId, busAddress, tallydata_RossCarbonite[i].address);
+					}
+				}
+			}
+		}
+	}
+
+	if (!found) { //if there was not an entry in the array for this address
+		let tallyObj = {};
+		tallyObj.sourceId = sourceId;
+		tallyObj.busses = [busAddress];
+		tallyObj.address = address;
+		tallydata_RossCarbonite.push(tallyObj);
+	}
+}
+
+function removeRossCarboniteTally(sourceId, busAddress, address) {
+	for (let i = 0; i < tallydata_RossCarbonite.length; i++) {
+		if (tallydata_RossCarbonite[i].sourceId === sourceId) {
+			if (tallydata_RossCarbonite[i].address === address) {
+				tallydata_RossCarbonite[i].busses = tallydata_RossCarbonite[i].busses.filter(bus => bus !== busAddress);
+				updateRossCarboniteTallyData(sourceId, tallydata_RossCarbonite[i].address);
+			}
+		}
+	}
+}
+
+function updateRossCarboniteTallyData(sourceId, address) {
+	//build a new TSL tally obj based on this address and whatever busses it might be in
+	let inPreview = false;
+	let inProgram = false;
+
+	let found = false;
+
+	for (let i = 0; i < device_sources.length; i++) {
+		inPreview = false;
+		inProgram = false;
+		if (device_sources[i].sourceId === sourceId) {
+			if (device_sources[i].address === address) {
+				//this device_source has this address in it, so let's loop through the tallydata_carbonite array
+				//   and find all the busses that match this address
+				let busses = tallydata_RossCarbonite.find( ({address}) => address === device_sources[i].address).busses;
+
+				for (let j = 0; j < busses.length; j++) {
+					let bus = RossCarbonite_Busses.find( ({address}) => address === busses[j]);
+					if (bus) { //if bus is undefined, it's not a bus we monitor anyways
+						if (bus.bus === device_sources[i].bus) {
+							if (bus.type === 'preview') {
+								inPreview = true;
+							}
+							else if (bus.type === 'program') {
+								inProgram = true;
+							}
+						}
+					}
+				}
+
+				let newTallyObj = {};
+				newTallyObj.address = address;
+				newTallyObj.tally1 = (inPreview ? 1 : 0);
+				newTallyObj.tally2 = (inProgram ? 1 : 0);
+				CheckDeviceState(device_sources[i].deviceId, sourceId, newTallyObj);
+			}
+		}
+	}
+}
+
+function StopRossCarbonite(sourceId) {
+	let source = sources.find( ({ id }) => id === sourceId);
+
+	let transport = source.data.transport;
+
+	if (transport === 'udp') {
+		try
+		{
+			for (let i = 0; i < source_connections.length; i++) {
+				if (source_connections[i].sourceId === sourceId) {
+					logger(`Source: ${source.name}  Closing Ross Carbonite UDP Connection.`, 'info-quiet');
+					source_connections[i].server.server.close();
+					DeletePort(source.data.port);
+					logger(`Source: ${source.name}  Ross Carbonite UDP Server Stopped. Connection Closed.`, 'info');
+					for (let j = 0; j < sources.length; j++) {
+						if (sources[j].id === sourceId) {
+							sources[j].connected = false;
+							break;
+						}
+					}
+	
+					UpdateSockets('sources');
+					UpdateCloud('sources');
+					break;
+				}
+			}
+		}
+		catch (error) {
+			logger(`Source: ${source.name}  Ross Carbonite UDP Server Error occurred: ${error}`, 'error');
+		}
+	}
+	else {
+		RegisterDisconnect(sourceId);
+
+		try
+		{
+			for (let i = 0; i < source_connections.length; i++) {
+				if (source_connections[i].sourceId === sourceId) {
+					source_connections[i].server.close(function() {});
+					DeletePort(source.data.port);
+					logger(`Source: ${source.name}  Ross Carbonite TCP Server Stopped.`, 'info');
+					for (let j = 0; j < sources.length; j++) {
+						if (sources[j].id === sourceId) {
+							sources[j].connected = false;
+							break;
+						}
+					}
+
+					UpdateSockets('sources');
+					UpdateCloud('sources');
+					break;
+				}
+			}
+		}
+		catch (error) {
+			logger(`Source: ${source.name}  Ross Carbonite TCP Server Error occurred: ${error}`, 'error');
+		}
 	}
 }
 
@@ -4389,6 +4724,9 @@ function StartConnection(sourceId) {
 		case 'roland-vr':
 			SetUpRolandVR(sourceId);
 			break;
+		case 'ross_carbonite':
+			SetUpRossCarbonite(sourceId);
+			break;
 		case 'osc':
 			SetUpOSCServer(sourceId);
 			break;
@@ -4440,6 +4778,9 @@ function StopConnection(sourceId) {
 			break;
 		case 'roland-vr':
 			StopRolandVR(sourceId);
+			break;
+		case 'ross_carbonite':
+			StopRossCarbonite(sourceId);
 			break;
 		case 'osc':
 			StopOSCServer(sourceId);
@@ -5238,6 +5579,9 @@ function TallyArbiter_Edit_Device_Source(obj) {
 			device_sources[i].sourceId = deviceSourceObj.sourceId;
 			oldAddress = device_sources[i].address;
 			device_sources[i].address = deviceSourceObj.address;
+		}
+		if (device_sources[i].bus) {
+			device_sources[i].bus = deviceSourceObj.bus;
 		}
 	}
 
