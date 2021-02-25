@@ -109,6 +109,10 @@ var source_types 	= [ //available tally source types
 	{ id: '4a58f00f', label: 'Roland Smart Tally', type: 'roland', enabled: true, help: ''},
 	{ id: '1190d7be', label: 'Roland VR-50HD-MKII', type: 'roland-vr', enabled: true, help: 'Uses Port 8023'},
 	{ id: '039bb9d6', label: 'Ross Carbonite', type: 'ross_carbonite', enabled: true, help: ''},
+	{ id: 'e1c46de9', label: 'Ross Carbonite Black Solo', type: 'ross_carbonite', enabled: true, help: ''},
+	{ id: '63d7ebc6', label: 'Ross Graphite', type: 'ross_carbonite', enabled: true, help: ''},
+	{ id: '22d507ab', label: 'Ross Carbonite Black SD/HD', type: 'ross_carbonite', enabled: true, help: ''},
+	{ id: '7da3b524', label: 'Ross Carbonite Ultra', type: 'ross_carbonite', enabled: true, help: ''},
 	{ id: 'f2b7dc72', label: 'Newtek Tricaster', type: 'tc', enabled: true, help: 'Uses Port 5951.'},
 	{ id: '05d6bce1', label: 'Open Sound Control (OSC)', type: 'osc', enabled: true, help: ''},
 	{ id: 'cf51e3c9', label: 'Incoming Webhook', type: 'webhook', enabled: false, help: ''},
@@ -181,6 +185,42 @@ var source_types_datafields = [ //data fields for the tally source types
 			] }
 		]
 	},
+	{ sourceTypeId: 'e1c46de9', fields: [ //Ross Carbonite Black Solo
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
+			{ fieldName: 'transport_type', fieldLabel: 'Transport Type', fieldType: 'dropdown',
+			options: [
+				{ id: 'udp', label: 'UDP'},
+				{ id: 'tcp', label: 'TCP'}
+			] }
+		]
+	},
+	{ sourceTypeId: '63d7ebc6', fields: [ //Ross Graphite
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
+			{ fieldName: 'transport_type', fieldLabel: 'Transport Type', fieldType: 'dropdown',
+			options: [
+				{ id: 'udp', label: 'UDP'},
+				{ id: 'tcp', label: 'TCP'}
+			] }
+		]
+	},
+	{ sourceTypeId: '22d507ab', fields: [ //Ross Carbonite Black SD/HD
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
+			{ fieldName: 'transport_type', fieldLabel: 'Transport Type', fieldType: 'dropdown',
+			options: [
+				{ id: 'udp', label: 'UDP'},
+				{ id: 'tcp', label: 'TCP'}
+			] }
+		]
+	},
+	{ sourceTypeId: '7da3b524', fields: [ //Ross Carbonite Ultra
+			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
+			{ fieldName: 'transport_type', fieldLabel: 'Transport Type', fieldType: 'dropdown',
+			options: [
+				{ id: 'udp', label: 'UDP'},
+				{ id: 'tcp', label: 'TCP'}
+			] }
+		]
+	},
 	{ sourceTypeId: '05d6bce1', fields: [ // OSC Listener
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'info', fieldLabel: 'Information', text: 'The device source address should be sent as an integer or a string to the server\'s IP address on the specified port. Sending to /tally/preview_on designates it as a Preview command, and /tally/program_on designates it as a Program command. Sending /tally/previewprogram_on and /tally/previewprogram_off will send both bus states at the same time. To turn off a preview or program, use preview_off and program_off. The first OSC argument received will be used for the device source address.', fieldType: 'info' }
@@ -224,35 +264,299 @@ var source_types_busoptions = [
 			{ bus: 'aux7', name: 'Aux 7' },
 			{ bus: 'aux8', name: 'Aux 8' }
 		]
-	}
+	},
+	{ sourceTypeId: 'e1c46de9', busses: [ //Ross Carbonite Black Solo
+			{ bus: 'onair', name: 'Follow OnAir Setting' },
+			{ bus: 'me1', name: 'ME 1' },
+			{ bus: 'aux1', name: 'Aux 1' },
+			{ bus: 'aux2', name: 'Aux 2' },
+			{ bus: 'aux3', name: 'Aux 3' },
+			{ bus: 'aux4', name: 'Aux 4' },
+			{ bus: 'aux5', name: 'Aux 5' },
+			{ bus: 'aux6', name: 'Aux 6' },
+			{ bus: 'aux7', name: 'Aux 7' },
+			{ bus: 'aux8', name: 'Aux 8' },
+			{ bus: 'aux9', name: 'Aux 9' },
+			{ bus: 'au10', name: 'Aux 10' },
+			{ bus: 'aux11', name: 'Aux 11' },
+			{ bus: 'aux12', name: 'Aux 12' },
+			{ bus: 'aux13', name: 'Aux 13' },
+			{ bus: 'aux14', name: 'Aux 14' },
+			{ bus: 'aux15', name: 'Aux 15' },
+			{ bus: 'aux16', name: 'Aux 16' }
+		]
+	},
+	{ sourceTypeId: '63d7ebc6', busses: [ //Ross Graphite
+			{ bus: 'onair', name: 'Follow OnAir Setting' },
+			{ bus: 'me1', name: 'ME 1' },
+			{ bus: 'me2', name: 'ME 2' },
+			{ bus: 'mme1', name: 'MiniME 1' },
+			{ bus: 'mme2', name: 'MiniME 2' },
+			{ bus: 'mme3', name: 'MiniME 3' },
+			{ bus: 'mme4', name: 'MiniME 4' },
+			{ bus: 'aux1', name: 'Aux 1' },
+			{ bus: 'aux2', name: 'Aux 2' },
+			{ bus: 'aux3', name: 'Aux 3' },
+			{ bus: 'aux4', name: 'Aux 4' },
+			{ bus: 'aux5', name: 'Aux 5' },
+			{ bus: 'aux6', name: 'Aux 6' },
+			{ bus: 'aux7', name: 'Aux 7' },
+			{ bus: 'aux8', name: 'Aux 8' },
+			{ bus: 'aux9', name: 'Aux 9' },
+			{ bus: 'au10', name: 'Aux 10' },
+			{ bus: 'aux11', name: 'Aux 11' },
+			{ bus: 'aux12', name: 'Aux 12' },
+			{ bus: 'aux13', name: 'Aux 13' },
+			{ bus: 'aux14', name: 'Aux 14' },
+			{ bus: 'aux15', name: 'Aux 15' },
+			{ bus: 'aux16', name: 'Aux 16' },
+			{ bus: 'aux17', name: 'Aux 17' },
+			{ bus: 'aux18', name: 'Aux 18' },
+			{ bus: 'aux19', name: 'Aux 19' },
+			{ bus: 'aux20', name: 'Aux 20' }
+		]
+	},
+	{ sourceTypeId: '22d507ab', busses: [ //Ross Carbonite Black SD/HD
+			{ bus: 'onair', name: 'Follow OnAir Setting' },
+			{ bus: 'me1', name: 'ME 1' },
+			{ bus: 'me2', name: 'ME 2' },
+			{ bus: 'me2', name: 'ME 3' },
+			{ bus: 'mme1', name: 'MiniME 1' },
+			{ bus: 'mme2', name: 'MiniME 2' },
+			{ bus: 'mme3', name: 'MiniME 3' },
+			{ bus: 'mme4', name: 'MiniME 4' },
+			{ bus: 'aux1', name: 'Aux 1' },
+			{ bus: 'aux2', name: 'Aux 2' },
+			{ bus: 'aux3', name: 'Aux 3' },
+			{ bus: 'aux4', name: 'Aux 4' },
+			{ bus: 'aux5', name: 'Aux 5' },
+			{ bus: 'aux6', name: 'Aux 6' },
+			{ bus: 'aux7', name: 'Aux 7' },
+			{ bus: 'aux8', name: 'Aux 8' },
+			{ bus: 'aux9', name: 'Aux 9' },
+			{ bus: 'au10', name: 'Aux 10' },
+			{ bus: 'aux11', name: 'Aux 11' },
+			{ bus: 'aux12', name: 'Aux 12' },
+			{ bus: 'aux13', name: 'Aux 13' },
+			{ bus: 'aux14', name: 'Aux 14' },
+			{ bus: 'aux15', name: 'Aux 15' },
+			{ bus: 'aux16', name: 'Aux 16' },
+			{ bus: 'aux17', name: 'Aux 17' },
+			{ bus: 'aux18', name: 'Aux 18' },
+			{ bus: 'aux19', name: 'Aux 19' },
+			{ bus: 'aux20', name: 'Aux 20' }
+		]
+	},
+	{ sourceTypeId: '7da3b524', busses: [ //Ross Carbonite Ultra
+		{ bus: 'onair', name: 'Follow OnAir Setting' },
+		{ bus: 'mepp', name: 'ME P/P' },
+		{ bus: 'me1', name: 'ME 1' },
+		{ bus: 'me2', name: 'ME 2' },
+		{ bus: 'mme1', name: 'MiniME 1' },
+		{ bus: 'mme2', name: 'MiniME 2' },
+		{ bus: 'mme3', name: 'MiniME 3' },
+		{ bus: 'mme4', name: 'MiniME 4' },
+		{ bus: 'aux1', name: 'Aux 1' },
+		{ bus: 'aux2', name: 'Aux 2' },
+		{ bus: 'aux3', name: 'Aux 3' },
+		{ bus: 'aux4', name: 'Aux 4' },
+		{ bus: 'aux5', name: 'Aux 5' },
+		{ bus: 'aux6', name: 'Aux 6' },
+		{ bus: 'aux7', name: 'Aux 7' },
+		{ bus: 'aux8', name: 'Aux 8' },
+		{ bus: 'aux9', name: 'Aux 9' },
+		{ bus: 'au10', name: 'Aux 10' },
+		{ bus: 'aux11', name: 'Aux 11' },
+		{ bus: 'aux12', name: 'Aux 12' },
+		{ bus: 'aux13', name: 'Aux 13' },
+		{ bus: 'aux14', name: 'Aux 14' },
+		{ bus: 'aux15', name: 'Aux 15' },
+		{ bus: 'aux16', name: 'Aux 16' },
+		{ bus: 'aux17', name: 'Aux 17' },
+		{ bus: 'aux18', name: 'Aux 18' },
+		{ bus: 'aux19', name: 'Aux 19' },
+		{ bus: 'aux20', name: 'Aux 20' },
+		{ bus: 'aux21', name: 'Aux 21' },
+		{ bus: 'aux22', name: 'Aux 22' },
+		{ bus: 'aux23', name: 'Aux 23' },
+		{ bus: 'aux24', name: 'Aux 24' },
+		{ bus: 'aux25', name: 'Aux 25' },
+		{ bus: 'aux26', name: 'Aux 26' },
+		{ bus: 'aux27', name: 'Aux 27' }
+	]
+},
 ];
 
-const RossCarbonite_Busses = [
-	{address: 'onair_program', bus: 'onair', label: "OnAir Program", type: "program"},
-	{address: 'onair_preview', bus: 'onair', label: "OnAir Preview", type: "preview"},
-	{address: '25', bus: 'me1', label: "ME 1 BKGD", type: "program"},
-	{address: '26', bus: 'me1', label: "ME 1 PST", type: "preview"},
-	{address: '35', bus: 'me2', label: "ME 2 BKGD", type: "program"},
-	{address: '36', bus: 'me2', label: "ME 2 PST", type: "preview"},
-	{address: '45', bus: 'me3', label: "ME 3 BKGD", type: "program"},
-	{address: '46', bus: 'me3', label: "ME 3 PST", type: "preview"},
-	{address: '65', bus: 'aux1', label: "Aux 1", type: "program"},
-	{address: '66', bus: 'aux2', label: "Aux 2", type: "program"},
-	{address: '67', bus: 'aux3', label: "Aux 3", type: "program"},
-	{address: '68', bus: 'aux4', label: "Aux 4", type: "program"},
-	{address: '69', bus: 'aux5', label: "Aux 5", type: "program"},
-	{address: '70', bus: 'aux6', label: "Aux 6", type: "program"},
-	{address: '71', bus: 'aux7', label: "Aux 7", type: "program"},
-	{address: '72', bus: 'aux8', label: "Aux 8", type: "program"},
-	{address: '81', bus: 'mme1', label: "MiniME™ 1 BKGD", type: "program"},
-	{address: '82', bus: 'mme1', label: "MiniME™ 1 PST", type: "preview"},
-	{address: '86', bus: 'mme2', label: "MiniME™ 2 BKGD", type: "program"},
-	{address: '87', bus: 'mme2', label: "MiniME™ 2 PST", type: "preview"},
-	{address: '91', bus: 'mme3', label: "MiniME™ 3 BKGD", type: "program"},
-	{address: '92', bus: 'mme3', label: "MiniME™ 3 PST", type: "preview"},
-	{address: '96', bus: 'mme4', label: "MiniME™ 4 BKGD", type: "program"},
-	{address: '97', bus: 'mme4', label: "MiniME™ 4 PST", type: "preview"}
-];
+var source_types_busaddresses = [
+	//Ross Carbonite
+	{ sourceTypeId: '039bb9d6', address: 'onair_program', bus: 'onair', label: "OnAir Program", type: "program" },
+	{ sourceTypeId: '039bb9d6', address: 'onair_preview', bus: 'onair', label: "OnAir Preview", type: "preview"},
+	{ sourceTypeId: '039bb9d6', address: '25', bus: 'me1', label: "ME 1 BKGD", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '26', bus: 'me1', label: "ME 1 PST", type: "preview"},
+	{ sourceTypeId: '039bb9d6', address: '35', bus: 'me2', label: "ME 2 BKGD", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '36', bus: 'me2', label: "ME 2 PST", type: "preview"},
+	{ sourceTypeId: '039bb9d6', address: '45', bus: 'me3', label: "ME 3 BKGD", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '46', bus: 'me3', label: "ME 3 PST", type: "preview"},
+	{ sourceTypeId: '039bb9d6', address: '65', bus: 'aux1', label: "Aux 1", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '66', bus: 'aux2', label: "Aux 2", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '67', bus: 'aux3', label: "Aux 3", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '68', bus: 'aux4', label: "Aux 4", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '69', bus: 'aux5', label: "Aux 5", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '70', bus: 'aux6', label: "Aux 6", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '71', bus: 'aux7', label: "Aux 7", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '72', bus: 'aux8', label: "Aux 8", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '81', bus: 'mme1', label: "MiniME™ 1 BKGD", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '82', bus: 'mme1', label: "MiniME™ 1 PST", type: "preview"},
+	{ sourceTypeId: '039bb9d6', address: '86', bus: 'mme2', label: "MiniME™ 2 BKGD", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '87', bus: 'mme2', label: "MiniME™ 2 PST", type: "preview"},
+	{ sourceTypeId: '039bb9d6', address: '91', bus: 'mme3', label: "MiniME™ 3 BKGD", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '92', bus: 'mme3', label: "MiniME™ 3 PST", type: "preview"},
+	{ sourceTypeId: '039bb9d6', address: '96', bus: 'mme4', label: "MiniME™ 4 BKGD", type: "program"},
+	{ sourceTypeId: '039bb9d6', address: '97', bus: 'mme4', label: "MiniME™ 4 PST", type: "preview"},
+	////////
+
+	//Ross Carbonite Black Solo
+	{ sourceTypeId: 'e1c46de9', address: 'onair_program', bus: 'onair', label: "OnAir Program", type: "program" },
+	{ sourceTypeId: 'e1c46de9', address: 'onair_preview', bus: 'onair', label: "OnAir Preview", type: "preview"},
+	{ sourceTypeId: 'e1c46de9', address: '37', bus: 'me1', label: "ME 1 BKGD", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '38', bus: 'me1', label: "ME 1 PST", type: "preview"},
+	{ sourceTypeId: 'e1c46de9', address: '67', bus: 'aux1', label: "Aux 1", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '68', bus: 'aux2', label: "Aux 2", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '69', bus: 'aux3', label: "Aux 3", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '70', bus: 'aux4', label: "Aux 4", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '71', bus: 'aux5', label: "Aux 5", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '72', bus: 'aux6', label: "Aux 6", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '73', bus: 'aux7', label: "Aux 7", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '74', bus: 'aux8', label: "Aux 8", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '75', bus: 'aux9', label: "Aux 9", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '76', bus: 'aux10', label: "Aux 10", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '77', bus: 'aux11', label: "Aux 11", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '78', bus: 'aux12', label: "Aux 12", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '79', bus: 'aux13', label: "Aux 13", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '80', bus: 'aux14', label: "Aux 14", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '81', bus: 'aux15', label: "Aux 15", type: "program"},
+	{ sourceTypeId: 'e1c46de9', address: '82', bus: 'aux16', label: "Aux 16", type: "program"},
+
+	//Ross Graphite
+	{ sourceTypeId: '63d7ebc6', address: 'onair_program', bus: 'onair', label: "OnAir Program", type: "program" },
+	{ sourceTypeId: '63d7ebc6', address: 'onair_preview', bus: 'onair', label: "OnAir Preview", type: "preview"},
+	{ sourceTypeId: '63d7ebc6', address: '37', bus: 'me1', label: "ME 1 BKGD", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '38', bus: 'me1', label: "ME 1 PST", type: "preview"},
+	{ sourceTypeId: '63d7ebc6', address: '47', bus: 'me2', label: "ME 2 BKGD", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '48', bus: 'me2', label: "ME 2 PST", type: "preview"},
+	{ sourceTypeId: '63d7ebc6', address: '67', bus: 'aux1', label: "Aux 1", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '68', bus: 'aux2', label: "Aux 2", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '69', bus: 'aux3', label: "Aux 3", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '70', bus: 'aux4', label: "Aux 4", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '71', bus: 'aux5', label: "Aux 5", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '72', bus: 'aux6', label: "Aux 6", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '73', bus: 'aux7', label: "Aux 7", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '74', bus: 'aux8', label: "Aux 8", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '75', bus: 'aux9', label: "Aux 9", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '76', bus: 'aux10', label: "Aux 10", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '77', bus: 'aux11', label: "Aux 11", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '78', bus: 'aux12', label: "Aux 12", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '79', bus: 'aux13', label: "Aux 13", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '80', bus: 'aux14', label: "Aux 14", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '81', bus: 'aux15', label: "Aux 15", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '82', bus: 'aux16', label: "Aux 16", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '83', bus: 'aux17', label: "Aux 17", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '84', bus: 'aux18', label: "Aux 18", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '85', bus: 'aux19', label: "Aux 19", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '86', bus: 'aux20', label: "Aux 20", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '87', bus: 'mme1', label: "MiniME™ 1 BKGD", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '98', bus: 'mme1', label: "MiniME™ 1 PST", type: "preview"},
+	{ sourceTypeId: '63d7ebc6', address: '91', bus: 'mme2', label: "MiniME™ 2 BKGD", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '92', bus: 'mme2', label: "MiniME™ 2 PST", type: "preview"},
+	{ sourceTypeId: '63d7ebc6', address: '95', bus: 'mme3', label: "MiniME™ 3 BKGD", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '96', bus: 'mme3', label: "MiniME™ 3 PST", type: "preview"},
+	{ sourceTypeId: '63d7ebc6', address: '105', bus: 'mme4', label: "MiniME™ 4 BKGD", type: "program"},
+	{ sourceTypeId: '63d7ebc6', address: '106', bus: 'mme4', label: "MiniME™ 4 PST", type: "preview"},
+	////////
+
+	//Ross Carbonite Black SD/HD
+	{ sourceTypeId: '22d507ab', address: 'onair_program', bus: 'onair', label: "OnAir Program", type: "program" },
+	{ sourceTypeId: '22d507ab', address: 'onair_preview', bus: 'onair', label: "OnAir Preview", type: "preview"},
+	{ sourceTypeId: '22d507ab', address: '37', bus: 'me1', label: "ME 1 BKGD", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '38', bus: 'me1', label: "ME 1 PST", type: "preview"},
+	{ sourceTypeId: '22d507ab', address: '47', bus: 'me2', label: "ME 2 BKGD", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '48', bus: 'me2', label: "ME 2 PST", type: "preview"},
+	{ sourceTypeId: '22d507ab', address: '67', bus: 'aux1', label: "Aux 1", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '68', bus: 'aux2', label: "Aux 2", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '69', bus: 'aux3', label: "Aux 3", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '70', bus: 'aux4', label: "Aux 4", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '71', bus: 'aux5', label: "Aux 5", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '72', bus: 'aux6', label: "Aux 6", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '73', bus: 'aux7', label: "Aux 7", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '74', bus: 'aux8', label: "Aux 8", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '75', bus: 'aux9', label: "Aux 9", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '76', bus: 'aux10', label: "Aux 10", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '77', bus: 'aux11', label: "Aux 11", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '78', bus: 'aux12', label: "Aux 12", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '79', bus: 'aux13', label: "Aux 13", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '80', bus: 'aux14', label: "Aux 14", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '81', bus: 'aux15', label: "Aux 15", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '82', bus: 'aux16', label: "Aux 16", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '83', bus: 'aux17', label: "Aux 17", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '84', bus: 'aux18', label: "Aux 18", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '85', bus: 'aux19', label: "Aux 19", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '86', bus: 'aux20', label: "Aux 20", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '87', bus: 'mme1', label: "MiniME™ 1 BKGD", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '98', bus: 'mme1', label: "MiniME™ 1 PST", type: "preview"},
+	{ sourceTypeId: '22d507ab', address: '91', bus: 'mme2', label: "MiniME™ 2 BKGD", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '92', bus: 'mme2', label: "MiniME™ 2 PST", type: "preview"},
+	{ sourceTypeId: '22d507ab', address: '95', bus: 'mme3', label: "MiniME™ 3 BKGD", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '96', bus: 'mme3', label: "MiniME™ 3 PST", type: "preview"},
+	{ sourceTypeId: '22d507ab', address: '105', bus: 'mme4', label: "MiniME™ 4 BKGD", type: "program"},
+	{ sourceTypeId: '22d507ab', address: '106', bus: 'mme4', label: "MiniME™ 4 PST", type: "preview"},
+	////////
+
+	//Ross Carbonite Ultra
+	{ sourceTypeId: '7da3b524', address: 'onair_program', bus: 'onair', label: "OnAir Program", type: "program" },
+	{ sourceTypeId: '7da3b524', address: 'onair_preview', bus: 'onair', label: "OnAir Preview", type: "preview"},
+	{ sourceTypeId: '7da3b524', address: '25', bus: 'mepp', label: "ME P/P BKGD", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '26', bus: 'mepp', label: "ME P/P PST", type: "preview"},
+	{ sourceTypeId: '7da3b524', address: '35', bus: 'me1', label: "ME 1 BKGD", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '36', bus: 'me1', label: "ME 1 PST", type: "preview"},
+	{ sourceTypeId: '7da3b524', address: '45', bus: 'me2', label: "ME 2 BKGD", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '46', bus: 'me2', label: "ME 2 PST", type: "preview"},
+	{ sourceTypeId: '7da3b524', address: '64', bus: 'mme1', label: "MiniME™ 1 BKGD", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '65', bus: 'mme1', label: "MiniME™ 1 PST", type: "preview"},
+	{ sourceTypeId: '7da3b524', address: '68', bus: 'mme2', label: "MiniME™ 2 BKGD", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '69', bus: 'mme2', label: "MiniME™ 2 PST", type: "preview"},
+	{ sourceTypeId: '7da3b524', address: '72', bus: 'mme3', label: "MiniME™ 3 BKGD", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '73', bus: 'mme3', label: "MiniME™ 3 PST", type: "preview"},
+	{ sourceTypeId: '7da3b524', address: '76', bus: 'mme4', label: "MiniME™ 4 BKGD", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '77', bus: 'mme4', label: "MiniME™ 4 PST", type: "preview"},
+	{ sourceTypeId: '7da3b524', address: '100', bus: 'aux1', label: "Aux 1", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '101', bus: 'aux2', label: "Aux 2", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '102', bus: 'aux3', label: "Aux 3", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '103', bus: 'aux4', label: "Aux 4", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '104', bus: 'aux5', label: "Aux 5", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '105', bus: 'aux6', label: "Aux 6", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '106', bus: 'aux7', label: "Aux 7", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '107', bus: 'aux8', label: "Aux 8", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '108', bus: 'aux9', label: "Aux 9", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '109', bus: 'aux10', label: "Aux 10", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '110', bus: 'aux11', label: "Aux 11", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '111', bus: 'aux12', label: "Aux 12", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '112', bus: 'aux13', label: "Aux 13", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '113', bus: 'aux14', label: "Aux 14", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '114', bus: 'aux15', label: "Aux 15", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '115', bus: 'aux16', label: "Aux 16", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '116', bus: 'aux17', label: "Aux 17", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '117', bus: 'aux18', label: "Aux 18", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '118', bus: 'aux19', label: "Aux 19", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '119', bus: 'aux20', label: "Aux 20", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '120', bus: 'aux21', label: "Aux 21", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '121', bus: 'aux22', label: "Aux 22", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '122', bus: 'aux23', label: "Aux 23", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '123', bus: 'aux24', label: "Aux 24", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '124', bus: 'aux25', label: "Aux 25", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '125', bus: 'aux26', label: "Aux 26", type: "program"},
+	{ sourceTypeId: '7da3b524', address: '126', bus: 'aux27', label: "Aux 27", type: "program"}
+	////////
+]
 
 if (isPi()) {
 	//adds the GPIO input type option if the software is running on a Raspberry Pi
@@ -3463,6 +3767,9 @@ function removeRossCarboniteTally(sourceId, busAddress, address) {
 
 function updateRossCarboniteTallyData(sourceId, address) {
 	//build a new TSL tally obj based on this address and whatever busses it might be in
+	let source = GetSourceBySourceId(sourceId);
+	let sourceTypeId = source.sourceTypeId;
+
 	let inPreview = false;
 	let inProgram = false;
 
@@ -3478,7 +3785,7 @@ function updateRossCarboniteTallyData(sourceId, address) {
 				let busses = tallydata_RossCarbonite.find( ({address}) => address === device_sources[i].address).busses;
 
 				for (let j = 0; j < busses.length; j++) {
-					let bus = RossCarbonite_Busses.find( ({address}) => address === busses[j]);
+					let bus = source_types_busaddresses.find( ({busaddress}) => busaddress.sourceTypeId === sourceTypeId && busaddress.address === busses[j]);
 					if (bus) { //if bus is undefined, it's not a bus we monitor anyways
 						if (bus.bus === device_sources[i].bus) {
 							if (bus.type === 'preview') {
@@ -3504,7 +3811,7 @@ function updateRossCarboniteTallyData(sourceId, address) {
 function StopRossCarbonite(sourceId) {
 	let source = sources.find( ({ id }) => id === sourceId);
 
-	let transport = source.data.transport;
+	let transport = source.data.transport_type;
 
 	if (transport === 'udp') {
 		try
