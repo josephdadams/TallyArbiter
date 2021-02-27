@@ -20,6 +20,7 @@ function onLoad() {
 		//Returns a list of available Devices for the dropdown list
 		Devices = deviceArray;
 		updateDeviceList();
+		checkQueryString(); //if a deviceId was passed in the query string, go ahead and select this device
 	});
 	socket.on('bus_options', function (busOptionsArray) {
 		//Returns a list of available bus options (preview, program, etc.)
@@ -90,6 +91,27 @@ function selectDevice(deviceId) {
 	document.getElementById('selDeviceList').style.display = 'none';
 	document.getElementById('divMessages').style.display = 'block';
 	updateTallyInfo();
+}
+
+function checkQueryString() {
+	let deviceId = getParameterByName('deviceid');
+
+	if (deviceId) {
+		let deviceObj = getDeviceById(deviceId);
+
+		if (deviceObj) {
+			selectDevice(deviceObj.id);
+		}
+	}
+}
+
+function getParameterByName(name, url = window.location.href) {
+    name = name.replace(/[\[\]]/g, '\\$&');
+    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
 function getBusTypeById(busId) {
