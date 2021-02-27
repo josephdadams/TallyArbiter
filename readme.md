@@ -183,6 +183,8 @@ All connected listener clients are tracked and listed in the Settings page. You 
 ## Using a web page for tally output
 Navigate to `/tally` on the Tally Arbiter server in your browser and select a Device from the list. As long as the page remains connected to the system, it will display tally data (Preview, Program, Preview+Program, Clear) in real time. Web clients can also send/receive messages with the Producer, like a chat room.
 
+**You can also go to `/tally?deviceid=9fe2efd9a` (replace `9fe2efd9a` with your actual DeviceId) and auto load the page to that Device without having to choose it from the list.**
+
 ## Viewing all tally data
 Navigate to `/producer` on the Tally Arbiter server in your browser to view all Devices and their current states. This information is also available in the Settings GUI but is displayed in a minimal fashion here for in-service viewing. Messages can be sent and received to supported clients.
 **This page is restricted by a username and password. The default username is `producer` and the default password is `12345`.**
