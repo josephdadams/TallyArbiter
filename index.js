@@ -4197,7 +4197,7 @@ function RunAction_Webhook(data) {
 				options.data = data.postdata;
 			}
 		}
-		logger(JSON.stringify(options), 'quiet')
+		logger(JSON.stringify(options), 'info-quiet')
 		axios(options)
 		.then(function (response) {
 			logger(`Outgoing Webhook triggered.`, 'info');
