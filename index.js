@@ -3785,7 +3785,11 @@ function updateRossCarboniteTallyData(sourceId, address) {
 				let busses = tallydata_RossCarbonite.find( ({address}) => address === device_sources[i].address).busses;
 
 				for (let j = 0; j < busses.length; j++) {
-					let bus = source_types_busaddresses.find( ({busaddress}) => busaddress.sourceTypeId === sourceTypeId && busaddress.address === busses[j]);
+					let bus = source_types_busaddresses.find( (busAddress) => {
+							if ((busAddress.sourceTypeId === sourceTypeId) && (busAddress.address === busses[j])) {
+								return true;
+							}
+						});
 					if (bus) { //if bus is undefined, it's not a bus we monitor anyways
 						if (bus.bus === device_sources[i].bus) {
 							if (bus.type === 'preview') {
