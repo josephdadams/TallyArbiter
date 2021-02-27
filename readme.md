@@ -88,13 +88,14 @@ Tally Arbiter consists of the following sections:
 Sources represent all of the tally data that is generated. This is usually your video switcher or mixing software. Multiple sources can be added and they can all be different types.
 
 The following source types are supported:
-* TSL 3.1/5.0 UDP/TCP (Ross switchers, Streamstar, FOR-A, etc. - any device that uses the TSL UMD protocol))
+* TSL 3.1/5.0 UDP/TCP (Ross switchers, Streamstar, FOR-A, etc. - any device that uses the TSL UMD protocol)
 * Blackmagic ATEM
 * Blackmagic VideoHub
 * OBS Studio
 * StudioCoast VMix
 * Roland Smart Tally
 * Roland VR-50HD-MKII
+* Ross Carbonite/Carbonite Black/Carbonite Black Solo/Carbonite Ultra/Graphite
 * Newtek Tricaster
 * Open Sound Control (OSC)
 * Analog Way Livecore Image Processors
@@ -123,6 +124,9 @@ You will need the IP address of the Roland switcher.
 
 ### Roland VR-50HD-MKII
 You will need the IP address of the Roland switcher.
+
+### Ross Carbonite Models
+You will need the IP address of the Ross Carbonite switcher. Your Carbonite must be configured to send the data to Tally Arbiter at the port you specify. All Ross products use the TSL 3.1/5.0 protocols, however this specific source type allows you to process tally information by specific supported busses (ME1, MME1, Auxes, etc.) regardless of the "OnAir" setting that is configured on the Carbonite itself.
 
 ### Newtek Tricaster
 You will need the IP address of the Tricaster.
@@ -191,6 +195,9 @@ Tally Arbiter can send tally data to an M5 Atom Matrix. A remote script is avail
 
 ## Using a blink(1) for tally output
 Tally Arbiter supports the use of a USB blink(1) device as a tally light. A remote listening script is available in the separate repository, [Tally Arbiter Blink1 Listener](http://github.com/josephdadams/tallyarbiter-blink1listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-Blink1Listener/blob/master/readme.md). It is compatible with and was designed to run on a Raspberry Pi Zero, making this an inexpensive option for *wireless* tally output. However, it can be run on any OS/device that supports Python such as MacOS or Windows, which can be helpful if you want to use this with graphics or video playback operators, for example.
+
+## Using a Pimoroni Blinkt! for tally output
+Tally Arbiter supports the use of Pimoroni Blinkt! lights connected to a Raspberry Pi via the GPIO pins. A remote listening script is available in the separate repository, [Tally Arbiter Pimoroni Blinkt! Listener](https://github.com/josephdadams/TallyArbiter-Pimoroni-Blinkt-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-Pimoroni-Blinkt-listener/blob/master/readme.md).
 
 ## Using a Relay for contact-closure systems
 Many Camera CCUs and other devices support incoming tally via contact closure. A remote listening script that can trigger USB relays is available with the separate repository, [Tally Arbiter Relay Listener](http://github.com/josephdadams/tallyarbiter-relaylistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-RelayListener/blob/master/readme.md).
