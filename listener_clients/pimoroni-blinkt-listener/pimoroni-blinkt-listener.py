@@ -158,17 +158,17 @@ def evaluateMode():
 def doBlink(r, g, b):
 	clear()
 	while True:
-    for i in range(8):
-        set_pixel(i, r, g, b)
-    show()
+		for i in range(8):
+			set_pixel(i, r, g, b)
+	show()
 
 try:
 	while True:
-    for i in range(8):
-        clear()
-        set_pixel(i, 255, 255, 255)
-        show()
-        time.sleep(0.05)
+		for i in range(8):
+			clear()
+			set_pixel(i, 255, 255, 255)
+			show()
+			time.sleep(0.05)
 except:
 	print('No blinkt! devices found.')
 	exit (0)
