@@ -210,6 +210,9 @@ Lots of equipment support the use of GPIO (General Purpose In/Out) pins to inter
 ## Arduino ESP8266 with Neopixel
 Use AdaFruit NeoPixel LED strips connected to an Arduino. Check out [NoahCallaway](http://github.com/noahcallaway/)'s repository for more information: https://github.com/NoahCallaway/TallyArbiter-arduino-neopixel
 
+## TTGO_T Displays
+Use TTGO_T Display devices with Tally Arbiter using [peterfdej](http://github.com/peterfdej)'s repository: https://github.com/peterfdej/TallyArbiter-TTGO_T
+
 ## VMix Tally Emulation
 Tally Arbiter will also emulate a VMix server, which means you can use any compatible VMix tally client to view tally as well, such as the [VMix M5Stick Tally Light](https://github.com/guido-visser/vMix-M5Stick-Tally-Light) project by Guido Visser. Follow the instructions on that repository to set up your M5Stick device, and specify Tally Arbiter as your VMix server!
 
