@@ -6,6 +6,7 @@ var PortsInUse = [];
 var TallyData = [];
 var source_types = [];
 var source_types_datafields = [];
+var source_types_busoptions = [];
 var output_types = [];
 var output_types_datafields = [];
 var bus_options = [];
@@ -241,9 +242,10 @@ function loadSocket() {
 		// the ports currently reserved or in use
 		PortsInUse = ports;
 	});
-	socket.on('initialdata', function (sourceTypes, sourceTypesDataFields, outputTypes, outputTypesDataFields, busOptions, sourcesData, devicesData, deviceSources, deviceActions, deviceStates, tslClients, cloudDestinations, cloudKeys, cloudClients) {
+	socket.on('initialdata', function (sourceTypes, sourceTypesDataFields, sourceTypesBusOptions, outputTypes, outputTypesDataFields, busOptions, sourcesData, devicesData, deviceSources, deviceActions, deviceStates, tslClients, cloudDestinations, cloudKeys, cloudClients) {
 		source_types = sourceTypes;
 		source_types_datafields = sourceTypesDataFields;
+		source_types_busoptions = sourceTypesBusOptions;
 		output_types = outputTypes;
 		output_types_datafields = outputTypesDataFields;
 		bus_options = busOptions;
@@ -1169,6 +1171,11 @@ function GetSourceTypeById(sourceTypeId) {
 	return source_types.find(({id}) => id === sourceTypeId);
 }
 
+function GetSourceBusOptionsBySourceTypeId(sourceTypeId) {
+	//gets Source Bus Options By Id
+	return source_types_busoptions.filter(obj => obj.sourceTypeId === sourceTypeId);
+}
+
 function getBusById(busId) {
 	//gets the bus type (preview/program) by the bus id
 	return bus_options.find(({id}) => id === busId);
@@ -1366,7 +1373,7 @@ function Add_Source_Save() {
 			}
 			break;
 		case 'dropdown':
-			dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].options($('#' + fields[i].fieldName)[0].selectedIndex).value;
+			dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].options[$('#' + fields[i].fieldName)[0].selectedIndex].value;
 			break;
 		case 'multiselect':
 			dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName).val();
@@ -1556,7 +1563,7 @@ function Edit_Source_Save() {
 			}
 			break;
 		case 'dropdown':
-			dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].options($('#' + fields[i].fieldName)[0].selectedIndex).value;
+			dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName)[0].options[$('#' + fields[i].fieldName)[0].selectedIndex].value;
 			break;
 		case 'multiselect':
 			dataObj[fields[i].fieldName] = $('#' + fields[i].fieldName).val();
@@ -1778,6 +1785,9 @@ function Edit_Device_Sources(deviceId) {
 						}
 					}
 					break;
+				case 'ross_carbonite':
+					tdDeviceSourceAddress.innerHTML = device_sources[i].address + ' (' + device_sources[i].bus + ')';
+					break;
 				default:
 					tdDeviceSourceAddress.innerHTML = device_sources[i].address;
 					break;
@@ -1875,7 +1885,8 @@ function Add_Device_Source(deviceId) {
     $(divDeviceSourceFields).append($('<input>', {
         id: 'txtAddDeviceSourceAddress',
         style: 'display:block;margin-bottom:5px;'
-    }));
+	}));
+
 	$('#divContainer_DeviceSourceFields')[0].style.display = 'block';
 	$('#btnAdd_DeviceSource_Save')[0].style.display = 'block';
 	$('#btnEdit_DeviceSource_Save')[0].style.display = 'none';
@@ -1888,7 +1899,24 @@ function Add_Device_Source(deviceId) {
 $(document).on( "change", '#selDeviceSource',function(){
 	$('#addDeviceSourceAddressSelect').empty().append($('<option>'));
 	let sourceId = $('#selDeviceSource').find(":selected").val();
-	socket.emit('source_tallydata', sourceId);
+
+	if (sourceId) {
+		socket.emit('source_tallydata', sourceId);
+	}
+
+	//if the source chosen has bus options, display them in a dropdown list
+	let source = GetSourceById(sourceId);
+	let busses = GetSourceBusOptionsBySourceTypeId(source.sourceTypeId);
+
+	if (busses.length > 0) {
+		$(divDeviceSourceFields).append('<select id="addDeviceSourceBus" style="display:block;"></select>');
+		$.each( busses[0].busses, function( key, data ) {
+			$('#addDeviceSourceBus').append($('<option>', {
+				text: data.name,
+				value: data.bus
+			}));
+		});
+	}
 });
 
 function Add_Device_Source_Save() {
@@ -1900,7 +1928,15 @@ function Add_Device_Source_Save() {
         deviceSourceObj.address = $('#txtAddDeviceSourceAddress').val();
     }else{
         deviceSourceObj.address = $('#addDeviceSourceAddressSelect').find(":selected").val();
-    }
+	}
+	
+	let source = GetSourceById(deviceSourceObj.sourceId);
+	let busses = GetSourceBusOptionsBySourceTypeId(source.sourceTypeId);
+
+	if (busses.length > 0) {
+		deviceSourceObj.bus = $('#addDeviceSourceBus').find(":selected").val();
+	}
+
 	let arbiterObj = {};
 	arbiterObj.action = 'add';
 	arbiterObj.type = 'device_source';
@@ -1939,6 +1975,7 @@ function Edit_Device_Source(deviceSourceId) {
 		}
 	}
 	divDeviceSourceFields.appendChild(selDeviceSource);
+
 	let txtDeviceSourceAddress = document.createElement('input');
 	txtDeviceSourceAddress.type = 'text';
 	txtDeviceSourceAddress.id = 'txtDeviceSourceAddress';
@@ -1946,6 +1983,22 @@ function Edit_Device_Source(deviceSourceId) {
 	txtDeviceSourceAddress.style.display = 'block';
 	txtDeviceSourceAddress.value = deviceSourceObj.address;
 	divDeviceSourceFields.appendChild(txtDeviceSourceAddress);
+
+	//if the source chosen has bus options, display them in a dropdown list
+	let source = GetSourceById(deviceSourceObj.sourceId);
+	let busses = GetSourceBusOptionsBySourceTypeId(source.sourceTypeId);
+
+	if (busses.length > 0) {
+		$(divDeviceSourceFields).append('<select id="addDeviceSourceBus" style="display:block;"></select>');
+		$.each( busses[0].busses, function( key, data ) {
+			$('#addDeviceSourceBus').append($('<option>', {
+				text: data.name,
+				value: data.bus
+			}));
+		});
+	}
+	$('#addDeviceSourceBus option[value="' + deviceSourceObj.bus + '"]').prop('selected', true);
+
 	$('#divContainer_DeviceSourceFields')[0].style.display = 'block';
 	$('#btnAdd_DeviceSource_Save')[0].style.display = 'none';
 	$('#btnEdit_DeviceSource_Save')[0].style.display = 'block';
@@ -1956,6 +2009,14 @@ function Edit_Device_Source_Save() {
 	deviceSourceObj.id = $('#txtDeviceSourceId')[0].value;
 	deviceSourceObj.sourceId = $('#selDeviceSource')[0].options[$('#selDeviceSource')[0].selectedIndex].value;
 	deviceSourceObj.address = $('#txtDeviceSourceAddress')[0].value;
+
+	let source = GetSourceById(deviceSourceObj.sourceId);
+	let busses = GetSourceBusOptionsBySourceTypeId(source.sourceTypeId);
+
+	if (busses.length > 0) {
+		deviceSourceObj.bus = $('#addDeviceSourceBus').find(":selected").val();
+	}
+
 	let arbiterObj = {};
 	arbiterObj.action = 'edit';
 	arbiterObj.type = 'device_source';
