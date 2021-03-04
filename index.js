@@ -611,10 +611,12 @@ var output_types_datafields = [ //data fields for the outgoing actions
 		]
 	},
 	{ outputTypeId: 'ffe2b0b6', fields: [ //Outgoing Webhook
-			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
+			{ fieldName: 'protocol', fieldLabel: 'Protocol', fieldType: 'dropdown', options: [ { id: 'http://', label: 'HTTP' }, { id: 'https://', label: 'HTTPS'} ] },
+			{ fieldName: 'ip', fieldLabel: 'Ip/URL', fieldType: 'text' },
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'path', fieldLabel: 'Path', fieldType: 'text' },
 			{ fieldName: 'method', fieldLabel: 'Method', fieldType: 'dropdown', options: [ { id: 'GET', label: 'GET' }, { id: 'POST', label: 'POST'} ] },
+			{ fieldName: 'content', fieldLabel: 'Content-Type', fieldType: 'dropdown', options: [ { id: 'application/json', label: 'JSON' }, { id: 'application/xml', label: 'XML'}, { id: 'application/x-www-form-urlencoded', label: 'FORM-URLENCODED'}, { id: 'text/plain', label: 'TEXT'}, { id: '', label: 'DEFAULT'}  ] },
 			{ fieldName: 'postdata', fieldLabel: 'POST Data', fieldType: 'text' }
 		]
 	},
@@ -4826,21 +4828,29 @@ function RunAction_TSL_31_TCP(data) {
 
 function RunAction_Webhook(data) {
 	try {
-		let path = (data.path.startsWith('/') ? data.path : '/' + data.path);
+		let path = data.path ? (data.path.startsWith('/') ? data.path : '/' + data.path) : '';
+		data.protocol = data.protocol || 'http://';
 		let options = {
 			method: data.method,
-			url: 'http://' + data.ip + ':' + data.port + path
+			url: data.protocol + data.ip + (data.port ? ':' + data.port : '') + path
 		};
+		options.headers = options.headers || {};
+		if(data.content != ''){
+			
+			options.headers['Content-Type']= data.content;
 
+		}
 		if (data.method === 'POST') {
 			if (data.postdata !== '') {
 				options.data = data.postdata;
 			}
 		}
-
+		logger(JSON.stringify(options), 'info-quiet')
 		axios(options)
 		.then(function (response) {
 			logger(`Outgoing Webhook triggered.`, 'info');
+			logger('response:','info');
+			logger(JSON.stringify(response.data),'info');
 		})
 		.catch(function (error) {
 			logger(`An error occured triggering the Outgoing Webhook: ${error}`, 'error');
