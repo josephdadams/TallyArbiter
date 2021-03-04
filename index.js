@@ -1696,13 +1696,15 @@ function InsertTestTally(i) {
 	sourceObj.sourceId = 'TEST';
 	sourceObj.address = 'TEST';
 
-	device_states[i].sources.push(sourceObj);
-	UpdateDeviceState(device_states[i].deviceId); //Runs any outgoing actions for the device, if needed
-	UpdateSockets('device_states');
-	UpdateVMixClients();
-	SendTSLClientData(device_states[i].deviceId);
-	//SendCloudData(sourceId, tallyObj);
-	setTimeout(ClearTestTally, 1000, i);
+	if (device_states[i]) { //make sure the index doesn't exceed the length of the device states array
+		device_states[i].sources.push(sourceObj);
+		UpdateDeviceState(device_states[i].deviceId); //Runs any outgoing actions for the device, if needed
+		UpdateSockets('device_states');
+		UpdateVMixClients();
+		SendTSLClientData(device_states[i].deviceId);
+		//SendCloudData(sourceId, tallyObj);
+		setTimeout(ClearTestTally, 1000, i);
+	}
 }
 
 function ClearTestTally(i) {
