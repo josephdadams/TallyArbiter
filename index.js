@@ -250,7 +250,7 @@ var output_types_datafields = [ //data fields for the outgoing actions
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'path', fieldLabel: 'Path', fieldType: 'text' },
 			{ fieldName: 'method', fieldLabel: 'Method', fieldType: 'dropdown', options: [ { id: 'GET', label: 'GET' }, { id: 'POST', label: 'POST'} ] },
-			{ fieldName: 'content', fieldLabel: 'Content', fieldType: 'dropdown', options: [ { id: 'JSON', label: 'JSON' }, { id: 'RAW', label: 'RAW'} ] },
+			{ fieldName: 'content', fieldLabel: 'Content-Type', fieldType: 'dropdown', options: [ { id: 'application/json', label: 'JSON' }, { id: 'application/xml', label: 'XML'}, { id: 'application/x-www-form-urlencoded', label: 'FORM-URLENCODED'}, { id: 'text/plain', label: 'TEXT'}, { id: '', label: 'DEFAULT'}  ] },
 			{ fieldName: 'postdata', fieldLabel: 'POST Data', fieldType: 'text' }
 		]
 	},
@@ -4186,10 +4186,10 @@ function RunAction_Webhook(data) {
 			method: data.method,
 			url: data.protocol + data.ip + (data.port ? ':' + data.port : '') + path
 		};
-
-		if(data.content == 'JSON'){
-			options.headers = options.headers || {};
-			options.headers['Content-Type']= 'application/json';
+		options.headers = options.headers || {};
+		if(data.content != ''){
+			
+			options.headers['Content-Type']= data.content;
 
 		}
 		if (data.method === 'POST') {
