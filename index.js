@@ -612,11 +612,11 @@ var output_types_datafields = [ //data fields for the outgoing actions
 	},
 	{ outputTypeId: 'ffe2b0b6', fields: [ //Outgoing Webhook
 			{ fieldName: 'protocol', fieldLabel: 'Protocol', fieldType: 'dropdown', options: [ { id: 'http://', label: 'HTTP' }, { id: 'https://', label: 'HTTPS'} ] },
-			{ fieldName: 'ip', fieldLabel: 'Ip/URL', fieldType: 'text' },
+			{ fieldName: 'ip', fieldLabel: 'IP Address/URL', fieldType: 'text' },
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'path', fieldLabel: 'Path', fieldType: 'text' },
 			{ fieldName: 'method', fieldLabel: 'Method', fieldType: 'dropdown', options: [ { id: 'GET', label: 'GET' }, { id: 'POST', label: 'POST'} ] },
-			{ fieldName: 'content', fieldLabel: 'Content-Type', fieldType: 'dropdown', options: [ { id: 'application/json', label: 'JSON' }, { id: 'application/xml', label: 'XML'}, { id: 'application/x-www-form-urlencoded', label: 'FORM-URLENCODED'}, { id: 'text/plain', label: 'TEXT'}, { id: '', label: 'DEFAULT'}  ] },
+			{ fieldName: 'contentType', fieldLabel: 'Content-Type', fieldType: 'dropdown', options: [ { id: 'application/json', label: 'application/json' }, { id: 'application/xml', label: 'application/xml'}, { id: 'application/x-www-form-urlencoded', label: 'x-www-form-urlencoded'}, { id: 'text/plain', label: 'Text/Plain'}, { id: '', label: 'Default'} ] },
 			{ fieldName: 'postdata', fieldLabel: 'POST Data', fieldType: 'text' }
 		]
 	},
@@ -624,7 +624,7 @@ var output_types_datafields = [ //data fields for the outgoing actions
 			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'string', fieldLabel: 'TCP String', fieldType: 'text' },
-			{ fieldName: 'end', fieldLabel: 'End Character', fieldType: 'dropdown', options: [{ id: '', label: 'None' }, { id: '\n',   label: 'LF - \\n' }, { id: '\r\n', label: 'CRLF - \\r\\n' }, { id: '\r',   label: 'CR - \\r' }, { id: '\x00', label: 'NULL - \\x00' }]}
+			{ fieldName: 'end', fieldLabel: 'End Character', fieldType: 'dropdown', options: [{ id: '', label: 'None' }, { id: '\n', label: 'LF - \\n' }, { id: '\r\n', label: 'CRLF - \\r\\n' }, { id: '\r', label: 'CR - \\r' }, { id: '\x00', label: 'NULL - \\x00' }]}
 		]
 	},
 	{ outputTypeId: '6dbb7bf7', fields: [ //Local Console Output
@@ -4830,27 +4830,36 @@ function RunAction_Webhook(data) {
 	try {
 		let path = data.path ? (data.path.startsWith('/') ? data.path : '/' + data.path) : '';
 		data.protocol = data.protocol || 'http://';
+
+		data.port = data.port ? (data.port === '' ? '80' : data.port) : '80'; //explicitly set the port to 80 if they did not specify
+
 		let options = {
 			method: data.method,
-			url: data.protocol + data.ip + (data.port ? ':' + data.port : '') + path
+			url: data.protocol + data.ip + ':' + data.port + path
 		};
-		options.headers = options.headers || {};
-		if(data.content != ''){
-			
-			options.headers['Content-Type']= data.content;
 
+		options.headers = options.headers || {};
+
+		data.contentType = data.contentType || '';
+		if (data.contentType !== '') {
+			options.headers['Content-Type'] = data.contentType;
 		}
+		
 		if (data.method === 'POST') {
 			if (data.postdata !== '') {
 				options.data = data.postdata;
 			}
 		}
+
+		logger('Outgoing Webhook Options:', 'info-quiet');
 		logger(JSON.stringify(options), 'info-quiet')
 		axios(options)
 		.then(function (response) {
-			logger(`Outgoing Webhook triggered.`, 'info');
-			logger('response:','info');
-			logger(JSON.stringify(response.data),'info');
+			logger('Outgoing Webhook triggered.', 'info');
+			if (response.data) {
+				logger('Response received:','info');
+				logger(JSON.stringify(response.data),'info');
+			}
 		})
 		.catch(function (error) {
 			logger(`An error occured triggering the Outgoing Webhook: ${error}`, 'error');
