@@ -2197,7 +2197,7 @@ function SetUpTSLServer_TCP(sourceId)
 
 					socket.on('close', function () {
 						logger(`Source: ${source.name}  TSL 3.1 Server connection closed.`, 'info');
-						CheckReconnect(source.id);
+						StopTSLServer_TCP(sourceId);
 					});
 				}).listen(port, function() {
 					logger(`Source: ${source.name}  TSL 3.1 Server started. Listening for data on TCP Port: ${port}`, 'info');
@@ -2344,7 +2344,8 @@ function SetUpTSL5Server_TCP(sourceId)
 
 					socket.on('close', function () {
 						logger(`Source: ${source.name}  TSL 5.0 Server connection closed.`, 'info');
-						CheckReconnect(source.id);
+						StopTSLServer_TCP(sourceId);
+						CheckReconnect(sourceId);
 					});
 				}).listen(port, function() {
 					logger(`Source: ${source.name}  TSL 5.0 Server started. Listening for data on TCP Port: ${port}`, 'info');
