@@ -159,17 +159,9 @@ def evaluateMode():
 
 def doBlink(r, g, b):
 	clear()
-	while True:
-		for i in range(8):
-			set_pixel(i, r, g, b)
-	show()
-
-while True:
 	for i in range(8):
-		clear()
-		set_pixel(i, 255, 255, 255)
-		show()
-		time.sleep(0.05)
+		set_pixel(i, r, g, b)
+	show()
 
 while(1):
 	try:
