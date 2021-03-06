@@ -1,4 +1,4 @@
-## Tally Arbiter Python Listener
+## Tally Arbiter Pimoroni Blinkt Listener
 
 from signal import signal, SIGINT
 from sys import exit
