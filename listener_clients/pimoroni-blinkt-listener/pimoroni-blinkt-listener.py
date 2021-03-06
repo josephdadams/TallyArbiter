@@ -15,6 +15,8 @@ mode_program = False
 
 server = sys.argv[1]
 
+stored_deviceId = ''
+
 try:
 	stored_deviceId_file = open('deviceid.txt')
 	stored_deviceId = stored_deviceId_file.read()
@@ -162,16 +164,12 @@ def doBlink(r, g, b):
 			set_pixel(i, r, g, b)
 	show()
 
-try:
-	while True:
-		for i in range(8):
-			clear()
-			set_pixel(i, 255, 255, 255)
-			show()
-			time.sleep(0.05)
-except:
-	print('No blinkt! devices found.')
-	exit (0)
+while True:
+	for i in range(8):
+		clear()
+		set_pixel(i, 255, 255, 255)
+		show()
+		time.sleep(0.05)
 
 while(1):
 	try:
