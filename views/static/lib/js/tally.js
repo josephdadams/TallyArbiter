@@ -103,6 +103,13 @@ function checkQueryString() {
 			selectDevice(deviceObj.id);
 		}
 	}
+
+	let chatWindow = getParameterByName('chat');
+	if (chatWindow) {
+		if (chatWindow === "false") {
+			$('#divMessages').hide();
+		}
+	}
 }
 
 function getParameterByName(name, url = window.location.href) {
