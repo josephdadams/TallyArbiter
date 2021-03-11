@@ -185,6 +185,8 @@ Navigate to `/tally` on the Tally Arbiter server in your browser and select a De
 
 **You can also go to `/tally?deviceid=9fe2efd9a` (replace `9fe2efd9a` with your actual DeviceId) and auto load the page to that Device without having to choose it from the list.**
 
+If you include `?chat=false` to the request, you can turn off the Messaging/Chat functions.
+
 ## Viewing all tally data
 Navigate to `/producer` on the Tally Arbiter server in your browser to view all Devices and their current states. This information is also available in the Settings GUI but is displayed in a minimal fashion here for in-service viewing. Messages can be sent and received to supported clients.
 **This page is restricted by a username and password. The default username is `producer` and the default password is `12345`.**
