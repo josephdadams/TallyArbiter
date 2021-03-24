@@ -1656,19 +1656,31 @@ function initialSetup() {
 function EnableTestMode(value) {
 	TestMode = value;
 	if (TestMode) {
-		//turn on test mode
-		let testSource = {};
-		testSource.id = 'TEST';
-		testSource.name = 'TEST MODE';
-		testSource.sourceTypeId = 'TESTMODE';
-		testSource.enabled = true;
-		testSource.reconnect = false;
-		testSource.connected = true;
-		sources.push(testSource);
-		UpdateSockets('sources');
-		UpdateCloud('sources');
-		TestTallies();
-		SendMessage('server', null, 'Test Mode Enabled.');
+		//first check that there's not already a "test mode" source
+		let found = false;
+		for (let i = 0; i < sources.length; i++) {
+			if (sources[i].sourceTypeId === 'TESTMODE') {
+				//already in test mode
+				found = true;
+				break;
+			}
+		}
+
+		if (!found) {
+			//turn on test mode
+			let testSource = {};
+			testSource.id = 'TEST';
+			testSource.name = 'TEST MODE';
+			testSource.sourceTypeId = 'TESTMODE';
+			testSource.enabled = true;
+			testSource.reconnect = false;
+			testSource.connected = true;
+			sources.push(testSource);
+			UpdateSockets('sources');
+			UpdateCloud('sources');
+			TestTallies();
+			SendMessage('server', null, 'Test Mode Enabled.');
+		}
 	}
 	else {
 		//turn off test mode
