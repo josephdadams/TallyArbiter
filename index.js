@@ -21,7 +21,6 @@ const socketio		= require('socket.io');
 const ioClient		= require('socket.io-client');
 const osc 			= require('osc');
 const xml2js		= require('xml2js');
-const { RSA_NO_PADDING } = require('constants');
 const jspack 		= require('jspack').jspack;
 
 //Tally Arbiter variables
