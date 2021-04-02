@@ -21,6 +21,7 @@ const socketio		= require('socket.io');
 const ioClient		= require('socket.io-client');
 const osc 			= require('osc');
 const xml2js		= require('xml2js');
+const { RSA_NO_PADDING } = require('constants');
 const jspack 		= require('jspack').jspack;
 
 //Tally Arbiter variables
@@ -708,6 +709,22 @@ function initialSetup() {
 	//tally page - view tally state of any device
 	app.get('/tally', function (req, res) {
 		res.sendFile('views/tally.html', { root: __dirname });
+	});
+
+	//roland smart tally emulation
+	app.get('/tally/:tallynumber/status', function(req, res) {
+		//the tally number is the device index number shown in the web GUI
+		let tallynumber = req.params.tallynumber;
+
+		status = 'unselected';
+
+		if (tallynumber) {
+			if (parseInt(tallynumber) > 0) {
+				status = GetSmartTallyStatus(tallynumber);
+			}
+		}
+
+		res.send(status);
 	});
 
 	appProducer.use((req, res, next) => {
@@ -6275,6 +6292,44 @@ function GetDeviceStatesByDeviceId(deviceId) {
 	//gets the current tally data for the device and returns it
 
 	return device_states.filter(obj => obj.deviceId === deviceId);
+}
+
+function GetSmartTallyStatus(tallynumber) {
+	//returns unselected, selected, or onair based on the tallynumber (index+1) passed
+	let i = tallynumber - 1;
+
+	let mode_preview = false;
+	let mode_program = false;
+
+	for (let j = 0; j < device_states.length; j++) {
+		if ((device_states[j].deviceId === devices[i].id) && (GetBusByBusId(device_states[j].busId).type === 'preview')) {
+			if (device_states[j].sources.length > 0) {
+				mode_preview = true;
+			}
+			else {
+				mode_preview = false;
+			}
+		}
+		else if ((device_states[j].deviceId === devices[i].id) && (GetBusByBusId(device_states[j].busId).type === 'program')) {
+			if (device_states[j].sources.length > 0) {
+				mode_program = true;
+			}
+			else {
+				mode_program = false;
+			}
+		}
+	}
+
+	let return_val = 'unselected';
+
+	if (mode_program) {
+		return_val = 'onair';
+	}
+	else if (mode_preview) {
+		return_val = 'selected';
+	}
+
+	return return_val;
 }
 
 function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed) {
