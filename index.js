@@ -2552,7 +2552,7 @@ function SetUpATEMServer(sourceId) {
 							if (path[h] === 'info.capabilities') {
 								//console.log(state.info.capabilities);
 							}
-							else if (path[h].indexOf('video.mixEffects') > -1) {
+							else if ((path[h].indexOf('video.mixEffects') > -1) || (path[h].indexOf('video.ME') > -1)) {
 								for (let i = 0; i < state.video.mixEffects.length; i++) {
 									processATEMTally(sourceId, state.video.mixEffects[i].index+1, state.video.mixEffects[i].programInput, state.video.mixEffects[i].previewInput);
 								}
