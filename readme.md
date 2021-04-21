@@ -57,10 +57,12 @@ Now run `npm install` to make sure all packages are up to date.
 
 **RUNNING AS A SERVICE:**
 1. Open a terminal window and change directory to the folder where you placed the source code.
-1. Install the Node.js library, `pm2`, by typing `npm install -g pm2`. This will install it globally on your system.
-1. After `pm2` is installed, type `pm2 start index.js --name TallyArbiter` to daemonize it as a service.
-1. If you would like it to start automatically upon bootup, type `pm2 save` and then `pm2 startup` and follow the instructions on-screen.
-1. To view the console output while running the software with `pm2`, type `pm2 logs TallyArbiter`.
+2. Install the Node.js library, `pm2`, by typing `npm install -g pm2`. This will install it globally on your system.
+3. After `pm2` is installed, type `pm2 start index.js --name TallyArbiter` to daemonize it as a service.
+4. If you would like it to start automatically upon bootup, type `pm2 save` and then `pm2 startup` and follow the instructions on-screen.
+	a. For autostarting in Win10 you first need to install `npm install pm2-windows-startup -g` and 
+	b. Then use the command `pm2-startup install` and `pm2 save`, while TallyArbiter is already running.
+5. To view the console output while running the software with `pm2`, type `pm2 logs TallyArbiter`.
 
 This program runs an HTTP server listening on port `4455`. If this port is in use and cannot be opened, you will receive an error.
 
