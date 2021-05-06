@@ -1,10 +1,18 @@
 ## Tally Arbiter Pimoroni Blinkt Listener
 
+# File name: pimoroni-blinkt-listener.py
+# Version: 1.1.0
+# Author: Joseph Adams
+# Email: josephdadams@gmail.com
+# Date created: 2/26/2021
+# Date last modified: 5/5/2021
+# Notes: This file is a part of the Tally Arbiter project. For more information, visit tallyarbiter.com
+
 from signal import signal, SIGINT
 from sys import exit
 import sys
 import time
-from blinkt import set_pixel, set_brightness, show, clear
+import blinkt
 import socketio
 import json
 
@@ -16,6 +24,10 @@ mode_program = False
 server = sys.argv[1]
 
 stored_deviceId = ''
+
+blinkt.set_clear_on_exit(True)
+
+debounce = False #used to keep calls from happing concurrently
 
 try:
 	stored_deviceId_file = open('deviceid.txt')
@@ -52,7 +64,7 @@ def connect():
 		repeatNumber = repeatNumber - 1
 		doBlink(0, 255, 0)
 		time.sleep(.3)
-		doBlink(0, 0, 0)
+		doBlink(0, 255, 0)
 		time.sleep(.3)
 
 @sio.event
@@ -158,10 +170,12 @@ def evaluateMode():
 		doBlink(0, 0, 0)
 
 def doBlink(r, g, b):
-	clear()
-	for i in range(8):
-		set_pixel(i, r, g, b)
-	show()
+	global debounce
+	if (debounce != True):
+		debounce = True
+		blinkt.set_all(r, g, b)
+		blinkt.show()
+		debounce = False
 
 while(1):
 	try:
