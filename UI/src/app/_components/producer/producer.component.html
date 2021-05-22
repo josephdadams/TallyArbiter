@@ -9,6 +9,7 @@
             <th>PGM</th>
             <th>Name</th>
             <th>Description</th>
+            <th>Active Listeners</th>
           </tr>
         </thead>
         <tbody>
@@ -17,6 +18,7 @@
             <td></td>
             <td>{{device.name}}</td>
             <td>{{device.description}}</td>
+            <td><span class="badge bg-dark" *ngIf="device.listenerCount > 0">{{device.listenerCount}}</span></td>
           </tr>
         </tbody>
       </table>

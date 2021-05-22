@@ -36,10 +36,13 @@ export class ProducerComponent {
       this.busOptions = busOptionsArray;
     });
     this.socket.on('listener_clients', (data) => {
-      console.log("data", data)
+      for (const device of this.devices) {
+        device.listenerCount = 0;
+      }
       this.listenerClients = data.map((l: any) => {
         l.ipAddress = l.ipAddress.replace('::ffff:', '');
         l.device = this.devices.find((d) => d.id == l.deviceId);
+        if (!l.inactive) l.device.listenerCount += 1;
         return l;
       });
     });
