@@ -18,7 +18,7 @@
             <td></td>
             <td>{{device.name}}</td>
             <td>{{device.description}}</td>
-            <td><span class="badge bg-dark" *ngIf="device.listenerCount > 0">{{device.listenerCount}}</span></td>
+            <td><span class="badge bg-dark" *ngIf="device.listenerCount && device.listenerCount > 0">{{device.listenerCount}}</span></td>
           </tr>
         </tbody>
       </table>
