@@ -8,4 +8,6 @@ export interface Device {
     tslAddress: string;
     // volatile
     listenerCount?: number;
+    modePreview?: boolean;
+    modeProgram?: boolean;
 }
