@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { io, Socket } from 'socket.io-client';
 
@@ -7,7 +7,7 @@ import { io, Socket } from 'socket.io-client';
   templateUrl: './tally.component.html',
   styleUrls: ['./tally.component.scss']
 })
-export class TallyComponent implements OnInit {
+export class TallyComponent {
   private socket: Socket;
   public devices: any[] = [];
   public busOptions: any;
@@ -41,46 +41,46 @@ export class TallyComponent implements OnInit {
     this.socket.on('device_states', (tallyDataArray) => {
       //process the data received and determine if it's in preview or program and color the screen accordingly
       this.deviceStates = tallyDataArray;
-        for (let i = 0; i < this.deviceStates.length; i++) {
-          if (this.getBusTypeById(this.deviceStates[i].busId) === 'preview') {
-            if (this.deviceStates[i].sources.length > 0) {
-              this.mode_preview = true;
-            }
-            else {
-              this.mode_preview = false;
-            }
+      for (let i = 0; i < this.deviceStates.length; i++) {
+        if (this.getBusTypeById(this.deviceStates[i].busId) === 'preview') {
+          if (this.deviceStates[i].sources.length > 0) {
+            this.mode_preview = true;
           }
-          else if (this.getBusTypeById(this.deviceStates[i].busId) === 'program') {
-            if (this.deviceStates[i].sources.length > 0) {
-              this.mode_program = true;
-            }
-            else {
-              this.mode_program = false;
-            }
+          else {
+            this.mode_preview = false;
           }
         }
-        if ((this.mode_preview) && (!this.mode_program)) {
-          //preview mode, color it green
-          document.body.style.backgroundColor = '#00FF00';
+        else if (this.getBusTypeById(this.deviceStates[i].busId) === 'program') {
+          if (this.deviceStates[i].sources.length > 0) {
+            this.mode_program = true;
+          }
+          else {
+            this.mode_program = false;
+          }
         }
-        else if ((!this.mode_preview) && (this.mode_program)) {
-          //program mode, color it red
-          document.body.style.backgroundColor = '#FF0000';
-        }
-        else if ((this.mode_preview) && (this.mode_program)) {
-          //both, color it yellow
-          document.body.style.backgroundColor = '#FFCC00';
-        }
-        else {
-          document.body.style.backgroundColor = '#000000';
-        }
+      }
+      if ((this.mode_preview) && (!this.mode_program)) {
+        //preview mode, color it green
+        document.body.style.backgroundColor = '#00FF00';
+      }
+      else if ((!this.mode_preview) && (this.mode_program)) {
+        //program mode, color it red
+        document.body.style.backgroundColor = '#FF0000';
+      }
+      else if ((this.mode_preview) && (this.mode_program)) {
+        //both, color it yellow
+        document.body.style.backgroundColor = '#FFCC00';
+      }
+      else {
+        document.body.style.backgroundColor = '#000000';
+      }
       
-        if (this.mode_program) {
-          let successBool = window.navigator.vibrate(400);
-        }
-        else if (this.mode_preview) {
-          let successBool = (window.navigator as any).vibrate(100, 30, 100, 30, 100);
-        }
+      if (this.mode_program) {
+        let successBool = window.navigator.vibrate(400);
+      }
+      else if (this.mode_preview) {
+        let successBool = (window.navigator as any).vibrate(100, 30, 100, 30, 100);
+      }
       
     });
     this.socket.on('flash', function () {
@@ -100,11 +100,6 @@ export class TallyComponent implements OnInit {
       // insertChat(type, socketid, message);
     });
   }
-
-  ngOnInit(): void {
-
-  }
-
   
   private getBusTypeById(busId: string) {
     //gets the bus type (preview/program) by the bus id
