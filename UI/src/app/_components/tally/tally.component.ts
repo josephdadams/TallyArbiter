@@ -1,6 +1,9 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { io, Socket } from 'socket.io-client';
+import { BusOption } from 'src/app/_models/BusOption';
+import { Device } from 'src/app/_models/Device';
+import { DeviceState } from 'src/app/_models/DeviceState';
 
 @Component({
   selector: 'app-tally',
@@ -9,13 +12,13 @@ import { io, Socket } from 'socket.io-client';
 })
 export class TallyComponent {
   private socket: Socket;
-  public devices: any[] = [];
-  public busOptions: any;
-  public deviceStates: any;
-  public selectedDeviceId: any;
+  public devices: Device[] = [];
+  public busOptions: BusOption[] = [];
+  public deviceStates: DeviceState[] = [];
+  public selectedDeviceId?: string;
   public currentDeviceIdx?: number;
-  mode_preview?: boolean;
-  mode_program?: boolean;
+  public mode_preview?: boolean;
+  public mode_program?: boolean;
   
   constructor(private router: Router, private route: ActivatedRoute) {
     this.socket = io();
@@ -24,9 +27,9 @@ export class TallyComponent {
       this.socket.emit('devices');
       this.socket.emit('bus_options');
     });
-    this.socket.on('devices', (deviceArray) => {
+    this.socket.on('devices', (devices: Device[]) => {
       //Returns a list of available Devices for the dropdown list
-      this.devices = deviceArray;
+      this.devices = devices;
       this.route.params.subscribe((params) => {
         if (params.deviceId) {
           this.currentDeviceIdx = this.devices.findIndex((d) => d.id == params.deviceId);
@@ -34,13 +37,13 @@ export class TallyComponent {
         }
       });
     });
-    this.socket.on('bus_options', (busOptionsArray) => {
+    this.socket.on('bus_options', (busOptions: BusOption[]) => {
       //Returns a list of available bus options (preview, program, etc.)
-      this.busOptions = busOptionsArray;
+      this.busOptions = busOptions;
     });
-    this.socket.on('device_states', (tallyDataArray) => {
+    this.socket.on('device_states', (states: DeviceState[]) => {
       //process the data received and determine if it's in preview or program and color the screen accordingly
-      this.deviceStates = tallyDataArray;
+      this.deviceStates = states;
       for (let i = 0; i < this.deviceStates.length; i++) {
         if (this.getBusTypeById(this.deviceStates[i].busId) === 'preview') {
           if (this.deviceStates[i].sources.length > 0) {
@@ -84,7 +87,7 @@ export class TallyComponent {
   private getBusTypeById(busId: string) {
     //gets the bus type (preview/program) by the bus id
     let bus = this.busOptions.find(({id}: {id: string}) => id === busId);
-    return bus.type;
+    return bus?.type;
   }
 
   public selectDevice(id: any) {
