@@ -1,0 +1,14 @@
+<div class="container mt-5" *ngIf="currentDeviceIdx === undefined">
+    <div class="form-group" *ngIf="devices.length > 0">
+        <select class='form-control col-xs-6 col-md-3' (change)="selectDevice($event)">
+            <option disabled selected>-- Select a device --</option>
+            <option [value]="device.id" *ngFor="let device of devices">{{device.name}}</option>
+        </select>
+    </div>
+    <h2 class="lead mt-5" *ngIf="devices.length == 0">No devices are available for tally monitoring at this time.</h2>
+</div>
+
+<div class="container pt-5" class="text-center" *ngIf="currentDeviceIdx !== undefined">
+    <h1>{{devices[currentDeviceIdx].name}}</h1>
+    <small>{{devices[currentDeviceIdx].description}}</small>
+</div>
