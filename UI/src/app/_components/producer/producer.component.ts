@@ -44,7 +44,7 @@ export class ProducerComponent {
         l.device = this.devices.find((d) => d.id == l.deviceId);
         if (!l.inactive) l.device.listenerCount += 1;
         return l;
-      });
+      }).sort((a: any, b: any) => (a.inactive === b.inactive)? 0 : a.inactive ? 1 : -1);
     });
     this.socket.on('device_states', (tallyDataArray) => {
       //process the data received and determine if it's in preview or program and color the screen accordingly
