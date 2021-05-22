@@ -45,41 +45,21 @@ export class TallyComponent {
         if (this.getBusTypeById(this.deviceStates[i].busId) === 'preview') {
           if (this.deviceStates[i].sources.length > 0) {
             this.mode_preview = true;
-          }
-          else {
+          } else {
             this.mode_preview = false;
           }
-        }
-        else if (this.getBusTypeById(this.deviceStates[i].busId) === 'program') {
+        } else if (this.getBusTypeById(this.deviceStates[i].busId) === 'program') {
           if (this.deviceStates[i].sources.length > 0) {
             this.mode_program = true;
-          }
-          else {
+          } else {
             this.mode_program = false;
           }
         }
       }
-      if ((this.mode_preview) && (!this.mode_program)) {
-        //preview mode, color it green
-        document.body.style.backgroundColor = '#00FF00';
-      }
-      else if ((!this.mode_preview) && (this.mode_program)) {
-        //program mode, color it red
-        document.body.style.backgroundColor = '#FF0000';
-      }
-      else if ((this.mode_preview) && (this.mode_program)) {
-        //both, color it yellow
-        document.body.style.backgroundColor = '#FFCC00';
-      }
-      else {
-        document.body.style.backgroundColor = '#000000';
-      }
-      
       if (this.mode_program) {
-        let successBool = window.navigator.vibrate(400);
-      }
-      else if (this.mode_preview) {
-        let successBool = (window.navigator as any).vibrate(100, 30, 100, 30, 100);
+        window.navigator.vibrate(400);
+      } else if (this.mode_preview) {
+        window.navigator.vibrate([100, 30, 100, 30, 100]);
       }
       
     });
