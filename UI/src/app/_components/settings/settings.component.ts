@@ -2,6 +2,8 @@ import { Component, ElementRef, ViewChild } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { io, Socket } from 'socket.io-client';
 import { BusOption } from 'src/app/_models/BusOption';
+import { CloudClient } from 'src/app/_models/CloudClient';
+import { CloudDestination } from 'src/app/_models/CloudDestination';
 import { Device } from 'src/app/_models/Device';
 import { DeviceAction } from 'src/app/_models/DeviceAction';
 import { DeviceSource } from 'src/app/_models/DeviceSource';
@@ -44,6 +46,9 @@ export class SettingsComponent {
   public outputTypes: OutputType[] = [];
   public outputTypeDataFields: OutputTypeDataFields[] = [];
   public tslClients: TSLClient[] = [];
+  public cloudDestinations: CloudDestination[] = [];
+  public cloudKeys: string[] = [];
+  public cloudClients: CloudClient[] = [];
   
   // add / edit Source
   public editingSource = false;
@@ -66,6 +71,12 @@ export class SettingsComponent {
   // add / edit TSL Client
   public editingTSLClient = false;
   public currentTSLClient: TSLClient = {} as TSLClient;
+
+  // add / edit Cloud Destination
+  public editingCloudDestination = false;
+  public currentCloudDestination: CloudDestination = {} as CloudDestination;
+
+  public newCloudKey = "";
 
   constructor(private modalService: NgbModal) {
     this.socket = io();
@@ -113,22 +124,19 @@ export class SettingsComponent {
       this.devices = devices;
       this.setDeviceStates();
     });
-    this.socket.on('tsl_clients', (data: TSLClient[]) => {
-      this.tslClients = data;
+    this.socket.on('tsl_clients', (clients: TSLClient[]) => {
+      this.tslClients = clients;
     });
-    /* this.socket.on('cloud_destinations', (data) => {
-      cloud_destinations = data;
-      loadCloudDestinations();
+    this.socket.on('cloud_destinations', (destinations: CloudDestination[]) => {
+      this.cloudDestinations = destinations;
     });
-    this.socket.on('cloud_keys', (data) => {
-      cloud_keys = data;
-      loadCloudKeys();
+    this.socket.on('cloud_keys', (keys: string[]) => {
+      this.cloudKeys = keys;
     });
-    this.socket.on('cloud_clients', (data) => {
-      cloud_clients = data;
-      loadCloudClients();
-    });*/
-    this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], sourceTypesBusOptions: SourceTypeBusOptions[], outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], deviceStates: DeviceState[], tslClients: TSLClient[], cloudDestinations, cloudKeys, cloudClients) => {
+    this.socket.on('cloud_clients', (clients: CloudClient[]) => {
+      this.cloudClients = clients;
+    });
+    this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], sourceTypesBusOptions: SourceTypeBusOptions[], outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], deviceStates: DeviceState[], tslClients: TSLClient[], cloudDestinations: CloudDestination[], cloudKeys: string[], cloudClients: CloudClient[]) => {
       this.sourceTypes = sourceTypes;
       this.sourceTypeDataFields = sourceTypesDataFields;
       this.sourceTypesBusOptions = sourceTypesBusOptions;
@@ -141,9 +149,11 @@ export class SettingsComponent {
       this.deviceActions = deviceActions;
       this.deviceStates = deviceStates;
       this.tslClients = tslClients;
-      // this.cloud_destinations = cloudDestinations;
-      // this.cloud_keys = cloudKeys;
-      // this.cloud_clients = cloudClients;
+      
+      this.cloudDestinations = cloudDestinations;
+      this.cloudKeys = cloudKeys;
+      this.cloudClients = cloudClients;
+      console.log(cloudClients);
       this.setDeviceStates();
     });
     this.socket.on('listener_clients', (listenerClients: ListenerClient[]) => {
@@ -251,6 +261,29 @@ export class SettingsComponent {
 	  this.socket.emit('listener_delete', listenerClient.id);
   }
 
+  public saveCloudKey() {
+    this.socket.emit('manage', {
+      action: "add",
+      type: "cloud_key",
+      key: this.newCloudKey,
+    });
+    this.newCloudKey = "";
+    this.modalService.dismissAll();
+  }
+
+  public removeCloudClient(client: CloudClient) {
+    let arbiterObj = {
+      action: 'remove',
+      type: 'cloud_client',
+      id: client.id,
+    };
+    this.socket.emit('manage', arbiterObj);
+  }
+
+  public addCloudKey(cloudKeyModal: any) {
+    this.modalService.open(cloudKeyModal);
+  }
+
   public saveDeviceAction() {
     this.editingDeviceAction = false;
     const deviceActionObj = {
@@ -272,6 +305,25 @@ export class SettingsComponent {
 
   public updateDeviceSourceLink(bus: 'preview' | 'program', value: boolean) {
     this.socket.emit('device_sources_link', this.currentDevice.id, bus, value);
+  }
+
+  public deleteCloudKey(key: string) {
+    if (confirm('If you delete this key, all connected cloud clients using this key will be disconnected. Are you sure you want to delete it?')) {
+      const arbiterObj = {
+        action: 'delete',
+        type: 'cloud_key',
+        key,
+      };
+      this.socket.emit('manage', arbiterObj);
+    }
+  }
+
+  public disconnectCloudDestination(cloudDestination: CloudDestination) {
+    this.socket.emit('cloud_destination_disconnect', cloudDestination.id);
+  }
+
+  public reconnectCloudDestination(cloudDestination: CloudDestination) {
+    this.socket.emit('cloud_destination_reconnect', cloudDestination.id)
   }
 
   public deleteDevice(device: Device) {
@@ -341,6 +393,19 @@ export class SettingsComponent {
       action: 'delete',
       type: 'tsl_client',
       tslClientId: tslClient.id,
+    };
+    this.socket.emit('manage', arbiterObj);
+  }
+
+  public deleteCloudDestination(cloudDestination: CloudDestination) {
+    let result = confirm('Are you sure you want to delete this Cloud Destination?');
+    if (!result) {
+      return;
+    }
+    let arbiterObj = {
+      action: 'delete',
+      type: 'cloud_destination',
+      cloudId: cloudDestination.id,
     };
     this.socket.emit('manage', arbiterObj);
   }
@@ -458,6 +523,18 @@ export class SettingsComponent {
     this.socket.emit('manage', arbiterObj);
   }
 
+  public saveCurrentCloudDestination() {
+    const cloudDestinationObj = {
+      ...this.currentCloudDestination,
+    } as CloudDestination;
+    const arbiterObj = {
+      action: this.editingCloudDestination ? 'edit' : 'add',
+      type: 'cloud_destination',
+      cloudDestination: cloudDestinationObj,
+    };
+    this.socket.emit('manage', arbiterObj);
+  }
+
   private setDeviceStates() {
     for (const device of this.devices) {
       let sources_pvw = [];
@@ -516,6 +593,12 @@ export class SettingsComponent {
     this.modalService.open(modal);
   }
 
+  public addCloudDestination(modal: any) {
+    this.editingCloudDestination = false;
+    this.currentCloudDestination = { } as CloudDestination;
+    this.modalService.open(modal);
+  }
+
   public getOutputTypeById(outputTypeId: string) {
     return this.outputTypes.find(({id}) => id === outputTypeId);
   }
@@ -544,6 +627,13 @@ export class SettingsComponent {
     this.currentTSLClient = {
       ...tslClient,
     } as TSLClient;
+    this.modalService.open(modal);
+  }
+  public editCloudDestination(cloudDestination: CloudDestination, modal: any) {
+    this.editingCloudDestination = true;
+    this.currentCloudDestination = {
+      ...cloudDestination,
+    } as CloudDestination;
     this.modalService.open(modal);
   }
 
