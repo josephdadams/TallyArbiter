@@ -5249,10 +5249,12 @@ function StartTSLClientConnection(tslClientId) {
 						UpdateSockets('tsl_clients');
 					});
 					tsl_clients[i].socket.on('close', function() {
-						logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
-						tsl_clients[i].error = false;
-						tsl_clients[i].connected = false;
-						UpdateSockets('tsl_clients');
+						if (tsl_clients[i]) {
+							logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i]?.ip}:${tsl_clients[i]?.port}`, 'info-quiet');
+							tsl_clients[i].error = false;
+							tsl_clients[i].connected = false;
+							UpdateSockets('tsl_clients');
+						}
 					});
 					tsl_clients[i].connected = true;
 					break;
@@ -5273,11 +5275,13 @@ function StartTSLClientConnection(tslClientId) {
 						tsl_clients[i].connected = true;
 						UpdateSockets('tsl_clients');
 					});
-					tsl_clients[i].socket.on('close', function() {
-						logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
-						tsl_clients[i].error = false;
-						tsl_clients[i].connected = false;
-						UpdateSockets('tsl_clients');
+					tsl_clients[i].socket.on('close', function () {
+						if (tsl_clients[i]) {
+							logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
+							tsl_clients[i].error = false;
+							tsl_clients[i].connected = false;
+							UpdateSockets('tsl_clients');
+						}
 					});
 					tsl_clients[i].socket.connect(parseInt(tsl_clients[i].port), tsl_clients[i].ip);
 					break;
