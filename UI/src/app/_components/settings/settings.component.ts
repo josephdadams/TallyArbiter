@@ -226,6 +226,10 @@ export class SettingsComponent {
       this.socket.emit('reassign', client.id, client.deviceId, newDeviceId);
   }
 
+  public deleteListener(listenerClient: ListenerClient) {
+	  this.socket.emit('listener_delete', listenerClient.id);
+  }
+
   public saveDeviceAction() {
     this.editingDeviceAction = false;
     const deviceActionObj = {
