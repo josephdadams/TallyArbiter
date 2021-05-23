@@ -1,8 +1,13 @@
 <div class="container pt-4">
   <div class="row">
-    <h2>Sources
-      <button class="btn btn-dark me-2" (click)="addSource(sourceModal)">Add</button>
-      <button class="btn btn-dark" (click)="toggleTestMode()">Turn {{testModeOn ? 'Off' : 'On' }} Test Mode</button>
+    <h2>
+      Sources
+      <button class="btn btn-dark me-2" (click)="addSource(sourceModal)">
+        Add
+      </button>
+      <button class="btn btn-dark" (click)="toggleTestMode()">
+        Turn {{ testModeOn ? "Off" : "On" }} Test Mode
+      </button>
     </h2>
     <table class="table table-hover">
       <thead>
@@ -13,21 +18,34 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let source of sources" [class]="source.enabled ? source.connected ? 'text-success' : 'text-danger' : 'text-muted'">
-          <td>{{source.name}}</td>
-          <td>{{source.sourceTypeName}}</td>
+        <tr *ngFor="let source of sources" [class]="
+            source.enabled
+              ? source.connected
+                ? 'text-success'
+                : 'text-danger'
+              : 'text-muted'
+          ">
+          <td>{{ source.name }}</td>
+          <td>{{ source.sourceTypeName }}</td>
           <td>
-            <button class="btn btn-dark" (click)="editSource(source, sourceModal)">Edit</button>
-            <button class="btn btn-dark mx-2" (click)="deleteSource(source)">Delete</button>
-            <button class="btn btn-dark" *ngIf="!source.connected" (click)="reconnect(source)">Reconnect</button>
+            <button class="btn btn-dark" (click)="editSource(source, sourceModal)">
+              Edit
+            </button>
+            <button class="btn btn-dark mx-2" (click)="deleteSource(source)">
+              Delete
+            </button>
+            <button class="btn btn-dark" *ngIf="!source.connected" (click)="reconnect(source)">
+              Reconnect
+            </button>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
-  <hr class="my-5">
+  <hr class="my-5" />
   <div class="row">
-    <h2>Devices
+    <h2>
+      Devices
       <button class="btn btn-dark" (click)="addDevice(deviceModal)">Add</button>
     </h2>
     <table class="table table-hover">
@@ -42,16 +60,19 @@
       </thead>
       <tbody>
         <tr *ngFor="let device of devices; index as index" [class.text-muted]="!device.enabled">
-            <td [class.bg-success]="device.modePreview"></td>
-            <td [class.bg-danger]="device.modeProgram"></td>
+          <td [class.bg-success]="device.modePreview"></td>
+          <td [class.bg-danger]="device.modeProgram"></td>
           <td>
-            <small><b>{{index+1}}</b></small>
-            {{device.name}}
+            <small><b>{{ index + 1 }}</b></small>
+            {{ device.name }}
           </td>
-          <td>{{device.description}}</td>
+          <td>{{ device.description }}</td>
           <td>
-            <button class="btn btn-dark me-2" (click)="editDevice(device, deviceModal)">Edit</button>
-            <button class="btn btn-dark me-2">Edit Sources ()</button>
+            <button class="btn btn-dark me-2" (click)="editDevice(device, deviceModal)">
+              Edit
+            </button>
+            <button class="btn btn-dark me-2" (click)="editDeviceSources(device, deviceSourcesModal)">Edit Sources
+              ({{getDeviceSourcesByDeviceId(device.id).length}})</button>
             <button class="btn btn-dark me-2">Edit Actions ()</button>
             <button class="btn btn-dark">Delete</button>
           </td>
@@ -59,7 +80,7 @@
       </tbody>
     </table>
   </div>
-  <hr class="my-5">
+  <hr class="my-5" />
   <div class="row">
     <h2>Connected Listeners</h2>
     <table class="table table-responsive">
@@ -73,166 +94,308 @@
       </thead>
       <tbody>
         <tr *ngFor="let listenerClient of listenerClients">
-          <td>{{listenerClient.ipAddress}}</td>
-          <td class="bg-light">{{listenerClient.listenerType}}</td>
+          <td>{{ listenerClient.ipAddress }}</td>
+          <td class="bg-light">{{ listenerClient.listenerType }}</td>
           <td>
             <select class="form-select" [(ngModel)]="listenerClient.deviceId"
               [disabled]="!listenerClient.canBeReassigned">
-              <option *ngFor="let device of devices" [value]="device.id">{{device.name}}</option>
+              <option *ngFor="let device of devices" [value]="device.id">
+                {{ device.name }}
+              </option>
             </select>
           </td>
           <td>
-            <button class="btn btn-dark me-2" *ngIf="listenerClient.inactive">X</button>
+            <button class="btn btn-dark me-2" *ngIf="listenerClient.inactive">
+              X
+            </button>
             <button class="btn btn-dark" *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed"
-              (click)="flash(listenerClient)">Flash</button>
+              (click)="flash(listenerClient)">
+              Flash
+            </button>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
-  <hr class="my-5">
+  <hr class="my-5" />
   <div class="row">
     <h2>TSL Clients</h2>
     <div>
       <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" id="chkTSLClients_1SecUpdate" [(ngModel)]="tslclients_1secupdate">
+        <input class="form-check-input" type="checkbox" id="chkTSLClients_1SecUpdate"
+          [(ngModel)]="tslclients_1secupdate" />
         <label class="form-check-label" for="chkTSLClients_1SecUpdate">1-Second Updates</label>
       </div>
     </div>
   </div>
-  <hr class="my-5">
+  <hr class="my-5" />
   <div class="row">
     <h2>Cloud Settings</h2>
   </div>
-  <hr class="my-5">
+  <hr class="my-5" />
   <div class="row">
-    <div class="col-xs-12 col-md-6" id='divContainer_Logs'>
+    <div class="col-xs-12 col-md-6" id="divContainer_Logs">
       <h2>Logs</h2>
       <div class="logs p-1" #logsContainer>
-        <span class="d-block"
-          [style.color]="log.type == 'console_action' ? '#00ff00' : log.type == 'error' ? '#FF0000' : '#0000FF'"
-          *ngFor="let log of logs">[{{log.datetime | date: 'shortDate'}} {{log.datetime | date: 'shortTime'}}]
-          {{log.log}}</span>
+        <span class="d-block" [style.color]="
+            log.type == 'console_action'
+              ? '#00ff00'
+              : log.type == 'error'
+              ? '#FF0000'
+              : '#0000FF'
+          " *ngFor="let log of logs">[{{ log.datetime | date: "shortDate" }}
+          {{ log.datetime | date: "shortTime" }}] {{ log.log }}</span>
       </div>
     </div>
-    <div class="col-xs-12 col-md-6" id='divContainer_TallyData'>
+    <div class="col-xs-12 col-md-6" id="divContainer_TallyData">
       <h2>Tally Data</h2>
       <div class="logs p-1" #tallyDataContainer>
-        <span class="d-block" *ngFor="let log of tallyData">[{{log.datetime | date: 'shortDate'}}
-          {{log.datetime | date: 'shortTime'}}] {{log.log}}</span>
+        <span class="d-block" *ngFor="let log of tallyData">[{{ log.datetime | date: "shortDate" }}
+          {{ log.datetime | date: "shortTime" }}] {{ log.log }}</span>
       </div>
     </div>
   </div>
-  <div class="text-muted my-3">Version {{version}}</div>
+  <div class="text-muted my-3">Version {{ version }}</div>
 </div>
-
 
 <ng-template #sourceModal let-modal>
   <div class="modal-header">
-    <h4 class="modal-title" id="modal-basic-title">{{editingSource ? 'Edit' : 'Add'}} Source</h4>
+    <h4 class="modal-title" id="modal-basic-title">
+      {{ editingSource ? "Edit" : "Add" }} Source
+    </h4>
     <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
   </div>
   <div class="modal-body">
-      <ng-container *ngIf="editingSource">
-        <div class="mb-3">
-            <label for="sourceId" class="form-label">Source Id</label>
-            <input type="text" id="sourceId" class="form-control" disabled [ngModel]="currentSource.id">
-          </div>
-          <div class="mb-3">
-            <label for="sourceType" class="form-label">Source Type</label>
-            <select id="sourceType" class="form-select" disabled>
-              <option>{{sourceTypes[currentSourceSelectedTypeIdx!].label}}</option>
-            </select>
-          </div>
-      </ng-container>
-      <ng-container *ngIf="!editingSource">
-          <select class="form-select" ngbAutofocus [(ngModel)]="currentSourceSelectedTypeIdx">
-              <option selected disabled>-- Choose Source Type --</option>
-              <option *ngFor="let sourceType of filterEnabledSourceTypes(sourceTypes); index as index" [value]="index">{{sourceType.label}}</option>
-            </select>
-        </ng-container>
+    <ng-container *ngIf="editingSource">
+      <div class="mb-3">
+        <label for="sourceId" class="form-label">Source Id</label>
+        <input type="text" id="sourceId" class="form-control" disabled [ngModel]="currentSource.id" />
+      </div>
+      <div class="mb-3">
+        <label for="sourceType" class="form-label">Source Type</label>
+        <select id="sourceType" class="form-select" disabled>
+          <option>
+            {{ sourceTypes[currentSourceSelectedTypeIdx!].label }}
+          </option>
+        </select>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="!editingSource">
+      <select class="form-select" ngbAutofocus [(ngModel)]="currentSourceSelectedTypeIdx">
+        <option selected disabled>-- Choose Source Type --</option>
+        <option *ngFor="
+            let sourceType of filterEnabledSourceTypes(sourceTypes);
+            index as index
+          " [value]="index">
+          {{ sourceType.label }}
+        </option>
+      </select>
+    </ng-container>
     <div *ngIf="currentSourceSelectedTypeIdx !== undefined">
-        <p>{{sourceTypes[currentSourceSelectedTypeIdx].help}}</p>
-        <div class="mb-3">
-            <label for="sourceName" class="form-label">Source Name</label>
-            <input type="text" class="form-control" id="sourceName" [(ngModel)]="currentSource.name">
-        </div>
-        <ng-container *ngFor="let field of getOptionFields(sourceTypes[currentSourceSelectedTypeIdx])">
-            <ng-container [ngSwitch]="field.fieldType">
-                <div class="mb-3" *ngSwitchCase="'text'">
-                    <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}</label>
-                    <input type="text" class="form-control" [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]">
-                </div>
-                <div class="mb-3" *ngSwitchCase="['port', 'number'].includes(field.fieldType) ? field.fieldType : ''">
-                    <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}</label>
-                    <input type="number" class="form-control" [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]">
-                </div>
-                <div class="mb-3" *ngSwitchCase="'multiselect'">
-                    <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}</label>
-                    <select class="form-select" multiple [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]">
-                        <option *ngFor="let option of field.options" [value]="option.id">{{option.label}}</option>
-                    </select>
-                    <small class="form-text">Use Ctrl to select multiple items.</small>
-                </div>
-                <div class="mb-3" *ngSwitchCase="'dropdown'">
-                    <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}</label>
-                    <select class="form-select" [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]">
-                        <option *ngFor="let option of field.options" [value]="option.id">{{option.label}}</option>
-                    </select>
-                </div>
-                <div class="mb-3" *ngSwitchCase="'info'">
-                    <label class="form-label">{{field.fieldLabel}}</label><br>
-                    <small class="form-text">{{field.text}}</small>
-                </div>
-            </ng-container>
+      <p>{{ sourceTypes[currentSourceSelectedTypeIdx].help }}</p>
+      <div class="mb-3">
+        <label for="sourceName" class="form-label">Source Name</label>
+        <input type="text" class="form-control" id="sourceName" [(ngModel)]="currentSource.name" />
+      </div>
+      <ng-container *ngFor="
+          let field of getOptionFields(
+            sourceTypes[currentSourceSelectedTypeIdx]
+          )
+        ">
+        <ng-container [ngSwitch]="field.fieldType">
+          <div class="mb-3" *ngSwitchCase="'text'">
+            <label [for]="field.fieldName" class="form-label">{{
+              field.fieldLabel
+            }}</label>
+            <input type="text" class="form-control" [id]="field.fieldName"
+              [(ngModel)]="currentSource.data[field.fieldName]" />
+          </div>
+          <div class="mb-3" *ngSwitchCase="
+              ['port', 'number'].includes(field.fieldType)
+                ? field.fieldType
+                : ''
+            ">
+            <label [for]="field.fieldName" class="form-label">{{
+              field.fieldLabel
+            }}</label>
+            <input type="number" class="form-control" [id]="field.fieldName"
+              [(ngModel)]="currentSource.data[field.fieldName]" />
+          </div>
+          <div class="mb-3" *ngSwitchCase="'multiselect'">
+            <label [for]="field.fieldName" class="form-label">{{
+              field.fieldLabel
+            }}</label>
+            <select class="form-select" multiple [id]="field.fieldName"
+              [(ngModel)]="currentSource.data[field.fieldName]">
+              <option *ngFor="let option of field.options" [value]="option.id">
+                {{ option.label }}
+              </option>
+            </select>
+            <small class="form-text">Use Ctrl to select multiple items.</small>
+          </div>
+          <div class="mb-3" *ngSwitchCase="'dropdown'">
+            <label [for]="field.fieldName" class="form-label">{{
+              field.fieldLabel
+            }}</label>
+            <select class="form-select" [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]">
+              <option *ngFor="let option of field.options" [value]="option.id">
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+          <div class="mb-3" *ngSwitchCase="'info'">
+            <label class="form-label">{{ field.fieldLabel }}</label><br />
+            <small class="form-text">{{ field.text }}</small>
+          </div>
         </ng-container>
-        <ng-container *ngIf="editingSource">
-            <div class="mb-3 form-check">
-                <input type="checkbox" class="form-check-input" id="enabled" [(ngModel)]="currentSource.enabled">
-                <label class="form-check-label" for="enabled">Enabled</label>
-            </div>
-            <div class="mb-3 form-check">
-                <input type="checkbox" class="form-check-input" id="reconnect" [(ngModel)]="currentSource.reconnect">
-                <label class="form-check-label" for="reconnect">Reconnect</label>
-            </div>
-        </ng-container>
-        <div class="d-flex justify-content-end">
-            <button class="btn btn-dark" (click)="saveCurrentSource()">{{editingSource ? 'Save Changes' : 'Add Source'}}</button>
+      </ng-container>
+      <ng-container *ngIf="editingSource">
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" id="enabled" [(ngModel)]="currentSource.enabled" />
+          <label class="form-check-label" for="enabled">Enabled</label>
         </div>
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" id="reconnect" [(ngModel)]="currentSource.reconnect" />
+          <label class="form-check-label" for="reconnect">Reconnect</label>
+        </div>
+      </ng-container>
+      <div class="d-flex justify-content-end">
+        <button class="btn btn-dark" (click)="saveCurrentSource()">
+          {{ editingSource ? "Save Changes" : "Add Source" }}
+        </button>
+      </div>
     </div>
   </div>
 </ng-template>
 
 <ng-template #deviceModal let-modal>
-    <div class="modal-header">
-      <h4 class="modal-title" id="modal-basic-title">{{editingSource ? 'Edit' : 'Add'}} Device</h4>
-      <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+  <div class="modal-header">
+    <h4 class="modal-title" id="modal-basic-title">
+      {{ editingSource ? "Edit" : "Add" }} Device
+    </h4>
+    <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+  </div>
+  <div class="modal-body">
+    <ng-container *ngIf="editingDevice">
+      <div class="mb-3">
+        <label for="deviceId" class="form-label">Device Id</label>
+        <input type="text" id="sourceId" class="form-control" disabled [ngModel]="currentDevice.id" />
+      </div>
+    </ng-container>
+
+    <div class="mb-3">
+      <label for="deviceName" class="form-label">Device Name</label>
+      <input type="text" class="form-control" id="deviceName" [(ngModel)]="currentDevice.name" />
     </div>
-    <div class="modal-body">
-        <ng-container *ngIf="editingDevice">
-          <div class="mb-3">
-              <label for="deviceId" class="form-label">Device Id</label>
-              <input type="text" id="sourceId" class="form-control" disabled [ngModel]="currentDevice.id">
-            </div>
-        </ng-container>
-      
-        <div class="mb-3">
-            <label for="deviceName" class="form-label">Device Name</label>
-            <input type="text" class="form-control" id="deviceName" [(ngModel)]="currentDevice.name">
-        </div>
-        <div class="mb-3">
-            <label for="deviceDescription" class="form-label">Device Description</label>
-            <input type="text" class="form-control" id="deviceDescription" [(ngModel)]="currentDevice.description">
-        </div>
-        <ng-container *ngIf="editingDevice">
-            <div class="mb-3 form-check">
-                <input type="checkbox" class="form-check-input" id="enabled" [(ngModel)]="currentDevice.enabled">
-                <label class="form-check-label" for="enabled">Enabled</label>
-            </div>
-        </ng-container>
-        <div class="d-flex justify-content-end">
-            <button class="btn btn-dark" (click)="saveCurrentDevice()">{{editingDevice ? 'Save Changes' : 'Add Device'}}</button>
-        </div>
+    <div class="mb-3">
+      <label for="deviceDescription" class="form-label">Device Description</label>
+      <input type="text" class="form-control" id="deviceDescription" [(ngModel)]="currentDevice.description" />
     </div>
-  </ng-template>
-  
+    <ng-container *ngIf="editingDevice">
+      <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="enabled" [(ngModel)]="currentDevice.enabled" />
+        <label class="form-check-label" for="enabled">Enabled</label>
+      </div>
+    </ng-container>
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-dark" (click)="saveCurrentDevice()">
+        {{ editingDevice ? "Save Changes" : "Add Device" }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #deviceSourcesModal let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title" id="modal-basic-title">
+      Device Sources: {{currentDevice.name}}
+    </h4>
+    <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+  </div>
+  <div class="modal-body">
+    <div *ngIf="!editingDeviceSource">
+      <b>Device Source Linking - Preview Bus:</b>
+      <div class="form-check">
+        <input type="radio" class="form-check-input" id="rdoDeviceSourcesPVWUnlinked" name="deviceSourcePVWLinking" [(ngModel)]="currentDevice.linkedPreview" [value]="false" (ngModelChange)="updateDeviceSourceLink('preview', $event)">
+        <label class="form-check-label" for="rdoDeviceSourcesPVWUnlinked">Unlinked: The device can be in PVW if it is in PVW in <b>any</b> Device Source (default)</label>
+      </div>
+      <div class="form-check">
+        <input type="radio" class="form-check-input" id="rdoDeviceSourcesPVWLinked" name="deviceSourcePVWLinking" [(ngModel)]="currentDevice.linkedPreview" [value]="true" (ngModelChange)="updateDeviceSourceLink('preview', $event)">
+        <label class="form-check-label" for="rdoDeviceSourcesPVWLinked">Linked: The device is only considered to be in PVW if it is in PVW across <b>all</b> Device Sources.</label>
+      </div>
+      <br />
+      <b>Device Source Linking - Program Bus:</b>
+      <div class="form-check">
+        <input type="radio" class="form-check-input" id="rdoDeviceSourcesPGMUnlinked" name="deviceSourcePGMLinking" [(ngModel)]="currentDevice.linkedProgram" [value]="false" (ngModelChange)="updateDeviceSourceLink('program', $event)">
+        <label class="form-check-label" for="rdoDeviceSourcesPGMUnlinked">Unlinked: The device can be in PGM if it is in PGM in <b>any</b> Device Source (default)</label>
+      </div>
+      <div class="form-check">
+        <input type="radio" class="form-check-input" id="rdoDeviceSourcesPGMLinked" name="deviceSourcePGMLinking" [(ngModel)]="currentDevice.linkedProgram" [value]="true" (ngModelChange)="updateDeviceSourceLink('program', $event)">
+        <label class="form-check-label" for="rdoDeviceSourcesPGMLinked">Linked: The device is only considered to be in PGM if it is in PGM across <b>all</b> Device Sources.</label>
+      </div>
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Address</th>
+            <th>(Bus)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let deviceSource of getDeviceSourcesByDeviceId(currentDevice.id)">
+            <td>
+              {{getSourceById(deviceSource.sourceId)?.name}}
+            </td>
+            <td>{{deviceSource.address}}</td>
+            <td>{{deviceSource.bus}}</td>
+            <td>
+              <button class="btn btn-dark me-1" (click)="editDeviceSource(deviceSource)">Edit</button>
+              <button class="btn btn-dark" (click)="deleteDeviceSource(deviceSource)">X</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <button class="btn btn-dark mr-1" (click)="editingDeviceSource = true">Add Source</button>
+    </div>
+    <div *ngIf="editingDeviceSource">
+      <h5>New Device Source</h5>
+      <div class="mb-3">
+        <label for="deviceSource" class="form-label">Source</label>
+        <select class="form-select" [(ngModel)]="currentDeviceSource.sourceIdx"
+          (ngModelChange)="socket.emit('source_tallydata', sources[$event].id)">
+          <option *ngFor="let source of sources; index as index" [value]="index">{{source.name}}</option>
+        </select>
+      </div>
+      <div class="mb-3" *ngIf="sources[currentDeviceSource.sourceIdx!]">
+        <label for="deviceSource" class="form-label">Address
+          ({{sourceTallyData[sources[currentDeviceSource.sourceIdx!].id] && sourceTallyData[sources[currentDeviceSource.sourceIdx!].id].length > 0 ? 'select or ' : ''}}enter
+          manually):</label>
+        <div class="row">
+          <div class="col"
+            *ngIf="sourceTallyData[sources[currentDeviceSource.sourceIdx!].id] && sourceTallyData[sources[currentDeviceSource.sourceIdx!].id].length > 0">
+            <select class="form-select" [(ngModel)]="currentDeviceSource.address">
+              <option *ngFor="let address of sourceTallyData[sources[currentDeviceSource.sourceIdx!].id]"
+                [value]="address.address">{{address.label}}</option>
+            </select>
+          </div>
+          <div class="col">
+            <input type="text" class="form-control" [(ngModel)]="currentDeviceSource.address" placeholder="Address">
+          </div>
+        </div>
+      </div>
+      <div class="mb-3"
+        *ngIf="sources[currentDeviceSource.sourceIdx!] && getSourceBusOptionsBySourceTypeId(sources[currentDeviceSource.sourceIdx!].sourceTypeId).length > 0">
+        <label for="bus" class="form-label">Bus:</label>
+        <select class="form-select" [(ngModel)]="currentDeviceSource.bus">
+          <option
+            *ngFor="let bus of getSourceBusOptionsBySourceTypeId(sources[currentDeviceSource.sourceIdx!].sourceTypeId)[0].busses"
+            [value]="bus.bus">{{bus.name}}</option>
+        </select>
+      </div>
+      <div class="d-flex justify-content-end">
+        <button class="btn btn-dark" (click)="addDeviceSource()">{{currentDeviceSource.id !== undefined ? 'Save Changes' : 'Add Device Source'}}</button>
+      </div>
+    </div>
+  </div>
+</ng-template>

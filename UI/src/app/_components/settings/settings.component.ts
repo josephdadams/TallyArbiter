@@ -3,11 +3,14 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { io, Socket } from 'socket.io-client';
 import { BusOption } from 'src/app/_models/BusOption';
 import { Device } from 'src/app/_models/Device';
+import { DeviceSource } from 'src/app/_models/DeviceSource';
 import { DeviceState } from 'src/app/_models/DeviceState';
 import { ListenerClient } from 'src/app/_models/ListenerClient';
 import { LogItem } from 'src/app/_models/LogItem';
 import { Source } from 'src/app/_models/Source';
+import { SourceTallyData } from 'src/app/_models/SourceTallyData';
 import { SourceType } from 'src/app/_models/SourceType';
+import { SourceTypeBusOptions } from 'src/app/_models/SourceTypeBusOptions';
 import { SourceTypeDataFields } from 'src/app/_models/SourceTypeDataFields';
 
 @Component({
@@ -22,7 +25,7 @@ export class SettingsComponent {
   public logs: LogItem[] = [];
   public sources: Source[] = [];
   public tallyData: LogItem[] = [];
-  private socket: Socket;
+  public socket: Socket;
   public sourceTypes: SourceType[] = [];
   public devices: Device[] = [];
   public listenerClients: ListenerClient[] = [];
@@ -31,7 +34,9 @@ export class SettingsComponent {
   public deviceStates: DeviceState[] = [];
   public busOptions: BusOption[] = [];
   public tslclients_1secupdate?: boolean;
-
+  public deviceSources: DeviceSource[] = [];
+  public sourceTallyData: Record<string, SourceTallyData[]> = {};
+  
   // add / edit Source
   public editingSource = false;
   public currentSourceSelectedTypeIdx?: number;
@@ -40,6 +45,11 @@ export class SettingsComponent {
   // add / edit Device
   public editingDevice = false;
   public currentDevice: Device = {} as Device;
+  
+  // add / edit Device Source
+  public editingDeviceSource = false;
+  public currentDeviceSource: DeviceSource = {} as DeviceSource;
+  public sourceTypesBusOptions: SourceTypeBusOptions[] = [];
 
   constructor(private modalService: NgbModal) {
     this.socket = io();
@@ -56,6 +66,9 @@ export class SettingsComponent {
     this.socket.on("log_item", (log: LogItem) => {
       this.logs.push(log);
       this.scrollToBottom(this.logsContainer);
+    });
+    this.socket.on("source_tallydata", (sourceId: string, data: SourceTallyData[]) => {
+      this.sourceTallyData[sourceId] = data;
     });
     this.socket.on('tally_data', (sourceId, tallyObj) => {
       let tallyPreview = (tallyObj.tally1 === 1 ? 'True' : 'False');
@@ -74,20 +87,23 @@ export class SettingsComponent {
       this.deviceStates = deviceStates;
       this.setDeviceStates();
     });
+    this.socket.on('device_sources', (deviceSources: DeviceSource[]) => {
+      this.deviceSources = deviceSources;
+    });
     this.socket.on('devices', (devices: Device[]) => {
       this.devices = devices;
       this.setDeviceStates();
     });
-    this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], sourceTypesBusOptions, outputTypes, outputTypesDataFields, busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources, deviceActions, deviceStates: DeviceState[], tslClients, cloudDestinations, cloudKeys, cloudClients) => {
+    this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], sourceTypesBusOptions: SourceTypeBusOptions[], outputTypes, outputTypesDataFields, busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions, deviceStates: DeviceState[], tslClients, cloudDestinations, cloudKeys, cloudClients) => {
       this.sourceTypes = sourceTypes;
       this.sourceTypeDataFields = sourceTypesDataFields;
-      // this.source_types_busoptions = sourceTypesBusOptions;
+      this.sourceTypesBusOptions = sourceTypesBusOptions;
       // this.output_types = outputTypes;
       // this.output_types_datafields = outputTypesDataFields;
       this.busOptions = busOptions;
       this.sources =  this.prepareSources(sourcesData);
       this.devices = devicesData;
-      // this.device_sources = deviceSources;
+      this.deviceSources = deviceSources;
       // this.device_actions = deviceActions;
       this.deviceStates = deviceStates;
       // this.tsl_clients = tslClients;
@@ -124,8 +140,10 @@ export class SettingsComponent {
           break;
         case 'device-source-added-successfully':
         case 'device-source-edited-successfully':
-        case 'device-source-deleted-successfully':
+          this.socket.emit('device_sources');
           this.modalService.dismissAll();
+          break;
+        case 'device-source-deleted-successfully':
           this.socket.emit('device_sources');
           break;
         case 'device-action-added-successfully':
@@ -172,6 +190,52 @@ export class SettingsComponent {
     });
   }
 
+  public addDeviceSource() {
+    this.editingDeviceSource = false;
+    const deviceSourceObj = {
+      // is fine, the override is intentionally
+      // @ts-ignore
+      deviceId: this.currentDevice.id,
+      ...this.currentDeviceSource,
+      sourceId: this.sources[this.currentDeviceSource.sourceIdx!].id,
+    } as DeviceSource;
+
+    let arbiterObj = {
+      action: deviceSourceObj.id !== undefined ? 'edit' : "add",
+      type: "device_source",
+      device_source: deviceSourceObj,
+    };
+    console.log(deviceSourceObj)
+    this.socket.emit('manage', arbiterObj);
+  }
+
+  public updateDeviceSourceLink(bus: 'preview' | 'program', value: boolean) {
+    this.socket.emit('device_sources_link', this.currentDevice.id, bus, value);
+  }
+
+  public editDeviceSource(deviceSource: DeviceSource) {
+    this.currentDeviceSource = {
+      ...deviceSource,
+      sourceIdx: this.sources.findIndex((s) => s.id == deviceSource.sourceId),
+    };
+    this.editingDeviceSource = true;
+  }
+
+  public deleteDeviceSource(deviceSource: DeviceSource) {
+    let result = confirm('Are you sure you want to delete this device source mapping?');
+    if (!result) {
+      return;
+    }
+    let arbiterObj = {
+      action: 'delete',
+      type: 'device_source',
+      device_source: {
+        id: deviceSource.id,
+      },
+    };
+    this.socket.emit('manage', arbiterObj);
+  }
+
   public getOptionFields(sourceType: SourceType) {
     return this.sourceTypeDataFields.find((s) => s.sourceTypeId == sourceType.id)?.fields || [];
   }
@@ -180,9 +244,23 @@ export class SettingsComponent {
     return sourceTypes.filter((s) => s.enabled);
   }
 
+  public getSourceBusOptionsBySourceTypeId(sourceTypeId: string) {
+    return this.sourceTypesBusOptions.filter((obj) => obj.sourceTypeId === sourceTypeId);
+  }
+
   public toggleTestMode() {
     this.testModeOn = !this.testModeOn;
     this.socket.emit('testmode', this.testModeOn);
+  }
+
+  public getDeviceSourcesByDeviceId(deviceId: string) {
+    return this.deviceSources.filter(obj => obj.deviceId === deviceId);
+  }
+
+  public editDeviceSources(device: Device, deviceSourcesModal: any) {
+    this.currentDevice = device;
+    this.editingDeviceSource = false;
+    this.modalService.open(deviceSourcesModal, {size: "lg"});
   }
 
   public deleteSource(source: Source) {
@@ -321,7 +399,7 @@ export class SettingsComponent {
   }
 
   
-  private getSourceById(sourceId: string) {
+  public getSourceById(sourceId: string) {
     return this.sources.find(({id}) => id === sourceId);
   }
 
