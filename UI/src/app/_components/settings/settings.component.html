@@ -13,7 +13,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let source of sources" [class]="source.connected ? 'text-success' : 'text-danger'">
+        <tr *ngFor="let source of sources" [class]="source.enabled ? source.connected ? 'text-success' : 'text-danger' : 'text-muted'">
           <td>{{source.name}}</td>
           <td>{{source.sourceTypeName}}</td>
           <td>
@@ -28,7 +28,7 @@
   <hr class="my-5">
   <div class="row">
     <h2>Devices
-      <button class="btn btn-dark">Add</button>
+      <button class="btn btn-dark" (click)="addDevice(deviceModal)">Add</button>
     </h2>
     <table class="table table-hover">
       <thead>
@@ -41,7 +41,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let device of devices; index as index">
+        <tr *ngFor="let device of devices; index as index" [class.text-muted]="!device.enabled">
             <td [class.bg-success]="device.modePreview"></td>
             <td [class.bg-danger]="device.modeProgram"></td>
           <td>
@@ -50,7 +50,7 @@
           </td>
           <td>{{device.description}}</td>
           <td>
-            <button class="btn btn-dark me-2">Edit</button>
+            <button class="btn btn-dark me-2" (click)="editDevice(device, deviceModal)">Edit</button>
             <button class="btn btn-dark me-2">Edit Sources ()</button>
             <button class="btn btn-dark me-2">Edit Actions ()</button>
             <button class="btn btn-dark">Delete</button>
@@ -202,3 +202,37 @@
     </div>
   </div>
 </ng-template>
+
+<ng-template #deviceModal let-modal>
+    <div class="modal-header">
+      <h4 class="modal-title" id="modal-basic-title">{{editingSource ? 'Edit' : 'Add'}} Device</h4>
+      <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+        <ng-container *ngIf="editingDevice">
+          <div class="mb-3">
+              <label for="deviceId" class="form-label">Device Id</label>
+              <input type="text" id="sourceId" class="form-control" disabled [ngModel]="currentDevice.id">
+            </div>
+        </ng-container>
+      
+        <div class="mb-3">
+            <label for="deviceName" class="form-label">Device Name</label>
+            <input type="text" class="form-control" id="deviceName" [(ngModel)]="currentDevice.name">
+        </div>
+        <div class="mb-3">
+            <label for="deviceDescription" class="form-label">Device Description</label>
+            <input type="text" class="form-control" id="deviceDescription" [(ngModel)]="currentDevice.description">
+        </div>
+        <ng-container *ngIf="editingDevice">
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="enabled" [(ngModel)]="currentDevice.enabled">
+                <label class="form-check-label" for="enabled">Enabled</label>
+            </div>
+        </ng-container>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-dark" (click)="saveCurrentDevice()">{{editingDevice ? 'Save Changes' : 'Add Device'}}</button>
+        </div>
+    </div>
+  </ng-template>
+  
