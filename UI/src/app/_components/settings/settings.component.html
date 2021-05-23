@@ -74,7 +74,7 @@
             <button class="btn btn-dark me-2" (click)="editDeviceSources(device, deviceSourcesModal)">Edit Sources
               ({{getDeviceSourcesByDeviceId(device.id).length}})</button>
             <button class="btn btn-dark me-2">Edit Actions ()</button>
-            <button class="btn btn-dark">Delete</button>
+            <button class="btn btn-dark" (click)="deleteDevice(device)">Delete</button>
           </td>
         </tr>
       </tbody>
