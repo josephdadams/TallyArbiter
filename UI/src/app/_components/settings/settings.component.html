@@ -155,7 +155,94 @@
   </div>
   <hr class="my-5" />
   <div class="row">
-    <h2>Cloud Settings</h2>
+      <div class="mb-3">
+          <h2><i class="fas fa-cloud text-muted"></i> Cloud Settings</h2>
+        </div>
+        <div class="col">
+            <h4>
+                Destinations
+                <button class="btn btn-outline-success" (click)="addCloudDestination(cloudDestinationModal)"><i class="fas fa-plus"></i> Add </button>
+            </h4>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Host</th>
+                        <th>Port</th>
+                        <th>Key</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let cloudDestination of cloudDestinations" [class.text-success]="cloudDestination.status == 'connected'">
+                        <td>{{cloudDestination.host}}</td>
+                        <td>{{cloudDestination.port}}</td>
+                        <td>{{cloudDestination.key}}</td>
+                        <td><span *ngIf="cloudDestination.status == 'invalid_key'" class="text-danger">Invalid Key!</span></td>
+                        <td>
+                            <button class="btn btn-outline-dark" (click)="editCloudDestination(cloudDestination, cloudDestinationModal)">
+                                <i class="fas fa-pen"></i> Edit
+                            </button>
+                            <button class="btn btn-outline-danger mx-2" (click)="deleteCloudDestination(cloudDestination)">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                            <button class="btn btn-outline-dark" *ngIf="cloudDestination.status == 'disconnected'" (click)="reconnectCloudDestination(cloudDestination)">
+                                <i class="fas fa-sync"></i> Reconnect
+                            </button>
+                            <button class="btn btn-outline-dark" *ngIf="cloudDestination.status == 'connected'" (click)="disconnectCloudDestination(cloudDestination)">
+                                <i class="fas fa-times"></i> Disconnect
+                            </button>
+
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="col">
+            <h4>
+                Keys
+                <button class="btn btn-outline-success" (click)="addCloudKey(cloudKeyModal)"><i class="fas fa-plus"></i> Add </button>
+            </h4>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let key of cloudKeys">
+                        <td>{{key}}</td>
+                        <td>
+                            <button class="btn btn-outline-danger" (click)="deleteCloudKey(key)"><i class="fas fa-trash"></i> Delete</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+  </div>
+  <div class="row mt-4">
+        <div class="col">
+            <h4>Clients</h4>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>IP</th>
+                        <th>Key</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let client of cloudClients">
+                        <td>{{client.ipAddress.replace("::ffff:", "")}}</td>
+                        <td>{{client.key}}</td>
+                        <td>
+                            <button class="btn btn-outline-danger" (click)="removeCloudClient(client)"><i class="fas fa-trash"></i> Remove</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
   </div>
   <hr class="my-5" />
   <div class="row">
@@ -546,7 +633,7 @@
       </div>
       <div class="mb-3">
         <label for="tslPort" class="form-label">Port</label>
-        <input type="text" class="form-control" id="tslPort" [(ngModel)]="currentTSLClient.port" />
+        <input type="number" class="form-control" id="tslPort" [(ngModel)]="currentTSLClient.port" />
       </div>
       <div class="mb-3">
         <label for="tslTransport" class="form-label">Transport</label>
@@ -562,3 +649,56 @@
       </div>
     </div>
   </ng-template>
+
+  <ng-template #cloudDestinationModal let-modal>
+      <div class="modal-header">
+        <h4 class="modal-title" id="modal-basic-title">
+          {{ editingSource ? "Edit" : "Add" }} Cloud Destination
+        </h4>
+        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <ng-container *ngIf="editingCloudDestination">
+          <div class="mb-3">
+            <label for="cloudId" class="form-label">Cloud Destination Id</label>
+            <input type="text" id="cloudId" class="form-control" disabled [ngModel]="currentCloudDestination.id" />
+          </div>
+        </ng-container>
+    
+        <div class="mb-3">
+          <label for="cloudIP" class="form-label">Host</label>
+          <input type="text" class="form-control" id="cloudHost" [(ngModel)]="currentCloudDestination.host" />
+        </div>
+        <div class="mb-3">
+          <label for="cloudPort" class="form-label">Port</label>
+          <input type="number" class="form-control" id="cloudPort" [(ngModel)]="currentCloudDestination.port" />
+        </div>
+        <div class="mb-3">
+          <label for="cloudKey" class="form-label">Key</label>
+          <input type="text" class="form-control" id="cloudKey" [(ngModel)]="currentCloudDestination.key" />
+        </div>
+        <div class="d-flex justify-content-end">
+          <button class="btn btn-outline-dark" (click)="saveCurrentCloudDestination()">
+            <i class="fas fa-save"></i> {{ editingCloudDestination ? "Save Changes" : "Add Cloud Destination" }}
+          </button>
+        </div>
+      </div>
+    </ng-template>
+
+<ng-template #cloudKeyModal let-modal>
+    <div class="modal-header">
+        <h4 class="modal-title" id="modal-basic-title">Add Cloud Key</h4>
+        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+        <div class="mb-3">
+            <label for="key" class="form-label">Key</label>
+            <input type="text" class="form-control" id="key" [(ngModel)]="newCloudKey" />
+        </div>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-outline-dark" (click)="saveCloudKey()">
+                <i class="fas fa-save"></i> Add Cloud Key
+            </button>
+        </div>
+    </div>
+</ng-template>
