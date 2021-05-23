@@ -71,9 +71,8 @@
             <button class="btn btn-dark me-2" (click)="editDevice(device, deviceModal)">
               Edit
             </button>
-            <button class="btn btn-dark me-2" (click)="editDeviceSources(device, deviceSourcesModal)">Edit Sources
-              ({{getDeviceSourcesByDeviceId(device.id).length}})</button>
-            <button class="btn btn-dark me-2">Edit Actions ()</button>
+            <button class="btn btn-dark me-2" (click)="editDeviceSources(device, deviceSourcesModal)">Edit Sources ({{getDeviceSourcesByDeviceId(device.id).length}})</button>
+            <button class="btn btn-dark me-2" (click)="editDeviceActions(device, deviceActionsModal)">Edit Actions ({{getDeviceActionsByDeviceId(device.id).length}})</button>
             <button class="btn btn-dark" (click)="deleteDevice(device)">Delete</button>
           </td>
         </tr>
@@ -182,7 +181,7 @@
     </ng-container>
     <ng-container *ngIf="!editingSource">
       <select class="form-select" ngbAutofocus [(ngModel)]="currentSourceSelectedTypeIdx">
-        <option selected disabled>-- Choose Source Type --</option>
+        <option selected disabled [value]="undefined">-- Choose Source Type --</option>
         <option *ngFor="
             let sourceType of filterEnabledSourceTypes(sourceTypes);
             index as index
@@ -394,8 +393,106 @@
         </select>
       </div>
       <div class="d-flex justify-content-end">
-        <button class="btn btn-dark" (click)="addDeviceSource()">{{currentDeviceSource.id !== undefined ? 'Save Changes' : 'Add Device Source'}}</button>
+        <button class="btn btn-dark" (click)="saveDeviceSource()">{{currentDeviceSource.id !== undefined ? 'Save Changes' : 'Add Device Source'}}</button>
       </div>
     </div>
   </div>
 </ng-template>
+
+
+
+<ng-template #deviceActionsModal let-modal>
+    <div class="modal-header">
+        <h4 class="modal-title" id="modal-basic-title">
+        Device Actions: {{currentDevice.name}}
+        </h4>
+        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+        <div *ngIf="!editingDeviceAction">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>Bus</th>
+                <th>On / Off</th>
+                <th>Output Type</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let deviceAction of getDeviceActionsByDeviceId(currentDevice.id)">
+                <td>{{getBusById(deviceAction.busId)?.label}}</td>
+                <td>{{deviceAction.active ? 'On' : 'Off'}}</td>
+                <td>{{getOutputTypeById(deviceAction.outputTypeId)?.label}}</td>
+                <td>
+                <button class="btn btn-dark me-1" (click)="editDeviceAction(deviceAction)">Edit</button>
+                <button class="btn btn-dark" (click)="deleteDeviceAction(deviceAction)">X</button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <button class="btn btn-dark mr-1" (click)="addDeviceAction()">Add Action</button>
+        </div>
+        <div *ngIf="editingDeviceAction">
+        <h5>New Device Action</h5>
+        <div class="mb-3">
+            <label for="bus" class="form-label">Bus</label>
+            <select class="form-select" [(ngModel)]="currentDeviceAction.busId">
+                <option disabled selected [value]="undefined">-- Select --</option>
+                <option *ngFor="let bus of busOptions" [value]="bus.id">{{bus.label}}</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="bus" class="form-label">Active</label>
+            <select class="form-select" [(ngModel)]="currentDeviceAction.active">
+                <option disabled selected [value]="undefined">-- Select --</option>
+                <option [value]="true">On</option>
+                <option [value]="true">Off</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="outputType" class="form-label">Output Type</label>
+            <select class="form-select" id="outputType" [(ngModel)]="currentDeviceAction.outputTypeIdx">
+                <option disabled selected [value]="undefined">-- Select --</option>
+                <option *ngFor="let outputType of outputTypes; index as index" [value]="index">{{outputType.label}}</option>
+            </select>
+        </div>
+        
+        <ng-container *ngIf="outputTypes[currentDeviceAction.outputTypeIdx!]">
+
+            <ng-container *ngFor="let field of getOutputOptionFields(outputTypes[currentDeviceAction.outputTypeIdx!])">
+                <ng-container [ngSwitch]="field.fieldType">
+                    <div class="mb-3" *ngSwitchCase="'text'">
+                        <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}</label>
+                        <input type="text" class="form-control" [id]="field.fieldName" [(ngModel)]="currentDeviceAction.data[field.fieldName]" />
+                    </div>
+                    <div class="mb-3" *ngSwitchCase="['port', 'number'].includes(field.fieldType) ? field.fieldType : ''">
+                        <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}</label>
+                        <input type="number" class="form-control" [id]="field.fieldName" [(ngModel)]="currentDeviceAction.data[field.fieldName]" />
+                    </div>
+                    <div class="mb-3" *ngSwitchCase="'dropdown'">
+                        <label [for]="field.fieldName" class="form-label">{{
+                            field.fieldLabel
+                        }}</label>
+                        <select class="form-select" [id]="field.fieldName" [(ngModel)]="currentDeviceAction.data[field.fieldName]">
+                            <option disabled selected [value]="undefined">-- Select --</option>
+                            <option *ngFor="let option of field.options" [value]="option.id">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check" *ngSwitchCase="'bool'">
+                        <input class="form-check-input" type="checkbox" [id]="field.fieldName" [(ngModel)]="currentDeviceAction.data[field.fieldName]">
+                        <label [for]="field.fieldName" class="form-check-label">{{field.fieldLabel}}</label>
+                    </div>
+                </ng-container>
+            </ng-container>
+        </ng-container>
+            
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-dark" (click)="saveDeviceAction()">{{currentDeviceAction.id !== undefined ? 'Save Changes' : 'Add Action'}}</button>
+            </div>
+        </div>
+    </div>
+</ng-template>
+
