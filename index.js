@@ -5250,7 +5250,7 @@ function StartTSLClientConnection(tslClientId) {
 					});
 					tsl_clients[i].socket.on('close', function() {
 						if (tsl_clients[i]) {
-							logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i]?.ip}:${tsl_clients[i]?.port}`, 'info-quiet');
+							logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
 							tsl_clients[i].error = false;
 							tsl_clients[i].connected = false;
 							UpdateSockets('tsl_clients');
