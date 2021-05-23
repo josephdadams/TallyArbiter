@@ -1,1 +1,19 @@
-<p>settings works!</p>
+<div class="container">
+
+    <hr>
+    <div class="mt-5 row">
+        <div class="col-xs-12 col-md-6" id='divContainer_Logs'>
+            <h2>Logs</h2>
+            <div class="logs p-1" #logsContainer>
+                <span class="d-block" [style.color]="log.type == 'console_action' ? '#00ff00' : log.type == 'error' ? '#FF0000' : '#0000FF'" *ngFor="let log of logs">[{{log.datetime | date: 'shortDate'}} {{log.datetime | date: 'shortTime'}}] {{log.log}}</span>
+            </div>
+        </div>
+        <div class="col-xs-12 col-md-6" id='divContainer_TallyData'>
+            <h2>Tally Data</h2>
+            <div class="logs p-1" #tallyDataContainer>
+                <span class="d-block" *ngFor="let log of tallyData">[{{log.datetime | date: 'shortDate'}} {{log.datetime | date: 'shortTime'}}] {{log.log}}</span>
+            </div>
+        </div>
+    </div>
+    <div class="text-muted my-3">Version {{version}}</div>
+</div>
