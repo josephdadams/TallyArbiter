@@ -13,7 +13,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let device of devices">
+          <tr *ngFor="let device of devices" [class.text-muted]="!device.enabled">
             <td [class.bg-success]="device.modePreview"></td>
             <td [class.bg-danger]="device.modeProgram"></td>
             <td>{{device.name}}</td>
