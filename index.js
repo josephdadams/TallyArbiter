@@ -2,15 +2,10 @@
 
 //Protocol, Network, Socket, Server libraries/variables
 const net 			= require('net');
-const packet 		= require('packet');
-const TSLUMD 		= require('tsl-umd'); // TSL UDP package
 const dgram 		= require('dgram');
-const { Atem }		= require('atem-connection');
-const OBS 			= require('obs-websocket-js');
 const fs 			= require('fs');
 const path 			= require('path');
 const {version} 	= require('./package.json');
-const isPi 			= require('detect-rpi');
 const clc 			= require('cli-color');
 const util 			= require ('util');
 const express 		= require('express');
@@ -19,9 +14,22 @@ const axios 		= require('axios');
 const http 			= require('http');
 const socketio		= require('socket.io');
 const ioClient		= require('socket.io-client');
-const osc 			= require('osc');
 const xml2js		= require('xml2js');
 const jspack 		= require('jspack').jspack;
+const osc 			= require('osc');
+
+//Tally Arbiter Source Type Libraries
+const TSLUMD_3_UDP = require('./source_types/tslumd_3_udp');
+const TSLUMD_3_TCP = require('./source_types/tslumd_3_tcp');
+const TSLUMD_5_UDP = require('./source_types/tslumd_5_udp');
+const TSLUMD_5_TCP = require('./source_types/tslumd_5_tcp');
+const Blackmagic_VideoHub = require('./source_types/blackmagic_videohub');
+const StudioCoast_VMix = require('./source_types/studiocoast_vmix');
+const Roland_SmartTally = require('./source_types/roland_smarttally');
+const OBS_Studio = require('./source_types/obs_studio');
+const Blackmagic_ATEM = require('./source_types/blackmagic_atem');
+const Ross_Carbonite = require('./source_types/ross_carbonite');
+const OSC = require('./source_types/osc');
 
 //Tally Arbiter variables
 const listenPort 	= process.env.PORT || 4455;
@@ -44,13 +52,7 @@ var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
 const config_file 	= './config.json'; //local storage JSON file
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var Logs 			= []; //array of actions, information, and errors
-var tallydata_ATEM 	= []; //array of ATEM sources and current tally data
-var labels_VideoHub = []; //array of VideoHub source labels
-var destinations_VideoHub = []; //array of VideoHub destination/source assignments
-var tallydata_VideoHub = []; //array of VideoHub sources and current tally data
-var tallydata_OBS 	= []; //array of OBS sources and current tally data
 var tallydata_RossCarbonite = []; //array of Ross Carbonite sources and current tally data by bus
-var tallydata_VMix 	= []; //array of VMix sources and current tally data
 var tallydata_TC 	= []; //array of Tricaster sources and current tally data
 var tallydata_AWLivecore 	= []; //array of Analog Way sources and current tally data
 var PortsInUse		= []; //array of UDP/TCP ports in use, includes reserved ports
@@ -66,11 +68,6 @@ var cloud_clients		= []; //array of Tally Arbiter Cloud Clients that have connec
 var source_reconnects	= []; //array of sources and their reconnect timers/intervals
 
 var TestMode = false; //if the system is in test mode or not
-
-let portObj = {};
-portObj.port = '9910'; //ATEM
-portObj.sourceId = 'reserved';
-PortsInUse.push(portObj);
 
 portObj = {};
 portObj.port = '8099'; //VMix
@@ -104,7 +101,7 @@ var source_types 	= [ //available tally source types
 	{ id: '560d3065', label: 'TSL 5.0 TCP', type: 'tsl_5_tcp', enabled: true , help: ''},
 	{ id: '44b8bc4f', label: 'Blackmagic ATEM', type: 'atem', enabled: true, help: 'Uses Port 9910.' },
 	{ id: '627a5902', label: 'Blackmagic VideoHub', type: 'videohub', enabled: true, help: 'Uses Port 9990.' },
-	{ id: '4eb73542', label: 'OBS Studio', type: 'obs', enabled: true, help: 'The OBS Websocket plugin must be installed on the source.'},
+	{ id: '4eb73542', label: 'OBS Studio', type: 'obs', enabled: true, help: 'The OBS Websocket plugin must be installed on the computer running OBS.'},
 	{ id: '58b6af42', label: 'VMix', type: 'vmix', enabled: true, help: 'Uses Port 8099.'},
 	{ id: '4a58f00f', label: 'Roland Smart Tally', type: 'roland', enabled: true, help: ''},
 	{ id: '1190d7be', label: 'Roland VR-50HD-MKII', type: 'roland-vr', enabled: true, help: 'Uses Port 8023'},
@@ -348,43 +345,43 @@ var source_types_busoptions = [
 		]
 	},
 	{ sourceTypeId: '7da3b524', busses: [ //Ross Carbonite Ultra
-		{ bus: 'onair', name: 'Follow OnAir Setting' },
-		{ bus: 'mepp', name: 'ME P/P' },
-		{ bus: 'me1', name: 'ME 1' },
-		{ bus: 'me2', name: 'ME 2' },
-		{ bus: 'mme1', name: 'MiniME 1' },
-		{ bus: 'mme2', name: 'MiniME 2' },
-		{ bus: 'mme3', name: 'MiniME 3' },
-		{ bus: 'mme4', name: 'MiniME 4' },
-		{ bus: 'aux1', name: 'Aux 1' },
-		{ bus: 'aux2', name: 'Aux 2' },
-		{ bus: 'aux3', name: 'Aux 3' },
-		{ bus: 'aux4', name: 'Aux 4' },
-		{ bus: 'aux5', name: 'Aux 5' },
-		{ bus: 'aux6', name: 'Aux 6' },
-		{ bus: 'aux7', name: 'Aux 7' },
-		{ bus: 'aux8', name: 'Aux 8' },
-		{ bus: 'aux9', name: 'Aux 9' },
-		{ bus: 'au10', name: 'Aux 10' },
-		{ bus: 'aux11', name: 'Aux 11' },
-		{ bus: 'aux12', name: 'Aux 12' },
-		{ bus: 'aux13', name: 'Aux 13' },
-		{ bus: 'aux14', name: 'Aux 14' },
-		{ bus: 'aux15', name: 'Aux 15' },
-		{ bus: 'aux16', name: 'Aux 16' },
-		{ bus: 'aux17', name: 'Aux 17' },
-		{ bus: 'aux18', name: 'Aux 18' },
-		{ bus: 'aux19', name: 'Aux 19' },
-		{ bus: 'aux20', name: 'Aux 20' },
-		{ bus: 'aux21', name: 'Aux 21' },
-		{ bus: 'aux22', name: 'Aux 22' },
-		{ bus: 'aux23', name: 'Aux 23' },
-		{ bus: 'aux24', name: 'Aux 24' },
-		{ bus: 'aux25', name: 'Aux 25' },
-		{ bus: 'aux26', name: 'Aux 26' },
-		{ bus: 'aux27', name: 'Aux 27' }
-	]
-},
+			{ bus: 'onair', name: 'Follow OnAir Setting' },
+			{ bus: 'mepp', name: 'ME P/P' },
+			{ bus: 'me1', name: 'ME 1' },
+			{ bus: 'me2', name: 'ME 2' },
+			{ bus: 'mme1', name: 'MiniME 1' },
+			{ bus: 'mme2', name: 'MiniME 2' },
+			{ bus: 'mme3', name: 'MiniME 3' },
+			{ bus: 'mme4', name: 'MiniME 4' },
+			{ bus: 'aux1', name: 'Aux 1' },
+			{ bus: 'aux2', name: 'Aux 2' },
+			{ bus: 'aux3', name: 'Aux 3' },
+			{ bus: 'aux4', name: 'Aux 4' },
+			{ bus: 'aux5', name: 'Aux 5' },
+			{ bus: 'aux6', name: 'Aux 6' },
+			{ bus: 'aux7', name: 'Aux 7' },
+			{ bus: 'aux8', name: 'Aux 8' },
+			{ bus: 'aux9', name: 'Aux 9' },
+			{ bus: 'au10', name: 'Aux 10' },
+			{ bus: 'aux11', name: 'Aux 11' },
+			{ bus: 'aux12', name: 'Aux 12' },
+			{ bus: 'aux13', name: 'Aux 13' },
+			{ bus: 'aux14', name: 'Aux 14' },
+			{ bus: 'aux15', name: 'Aux 15' },
+			{ bus: 'aux16', name: 'Aux 16' },
+			{ bus: 'aux17', name: 'Aux 17' },
+			{ bus: 'aux18', name: 'Aux 18' },
+			{ bus: 'aux19', name: 'Aux 19' },
+			{ bus: 'aux20', name: 'Aux 20' },
+			{ bus: 'aux21', name: 'Aux 21' },
+			{ bus: 'aux22', name: 'Aux 22' },
+			{ bus: 'aux23', name: 'Aux 23' },
+			{ bus: 'aux24', name: 'Aux 24' },
+			{ bus: 'aux25', name: 'Aux 25' },
+			{ bus: 'aux26', name: 'Aux 26' },
+			{ bus: 'aux27', name: 'Aux 27' }
+		]
+	}
 ];
 
 var source_types_busaddresses = [
@@ -560,24 +557,6 @@ var source_types_busaddresses = [
 	////////
 ]
 
-if (isPi()) {
-	//adds the GPIO input type option if the software is running on a Raspberry Pi
-	let sourceTypeObj = {};
-	sourceTypeObj.id = 'bc0d5c91';
-	sourceTypeObj.label = 'Local GPIO';
-	sourceTypeObj.type = 'gpio';
-	sourceTypeObj.enabled = false;
-	source_types.push(sourceTypeObj);
-
-	let sourceTypeDataFieldObj = {};
-	sourceTypeDataFieldObj.sourceTypeId = sourceTypeObj.id;
-	let fields = [
-		{ fieldName: 'pins', fieldLabel: 'GPIO Pins', fieldType: 'text' }
-	];
-	sourceTypeDataFieldObj.fields = fields;
-	source_types_datafields.push(sourceTypeDataFieldObj);
-}
-
 var output_types = [ //output actions that Tally Arbiter can perform
 	{ id: '7dcd66b5', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true},
 	{ id: '276a8dcc', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true },
@@ -639,24 +618,6 @@ var output_types_datafields = [ //data fields for the outgoing actions
 		]
 	}
 ];
-
-if (isPi()) {
-	//adds the GPIO output type option if the software is running on a Raspberry Pi
-	let outputTypeObj = {};
-	outputTypeObj.id = '73815fc2';
-	outputTypeObj.label = 'Local GPIO';
-	outputTypeObj.type = 'gpio';
-	outputTypeObj.enabled = false;
-	output_types.push(outputTypeObj);
-
-	let outputTypeDataFieldObj = {};
-	outputTypeDataFieldObj.outputTypeId = outputTypeObj.id;
-	let fields = [
-		{ fieldName: 'pins', fieldLabel: 'GPIO Pins', fieldType: 'text' }
-	];
-	outputTypeDataFieldObj.fields = fields;
-	output_types_datafields.push(outputTypeDataFieldObj);
-}
 
 const bus_options = [ // the busses available to monitor in Tally Arbiter
 	{ id: 'e393251c', label: 'Preview', type: 'preview'},
@@ -906,22 +867,21 @@ function initialSetup() {
 			let sourceType = GetSourceTypeBySourceTypeId(source.sourceTypeId);
 			let result = false;
 			
-			//Note: results from all except OBS and Tricaster commented out as either no device currently in warehouse to test with and/or
-			//the data structure of these objects seems to differ, perhaps a common structure for tally data objects would be good in the future
-			//so it can be dealt with in the same manner elsewhere.
+			//after all source types are converted to their own modules, this entire switch statement can be removed as all source types will support tally data arrays
 			
 			switch(sourceType.type) {
 				case 'atem': //Blackmagic ATEM
 					//result = tallydata_ATEM;
 					break;
 				case 'videohub': //Blackmagic VideoHub
-					result = tallydata_VideoHub;
+					//result = tallydata_VideoHub;
+					result = source.connection.getTallyData();
 					break;
 				case 'obs': //OBS
-					result = tallydata_OBS;
+					result = source.connection.getTallyData();
 					break;
 				case 'vmix': //VMix
-					result = tallydata_VMix;
+					result = source.connection.getTallyData();
 					break;
 				case 'tricaster': //Tricaster
 					result = tallydata_TC;
@@ -931,7 +891,6 @@ function initialSetup() {
 					break;
 			}
 			if (result !== false) {
-				result = result.filter(tally => tally.sourceId == sourceId);
 				socket.emit('source_tallydata', sourceId, result);
 			}
 			else {
@@ -1988,53 +1947,7 @@ function loadConfig() { // loads the JSON data from the config file to memory
 
 			logger(`Initiating Setup for Source: ${sources[i].name}. Type: ${sourceType.label}`, 'info-quiet');
 
-			switch(sourceType.type) {
-				case 'tsl_31_udp':
-					SetUpTSLServer_UDP(sources[i].id);
-					break;
-				case 'tsl_31_tcp':
-					SetUpTSLServer_TCP(sources[i].id);
-					break;
-				case 'tsl_5_udp':
-					SetUpTSL5Server_UDP(sources[i].id);
-					break;
-				case 'tsl_5_tcp':
-					SetUpTSL5Server_TCP(sources[i].id);
-					break;
-				case 'atem':
-					SetUpATEMServer(sources[i].id);
-					break;
-				case 'videohub':
-					SetUpVideoHubServer(sources[i].id);
-					break;
-				case 'obs':
-					SetUpOBSServer(sources[i].id);
-					break;
-				case 'vmix':
-					SetUpVMixServer(sources[i].id);
-					break;
-				case 'roland':
-					SetUpRolandSmartTally(sources[i].id);
-					break;
-				case 'roland-vr':
-					SetUpRolandVR(sources[i].id);
-					break;
-				case 'ross_carbonite':
-					SetUpRossCarbonite(sources[i].id);
-					break;
-				case 'osc':
-					SetUpOSCServer(sources[i].id);
-					break;
-				case 'tc':
-					SetUpTricasterServer(sources[i].id);
-					break;
-				case 'awlivecore':
-					SetUpAWLivecoreServer(sources[i].id);
-					break;
-				default:
-					logger(`Error initiating connection for Source: ${sources[i].name}. The specified Source Type is not implemented at this time: ${sourceType.type}`, 'error');
-					break;
-			}
+			StartConnection(sources[i].id);
 		}
 	}
 
@@ -2062,9 +1975,18 @@ function SaveConfig() {
 			tsl_clients_clean.push(tslClientObj);
 		}
 
+		let sources_clean = [];
+
+		for (let i = 0; i < sources.length; i++) {
+			let sourceObj = {};
+			sourceObj = sources[i];
+			sourceObj.connection = null;
+			sources_clean.push(sourceObj);
+		}
+
 		let configJson = {
 			security: securityObj,
-			sources: sources,
+			sources: sources_clean,
 			devices: devices,
 			device_sources: device_sources,
 			device_actions: device_actions,
@@ -2124,1388 +2046,6 @@ function initializeDeviceStates() { // initializes each device state in the arra
 	}
 
 	logger('Device States Initialized.', 'info-quiet');
-}
-
-function SetUpTSLServer_UDP(sourceId)
-{
-	let source = sources.find( ({ id }) => id === sourceId);
-	let port = source.data.port;
-
-	try
-	{
-		let sourceConnectionObj = {};
-		sourceConnectionObj.sourceId = sourceId;
-		sourceConnectionObj.server = null;
-		source_connections.push(sourceConnectionObj);
-
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				AddPort(port, sourceId);
-				logger(`Source: ${source.name}  Creating TSL 3.1 UDP Connection.`, 'info-quiet');
-				source_connections[i].server = new TSLUMD(port);
-
-				source_connections[i].server.on('message', function (tally) {
-					processTSLTally(sourceId, tally);
-				});
-
-				logger(`Source: ${source.name}  TSL 3.1 Server started. Listening for data on UDP Port: ${port}`, 'info');
-				for (let j = 0; j < sources.length; j++) {
-					if (sources[j].id === sourceId) {
-						sources[j].connected = true;
-						break;
-					}
-				}
-				UpdateSockets('sources');
-				UpdateCloud('sources');
-				break;
-			}
-		}
-	} catch (error)
-	{
-		logger(`Source: ${source.name}  TSL 3.1 UDP Server Error occurred: ${error}`, 'error');
-	}
-}
-
-function StopTSLServer_UDP(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-
-	try
-	{
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				logger(`Source: ${source.name}  Closing TSL 3.1 UDP Connection.`, 'info-quiet');
-				source_connections[i].server.server.close();
-				DeletePort(source.data.port);
-				logger(`Source: ${source.name}  TSL 3.1 UDP Server Stopped. Connection Closed.`, 'info');
-				for (let j = 0; j < sources.length; j++) {
-					if (sources[j].id === sourceId) {
-						sources[j].connected = false;
-						break;
-					}
-				}
-
-				UpdateSockets('sources');
-				UpdateCloud('sources');
-				break;
-			}
-		}
-	}
-	catch (error) {
-		logger(`Source: ${source.name}  TSL 3.1 UDP Server Error occurred: ${error}`, 'error');
-	}
-}
-
-function SetUpTSLServer_TCP(sourceId)
-{
-	let source = sources.find( ({ id }) => id === sourceId);
-	let port = source.data.port;
-
-	try
-	{
-		let parser = packet.createParser();
-		parser.packet('tsl', 'b8{x1, b7 => address},b8{x2, b2 => brightness, b1 => tally4, b1 => tally3, b1 => tally2, b1 => tally1 }, b8[16] => label');
-
-		let sourceConnectionObj = {};
-		sourceConnectionObj.sourceId = sourceId;
-		sourceConnectionObj.server = null;
-		source_connections.push(sourceConnectionObj);
-
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				AddPort(port, sourceId);
-				logger(`Source: ${source.name}  Creating TSL 3.1 TCP Connection.`, 'info-quiet');
-				source_connections[i].server = net.createServer(function (socket) {
-					socket.on('data', function (data) {
-						parser.extract('tsl', function (result) {
-							result.label = new Buffer(result.label).toString();
-							processTSLTally(sourceId, result);
-						});
-						parser.parse(data);
-					});
-
-					socket.on('close', function () {
-						logger(`Source: ${source.name}  TSL 3.1 Server connection closed.`, 'info');
-						StopTSLServer_TCP(sourceId);
-					});
-				}).listen(port, function() {
-					logger(`Source: ${source.name}  TSL 3.1 Server started. Listening for data on TCP Port: ${port}`, 'info');
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = true;
-							UnregisterReconnect(sources[j].id);
-							break;
-						}
-					}
-					UpdateSockets('sources');
-					UpdateCloud('sources');
-
-				});
-				break;
-			}
-		}
-	}
-	catch (error) {
-		logger(`Source: ${source.name}  TSL 3.1 TCP Server Error occurred: ${error}`, 'error');
-	}
-}
-
-function StopTSLServer_TCP(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-
-	RegisterDisconnect(sourceId);
-
-	try
-	{
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				source_connections[i].server.close(function() {});
-				DeletePort(source.data.port);
-				logger(`Source: ${source.name}  TSL 3.1 TCP Server Stopped.`, 'info');
-				for (let j = 0; j < sources.length; j++) {
-					if (sources[j].id === sourceId) {
-						sources[j].connected = false;
-						break;
-					}
-				}
-
-				UpdateSockets('sources');
-				UpdateCloud('sources');
-				break;
-			}
-		}
-	}
-	catch (error) {
-		logger(`Source: ${source.name}  TSL 3.1 TCP Server Error occurred: ${error}`, 'error');
-	}
-}
-
-function SetUpTSL5Server_UDP(sourceId)
-{
-	let source = sources.find( ({ id }) => id === sourceId);
-	let port = source.data.port;
-
-	try
-	{
-		let sourceConnectionObj = {};
-		sourceConnectionObj.sourceId = sourceId;
-		sourceConnectionObj.server = null;
-		source_connections.push(sourceConnectionObj);
-
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				AddPort(port, sourceId);
-				logger(`Source: ${source.name}  Creating TSL 5.0 UDP Connection.`, 'info-quiet');
-				source_connections[i].server = dgram.createSocket('udp4');
-				source_connections[i].server.bind(port);
-
-				source_connections[i].server.on('message', function (message) {
-					processTSL5Tally(sourceId, message);
-				});
-
-				logger(`Source: ${source.name}  TSL 5.0 Server started. Listening for data on UDP Port: ${port}`, 'info');
-				for (let j = 0; j < sources.length; j++) {
-					if (sources[j].id === sourceId) {
-						sources[j].connected = true;
-						break;
-					}
-				}
-				UpdateSockets('sources');
-				UpdateCloud('sources');
-				break;
-			}
-		}
-	} catch (error)
-	{
-		logger(`Source: ${source.name}  TSL 5.0 UDP Server Error occurred: ${error}`, 'error');
-	}
-}
-
-function StopTSL5Server_UDP(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-
-	try
-	{
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				logger(`Source: ${source.name}  Closing TSL 5.0 UDP Connection.`, 'info-quiet');
-				source_connections[i].server.close();
-				DeletePort(source.data.port);
-				logger(`Source: ${source.name}  TSL 5.0 UDP Server Stopped. Connection Closed.`, 'info');
-				for (let j = 0; j < sources.length; j++) {
-					if (sources[j].id === sourceId) {
-						sources[j].connected = false;
-						break;
-					}
-				}
-
-				UpdateSockets('sources');
-				UpdateCloud('sources');
-				break;
-			}
-		}
-	}
-	catch (error) {
-		logger(`Source: ${source.name}  TSL 5.0 UDP Server Error occurred: ${error}`, 'error');
-	}
-}
-
-function SetUpTSL5Server_TCP(sourceId)
-{
-	let source = sources.find( ({ id }) => id === sourceId);
-	let port = source.data.port;
-
-	try
-	{
-		let sourceConnectionObj = {};
-		sourceConnectionObj.sourceId = sourceId;
-		sourceConnectionObj.server = null;
-		source_connections.push(sourceConnectionObj);
-
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				AddPort(port, sourceId);
-				logger(`Source: ${source.name}  Creating TSL 5.0 TCP Connection.`, 'info-quiet');
-				source_connections[i].server = net.createServer(function (socket) {
-					socket.on('data', function (data) {
-						processTSL5Tally(sourceId, data);
-					});
-
-					socket.on('close', function () {
-						logger(`Source: ${source.name}  TSL 5.0 Server connection closed.`, 'info');
-						StopTSLServer_TCP(sourceId);
-						CheckReconnect(sourceId);
-					});
-				}).listen(port, function() {
-					logger(`Source: ${source.name}  TSL 5.0 Server started. Listening for data on TCP Port: ${port}`, 'info');
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = true;
-							UnregisterReconnect(sources[j].id);
-							break;
-						}
-					}
-					UpdateSockets('sources');
-					UpdateCloud('sources');
-				});
-				break;
-			}
-		}
-	}
-	catch (error) {
-		logger(`Source: ${source.name}  TSL 5.0 TCP Server Error occurred: ${error}`, 'error');
-	}
-}
-
-function StopTSL5Server_TCP(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-
-	RegisterDisconnect(sourceId);
-
-	try
-	{
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				source_connections[i].server.close(function() {});
-				DeletePort(source.data.port);
-				logger(`Source: ${source.name}  TSL 5.0 TCP Server Stopped.`, 'info');
-				for (let j = 0; j < sources.length; j++) {
-					if (sources[j].id === sourceId) {
-						sources[j].connected = false;
-						break;
-					}
-				}
-
-				UpdateSockets('sources');
-				UpdateCloud('sources');
-				break;
-			}
-		}
-	}
-	catch (error) {
-		logger(`Source: ${source.name}  TSL 5.0 TCP Server Error occurred: ${error}`, 'error');
-	}
-}
-
-function processTSL5Tally(sourceId, data) {
-	if (data.length > 12) {
-
-		tallyobj = {};
-
-		var cursor = 0;
-
-		//Message Format
-		const _PBC = 2 //bytes
-		const _VAR = 1
-		const _FLAGS = 1
-		const _SCREEN = 2
-		const _INDEX = 2
-		const _CONTROL = 2
-
-		//Display Data
-		const _LENGTH = 2
-
-		tallyobj.PBC = jspack.Unpack( "<H", data, cursor);
-		cursor += _PBC;
-
-		tallyobj.VAR = jspack.Unpack( "<B", data, cursor);
-		cursor += _VAR;
-
-		tallyobj.FLAGS = jspack.Unpack( "<B", data, cursor);
-		cursor += _FLAGS;
-
-		tallyobj.SCREEN = jspack.Unpack( "<H", data, cursor);
-		cursor += _SCREEN;
-
-		tallyobj.INDEX = jspack.Unpack( "<H", data, cursor);
-		cursor += _INDEX;
-
-		tallyobj.CONTROL = jspack.Unpack( "<H", data, cursor);
-		cursor += _CONTROL;
-
-		tallyobj.control = {};
-		tallyobj.control.rh_tally = (tallyobj.CONTROL >> 0 & 0b11);
-		tallyobj.control.text_tally = (tallyobj.CONTROL >> 2 & 0b11);
-		tallyobj.control.lh_tally = (tallyobj.CONTROL >> 4 & 0b11);
-		tallyobj.control.brightness = (tallyobj.CONTROL >> 6 & 0b11);
-		tallyobj.control.reserved = (tallyobj.CONTROL >> 8 & 0b1111111);
-		tallyobj.control.control_data = (tallyobj.CONTROL >> 15 & 0b1);
-
-		var LENGTH = jspack.Unpack( "<H", data, cursor)
-		cursor += _LENGTH;
-
-		tallyobj.TEXT = jspack.Unpack( "s".repeat(LENGTH), data, cursor)
-
-		//tally1 === lh tally
-		//tally2 === rh tally
-
-		let inPreview = 0;
-		let inProgram = 0;
-
-		if ((tallyobj.control.lh_tally === 2) && (tallyobj.control.rh_tally === 2)) { //device is in Preview only
-			inPreview = 1;
-			inProgram = 0;
-		}
-		else if ((tallyobj.control.lh_tally === 1) && (tallyobj.control.rh_tally === 1)) { //device is in Program only
-			inPreview = 0;
-			inProgram = 1;
-		}
-		else if ((tallyobj.control.lh_tally === 1) && (tallyobj.control.rh_tally === 2)) { //device is in PVW+PGM
-			inPreview = 1;
-			inProgram = 1;
-		}
-
-		let newTallyObj = {};
-		newTallyObj.tally1 = inPreview;
-		newTallyObj.tally2 = inProgram;
-		newTallyObj.address = tallyobj.INDEX[0];
-		newTallyObj.label = tallyobj.TEXT.join('').trim();
-
-		processTSLTally(sourceId, newTallyObj);
-	}
-}
-
-function SetUpATEMServer(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-
-	try {
-		let atemIP = source.data.ip;
-
-		let sourceConnectionObj = {};
-		sourceConnectionObj.sourceId = sourceId;
-		sourceConnectionObj.server = null;
-		source_connections.push(sourceConnectionObj);
-
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				try {
-					logger(`Source: ${source.name}  Creating ATEM Connection.`, 'info-quiet');
-					source_connections[i].server = new Atem();
-
-					source_connections[i].server.on('connected', () => {
-						for (let j = 0; j < sources.length; j++) {
-							if (sources[j].id === sourceId) {
-								sources[j].connected = true;
-								break;
-							}
-						}
-						logger(`Source: ${source.name} ATEM connection opened.`, 'info');
-						UnregisterReconnect(source.id);
-						UpdateSockets('sources');
-						UpdateCloud('sources');
-					});
-
-					source_connections[i].server.on('disconnected', () => {
-						for (let j = 0; j < sources.length; j++) {
-							if (sources[j].id === sourceId) {
-								sources[j].connected = false;
-								CheckReconnect(sources[j].id);
-								break;
-							}
-						}
-						logger(`Source: ${source.name} ATEM connection closed.`, 'info');
-						UpdateSockets('sources');
-						UpdateCloud('sources');
-					});
-					
-					source_connections[i].server.on('stateChanged', (state, path) => {
-						for (let h = 0; h < path.length; h++) {
-							if (path[h] === 'info.capabilities') {
-								//console.log(state.info.capabilities);
-							}
-							else if ((path[h].indexOf('video.mixEffects') > -1) || (path[h].indexOf('video.ME') > -1)) {
-								for (let i = 0; i < state.video.mixEffects.length; i++) {
-									processATEMTally(sourceId, state.video.mixEffects[i].index+1, state.video.mixEffects[i].programInput, state.video.mixEffects[i].previewInput);
-								}
-							}
-						}
-					});
-
-					source_connections[i].server.on('info', console.log);
-					source_connections[i].server.on('error', console.error);
-
-					source_connections[i].server.connect(atemIP);
-				}
-				catch(error) {
-					logger(`ATEM Error: ${error}`, 'error');
-				}
-
-				break;
-			}
-		}
-	}
-	catch (error) {
-		logger(`ATEM Error: ${error}`, 'error');
-	}
-}
-
-function processATEMTally(sourceId, me, programInput, previewInput) {
-	let source = GetSourceBySourceId(sourceId);
-
-	let atemSourceFound = false;
-
-	//first loop through the ATEM tally data array, by SourceId and ME; if it's present, update the current program/preview inputs
-	for (let i = 0; i < tallydata_ATEM.length; i++) {
-		if (tallydata_ATEM[i].sourceId === sourceId) {
-			if (tallydata_ATEM[i].me === me.toString()) {
-				atemSourceFound = true;
-				tallydata_ATEM[i].programInput = programInput.toString();
-				tallydata_ATEM[i].previewInput = previewInput.toString();
-			}
-		}
-	}
-
-	//if it was not in the tally array for this SourceId and ME, add it
-	if (!atemSourceFound) {
-		let atemTallyObj = {};
-		atemTallyObj.sourceId = sourceId;
-		atemTallyObj.me = me.toString();
-		atemTallyObj.programInput = programInput.toString();
-		atemTallyObj.previewInput = previewInput.toString();
-		tallydata_ATEM.push(atemTallyObj);
-	}
-
-	//now loop through the updated array, and if an ME is one chosen to monitor for this SourceId,
-	//grab the program input and put it into a temp array of program inputs
-	//grab the preview input and put it into a temp array of preview inputs
-
-	let allPrograms = [];
-	let allPreviews = [];
-
-	for (let i = 0; i < tallydata_ATEM.length; i++) {
-		if (tallydata_ATEM[i].sourceId === sourceId) {
-			if (source.data.me_onair.includes(tallydata_ATEM[i].me)) {
-				allPrograms.push(tallydata_ATEM[i].programInput.toString());
-				allPreviews.push(tallydata_ATEM[i].previewInput.toString());
-			}
-		}
-	}
-
-	//loop through the temp array of program inputs;
-	//if that program input is also in the preview array, build a TSL-type object that has it in pvw+pgm
-	//if only pgm, build an object of only pgm
-
-	for (let i = 0; i < allPrograms.length; i++) {
-		let includePreview = false;
-		if (allPreviews.includes(allPrograms[i])) {
-			includePreview = true;
-		}
-
-		let tallyObj = {};
-		tallyObj.address = allPrograms[i];
-		tallyObj.brightness = 1;
-		tallyObj.tally1 = (includePreview ? 1 : 0);
-		tallyObj.tally2 = 1;
-		tallyObj.tally3 = 0;
-		tallyObj.tally4 = 0;
-		tallyObj.label = `Source ${allPrograms[i]}`;
-		processTSLTally(sourceId, tallyObj);
-	}
-
-	//now loop through the temp array of pvw inputs
-	//if that input is not in the program array, build a TSL object of only pvw
-
-	for (let i = 0; i < allPreviews.length; i++) {
-		let onlyPreview = true;
-
-		if (allPrograms.includes(allPreviews[i])) {
-			onlyPreview = false;
-		}
-
-		if (onlyPreview) {
-			let tallyObj = {};
-			tallyObj.address = allPreviews[i];
-			tallyObj.brightness = 1;
-			tallyObj.tally1 = 1;
-			tallyObj.tally2 = 0;
-			tallyObj.tally3 = 0;
-			tallyObj.tally4 = 0;
-			tallyObj.label = `Source ${allPreviews[i]}`;
-			processTSLTally(sourceId, tallyObj);
-		}
-	}
-
-	//finally clear out any device state that is no longer in preview or program
-	let device_sources_atem = GetDeviceSourcesBySourceId(sourceId);
-	for (let i = 0; i < device_sources_atem.length; i++) {
-		let inProgram = false;
-		let inPreview = false;
-
-		if (allPrograms.includes(device_sources_atem[i].address)) {
-			//the device is still in program, somewhere
-			inProgram = true;
-		}
-		if (allPreviews.includes(device_sources_atem[i].address)) {
-			//the device is still in preview, somewhere
-			inPreview = true;
-		}
-
-		if ((!inProgram) && (!inPreview)) {
-			//the device is no longer in preview or program anywhere, so remove it
-			let tallyObj = {};
-			tallyObj.address = device_sources_atem[i].address;
-			tallyObj.brightness = 1;
-			tallyObj.tally1 = 0;
-			tallyObj.tally2 = 0;
-			tallyObj.tally3 = 0;
-			tallyObj.tally4 = 0;
-			tallyObj.label = `Source ${device_sources_atem[i].address}`;
-			processTSLTally(sourceId, tallyObj);
-		}
-	}
-}
-
-function StopATEMServer(sourceId) {
-	let source = GetSourceBySourceId(sourceId);
-
-	RegisterDisconnect(sourceId);
-
-	for (let i = 0; i < source_connections.length; i++) {
-		if (source_connections[i].sourceId === sourceId) {
-			source_connections[i].server.disconnect(null);
-			logger(`Source: ${source.name}  ATEM connection closed.`, 'info');
-			break;
-		}
-	}
-}
-
-function SetUpVideoHubServer(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-
-	try {
-		let ip = source.data.ip;
-		let port = 9990;
-
-		let sourceConnectionObj = {};
-		sourceConnectionObj.sourceId = sourceId;
-		sourceConnectionObj.server = null;
-		source_connections.push(sourceConnectionObj);
-
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				try {
-					logger(`Source: ${source.name}  Creating VideoHub connection.`, 'info-quiet');
-
-					source_connections[i].server = new net.Socket();
-
-					source_connections[i].receiveBuffer = '';
-					source_connections[i].command = null;
-					source_connections[i].stash = [];
-
-					source_connections[i].server.on('error', function(error) {
-						logger(`VideoHub Error: ${error}`, 'error');
-					});
-
-					source_connections[i].server.on('connect', function() {
-						logger(`Source: ${source.name}  VideoHub connected.`, 'info-quiet');
-						for (let j = 0; j < sources.length; j++) {
-							if (sources[j].id === sourceId) {
-								sources[j].connected = true;
-								UnregisterReconnect(sources[j].id);
-								break;
-							}
-						}
-						UpdateSockets('sources');
-						UpdateCloud('sources');
-					});
-
-					source_connections[i].server.on('data', function(chunk) {
-						let j = 0, line = '', offset = 0;
-						source_connections[i].receiveBuffer += chunk;
-		
-						while ( (j = source_connections[i].receiveBuffer.indexOf('\n', offset)) !== -1) {
-							line = source_connections[i].receiveBuffer.substr(offset, j - offset);
-							offset = j + 1;
-							source_connections[i].server.emit('receiveline', line.toString());
-						}
-		
-						source_connections[i].receiveBuffer = source_connections[i].receiveBuffer.substr(offset);
-					});
-
-					source_connections[i].server.on('receiveline', function(line) {
-						if (source_connections[i].command === null && line.match(/:/) ) {
-							source_connections[i].command = line;
-						}
-						else if (source_connections[i].command !== null && line.length > 0) {
-							source_connections[i].stash.push(line.trim());
-						}
-						else if (line.length === 0 && source_connections[i].command !== null) {
-							let cmd = source_connections[i].command.trim().split(/:/)[0];
-		
-							processVideohubInformation(sourceId, cmd, source_connections[i].stash);
-		
-							source_connections[i].stash = [];
-							source_connections[i].command = null;
-						}
-					});
-
-					source_connections[i].server.on('close', function() {
-						logger(`Source: ${source.name}  VideoHub Connection closed.`, 'info');
-						for (let j = 0; j < sources.length; j++) {
-							if (sources[j].id === sourceId) {
-								sources[j].connected = false;
-								CheckReconnect(sources[j].id);
-								break;
-							}
-						}
-						UpdateSockets('sources');
-						UpdateCloud('sources');
-					});
-
-					source_connections[i].server.connect(port, ip);
-				}
-				catch(error) {
-					logger(`Source: ${source.name}  VideoHub Error: ${error}`, 'error');
-				}
-			}
-		}
-
-	}
-	catch(error) {
-		logger(`Source: ${source.name}  VideoHub Error: ${error}`, 'error');
-	}
-}
-
-function processVideohubInformation(sourceId, cmd, stash) {
-	if (cmd.match(/VIDEO OUTPUT ROUTING/)) {
-		for (let i = 0; i < stash.length; i++) {
-			let destination = parseInt(stash[i].substr(0, stash[i].indexOf(' ')));
-			let source = parseInt(stash[i].substr(stash[i].indexOf(' ')));
-			destination++; //zero-based so we increment it
-			source++;//zero-based so we increment it
-
-			processVideoHubTally(sourceId, destination, source);
-		}
-	}
-	else if (cmd.match(/INPUT LABELS/)) {
-		for (let i = 0; i < stash.length; i++) {
-			let source = parseInt(stash[i].substr(0, stash[i].indexOf(' ')));
-			source++; //zero-based so we increment it
-			let name = stash[i].substr(stash[i].indexOf(' '));
-			addVideoHubInformation(sourceId, source, name);
-		}
-	}
-}
-
-function addVideoHubInformation(sourceId, source, name) {
-	let found = false;
-	for (let i = 0; i < labels_VideoHub.length; i++) {
-		if (labels_VideoHub[i].sourceId === sourceId) {
-			if (labels_VideoHub[i].source === source) {
-				found = true;
-				labels_VideoHub[i].name = name;
-				break;
-			}
-		}
-	}
-
-	if (!found) {
-		let labelObj = {};
-		labelObj.sourceId = sourceId;
-		labelObj.source = source;
-		labelObj.name = name;
-		labels_VideoHub.push(labelObj);
-	}
-}
-
-function processVideoHubTally(sourceId, destination, src) {
-	//this builds the tallydata_Videohub array and makes sure it has an initial state
-	let tallyFound = false;
-
-	for (let i = 0; i < tallydata_VideoHub.length; i++) {
-		if (tallydata_VideoHub[i].sourceId === sourceId) {
-			if (tallydata_VideoHub[i].address === src) {
-				tallyFound = true;
-				break;
-			}
-		}
-	}
-
-	if (!tallyFound) {
-		let tallyObj = {};
-		tallyObj.sourceId = sourceId;
-		tallyObj.address = src;
-		tallyObj.label = getVideoHubSourceName(sourceId, src);
-		tallydata_VideoHub.push(tallyObj);
-	}
-
-	updateVideoHubDestination(sourceId, destination, src);
-}
-
-function updateVideoHubDestination(sourceId, destination, src) {
-	//maintains an array of videohub destinations and their active sources
-
-	let source = GetSourceBySourceId(sourceId);
-
-	let found = false;
-
-	let recheck_sources = [];
-
-	//loop through and update the destinations array with the new source
-	//if the source has changed, add the previous source to a new array to recheck the state of that source
-	for (let i = 0; i < destinations_VideoHub.length; i++) {
-		if (destinations_VideoHub[i].sourceId === sourceId) {
-			if (destinations_VideoHub[i].destination === destination) {
-				if (destinations_VideoHub[i].source !== src) {
-					//the source has changed, so we will need to recheck that old source to make sure it is not in pvw/pgm anywhere else
-					recheck_sources.push(destinations_VideoHub[i].source);
-				}
-				destinations_VideoHub[i].source = src;
-				found = true;
-				break;
-			}
-		}
-	}
-
-	if (!found) {
-		let destinationObj = {};
-		destinationObj.sourceId = sourceId;
-		destinationObj.destination = destination;
-		destinationObj.source = src;
-		destinations_VideoHub.push(destinationObj);
-	}
-
-	//check to see if any of the destinations currently have this source and if that destination is configured as a preview or program bus
-	let inPreview = false;
-	let inProgram = false;
-
-	for (let i = 0; i < destinations_VideoHub.length; i++) {
-		if (destinations_VideoHub[i].source === src) {
-			if (source.data.destinations_pvw.includes(destinations_VideoHub[i].destination)) {
-				inPreview = true;
-			}
-			if (source.data.destinations_pgm.includes(destinations_VideoHub[i].destination)) {
-				inProgram = true;
-			}
-		}
-	}
-
-	for (let i = 0; i < tallydata_VideoHub.length; i++) {
-		if (tallydata_VideoHub[i].sourceId === sourceId) {
-			if (tallydata_VideoHub[i].address === src) {
-				tallydata_VideoHub[i].tally1 = (inPreview ? 1 : 0);
-				tallydata_VideoHub[i].tally2 = (inProgram ? 1 : 0);	
-				processTSLTally(sourceId, tallydata_VideoHub[i]);
-			}
-		}
-	}
-
-	//now recheck any source that used to be in this destination and make sure they are not in pvw/pgm elsewhere
-	for (let i = 0; i < recheck_sources.length; i++) {
-		let inPreview = false;
-		let inProgram = false;
-		for (let j = 0; j < destinations_VideoHub.length; j++) {
-			if (destinations_VideoHub[j].source === recheck_sources[i]) {
-				//check and see if this destination is a pvw or pgm type
-				if (source.data.destinations_pvw.includes(destinations_VideoHub[j].destination)) {
-					inPreview = true;
-				}
-				if (source.data.destinations_pgm.includes(destinations_VideoHub[j].destination)) {
-					inProgram = true;
-				}
-			}
-		}
-
-		for (let j = 0; j < tallydata_VideoHub.length; j++) {
-			if (tallydata_VideoHub[j].sourceId === sourceId) {
-				if (tallydata_VideoHub[j].address === recheck_sources[i]) {
-					tallydata_VideoHub[j].tally1 = (inPreview ? 1 : 0);
-					tallydata_VideoHub[j].tally2 = (inProgram ? 1 : 0);	
-					processTSLTally(sourceId, tallydata_VideoHub[j]);
-				}
-			}
-		}
-	}
-}
-
-function getVideoHubSourceName(sourceId, source) {
-	let returnVal = null;
-
-	for (let i = 0; i < labels_VideoHub.length; i++) {
-		if (labels_VideoHub[i].sourceId === sourceId) {
-			if (labels_VideoHub[i].source === source) {
-				returnVal = labels_VideoHub[i].name;
-				break;
-			}
-		}
-	}
-
-	return returnVal;
-}
-
-function StopVideoHubServer(sourceId) {
-	let source = GetSourceBySourceId(sourceId);
-
-	RegisterDisconnect(sourceId);
-
-	for (let i = 0; i < source_connections.length; i++) {
-		if (source_connections[i].sourceId === sourceId) {
-			source_connections[i].server.end();
-			logger(`Source: ${source.name}  VideoHub connection closed.`, 'info');
-			break;
-		}
-	}
-}
-
-function SetUpOBSServer(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-
-	try
-	{
-		let ip = source.data.ip;
-		let port = source.data.port;
-		let password = source.data.password;
-
-		let sourceConnectionObj = {};
-		sourceConnectionObj.sourceId = sourceId;
-		sourceConnectionObj.server = null;
-		source_connections.push(sourceConnectionObj);
-
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				try {
-					logger(`Source: ${source.name}  Creating OBS Websocket connection.`, 'info-quiet');
-					source_connections[i].server = new OBS();
-					source_connections[i].server.ip = ip;
-					source_connections[i].server.connect({address: ip + ':' + port, password: password}, function (data) {
-						logger(`Source: ${source.name}  Connected to OBS @ ${ip}:${port}`, 'info');
-					})
-					.catch(function (error) {
-						if (error.code === 'CONNECTION_ERROR') {
-							logger(`Source: ${source.name}  OBS websocket connection error. Is OBS running?`, 'error');
-						}
-					});
-
-					source_connections[i].server.on('error', function(error) {
-						logger(`Source: ${source.name}  OBS websocket error: ${error}`, 'error');
-					});
-
-					source_connections[i].server.on('ConnectionOpened', function (data) {
-						logger(`Source: ${source.name}  OBS Connection opened.`, 'info');
-						addOBSSource(sourceId,'{{STREAMING}}');
-						addOBSSource(sourceId,'{{RECORDING}}');
-                        //Retrieve all the current sources and add them
-                        source_connections[i].server.sendCallback('GetSourcesList', function(err,data){
-                            if(err || data.sources == undefined) return;
-                            data.sources.forEach(source => {
-                                addOBSSource(sourceId,source.name);
-                            });
-                        });
-                        var sourceIndex = sources.findIndex(src => src.id == sourceId);
-                        if(sourceIndex !== undefined){
-                            console.log('found index',sourceIndex);
-                            sources[sourceIndex].connected = true; //todo fix
-                            UnregisterReconnect(sources[sourceIndex].id);
-                        }
-						UpdateSockets('sources');
-						UpdateCloud('sources');
-					});
-
-					source_connections[i].server.on('ConnectionClosed', function (data) {
-						logger(`Source: ${source.name} OBS Connection closed.`, 'info');
-						for (let j = 0; j < sources.length; j++) {
-							if (sources[j].id === sourceId) {
-								sources[j].connected = false;
-								CheckReconnect(sources[j].id);
-								break;
-							}
-						}
-						UpdateSockets('sources');
-						UpdateCloud('sources');
-					});
-
-					source_connections[i].server.on('AuthenticationSuccess', function (data) {
-						logger(`Source: ${source.name}  OBS Authenticated.`, 'info-quiet');
-					});
-
-					source_connections[i].server.on('AuthenticationFailure', function (data) {
-						logger(`Source: ${source.name}  Invalid OBS Password.`, 'info');
-					});
-
-					source_connections[i].server.on('PreviewSceneChanged', function (data) {
-						logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
-						if (data) {
-							if (data.sources)
-							{
-								processOBSTally(sourceId, data.sources, 'preview');
-							}
-						}
-					});
-
-					source_connections[i].server.on('SwitchScenes', function (data) {
-						logger(`Source: ${source.name}  Program Scene Changed.`, 'info-quiet');
-						if (data) {
-							if (data.sources)
-							{
-								processOBSTally(sourceId, data.sources, 'program');
-							}
-						}
-					});
-                    
-                    source_connections[i].server.on('SourceCreated', function (data) {
-						logger(`Source: ${source.name}  New source created`, 'info-quiet');
-                        addOBSSource(sourceId,data.sourceName);
-					});
-                    
-                    source_connections[i].server.on('SourceDestroyed', function (data) {
-                        deleteOBSSource(sourceId,data.sourceName);
-					});
-                    
-                    source_connections[i].server.on('SourceRenamed', function (data) {
-						logger(`Source: ${source.name}  Source renamed`, 'info-quiet');
-                        renameOBSSource(sourceId,data.previousName,data.newName);                        
-					});
-
-					source_connections[i].server.on('StreamStarted', function(data) {
-						let obsTally = [
-							{
-								name: '{{STREAMING}}',
-								render: true
-							}
-						];
-						processOBSTally(sourceId, obsTally, 'program');
-					});
-			
-					source_connections[i].server.on('StreamStopped', function() {
-						let obsTally = [
-							{
-								name: '{{STREAMING}}',
-								render: false
-							}
-						];
-						processOBSTally(sourceId, obsTally, 'program');
-					});
-
-					source_connections[i].server.on('RecordingStarted', function() {
-						let obsTally = [
-							{
-								name: '{{RECORDING}}',
-								render: true
-							}
-						];
-						processOBSTally(sourceId, obsTally, 'program');
-					});
-			
-					source_connections[i].server.on('RecordingStopped', function() {
-						let obsTally = [
-							{
-								name: '{{RECORDING}}',
-								render: false
-							}
-						];
-						processOBSTally(sourceId, obsTally, 'program');
-					});
-				}
-				catch(error) {
-					logger(`Source: ${source.name}  OBS Error: ${error}`, 'error');
-				}
-
-				break;
-			}
-		}
-	}
-	catch (error) {
-		logger(`Source: ${source.name}  OBS Error: ${error}`, 'error');
-	}
-}
-
-function addOBSSource(sourceId, name) {
-    //Double check its not there already, this also allows methods like processOBSTally to call this without caring whether it already exists or not
-    var exists = tallydata_OBS.find(function(src){
-        return (src.sourceId == sourceId && src.address == name);
-    });
-    if(exists !== undefined) return;
-    //Doesn't exist, add it
-    tallydata_OBS.push({
-        sourceId: sourceId,
-        label: name,
-        address: name,
-        tally1: 0,
-        tally2: 0,
-        tally3: 0,
-        tally4: 0
-    });
-    logger(`OBS Tally Source: ${sourceId} Added new source: ${name}`, 'info-quiet');
-}
-
-function renameOBSSource(sourceId, oldname, newname) {
-    let sourceIndex = tallydata_OBS.findIndex(src => src.sourceId === sourceId && src.address === oldname);
-    if(sourceIndex === undefined) return;
-    tallydata_OBS[sourceIndex].label = newname;
-    tallydata_OBS[sourceIndex].address = newname;
-    logger(`OBS Tally Source: ${sourceId} Renamed source: ${oldname} to ${newname}`, 'info-quiet');
-    let deviceSourceIndex = device_sources.findIndex(src => src.sourceId === sourceId && src.address === oldname);
-    if(deviceSourceIndex > -1){
-        device_sources[deviceSourceIndex].address = newname;
-        UpdateCloud('device_sources');
-        logger(`Device Source Edited: ${deviceName} - ${sourceName}`, 'info');
-    }    
-}
-
-function deleteOBSSource(sourceId, name) {
-    let sourceIndex = tallydata_OBS.findIndex(src => src.sourceId === sourceId && src.address === name);
-    if(!sourceIndex) return;
-    tallydata_OBS.splice(sourceIndex, 1);
-    logger(`OBS Tally Source: ${sourceId}  Source: ${name} removed`, 'info-quiet');
-    //Note: currently will not delete the mapping from device_sources, in case its needed again?
-}
-
-function processOBSTally(sourceId, sourceArray, tallyType) {
-	for (let i = 0; i < sourceArray.length; i++) {
-        addOBSSource(sourceId,sourceArray[i].name);
-	}
-
-	for (let i = 0; i < tallydata_OBS.length; i++) {
-		let obsSourceFound = false;
-		for (let j = 0; j < sourceArray.length; j++) {
-			if (tallydata_OBS[i].sourceId === sourceId) {
-				if (tallydata_OBS[i].address === sourceArray[j].name) {
-					obsSourceFound = true;
-					//update the tally state because OBS is saying this source is not in the current scene
-					switch(tallyType) {
-						case 'preview':
-							tallydata_OBS[i].tally1 = ((sourceArray[j].render) ? 1 : 0);
-							break;
-						case 'program':
-							tallydata_OBS[i].tally2 = ((sourceArray[j].render) ? 1 : 0);
-							break;
-						default:
-							break;
-					}
-					processTSLTally(sourceId, tallydata_OBS[i]);
-					break;
-				}
-			}
-		}
-
-		if ((tallydata_OBS[i].address !== '{{STREAMING}}') && (tallydata_OBS[i].address !== '{{RECORDING}}')) {
-			if (!obsSourceFound) {
-				//it is no longer in the bus, mark it as such
-				switch(tallyType) {
-					case 'preview':
-						tallydata_OBS[i].tally1 = 0;
-						break;
-					case 'program':
-						tallydata_OBS[i].tally2 = 0;
-						break;
-					default:
-						break;
-				}
-				processTSLTally(sourceId, tallydata_OBS[i]);
-			}
-		}
-	}
-}
-
-function StopOBSServer(sourceId) {
-	let source = GetSourceBySourceId(sourceId);
-
-	RegisterDisconnect(sourceId);
-
-	for (let i = 0; i < source_connections.length; i++) {
-		if (source_connections[i].sourceId === sourceId) {
-			logger(`Source: ${source.name}  Closing OBS connection.`, 'info-quiet');
-			source_connections[i].server.disconnect();
-			break;
-		}
-	}
-}
-
-function SetUpVMixServer(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-	let ip = source.data.ip;
-	let port = 8099;
-
-	try
-	{
-		let sourceConnectionObj = {};
-		sourceConnectionObj.sourceId = sourceId;
-		sourceConnectionObj.server = null;
-		source_connections.push(sourceConnectionObj);
-
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				logger(`Source: ${source.name}  Creating VMix connection.`, 'info-quiet');
-				source_connections[i].server = new net.Socket();
-				source_connections[i].server.connect(port, ip, function() {
-					logger(`Source: ${source.name}  VMix Connection Opened.`, 'info');
-
-					source_connections[i].server.write('SUBSCRIBE TALLY\r\n');
-					source_connections[i].server.write('SUBSCRIBE ACTS\r\n');
-
-					addVMixSource(sourceId, '{{RECORDING}}', 'Recording');
-					addVMixSource(sourceId, '{{STREAMING}}', 'Streaming');
-
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = true;
-							UnregisterReconnect(sources[j].id);
-							break;
-						}
-					}
-					UpdateSockets('sources');
-					UpdateCloud('sources');
-				});
-
-				source_connections[i].server.on('data', function (data) {
-					logger(`Source: ${source.name}  VMix data received.`, 'info-quiet');
-					data = data
-					.toString()
-					.split(/\r?\n/);
-
-					tallyData = data.filter(text => text.startsWith('TALLY OK'));
-
-					if (tallyData.length > 0) {
-						logger(`Source: ${source.name}  VMix tally data received.`, 'info-quiet');
-						for (let j = 9; j < tallyData[0].length; j++) {
-							let address = j-9+1;
-							let value = tallyData[0].charAt(j);
-
-							//build an object like the TSL module creates so we can use the same function to process it
-							let tallyObj = {};
-							tallyObj.address = address.toString();
-							tallyObj.brightness = 1;
-							tallyObj.tally1 = ((value === '2') ? 1 : 0);
-							tallyObj.tally2 = ((value === '1') ? 1 : 0);
-							tallyObj.tally3 = 0;
-							tallyObj.tally4 = 0;
-							tallyObj.label = `Input ${address}`;
-							processTSLTally(sourceId, tallyObj);
-							addVMixSource(sourceId, tallyObj.address, tallyObj.label);
-						}
-					}
-					else {
-						//we received some other command, so lets process it
-						if (data[0].indexOf('ACTS OK Recording ') > -1) {
-							let value = false;
-							if (data.indexOf('ACTS OK Recording 1') > -1) {
-								value = true;
-							}
-							//build an object like the TSL module creates so we can use the same function to process it
-							let tallyObj = {};
-							tallyObj.address = '{{RECORDING}}';
-							tallyObj.brightness = 1;
-							tallyObj.tally1 = 0;
-							tallyObj.tally2 = value;
-							tallyObj.tally3 = 0;
-							tallyObj.tally4 = 0;
-							tallyObj.label = `Recording: ${value}`;
-							processTSLTally(sourceId, tallyObj);
-						}
-
-						if (data[0].indexOf('ACTS OK Streaming ') > -1) {
-							let value = false;
-							if (data.indexOf('ACTS OK Streaming 1') > -1) {
-								value = true;
-							}
-							//build an object like the TSL module creates so we can use the same function to process it
-							let tallyObj = {};
-							tallyObj.address = '{{STREAMING}}';
-							tallyObj.brightness = 1;
-							tallyObj.tally1 = 0;
-							tallyObj.tally2 = value;
-							tallyObj.tally3 = 0;
-							tallyObj.tally4 = 0;
-							tallyObj.label = `Streaming: ${value}`;
-							processTSLTally(sourceId, tallyObj);
-						}
-					}
-				});
-
-				source_connections[i].server.on('error', function(error) {
-					logger(`Source: ${source.name}  VMix Connection Error occurred: ${error}`, 'error');
-				});
-
-				source_connections[i].server.on('close', function () {
-					logger(`Source: ${source.name}  VMix Connection closed.`, 'info');
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = false;
-							CheckReconnect(sources[j].id);
-							break;
-						}
-					}
-					UpdateSockets('sources');
-					UpdateCloud('sources');
-				});
-				break;
-			}
-		}
-	}
-	catch (error) {
-		logger(`Source: ${source.name}. VMix Error Occurred: ${error}`, 'error');
-	}
-}
-
-function addVMixSource(sourceId, address, label) {
-    //Double check its not there already
-    var exists = tallydata_VMix.find(function(src){
-        return (src.sourceId == sourceId && src.address == address);
-	});
-	
-    if (exists !== undefined) return;
-	
-	//Doesn't exist, add it
-    tallydata_VMix.push({
-        sourceId: sourceId,
-        label: label,
-        address: address,
-        tally1: 0,
-        tally2: 0,
-        tally3: 0,
-        tally4: 0
-	});
-	
-    logger(`VMix Tally Source: ${sourceId} Added new source: ${label}`, 'info-quiet');
-}
-
-function StopVMixServer(sourceId) {
-	let source = GetSourceBySourceId(sourceId);
-
-	RegisterDisconnect(sourceId);
-
-	for (let i = 0; i < source_connections.length; i++) {
-		if (source_connections[i].sourceId === sourceId) {
-			logger(`Source: ${source.name}  Closing VMix connection.`, 'info-quiet');
-			source_connections[i].server.write('QUIT\r\n');
-			break;
-		}
-	}
-}
-
-function SetUpRolandSmartTally(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-
-	try {
-		let sourceConnectionObj = {};
-		sourceConnectionObj.sourceId = sourceId;
-		sourceConnectionObj.server = null;
-		source_connections.push(sourceConnectionObj);
-
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				logger(`Source: ${source.name}  Opening Roland Smart Tally connection.`, 'info-quiet');
-				for (let j = 0; j < sources.length; j++) {
-					if (sources[j].id === sourceId) {
-						sources[j].connected = true;
-						UnregisterReconnect(sources[j].id);
-						break;
-					}
-				}
-				source_connections[i].server = setInterval(checkRolandStatus, 500, sourceId);
-				break;
-			}
-		}
-
-		UpdateSockets('sources');
-		UpdateCloud('sources');
-	}
-	catch (error) {
-		logger(`Source: ${source.name}. Roland Smart Tally Error: ${error}`, 'error');
-	}
-}
-
-function checkRolandStatus(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-	let ip = source.data.ip;
-
-	for (let j = 0; j < device_sources.length; j++) {
-		if (device_sources[j].sourceId === sourceId) {
-			let address = device_sources[j].address;
-			axios.get(`http://${ip}/tally/${address}/status`)
-			.then(function (response) {
-				let tallyObj = {};
-				tallyObj.address = address;
-				tallyObj.label = address;
-				tallyObj.tally4 = 0;
-				tallyObj.tally3 = 0;
-				tallyObj.tally2 = 0;
-				tallyObj.tally1 = 0;
-
-				switch(response.data)
-				{
-					case "onair":
-						tallyObj.tally2 = 1;
-						tallyObj.tally1 = 0;
-						break;
-					case "selected":
-						tallyObj.tally2 = 0;
-						tallyObj.tally1 = 1;
-						break;
-					case "unselected":
-					default:
-						tallyObj.tally2 = 0;
-						tallyObj.tally1 = 0;
-						break;
-				}
-				processTSLTally(sourceId, tallyObj);
-			})
-			.catch(function (error) {
-				logger(`Source: ${source.name}  Roland Smart Tally Error: ${error}`, 'error');
-			});
-		}
-	}
-}
-
-function StopRolandSmartTally(sourceId) {
-	let source = GetSourceBySourceId(sourceId);
-
-	for (let i = 0; i < source_connections.length; i++) {
-		if (source_connections[i].sourceId === sourceId) {
-			clearInterval(source_connections[i].server);
-			logger(`Source: ${source.name}  Roland Smart Tally connection closed`, 'info');
-			break;
-		}
-	}
-
-	for (let j = 0; j < sources.length; j++) {
-		if (sources[j].id === sourceId) {
-			sources[j].connected = false;
-			break;
-		}
-	}
-
-	UpdateSockets('sources');
-	UpdateCloud('sources');
 }
 
 function SetUpRolandVR(sourceId) {
@@ -3630,381 +2170,6 @@ function StopRolandVR(sourceId) {
 	catch (error) {
 		logger(`Source: ${source.name}  Roland VR Connection Error occurred: ${error}`, 'error');
 	}
-}
-
-function SetUpRossCarbonite(sourceId)
-{
-	let source = sources.find( ({ id }) => id === sourceId);
-	let port = source.data.port;
-	let transport = source.data.transport_type;
-
-	if (transport === 'udp') {
-		try
-		{
-			let sourceConnectionObj = {};
-			sourceConnectionObj.sourceId = sourceId;
-			sourceConnectionObj.server = null;
-			source_connections.push(sourceConnectionObj);
-	
-			for (let i = 0; i < source_connections.length; i++) {
-				if (source_connections[i].sourceId === sourceId) {
-					AddPort(port, sourceId);
-					logger(`Source: ${source.name}  Creating Ross Carbonite UDP Connection.`, 'info-quiet');
-					source_connections[i].server = new TSLUMD(port);
-	
-					source_connections[i].server.on('message', function (tally) {
-						processRossCarboniteTally(sourceId, tally);
-					});
-	
-					logger(`Source: ${source.name}  Ross Carbonite Server started. Listening for data on UDP Port: ${port}`, 'info');
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = true;
-							break;
-						}
-					}
-					UpdateSockets('sources');
-					UpdateCloud('sources');
-					break;
-				}
-			}
-		} catch (error)
-		{
-			logger(`Source: ${source.name}  Ross Carbonite UDP Server Error occurred: ${error}`, 'error');
-		}
-	}
-	else {
-		try
-		{
-			let parser = packet.createParser();
-			parser.packet('tsl', 'b8{x1, b7 => address},b8{x2, b2 => brightness, b1 => tally4, b1 => tally3, b1 => tally2, b1 => tally1 }, b8[16] => label');
-	
-			let sourceConnectionObj = {};
-			sourceConnectionObj.sourceId = sourceId;
-			sourceConnectionObj.server = null;
-			source_connections.push(sourceConnectionObj);
-	
-			for (let i = 0; i < source_connections.length; i++) {
-				if (source_connections[i].sourceId === sourceId) {
-					AddPort(port, sourceId);
-					logger(`Source: ${source.name}  Creating Ross Carbonite TCP Connection.`, 'info-quiet');
-					source_connections[i].server = net.createServer(function (socket) {
-						socket.on('data', function (data) {
-							parser.extract('tsl', function (result) {
-								result.label = Buffer.from(result.label).toString();
-								processRossCarboniteTally(sourceId, result);
-							});
-							parser.parse(data);
-						});
-	
-						socket.on('close', function () {
-							logger(`Source: ${source.name}  Ross Carbonite TCP Server connection closed.`, 'info');
-							CheckReconnect(source.id);
-						});
-					}).listen(port, function() {
-						logger(`Source: ${source.name}  Ross Carbonite Server started. Listening for data on TCP Port: ${port}`, 'info');
-						for (let j = 0; j < sources.length; j++) {
-							if (sources[j].id === sourceId) {
-								sources[j].connected = true;
-								UnregisterReconnect(sources[j].id);
-								break;
-							}
-						}
-						UpdateSockets('sources');
-						UpdateCloud('sources');
-	
-					});
-					break;
-				}
-			}
-		}
-		catch (error) {
-			logger(`Source: ${source.name}  Ross Carbonite TCP Server Error occurred: ${error}`, 'error');
-		}
-	}
-}
-
-function processRossCarboniteTally(sourceId, tallyObj) {
-	let labelAddress = parseInt(tallyObj.label.substring(0, tallyObj.label.indexOf(':')));
-
-	if (!isNaN(labelAddress)) {
-		//if it's a number, then the address in the label field is the "real" tally address we care about
-		labelAddress = labelAddress.toString(); //convert it to a string since all other addresses are stored as strings
-		addRossCarboniteTally(sourceId, tallyObj.address.toString(), labelAddress);
-	}
-	else {
-		//if it's not a number, then process the normal tally address
-		for (let i = 0; i < device_sources.length; i++) {
-			if (device_sources[i].sourceId === sourceId) { //this device_source is associated with the tally data of this source
-				if (device_sources[i].address === tallyObj.address.toString()) { //this device_source's address matches what was in the address field
-					if (device_sources[i].bus === 'onair') {
-						if (tallyObj.tally1) {
-							addRossCarboniteTally(sourceId, 'onair_preview', tallyObj.address.toString());
-						}
-						else {
-							removeRossCarboniteTally(sourceId, 'onair_preview', tallyObj.address.toString());
-						}
-						if (tallyObj.tally2) {
-							addRossCarboniteTally(sourceId, 'onair_program', tallyObj.address.toString());
-						}
-						else {
-							removeRossCarboniteTally(sourceId, 'onair_program', tallyObj.address.toString());
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
-function addRossCarboniteTally(sourceId, busAddress, address) {
-	let found = false;
-
-	for (let i = 0; i < tallydata_RossCarbonite.length; i++) {
-		if (tallydata_RossCarbonite[i].sourceId === sourceId) {
-			if (tallydata_RossCarbonite[i].address === address) {
-				found = true;
-				if (!tallydata_RossCarbonite[i].busses.includes(busAddress)) {
-					tallydata_RossCarbonite[i].busses.push(busAddress); //add the bus address to this item
-					updateRossCarboniteTallyData(sourceId, tallydata_RossCarbonite[i].address);
-				}
-			}
-			else {
-				if (tallydata_RossCarbonite[i].busses.includes(busAddress)) {
-					//remove this bus from this entry, as it is no longer in it (the label field can only hold one entry at a time)
-					if ((busAddress !== 'onair_preview') && (busAddress !== 'onair_program')) {
-						removeRossCarboniteTally(sourceId, busAddress, tallydata_RossCarbonite[i].address);
-					}
-				}
-			}
-		}
-	}
-
-	if (!found) { //if there was not an entry in the array for this address
-		let tallyObj = {};
-		tallyObj.sourceId = sourceId;
-		tallyObj.busses = [busAddress];
-		tallyObj.address = address;
-		tallydata_RossCarbonite.push(tallyObj);
-	}
-}
-
-function removeRossCarboniteTally(sourceId, busAddress, address) {
-	for (let i = 0; i < tallydata_RossCarbonite.length; i++) {
-		if (tallydata_RossCarbonite[i].sourceId === sourceId) {
-			if (tallydata_RossCarbonite[i].address === address) {
-				tallydata_RossCarbonite[i].busses = tallydata_RossCarbonite[i].busses.filter(bus => bus !== busAddress);
-				updateRossCarboniteTallyData(sourceId, tallydata_RossCarbonite[i].address);
-			}
-		}
-	}
-}
-
-function updateRossCarboniteTallyData(sourceId, address) {
-	//build a new TSL tally obj based on this address and whatever busses it might be in
-	let source = GetSourceBySourceId(sourceId);
-	let sourceTypeId = source.sourceTypeId;
-
-	let inPreview = false;
-	let inProgram = false;
-
-	let found = false;
-
-	for (let i = 0; i < device_sources.length; i++) {
-		inPreview = false;
-		inProgram = false;
-		if (device_sources[i].sourceId === sourceId) {
-			if (device_sources[i].address === address) {
-				//this device_source has this address in it, so let's loop through the tallydata_carbonite array
-				//   and find all the busses that match this address
-				let busses = tallydata_RossCarbonite.find( ({address}) => address === device_sources[i].address).busses;
-
-				for (let j = 0; j < busses.length; j++) {
-					let bus = source_types_busaddresses.find( (busAddress) => {
-							if ((busAddress.sourceTypeId === sourceTypeId) && (busAddress.address === busses[j])) {
-								return true;
-							}
-						});
-					if (bus) { //if bus is undefined, it's not a bus we monitor anyways
-						if (bus.bus === device_sources[i].bus) {
-							if (bus.type === 'preview') {
-								inPreview = true;
-							}
-							else if (bus.type === 'program') {
-								inProgram = true;
-							}
-						}
-					}
-				}
-
-				let newTallyObj = {};
-				newTallyObj.address = address;
-				newTallyObj.tally1 = (inPreview ? 1 : 0);
-				newTallyObj.tally2 = (inProgram ? 1 : 0);
-				CheckDeviceState(device_sources[i].deviceId, sourceId, newTallyObj);
-			}
-		}
-	}
-}
-
-function StopRossCarbonite(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-
-	let transport = source.data.transport_type;
-
-	if (transport === 'udp') {
-		try
-		{
-			for (let i = 0; i < source_connections.length; i++) {
-				if (source_connections[i].sourceId === sourceId) {
-					logger(`Source: ${source.name}  Closing Ross Carbonite UDP Connection.`, 'info-quiet');
-					source_connections[i].server.server.close();
-					DeletePort(source.data.port);
-					logger(`Source: ${source.name}  Ross Carbonite UDP Server Stopped. Connection Closed.`, 'info');
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = false;
-							break;
-						}
-					}
-	
-					UpdateSockets('sources');
-					UpdateCloud('sources');
-					break;
-				}
-			}
-		}
-		catch (error) {
-			logger(`Source: ${source.name}  Ross Carbonite UDP Server Error occurred: ${error}`, 'error');
-		}
-	}
-	else {
-		RegisterDisconnect(sourceId);
-
-		try
-		{
-			for (let i = 0; i < source_connections.length; i++) {
-				if (source_connections[i].sourceId === sourceId) {
-					source_connections[i].server.close(function() {});
-					DeletePort(source.data.port);
-					logger(`Source: ${source.name}  Ross Carbonite TCP Server Stopped.`, 'info');
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = false;
-							break;
-						}
-					}
-
-					UpdateSockets('sources');
-					UpdateCloud('sources');
-					break;
-				}
-			}
-		}
-		catch (error) {
-			logger(`Source: ${source.name}  Ross Carbonite TCP Server Error occurred: ${error}`, 'error');
-		}
-	}
-}
-
-function SetUpOSCServer(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-
-	try {
-		let sourceConnectionObj = {};
-		sourceConnectionObj.sourceId = sourceId;
-		sourceConnectionObj.server = null;
-		source_connections.push(sourceConnectionObj);
-
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				AddPort(source.data.port, sourceId);
-				logger(`Source: ${source.name}  Creating new OSC connection.`, 'info-quiet');
-				source_connections[i].server = new osc.UDPPort({
-					localAddress: '0.0.0.0',
-					localPort: source.data.port,
-					metadata: true
-				});
-
-				source_connections[i].server.on('message', function (oscMsg, timeTag, info) {
-					logger(`Source: ${source.name} OSC message received: ${oscMsg.address} ${oscMsg.args[0].value.toString()}`, 'info-quiet');
-					let tallyObj = {};
-					tallyObj.address = oscMsg.args[0].value.toString();
-					tallyObj.label = tallyObj.address;
-					switch(oscMsg.address) {
-						case '/tally/preview_on':
-							tallyObj.tally1 = 1;
-							break;
-						case '/tally/preview_off':
-							tallyObj.tally1 = 0;
-							break;
-						case '/tally/program_on':
-							tallyObj.tally2 = 1;
-							break;
-						case '/tally/program_off':
-							tallyObj.tally2 = 0;
-							break;
-						case '/tally/previewprogram_off':
-							tallyObj.tally1 = 0;
-							tallyObj.tally2 = 0;
-							break;
-						case '/tally/previewprogram_on':
-							tallyObj.tally1 = 1;
-							tallyObj.tally2 = 1;
-							break;
-						default:
-							break;
-					}
-					processTSLTally(source.id, tallyObj);
-				});
-
-				source_connections[i].server.on('error', function (error) {
-					logger(`Source: ${source.name} OSC Error: ${error}`, 'error');
-				});
-
-				source_connections[i].server.on('ready', function () {
-					logger(`Source: ${source.name}  OSC port ${source.data.port} ready.`, 'info-quiet');
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = true;
-							UpdateSockets('sources');
-							UpdateCloud('sources');
-							break;
-						}
-					}
-				});
-
-				source_connections[i].server.open();
-				break;
-			}
-		}
-	}
-	catch (error) {
-		logger(`Source: ${source.name} OSC Error: ${error}`, 'error');
-	}
-}
-
-function StopOSCServer(sourceId) {
-	let source = GetSourceBySourceId(sourceId);
-
-	for (let i = 0; i < source_connections.length; i++) {
-		if (source_connections[i].sourceId === sourceId) {
-			source_connections[i].server.close();
-			DeletePort(source.data.port);
-			logger(`Source: ${source.name}  OSC connection closed.`, 'info');
-			break;
-		}
-	}
-
-	for (let j = 0; j < sources.length; j++) {
-		if (sources[j].id === sourceId) {
-			sources[j].connected = false;
-			break;
-		}
-	}
-
-	UpdateSockets('sources');
-	UpdateCloud('sources');
 }
 
 function SetUpTricasterServer(sourceId) {
@@ -5053,112 +3218,149 @@ function TallyArbiter_Manage(obj) {
 }
 
 function StartConnection(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-	let sourceType = source_types.find( ({ id }) => id === source.sourceTypeId);
+	for (let i = 0; i < sources.length; i++) {
+		if ((sources[i].enabled) && (!sources[i].cloudConnection)) {
+			let sourceType = source_types.find( ({ id }) => id === sources[i].sourceTypeId);
 
-	switch(sourceType.type) {
-		case 'tsl_31_udp':
-			SetUpTSLServer_UDP(sourceId);
-			break;
-		case 'tsl_31_tcp':
-			SetUpTSLServer_TCP(sourceId);
-			break;
-		case 'tsl_5_udp':
-			SetUpTSL5Server_UDP(sourceId);
-			break;
-		case 'tsl_5_tcp':
-			SetUpTSL5Server_TCP(sourceId);
-			break;
-		case 'atem':
-			SetUpATEMServer(sourceId);
-			break;
-		case 'videohub':
-			SetUpVideoHubServer(sourceId);
-			break;
-		case 'obs':
-			SetUpOBSServer(sourceId);
-			break;
-		case 'vmix':
-			SetUpVMixServer(sourceId);
-			break;
-		case 'roland':
-			SetUpRolandSmartTally(sourceId);
-			break;
-		case 'roland-vr':
-			SetUpRolandVR(sourceId);
-			break;
-		case 'ross_carbonite':
-			SetUpRossCarbonite(sourceId);
-			break;
-		case 'osc':
-			SetUpOSCServer(sourceId);
-			break;
-		case 'tc':
-			SetUpTricasterServer(sourceId);
-			break;
-		case 'awlivecore':
-			SetUpAWLivecoreServer(sourceId);
-			break;
-		case 'testmode':
-			EnableTestMode(true);
-			break;
-		default:
-			break;
+			if (sources[i].connection) {
+				sources[i].connection.stop();
+			}
+
+			let source = sources[i];
+
+			switch(sourceType.type) {
+				case 'tsl_31_udp':
+					//SetUpTSLServer_UDP(sourceId);
+					sources[i].connection = new TSLUMD_3_UDP(source);
+					break;
+				case 'tsl_31_tcp':
+					//SetUpTSLServer_TCP(sourceId);
+					sources[i].connection = new TSLUMD_3_TCP(source);
+					break;
+				case 'tsl_5_udp':
+					//SetUpTSL5Server_UDP(sourceId);
+					sources[i].connection = new TSLUMD_5_UDP(source);
+					break;
+				case 'tsl_5_tcp':
+					//SetUpTSL5Server_TCP(sourceId);
+					sources[i].connection = new TSLUMD_5_TCP(source);
+					break;
+				case 'atem':
+					sources[i].connection = new Blackmagic_ATEM(source);
+					break;
+				case 'videohub':
+					//SetUpVideoHubServer(sourceId);
+					sources[i].connection = new Blackmagic_VideoHub(source);
+					break;
+				case 'obs':
+					sources[i].connection = new OBS_Studio(source);
+					break;
+				case 'vmix':
+					//SetUpVMixServer(sourceId);
+					sources[i].connection = new StudioCoast_VMix(source);
+					break;
+				case 'roland':
+					//SetUpRolandSmartTally(sourceId);
+					sources[i].connection = new Roland_SmartTally(source);
+					break;
+				case 'roland-vr':
+					SetUpRolandVR(sourceId);
+					break;
+				case 'ross_carbonite':
+					sources[i].connection = new Ross_Carbonite(source);
+					break;
+				case 'osc':
+					sources[i].connection = new OSC(source);
+					break;
+				case 'tc':
+					SetUpTricasterServer(sourceId);
+					break;
+				case 'awlivecore':
+					SetUpAWLivecoreServer(sourceId);
+					break;
+				case 'testmode':
+					EnableTestMode(true);
+					break;
+				default:
+					break;
+			}
+		
+			if (sources[i].connection) {
+				sources[i].connection.on('portinuse', (port, inuse) => {
+					if (inuse) {
+						AddPort(port, sources[i].id);
+					}
+					else {
+						DeletePort(port);
+					}
+				});
+
+				sources[i].connection.on('connection_state', (value) => {
+					sources[i].connected = value;
+
+					if (value) {
+						logger(`Source: ${sources[i].name}  Connection Opened: ${sourceType.label}`, 'info-quiet');
+					}
+					else {
+						logger(`Source: ${sources[i].name}  Connection Closed: ${sourceType.label}`, 'info-quiet');
+					}
+
+					UpdateSockets('sources');
+					UpdateCloud('sources');
+				});
+
+				sources[i].connection.on('data', (data) => {
+					processTSLTally(sources[i].id, data);
+				});
+
+				sources[i].connection.on('error', (error) => {
+					logger(`Source: ${sources[i].name}  Error: ${error}`, 'error');
+				});
+
+				sources[i].connection.start();
+			}
+		}
 	}
 }
 
 function StopConnection(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-	let sourceType = source_types.find( ({ id }) => id === source.sourceTypeId);
+	//once every source type has its own library file, entire switch statement can be removed and just use sources[i].stop()
+	for (let i = 0; i < sources.length; i++) {
+		if ((sources[i].enabled) && (!sources[i].cloudConnection)) {
+			let sourceType = source_types.find( ({ id }) => id === sources[i].sourceTypeId);
 
-	switch(sourceType.type) {
-		case 'tsl_31_udp':
-			StopTSLServer_UDP(sourceId);
-			break;
-		case 'tsl_31_tcp':
-			StopTSLServer_TCP(sourceId);
-			break;
-		case 'tsl_5_udp':
-			StopTSL5Server_UDP(sourceId);
-			break;
-		case 'tsl_5_tcp':
-			StopTSL5Server_TCP(sourceId);
-			break;
-		case 'atem':
-			StopATEMServer(sourceId);
-			break;
-		case 'videohub':
-			StopVideoHubServer(sourceId);
-			break;
-		case 'obs':
-			StopOBSServer(sourceId);
-			break;
-		case 'vmix':
-			StopVMixServer(sourceId);
-			break;
-		case 'roland':
-			StopRolandSmartTally(sourceId);
-			break;
-		case 'roland-vr':
-			StopRolandVR(sourceId);
-			break;
-		case 'ross_carbonite':
-			StopRossCarbonite(sourceId);
-			break;
-		case 'osc':
-			StopOSCServer(sourceId);
-			break;
-		case 'tc':
-			StopTricasterServer(sourceId);
-			break;
-		case 'awlivecore':
-			StopAWLivecoreServer(sourceId);
-			break;
-		case 'testmode':
-			EnableTestMode(false);
-			break;
-		default:
-			break;
+			switch(sourceType.type) {
+				case 'tsl_31_udp':
+				case 'tsl_31_tcp':
+				case 'tsl_5_udp':
+				case 'tsl_5_tcp':
+				case 'videohub':
+				case 'vmix':
+				case 'roland':
+				case 'obs':
+				case 'atem':
+				case 'ross_carbonite':
+				case 'osc':
+					if (sources[i].connection) {
+						sources[i].connection.stop();
+					}
+					break;
+				case 'roland-vr':
+					StopRolandVR(sourceId);
+					break;
+				case 'tc':
+					StopTricasterServer(sourceId);
+					break;
+				case 'awlivecore':
+					StopAWLivecoreServer(sourceId);
+					break;
+				case 'testmode':
+					EnableTestMode(false);
+					break;
+				default:
+					break;
+			}
+		}
 	}
 }
 
