@@ -32,10 +32,14 @@ export class SettingsComponent {
   public busOptions: BusOption[] = [];
   public tslclients_1secupdate?: boolean;
 
-  // add Source
+  // add / edit Source
   public editingSource = false;
   public currentSourceSelectedTypeIdx?: number;
   public currentSource: Source = {} as Source;
+  
+  // add / edit Device
+  public editingDevice = false;
+  public currentDevice: Device = {} as Device;
 
   constructor(private modalService: NgbModal) {
     this.socket = io();
@@ -211,6 +215,21 @@ export class SettingsComponent {
     this.socket.emit('manage', arbiterObj);
   }
 
+  public saveCurrentDevice() {
+    const deviceObj = {
+      ...this.currentDevice,
+    } as Device;
+    if (!this.editingDevice) {
+      deviceObj.enabled = true;
+    }
+    const arbiterObj = {
+      action: this.editingDevice ? 'edit' : 'add',
+      type: 'device',
+      device: deviceObj,
+    };
+    this.socket.emit('manage', arbiterObj);
+  }
+
   private setDeviceStates() {
     for (const device of this.devices) {
       let sources_pvw = [];
@@ -256,6 +275,12 @@ export class SettingsComponent {
     this.modalService.open(modal);
   }
 
+  public addDevice(modal: any) {
+    this.editingDevice = false;
+    this.currentDevice = { } as Device;
+    this.modalService.open(modal);
+  }
+
   public editSource(source: Source, modal: any) {
     this.editingSource = true;
     this.currentSourceSelectedTypeIdx = this.sourceTypes.findIndex((t) => t.id == source.sourceTypeId);
@@ -265,6 +290,13 @@ export class SettingsComponent {
         ...source.data
       },
     } as Source;
+    this.modalService.open(modal);
+  }
+  public editDevice(device: Device, modal: any) {
+    this.editingDevice = true;
+    this.currentDevice = {
+      ...device,
+    } as Device;
     this.modalService.open(modal);
   }
 
