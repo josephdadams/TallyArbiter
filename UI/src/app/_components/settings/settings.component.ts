@@ -213,6 +213,26 @@ export class SettingsComponent {
     this.socket.emit('device_sources_link', this.currentDevice.id, bus, value);
   }
 
+  public deleteDevice(device: Device) {
+    let result = confirm('Are you sure you want to delete this device?');
+    if (!result) {
+      return;
+    }
+    let listenerCount = this.listenerClients.filter((l) => l.deviceId == device.id).length;
+    if (listenerCount > 0) {
+      let result = confirm('There are listeners connected to this device. Delete anyway?');
+      if (!result) {
+        return;
+      }
+    }
+    let arbiterObj = {
+      action: 'delete',
+      type: 'device',
+      deviceId: device.id,
+    };
+    this.socket.emit('manage', arbiterObj);
+  }
+
   public editDeviceSource(deviceSource: DeviceSource) {
     this.currentDeviceSource = {
       ...deviceSource,
