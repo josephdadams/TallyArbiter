@@ -15,6 +15,7 @@ import { SourceTallyData } from 'src/app/_models/SourceTallyData';
 import { SourceType } from 'src/app/_models/SourceType';
 import { SourceTypeBusOptions } from 'src/app/_models/SourceTypeBusOptions';
 import { SourceTypeDataFields } from 'src/app/_models/SourceTypeDataFields';
+import { TSLClient } from 'src/app/_models/TSLClient';
 
 @Component({
   selector: 'app-settings',
@@ -42,6 +43,7 @@ export class SettingsComponent {
   public deviceActions: DeviceAction[] = [];
   public outputTypes: OutputType[] = [];
   public outputTypeDataFields: OutputTypeDataFields[] = [];
+  public tslClients: TSLClient[] = [];
   
   // add / edit Source
   public editingSource = false;
@@ -60,6 +62,10 @@ export class SettingsComponent {
   // add / edit Device Actions
   public editingDeviceAction = false;
   public currentDeviceAction: DeviceAction = {} as DeviceAction;
+
+  // add / edit TSL Client
+  public editingTSLClient = false;
+  public currentTSLClient: TSLClient = {} as TSLClient;
 
   constructor(private modalService: NgbModal) {
     this.socket = io();
@@ -107,7 +113,22 @@ export class SettingsComponent {
       this.devices = devices;
       this.setDeviceStates();
     });
-    this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], sourceTypesBusOptions: SourceTypeBusOptions[], outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], deviceStates: DeviceState[], tslClients, cloudDestinations, cloudKeys, cloudClients) => {
+    this.socket.on('tsl_clients', (data: TSLClient[]) => {
+      this.tslClients = data;
+    });
+    /* this.socket.on('cloud_destinations', (data) => {
+      cloud_destinations = data;
+      loadCloudDestinations();
+    });
+    this.socket.on('cloud_keys', (data) => {
+      cloud_keys = data;
+      loadCloudKeys();
+    });
+    this.socket.on('cloud_clients', (data) => {
+      cloud_clients = data;
+      loadCloudClients();
+    });*/
+    this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], sourceTypesBusOptions: SourceTypeBusOptions[], outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], deviceStates: DeviceState[], tslClients: TSLClient[], cloudDestinations, cloudKeys, cloudClients) => {
       this.sourceTypes = sourceTypes;
       this.sourceTypeDataFields = sourceTypesDataFields;
       this.sourceTypesBusOptions = sourceTypesBusOptions;
@@ -119,7 +140,7 @@ export class SettingsComponent {
       this.deviceSources = deviceSources;
       this.deviceActions = deviceActions;
       this.deviceStates = deviceStates;
-      // this.tsl_clients = tslClients;
+      this.tslClients = tslClients;
       // this.cloud_destinations = cloudDestinations;
       // this.cloud_keys = cloudKeys;
       // this.cloud_clients = cloudClients;
@@ -311,6 +332,19 @@ export class SettingsComponent {
     this.socket.emit('manage', arbiterObj);
   }
 
+  public deleteTSLClient(tslClient: TSLClient) {
+    let result = confirm('Are you sure you want to delete this TSL Client?');
+    if (!result) {
+      return;
+    }
+    let arbiterObj = {
+      action: 'delete',
+      type: 'tsl_client',
+      tslClientId: tslClient.id,
+    };
+    this.socket.emit('manage', arbiterObj);
+  }
+
   public deleteDeviceAction(deviceAction: DeviceAction) {
     let result = confirm('Are you sure you want to delete this action?');
     if (!result) {
@@ -412,6 +446,18 @@ export class SettingsComponent {
     this.socket.emit('manage', arbiterObj);
   }
 
+  public saveCurrentTSLClient() {
+    const tslClientObj = {
+      ...this.currentTSLClient,
+    } as TSLClient;
+    const arbiterObj = {
+      action: this.editingTSLClient ? 'edit' : 'add',
+      type: 'tsl_client',
+      tslClient: tslClientObj,
+    };
+    this.socket.emit('manage', arbiterObj);
+  }
+
   private setDeviceStates() {
     for (const device of this.devices) {
       let sources_pvw = [];
@@ -464,6 +510,12 @@ export class SettingsComponent {
     this.modalService.open(modal);
   }
 
+  public addTSLClient(modal: any) {
+    this.editingTSLClient = false;
+    this.currentTSLClient = { } as TSLClient;
+    this.modalService.open(modal);
+  }
+
   public getOutputTypeById(outputTypeId: string) {
     return this.outputTypes.find(({id}) => id === outputTypeId);
   }
@@ -485,6 +537,13 @@ export class SettingsComponent {
     this.currentDevice = {
       ...device,
     } as Device;
+    this.modalService.open(modal);
+  }
+  public editTSLClient(tslClient: TSLClient, modal: any) {
+    this.editingTSLClient = true;
+    this.currentTSLClient = {
+      ...tslClient,
+    } as TSLClient;
     this.modalService.open(modal);
   }
 
