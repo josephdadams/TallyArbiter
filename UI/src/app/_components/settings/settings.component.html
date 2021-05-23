@@ -1,4 +1,4 @@
-<div class="container pt-4">
+<div class="container pt-4" *ngIf="initialDataLoaded">
   <div class="row">
     <h2>
       Sources
@@ -9,7 +9,8 @@
         <i class="fas fa-vial"></i> Turn {{ testModeOn ? "Off" : "On" }} Test Mode
       </button>
     </h2>
-    <table class="table table-hover">
+    <span class="text-muted mt-3">No sources configured.</span>
+    <table class="table table-hover" *ngIf="sources.length > 0">
       <thead>
         <tr>
           <th>Name</th>
@@ -48,7 +49,8 @@
       Devices
       <button class="btn btn-outline-success" (click)="addDevice(deviceModal)"><i class="fas fa-plus"></i> Add </button>
     </h2>
-    <table class="table table-hover">
+    <span class="text-muted mt-3">No deviced configured.</span>
+    <table class="table table-hover" *ngIf="devices.length > 0">
       <thead>
         <tr>
           <th>PVW</th>
@@ -82,7 +84,8 @@
   <hr class="my-5" />
   <div class="row">
     <h2>Connected Listeners</h2>
-    <table class="table table-responsive">
+    <span class="text-muted mt-3">No listeners connected.</span>
+    <table class="table table-hover" *ngIf="listenerClients.length > 0">
       <thead>
         <tr>
           <th>IP Address</th>
@@ -126,7 +129,8 @@
         <input class="form-check-input" type="checkbox" id="chkTSLClients_1SecUpdate" [(ngModel)]="tslclients_1secupdate" (ngModelChange)="socket.emit('tslclients_1secupdate', $event);">
         <label class="form-check-label" for="chkTSLClients_1SecUpdate">1-Second Updates</label>
       </div>
-      <table class="table table-hover">
+      <span class="text-muted mt-3 d-block">No TSL clients configured.</span>
+      <table class="table table-hover" *ngIf="tslClients.length > 0">
           <thead>
               <tr>
                   <th>IP</th>
@@ -163,7 +167,8 @@
                 Destinations
                 <button class="btn btn-outline-success" (click)="addCloudDestination(cloudDestinationModal)"><i class="fas fa-plus"></i> Add </button>
             </h4>
-            <table class="table table-hover">
+            <span class="text-muted mt-3">No cloud destinations configured.</span>
+            <table class="table table-hover" *ngIf="cloudDestinations.length > 0">
                 <thead>
                     <tr>
                         <th>Host</th>
@@ -203,7 +208,8 @@
                 Keys
                 <button class="btn btn-outline-success" (click)="addCloudKey(cloudKeyModal)"><i class="fas fa-plus"></i> Add </button>
             </h4>
-            <table class="table table-hover">
+            <span class="text-muted mt-3">No cloud keys configured.</span>
+            <table class="table table-hover" *ngIf="cloudKeys.length > 0">
                 <thead>
                     <tr>
                         <th>Key</th>
@@ -224,7 +230,8 @@
   <div class="row mt-4">
         <div class="col">
             <h4>Clients</h4>
-            <table class="table table-hover">
+            <span class="text-muted mt-3">No cloud clients connected.</span>
+            <table class="table table-hover" *ngIf="cloudClients.length > 0">
                 <thead>
                     <tr>
                         <th>IP</th>
@@ -248,7 +255,7 @@
   <div class="row">
     <div class="col-xs-12 col-md-6" id="divContainer_Logs">
       <h2>Logs</h2>
-      <div class="logs p-1" #logsContainer>
+      <div class="logs bg-light p-1" #logsContainer>
         <span class="d-block" [style.color]="
             log.type == 'console_action'
               ? '#00ff00'
@@ -261,13 +268,16 @@
     </div>
     <div class="col-xs-12 col-md-6" id="divContainer_TallyData">
       <h2>Tally Data</h2>
-      <div class="logs p-1" #tallyDataContainer>
+      <div class="logs bg-light p-1" #tallyDataContainer>
         <span class="d-block" *ngFor="let log of tallyData">[{{ log.datetime | date: "shortDate" }}
           {{ log.datetime | date: "shortTime" }}] {{ log.log }}</span>
       </div>
     </div>
   </div>
   <div class="text-muted my-3">Version {{ version }}</div>
+</div>
+<div *ngIf="!initialDataLoaded" class="d-flex justify-content-center mt-5 pt-5">
+    <div class="spinner spinner-border text-dark"></div>
 </div>
 
 <ng-template #sourceModal let-modal>
@@ -512,8 +522,6 @@
   </div>
 </ng-template>
 
-
-
 <ng-template #deviceActionsModal let-modal>
     <div class="modal-header">
         <h4 class="modal-title" id="modal-basic-title">
@@ -609,9 +617,6 @@
     </div>
 </ng-template>
 
-
-
-
 <ng-template #tslClientModal let-modal>
     <div class="modal-header">
       <h4 class="modal-title" id="modal-basic-title">
@@ -650,40 +655,40 @@
     </div>
   </ng-template>
 
-  <ng-template #cloudDestinationModal let-modal>
-      <div class="modal-header">
-        <h4 class="modal-title" id="modal-basic-title">
-          {{ editingSource ? "Edit" : "Add" }} Cloud Destination
-        </h4>
-        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
-      </div>
-      <div class="modal-body">
-        <ng-container *ngIf="editingCloudDestination">
-          <div class="mb-3">
-            <label for="cloudId" class="form-label">Cloud Destination Id</label>
-            <input type="text" id="cloudId" class="form-control" disabled [ngModel]="currentCloudDestination.id" />
-          </div>
-        </ng-container>
-    
+<ng-template #cloudDestinationModal let-modal>
+    <div class="modal-header">
+    <h4 class="modal-title" id="modal-basic-title">
+        {{ editingSource ? "Edit" : "Add" }} Cloud Destination
+    </h4>
+    <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+    <ng-container *ngIf="editingCloudDestination">
         <div class="mb-3">
-          <label for="cloudIP" class="form-label">Host</label>
-          <input type="text" class="form-control" id="cloudHost" [(ngModel)]="currentCloudDestination.host" />
+        <label for="cloudId" class="form-label">Cloud Destination Id</label>
+        <input type="text" id="cloudId" class="form-control" disabled [ngModel]="currentCloudDestination.id" />
         </div>
-        <div class="mb-3">
-          <label for="cloudPort" class="form-label">Port</label>
-          <input type="number" class="form-control" id="cloudPort" [(ngModel)]="currentCloudDestination.port" />
-        </div>
-        <div class="mb-3">
-          <label for="cloudKey" class="form-label">Key</label>
-          <input type="text" class="form-control" id="cloudKey" [(ngModel)]="currentCloudDestination.key" />
-        </div>
-        <div class="d-flex justify-content-end">
-          <button class="btn btn-outline-dark" (click)="saveCurrentCloudDestination()">
-            <i class="fas fa-save"></i> {{ editingCloudDestination ? "Save Changes" : "Add Cloud Destination" }}
-          </button>
-        </div>
-      </div>
-    </ng-template>
+    </ng-container>
+
+    <div class="mb-3">
+        <label for="cloudIP" class="form-label">Host</label>
+        <input type="text" class="form-control" id="cloudHost" [(ngModel)]="currentCloudDestination.host" />
+    </div>
+    <div class="mb-3">
+        <label for="cloudPort" class="form-label">Port</label>
+        <input type="number" class="form-control" id="cloudPort" [(ngModel)]="currentCloudDestination.port" />
+    </div>
+    <div class="mb-3">
+        <label for="cloudKey" class="form-label">Key</label>
+        <input type="text" class="form-control" id="cloudKey" [(ngModel)]="currentCloudDestination.key" />
+    </div>
+    <div class="d-flex justify-content-end">
+        <button class="btn btn-outline-dark" (click)="saveCurrentCloudDestination()">
+        <i class="fas fa-save"></i> {{ editingCloudDestination ? "Save Changes" : "Add Cloud Destination" }}
+        </button>
+    </div>
+    </div>
+</ng-template>
 
 <ng-template #cloudKeyModal let-modal>
     <div class="modal-header">

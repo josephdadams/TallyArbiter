@@ -27,6 +27,7 @@ import { TSLClient } from 'src/app/_models/TSLClient';
 export class SettingsComponent {
   @ViewChild('logsContainer') private logsContainer!: ElementRef;
   @ViewChild('tallyDataContainer') private tallyDataContainer!: ElementRef;
+  public initialDataLoaded = false;
   public version?: string;
   public logs: LogItem[] = [];
   public sources: Source[] = [];
@@ -137,6 +138,7 @@ export class SettingsComponent {
       this.cloudClients = clients;
     });
     this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], sourceTypesBusOptions: SourceTypeBusOptions[], outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], deviceStates: DeviceState[], tslClients: TSLClient[], cloudDestinations: CloudDestination[], cloudKeys: string[], cloudClients: CloudClient[]) => {
+      this.initialDataLoaded = true;
       this.sourceTypes = sourceTypes;
       this.sourceTypeDataFields = sourceTypesDataFields;
       this.sourceTypesBusOptions = sourceTypesBusOptions;
@@ -153,7 +155,6 @@ export class SettingsComponent {
       this.cloudDestinations = cloudDestinations;
       this.cloudKeys = cloudKeys;
       this.cloudClients = cloudClients;
-      console.log(cloudClients);
       this.setDeviceStates();
     });
     this.socket.on('listener_clients', (listenerClients: ListenerClient[]) => {
