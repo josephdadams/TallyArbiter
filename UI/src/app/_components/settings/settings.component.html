@@ -104,7 +104,7 @@
             </select>
           </td>
           <td>
-            <button class="btn btn-outline-danger me-2" *ngIf="listenerClient.inactive">
+            <button class="btn btn-outline-danger me-2" *ngIf="listenerClient.inactive" (click)="deleteListener(listenerClient)">
                 <i class="fas fa-trash"></i> Delete
             </button>
             <button class="btn btn-outline-dark" *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed"
