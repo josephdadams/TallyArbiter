@@ -2,11 +2,11 @@
   <div class="row">
     <h2>
       Sources
-      <button class="btn btn-dark me-2" (click)="addSource(sourceModal)">
-        Add
+      <button class="btn btn-outline-success me-2" (click)="addSource(sourceModal)">
+        <i class="fas fa-plus"></i> Add 
       </button>
-      <button class="btn btn-dark" (click)="toggleTestMode()">
-        Turn {{ testModeOn ? "Off" : "On" }} Test Mode
+      <button class="btn btn-outline-dark" (click)="toggleTestMode()">
+        <i class="fas fa-vial"></i> Turn {{ testModeOn ? "Off" : "On" }} Test Mode
       </button>
     </h2>
     <table class="table table-hover">
@@ -28,14 +28,14 @@
           <td>{{ source.name }}</td>
           <td>{{ source.sourceTypeName }}</td>
           <td>
-            <button class="btn btn-dark" (click)="editSource(source, sourceModal)">
-              Edit
+            <button class="btn btn-outline-dark" (click)="editSource(source, sourceModal)">
+              <i class="fas fa-pen"></i> Edit
             </button>
-            <button class="btn btn-dark mx-2" (click)="deleteSource(source)">
-              Delete
+            <button class="btn btn-outline-danger mx-2" (click)="deleteSource(source)">
+              <i class="fas fa-trash"></i> Delete
             </button>
-            <button class="btn btn-dark" *ngIf="!source.connected" (click)="reconnect(source)">
-              Reconnect
+            <button class="btn btn-outline-dark" *ngIf="!source.connected" (click)="reconnect(source)">
+              <i class="fas fa-sync"></i> Reconnect
             </button>
           </td>
         </tr>
@@ -46,7 +46,7 @@
   <div class="row">
     <h2>
       Devices
-      <button class="btn btn-dark" (click)="addDevice(deviceModal)">Add</button>
+      <button class="btn btn-outline-success" (click)="addDevice(deviceModal)"><i class="fas fa-plus"></i> Add </button>
     </h2>
     <table class="table table-hover">
       <thead>
@@ -68,12 +68,12 @@
           </td>
           <td>{{ device.description }}</td>
           <td>
-            <button class="btn btn-dark me-2" (click)="editDevice(device, deviceModal)">
-              Edit
+            <button class="btn btn-outline-dark me-2" (click)="editDevice(device, deviceModal)">
+              <i class="fas fa-pen"></i> Edit
             </button>
-            <button class="btn btn-dark me-2" (click)="editDeviceSources(device, deviceSourcesModal)">Edit Sources ({{getDeviceSourcesByDeviceId(device.id).length}})</button>
-            <button class="btn btn-dark me-2" (click)="editDeviceActions(device, deviceActionsModal)">Edit Actions ({{getDeviceActionsByDeviceId(device.id).length}})</button>
-            <button class="btn btn-dark" (click)="deleteDevice(device)">Delete</button>
+            <button class="btn btn-outline-dark me-2" (click)="editDeviceSources(device, deviceSourcesModal)"><i class="fas fa-link"></i> Edit Sources ({{getDeviceSourcesByDeviceId(device.id).length}})</button>
+            <button class="btn btn-outline-dark me-2" (click)="editDeviceActions(device, deviceActionsModal)"><i class="fas fa-play"></i> Edit Actions ({{getDeviceActionsByDeviceId(device.id).length}})</button>
+            <button class="btn btn-outline-danger" (click)="deleteDevice(device)"><i class="fas fa-trash"></i> Delete</button>
           </td>
         </tr>
       </tbody>
@@ -104,12 +104,12 @@
             </select>
           </td>
           <td>
-            <button class="btn btn-dark me-2" *ngIf="listenerClient.inactive">
-              X
+            <button class="btn btn-outline-danger me-2" *ngIf="listenerClient.inactive">
+                <i class="fas fa-trash"></i> Delete
             </button>
-            <button class="btn btn-dark" *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed"
+            <button class="btn btn-outline-dark" *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed"
               (click)="flash(listenerClient)">
-              Flash
+              <i class="fas fa-exclamation"></i> Flash
             </button>
           </td>
         </tr>
@@ -259,8 +259,8 @@
         </div>
       </ng-container>
       <div class="d-flex justify-content-end">
-        <button class="btn btn-dark" (click)="saveCurrentSource()">
-          {{ editingSource ? "Save Changes" : "Add Source" }}
+        <button class="btn btn-outline-dark" (click)="saveCurrentSource()">
+          <i class="fas fa-save"></i> {{ editingSource ? "Save Changes" : "Add Source" }}
         </button>
       </div>
     </div>
@@ -297,8 +297,8 @@
       </div>
     </ng-container>
     <div class="d-flex justify-content-end">
-      <button class="btn btn-dark" (click)="saveCurrentDevice()">
-        {{ editingDevice ? "Save Changes" : "Add Device" }}
+      <button class="btn btn-outline-dark" (click)="saveCurrentDevice()">
+        <i class="fas fa-save"></i> {{ editingDevice ? "Save Changes" : "Add Device" }}
       </button>
     </div>
   </div>
@@ -349,13 +349,13 @@
             <td>{{deviceSource.address}}</td>
             <td>{{deviceSource.bus}}</td>
             <td>
-              <button class="btn btn-dark me-1" (click)="editDeviceSource(deviceSource)">Edit</button>
-              <button class="btn btn-dark" (click)="deleteDeviceSource(deviceSource)">X</button>
+              <button class="btn btn-outline-dark me-1" (click)="editDeviceSource(deviceSource)"><i class="fas fa-pen"></i> Edit</button>
+              <button class="btn btn-outline-danger" (click)="deleteDeviceSource(deviceSource)"><i class="fas fa-trash"></i> Delete</button>
             </td>
           </tr>
         </tbody>
       </table>
-      <button class="btn btn-dark mr-1" (click)="editingDeviceSource = true">Add Source</button>
+      <button class="btn btn-outline-success mr-1" (click)="editingDeviceSource = true"><i class="fas fa-plus"></i> Add Source</button>
     </div>
     <div *ngIf="editingDeviceSource">
       <h5>New Device Source</h5>
@@ -393,7 +393,7 @@
         </select>
       </div>
       <div class="d-flex justify-content-end">
-        <button class="btn btn-dark" (click)="saveDeviceSource()">{{currentDeviceSource.id !== undefined ? 'Save Changes' : 'Add Device Source'}}</button>
+        <button class="btn btn-outline-dark" (click)="saveDeviceSource()"><i class="fas fa-save"></i> {{currentDeviceSource.id !== undefined ? 'Save Changes' : 'Add Device Source'}}</button>
       </div>
     </div>
   </div>
@@ -425,13 +425,13 @@
                 <td>{{deviceAction.active ? 'On' : 'Off'}}</td>
                 <td>{{getOutputTypeById(deviceAction.outputTypeId)?.label}}</td>
                 <td>
-                <button class="btn btn-dark me-1" (click)="editDeviceAction(deviceAction)">Edit</button>
-                <button class="btn btn-dark" (click)="deleteDeviceAction(deviceAction)">X</button>
+                <button class="btn btn-outline-dark me-1" (click)="editDeviceAction(deviceAction)"><i class="fas fa-pen"></i> Edit</button>
+                <button class="btn btn-outline-danger" (click)="deleteDeviceAction(deviceAction)"><i class="fas fa-trash"></i> Delete</button>
                 </td>
             </tr>
             </tbody>
         </table>
-        <button class="btn btn-dark mr-1" (click)="addDeviceAction()">Add Action</button>
+        <button class="btn btn-outline-success mr-1" (click)="addDeviceAction()"><i class="fas fa-plus"></i> Add Action</button>
         </div>
         <div *ngIf="editingDeviceAction">
         <h5>New Device Action</h5>
@@ -490,7 +490,7 @@
         </ng-container>
             
             <div class="d-flex justify-content-end">
-                <button class="btn btn-dark" (click)="saveDeviceAction()">{{currentDeviceAction.id !== undefined ? 'Save Changes' : 'Add Action'}}</button>
+                <button class="btn btn-outline-dark" (click)="saveDeviceAction()"><i class="fas fa-save"></i> {{currentDeviceAction.id !== undefined ? 'Save Changes' : 'Add Action'}}</button>
             </div>
         </div>
     </div>

@@ -39,7 +39,7 @@
             <td>{{listenerClient.ipAddress}}</td>
             <td>{{listenerClient.listenerType}}</td>
             <td>{{listenerClient.device?.name}}</td>
-            <td><button *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed" class="btn btn-dark" (click)="flashListener(listenerClient)">Flash</button></td>
+            <td><button *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed" class="btn btn-outline-dark" (click)="flashListener(listenerClient)">Flash</button></td>
           </tr>
         </tbody>
       </table>
