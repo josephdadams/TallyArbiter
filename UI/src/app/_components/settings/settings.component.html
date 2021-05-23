@@ -96,7 +96,7 @@
           <td>{{ listenerClient.ipAddress }}</td>
           <td class="bg-light">{{ listenerClient.listenerType }}</td>
           <td>
-            <select class="form-select" [(ngModel)]="listenerClient.deviceId"
+            <select class="form-select" [ngModel]="listenerClient.deviceId" (ngModelChange)="reassignListenerClient(listenerClient, $event)"
               [disabled]="!listenerClient.canBeReassigned">
               <option *ngFor="let device of devices" [value]="device.id">
                 {{ device.name }}

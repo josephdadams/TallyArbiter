@@ -15,7 +15,6 @@ export class TallyComponent {
   public devices: Device[] = [];
   public busOptions: BusOption[] = [];
   public deviceStates: DeviceState[] = [];
-  public selectedDeviceId?: string;
   public currentDeviceIdx?: number;
   public mode_preview?: boolean;
   public mode_program?: boolean;
@@ -76,8 +75,7 @@ export class TallyComponent {
     this.socket.on('reassign', (oldDeviceId, deviceId) => {
       //processes a reassign request that comes from the Settings GUI and relays the command so it originates from this socket
       this.socket.emit('listener_reassign', oldDeviceId, deviceId);
-      this.selectedDeviceId = deviceId;
-      // updateTallyInfo();
+      this.currentDeviceIdx = this.devices.findIndex((d) => d.id === deviceId);
     });
     this.socket.on('messaging', (type, socketid, message) => {
       // insertChat(type, socketid, message);

@@ -222,6 +222,10 @@ export class SettingsComponent {
     this.socket.emit('manage', arbiterObj);
   }
 
+  public reassignListenerClient(client: ListenerClient, newDeviceId: string) {
+      this.socket.emit('reassign', client.id, client.deviceId, newDeviceId);
+  }
+
   public saveDeviceAction() {
     this.editingDeviceAction = false;
     const deviceActionObj = {
