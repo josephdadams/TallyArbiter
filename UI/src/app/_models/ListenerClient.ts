@@ -11,6 +11,7 @@ export interface ListenerClient {
     ipAddress: string;
     listenerType: string;
     socketId: string;
+    cloudConnection: boolean;
     // volatile
     device?: Device;
 }

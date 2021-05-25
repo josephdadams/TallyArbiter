@@ -6,6 +6,7 @@ export interface Device {
     linkedPreview: boolean;
     linkedProgram: boolean;
     tslAddress: string;
+    cloudConnection: boolean;
     // volatile
     listenerCount?: number;
     modePreview?: boolean;
