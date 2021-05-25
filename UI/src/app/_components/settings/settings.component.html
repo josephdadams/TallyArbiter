@@ -1,4 +1,4 @@
-<div class="container pt-4" *ngIf="initialDataLoaded">
+<div class="container pt-4" *ngIf="socketService.initialDataLoaded">
   <div class="row">
     <h2>
       Sources
@@ -6,11 +6,11 @@
         <i class="fas fa-plus"></i> Add 
       </button>
       <button class="btn btn-outline-dark" (click)="toggleTestMode()">
-        <i class="fas fa-vial"></i> Turn {{ testModeOn ? "Off" : "On" }} Test Mode
+        <i class="fas fa-vial"></i> Turn {{ socketService.testModeOn ? "Off" : "On" }} Test Mode
       </button>
     </h2>
-    <span class="text-muted mt-3" *ngIf="sources.length == 0">No sources configured.</span>
-    <table class="table table-hover" *ngIf="sources.length > 0">
+    <span class="text-muted mt-3" *ngIf="socketService.sources.length == 0">No sources configured.</span>
+    <table class="table table-hover" *ngIf="socketService.sources.length > 0">
       <thead>
         <tr>
           <th>Name</th>
@@ -20,7 +20,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let source of sources" [class]="
+        <tr *ngFor="let source of socketService.sources" [class]="
             source.enabled
               ? source.connected
                 ? 'text-success'
@@ -51,8 +51,8 @@
       Devices
       <button class="btn btn-outline-success" (click)="addDevice(deviceModal)"><i class="fas fa-plus"></i> Add </button>
     </h2>
-    <span class="text-muted mt-3" *ngIf="devices.length == 0">No devices configured.</span>
-    <table class="table table-hover" *ngIf="devices.length > 0">
+    <span class="text-muted mt-3" *ngIf="socketService.devices.length == 0">No devices configured.</span>
+    <table class="table table-hover" *ngIf="socketService.devices.length > 0">
       <thead>
         <tr>
           <th>PVW</th>
@@ -64,7 +64,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let device of devices; index as index" [class.text-muted]="!device.enabled">
+        <tr *ngFor="let device of socketService.devices; index as index" [class.text-muted]="!device.enabled">
           <td [class.bg-success]="device.modePreview"></td>
           <td [class.bg-danger]="device.modeProgram"></td>
           <td>
@@ -88,8 +88,8 @@
   <hr class="my-5" />
   <div class="row">
     <h2>Connected Listeners</h2>
-    <span class="text-muted mt-3" *ngIf="listenerClients.length == 0">No listeners connected.</span>
-    <table class="table table-hover" *ngIf="listenerClients.length > 0">
+    <span class="text-muted mt-3" *ngIf="socketService.listenerClients.length == 0">No listeners connected.</span>
+    <table class="table table-hover" *ngIf="socketService.listenerClients.length > 0">
       <thead>
         <tr>
           <th>IP Address</th>
@@ -100,14 +100,14 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let listenerClient of listenerClients">
+        <tr *ngFor="let listenerClient of socketService.listenerClients">
           <td>{{ listenerClient.ipAddress }}</td>
           <td><i class="fas fa-cloud text-muted" *ngIf="listenerClient.cloudConnection"></i></td>
           <td class="bg-light">{{ listenerClient.listenerType }}</td>
           <td>
             <select class="form-select" [ngModel]="listenerClient.deviceId" (ngModelChange)="reassignListenerClient(listenerClient, $event)"
               [disabled]="!listenerClient.canBeReassigned">
-              <option *ngFor="let device of devices" [value]="device.id">
+              <option *ngFor="let device of socketService.devices" [value]="device.id">
                 {{ device.name }}
               </option>
             </select>
@@ -132,11 +132,11 @@
     </h2>
     <div>
       <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" id="chkTSLClients_1SecUpdate" [(ngModel)]="tslclients_1secupdate" (ngModelChange)="socket.emit('tslclients_1secupdate', $event);">
+        <input class="form-check-input" type="checkbox" id="chkTSLClients_1SecUpdate" [(ngModel)]="socketService.tslclients_1secupdate" (ngModelChange)="socketService.socket.emit('tslclients_1secupdate', $event);">
         <label class="form-check-label" for="chkTSLClients_1SecUpdate">1-Second Updates</label>
       </div>
-      <span class="text-muted mt-3 d-block" *ngIf="tslClients.length == 0">No TSL clients configured.</span>
-      <table class="table table-hover" *ngIf="tslClients.length > 0">
+      <span class="text-muted mt-3 d-block" *ngIf="socketService.tslClients.length == 0">No TSL clients configured.</span>
+      <table class="table table-hover" *ngIf="socketService.tslClients.length > 0">
           <thead>
               <tr>
                   <th>IP</th>
@@ -146,7 +146,7 @@
               </tr>
           </thead>
           <tbody>
-              <tr *ngFor="let tslClient of tslClients" [class.text-success]="tslClient.connected">
+              <tr *ngFor="let tslClient of socketService.tslClients" [class.text-success]="tslClient.connected">
                 <td>{{tslClient.ip}}</td>
                 <td>{{tslClient.port}}</td>
                 <td>{{tslClient.transport}}</td>
@@ -173,8 +173,8 @@
                 Destinations
                 <button class="btn btn-outline-success" (click)="addCloudDestination(cloudDestinationModal)"><i class="fas fa-plus"></i> Add </button>
             </h4>
-            <span class="text-muted mt-3" *ngIf="cloudDestinations.length == 0">No cloud destinations configured.</span>
-            <table class="table table-hover" *ngIf="cloudDestinations.length > 0">
+            <span class="text-muted mt-3" *ngIf="socketService.cloudDestinations.length == 0">No cloud destinations configured.</span>
+            <table class="table table-hover" *ngIf="socketService.cloudDestinations.length > 0">
                 <thead>
                     <tr>
                         <th>Host</th>
@@ -185,7 +185,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr *ngFor="let cloudDestination of cloudDestinations" [class.text-success]="cloudDestination.status == 'connected'">
+                    <tr *ngFor="let cloudDestination of socketService.cloudDestinations" [class.text-success]="cloudDestination.status == 'connected'">
                         <td>{{cloudDestination.host}}</td>
                         <td>{{cloudDestination.port}}</td>
                         <td>{{cloudDestination.key}}</td>
@@ -214,8 +214,8 @@
                 Keys
                 <button class="btn btn-outline-success" (click)="addCloudKey(cloudKeyModal)"><i class="fas fa-plus"></i> Add </button>
             </h4>
-            <span class="text-muted mt-3" *ngIf="cloudKeys.length == 0">No cloud keys configured.</span>
-            <table class="table table-hover" *ngIf="cloudKeys.length > 0">
+            <span class="text-muted mt-3" *ngIf="socketService.cloudKeys.length == 0">No cloud keys configured.</span>
+            <table class="table table-hover" *ngIf="socketService.cloudKeys.length > 0">
                 <thead>
                     <tr>
                         <th>Key</th>
@@ -223,7 +223,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr *ngFor="let key of cloudKeys">
+                    <tr *ngFor="let key of socketService.cloudKeys">
                         <td>{{key}}</td>
                         <td>
                             <button class="btn btn-outline-danger" (click)="deleteCloudKey(key)"><i class="fas fa-trash"></i> Delete</button>
@@ -236,8 +236,8 @@
   <div class="row mt-4">
         <div class="col">
             <h4>Clients</h4>
-            <span class="text-muted mt-3" *ngIf="cloudClients.length == 0">No cloud clients connected.</span>
-            <table class="table table-hover" *ngIf="cloudClients.length > 0">
+            <span class="text-muted mt-3" *ngIf="socketService.cloudClients.length == 0">No cloud clients connected.</span>
+            <table class="table table-hover" *ngIf="socketService.cloudClients.length > 0">
                 <thead>
                     <tr>
                         <th>IP</th>
@@ -246,7 +246,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr *ngFor="let client of cloudClients">
+                    <tr *ngFor="let client of socketService.cloudClients">
                         <td>{{client.ipAddress.replace("::ffff:", "")}}</td>
                         <td>{{client.key}}</td>
                         <td>
@@ -268,21 +268,21 @@
               : log.type == 'error'
               ? '#FF0000'
               : '#0000FF'
-          " *ngFor="let log of logs">[{{ log.datetime | date: "shortDate" }}
+          " *ngFor="let log of socketService.logs">[{{ log.datetime | date: "shortDate" }}
           {{ log.datetime | date: "shortTime" }}] {{ log.log }}</span>
       </div>
     </div>
     <div class="col-xs-12 col-md-6" id="divContainer_TallyData">
       <h2>Tally Data</h2>
       <div class="logs bg-light p-1" #tallyDataContainer>
-        <span class="d-block" *ngFor="let log of tallyData">[{{ log.datetime | date: "shortDate" }}
+        <span class="d-block" *ngFor="let log of socketService.tallyData">[{{ log.datetime | date: "shortDate" }}
           {{ log.datetime | date: "shortTime" }}] {{ log.log }}</span>
       </div>
     </div>
   </div>
-  <div class="text-muted my-3">Version {{ version }}</div>
+  <div class="text-muted my-3">Version {{ socketService.version }}</div>
 </div>
-<div *ngIf="!initialDataLoaded" class="d-flex justify-content-center mt-5 pt-5">
+<div *ngIf="!socketService.initialDataLoaded" class="d-flex justify-content-center mt-5 pt-5">
     <div class="spinner spinner-border text-dark"></div>
 </div>
 
@@ -303,7 +303,7 @@
         <label for="sourceType" class="form-label">Source Type</label>
         <select id="sourceType" class="form-select" disabled>
           <option>
-            {{ sourceTypes[currentSourceSelectedTypeIdx!].label }}
+            {{ socketService.sourceTypes[currentSourceSelectedTypeIdx!].label }}
           </option>
         </select>
       </div>
@@ -312,7 +312,7 @@
       <select class="form-select" ngbAutofocus [(ngModel)]="currentSourceSelectedTypeIdx">
         <option selected disabled [value]="undefined">-- Choose Source Type --</option>
         <option *ngFor="
-            let sourceType of filterEnabledSourceTypes(sourceTypes);
+            let sourceType of filterEnabledSourceTypes(socketService.sourceTypes);
             index as index
           " [value]="index">
           {{ sourceType.label }}
@@ -320,14 +320,14 @@
       </select>
     </ng-container>
     <div *ngIf="currentSourceSelectedTypeIdx !== undefined">
-      <p>{{ sourceTypes[currentSourceSelectedTypeIdx].help }}</p>
+      <p>{{ socketService.sourceTypes[currentSourceSelectedTypeIdx].help }}</p>
       <div class="mb-3">
         <label for="sourceName" class="form-label">Source Name</label>
         <input type="text" class="form-control" id="sourceName" [(ngModel)]="currentSource.name" />
       </div>
       <ng-container *ngFor="
           let field of getOptionFields(
-            sourceTypes[currentSourceSelectedTypeIdx]
+            socketService.sourceTypes[currentSourceSelectedTypeIdx]
           )
         ">
         <ng-container [ngSwitch]="field.fieldType">
@@ -473,7 +473,7 @@
         <tbody>
           <tr *ngFor="let deviceSource of getDeviceSourcesByDeviceId(currentDevice.id)">
             <td>
-              {{getSourceById(deviceSource.sourceId)?.name}}
+              {{socketService.getSourceById(deviceSource.sourceId)?.name}}
             </td>
             <td>{{deviceSource.address}}</td>
             <td>{{deviceSource.bus}}</td>
@@ -491,19 +491,19 @@
       <div class="mb-3">
         <label for="deviceSource" class="form-label">Source</label>
         <select class="form-select" [(ngModel)]="currentDeviceSource.sourceIdx"
-          (ngModelChange)="socket.emit('source_tallydata', sources[$event].id)">
-          <option *ngFor="let source of sources; index as index" [value]="index">{{source.name}}</option>
+          (ngModelChange)="socketService.socket.emit('source_tallydata', socketService.sources[$event].id)">
+          <option *ngFor="let source of socketService.sources; index as index" [value]="index">{{source.name}}</option>
         </select>
       </div>
-      <div class="mb-3" *ngIf="sources[currentDeviceSource.sourceIdx!]">
+      <div class="mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!]">
         <label for="deviceSource" class="form-label">Address
-          ({{sourceTallyData[sources[currentDeviceSource.sourceIdx!].id] && sourceTallyData[sources[currentDeviceSource.sourceIdx!].id].length > 0 ? 'select or ' : ''}}enter
+          ({{socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id] && socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0 ? 'select or ' : ''}}enter
           manually):</label>
         <div class="row">
           <div class="col"
-            *ngIf="sourceTallyData[sources[currentDeviceSource.sourceIdx!].id] && sourceTallyData[sources[currentDeviceSource.sourceIdx!].id].length > 0">
+            *ngIf="socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id] && socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0">
             <select class="form-select" [(ngModel)]="currentDeviceSource.address">
-              <option *ngFor="let address of sourceTallyData[sources[currentDeviceSource.sourceIdx!].id]"
+              <option *ngFor="let address of socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id]"
                 [value]="address.address">{{address.label}}</option>
             </select>
           </div>
@@ -513,11 +513,11 @@
         </div>
       </div>
       <div class="mb-3"
-        *ngIf="sources[currentDeviceSource.sourceIdx!] && getSourceBusOptionsBySourceTypeId(sources[currentDeviceSource.sourceIdx!].sourceTypeId).length > 0">
+        *ngIf="socketService.sources[currentDeviceSource.sourceIdx!] && getSourceBusOptionsBySourceTypeId(socketService.sources[currentDeviceSource.sourceIdx!].sourceTypeId).length > 0">
         <label for="bus" class="form-label">Bus:</label>
         <select class="form-select" [(ngModel)]="currentDeviceSource.bus">
           <option
-            *ngFor="let bus of getSourceBusOptionsBySourceTypeId(sources[currentDeviceSource.sourceIdx!].sourceTypeId)[0].busses"
+            *ngFor="let bus of getSourceBusOptionsBySourceTypeId(socketService.sources[currentDeviceSource.sourceIdx!].sourceTypeId)[0].busses"
             [value]="bus.bus">{{bus.name}}</option>
         </select>
       </div>
@@ -566,7 +566,7 @@
             <label for="bus" class="form-label">Bus</label>
             <select class="form-select" [(ngModel)]="currentDeviceAction.busId">
                 <option disabled selected [value]="undefined">-- Select --</option>
-                <option *ngFor="let bus of busOptions" [value]="bus.id">{{bus.label}}</option>
+                <option *ngFor="let bus of socketService.busOptions" [value]="bus.id">{{bus.label}}</option>
             </select>
         </div>
         <div class="mb-3">
@@ -581,13 +581,13 @@
             <label for="outputType" class="form-label">Output Type</label>
             <select class="form-select" id="outputType" [(ngModel)]="currentDeviceAction.outputTypeIdx">
                 <option disabled selected [value]="undefined">-- Select --</option>
-                <option *ngFor="let outputType of outputTypes; index as index" [value]="index">{{outputType.label}}</option>
+                <option *ngFor="let outputType of socketService.outputTypes; index as index" [value]="index">{{outputType.label}}</option>
             </select>
         </div>
         
-        <ng-container *ngIf="outputTypes[currentDeviceAction.outputTypeIdx!]">
+        <ng-container *ngIf="socketService.outputTypes[currentDeviceAction.outputTypeIdx!]">
 
-            <ng-container *ngFor="let field of getOutputOptionFields(outputTypes[currentDeviceAction.outputTypeIdx!])">
+            <ng-container *ngFor="let field of getOutputOptionFields(socketService.outputTypes[currentDeviceAction.outputTypeIdx!])">
                 <ng-container [ngSwitch]="field.fieldType">
                     <div class="mb-3" *ngSwitchCase="'text'">
                         <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}</label>
