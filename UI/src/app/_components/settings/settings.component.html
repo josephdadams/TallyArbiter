@@ -9,7 +9,7 @@
         <i class="fas fa-vial"></i> Turn {{ testModeOn ? "Off" : "On" }} Test Mode
       </button>
     </h2>
-    <span class="text-muted mt-3">No sources configured.</span>
+    <span class="text-muted mt-3" *ngIf="sources.length == 0">No sources configured.</span>
     <table class="table table-hover" *ngIf="sources.length > 0">
       <thead>
         <tr>
@@ -49,7 +49,7 @@
       Devices
       <button class="btn btn-outline-success" (click)="addDevice(deviceModal)"><i class="fas fa-plus"></i> Add </button>
     </h2>
-    <span class="text-muted mt-3">No deviced configured.</span>
+    <span class="text-muted mt-3" *ngIf="devices.length == 0">No devices configured.</span>
     <table class="table table-hover" *ngIf="devices.length > 0">
       <thead>
         <tr>
@@ -84,7 +84,7 @@
   <hr class="my-5" />
   <div class="row">
     <h2>Connected Listeners</h2>
-    <span class="text-muted mt-3">No listeners connected.</span>
+    <span class="text-muted mt-3" *ngIf="listenerClients.length == 0">No listeners connected.</span>
     <table class="table table-hover" *ngIf="listenerClients.length > 0">
       <thead>
         <tr>
@@ -129,7 +129,7 @@
         <input class="form-check-input" type="checkbox" id="chkTSLClients_1SecUpdate" [(ngModel)]="tslclients_1secupdate" (ngModelChange)="socket.emit('tslclients_1secupdate', $event);">
         <label class="form-check-label" for="chkTSLClients_1SecUpdate">1-Second Updates</label>
       </div>
-      <span class="text-muted mt-3 d-block">No TSL clients configured.</span>
+      <span class="text-muted mt-3 d-block" *ngIf="tslClients.length == 0">No TSL clients configured.</span>
       <table class="table table-hover" *ngIf="tslClients.length > 0">
           <thead>
               <tr>
@@ -167,7 +167,7 @@
                 Destinations
                 <button class="btn btn-outline-success" (click)="addCloudDestination(cloudDestinationModal)"><i class="fas fa-plus"></i> Add </button>
             </h4>
-            <span class="text-muted mt-3">No cloud destinations configured.</span>
+            <span class="text-muted mt-3" *ngIf="cloudDestinations.length == 0">No cloud destinations configured.</span>
             <table class="table table-hover" *ngIf="cloudDestinations.length > 0">
                 <thead>
                     <tr>
@@ -208,7 +208,7 @@
                 Keys
                 <button class="btn btn-outline-success" (click)="addCloudKey(cloudKeyModal)"><i class="fas fa-plus"></i> Add </button>
             </h4>
-            <span class="text-muted mt-3">No cloud keys configured.</span>
+            <span class="text-muted mt-3" *ngIf="cloudKeys.length == 0">No cloud keys configured.</span>
             <table class="table table-hover" *ngIf="cloudKeys.length > 0">
                 <thead>
                     <tr>
@@ -230,7 +230,7 @@
   <div class="row mt-4">
         <div class="col">
             <h4>Clients</h4>
-            <span class="text-muted mt-3">No cloud clients connected.</span>
+            <span class="text-muted mt-3" *ngIf="cloudClients.length == 0">No cloud clients connected.</span>
             <table class="table table-hover" *ngIf="cloudClients.length > 0">
                 <thead>
                     <tr>
