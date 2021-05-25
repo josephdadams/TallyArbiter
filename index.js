@@ -893,6 +893,11 @@ function initialSetup() {
 
 	io.sockets.on('connection', function(socket) {
 
+		socket.on('login', function (type, username, password) {
+			socket.emit('login_result', (type === "producer" && username == username_producer && password == password_producer)
+				|| (type === "settings" && username == username_settings && password == username_settings));
+		});
+
 		socket.on('version', function() {
 			socket.emit('version', version);
 		});

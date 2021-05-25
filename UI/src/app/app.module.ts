@@ -12,6 +12,7 @@ import { TallyComponent } from './_components/tally/tally.component';
 import { AboutComponent } from './_components/about/about.component';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { environment } from '../environments/environment';
+import { LoginComponent } from './_components/login/login.component';
 
 @NgModule({
   declarations: [
@@ -20,7 +21,8 @@ import { environment } from '../environments/environment';
     ProducerComponent,
     SettingsComponent,
     TallyComponent,
-    AboutComponent
+    AboutComponent,
+    LoginComponent
   ],
   imports: [
     BrowserModule,
