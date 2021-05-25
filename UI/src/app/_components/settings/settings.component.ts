@@ -1,5 +1,6 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { Confirmable } from 'src/app/_decorators/confirmable.decorator';
 import { CloudClient } from 'src/app/_models/CloudClient';
 import { CloudDestination } from 'src/app/_models/CloudDestination';
 import { Device } from 'src/app/_models/Device';
@@ -11,6 +12,7 @@ import { Source } from 'src/app/_models/Source';
 import { SourceType } from 'src/app/_models/SourceType';
 import { TSLClient } from 'src/app/_models/TSLClient';
 import { SocketService } from 'src/app/_services/socket.service';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-settings',
@@ -128,33 +130,36 @@ export class SettingsComponent {
     this.socketService.socket.emit('device_sources_link', this.currentDevice.id, bus, value);
   }
 
+  @Confirmable('If you delete this key, all connected cloud clients using this key will be disconnected. Are you sure you want to delete it?')
   public deleteCloudKey(key: string) {
-    if (confirm('If you delete this key, all connected cloud clients using this key will be disconnected. Are you sure you want to delete it?')) {
-      const arbiterObj = {
-        action: 'delete',
-        type: 'cloud_key',
-        key,
-      };
-      this.socketService.socket.emit('manage', arbiterObj);
-    }
+    const arbiterObj = {
+      action: 'delete',
+      type: 'cloud_key',
+      key,
+    };
+    this.socketService.socket.emit('manage', arbiterObj);
   }
-
+  
   public disconnectCloudDestination(cloudDestination: CloudDestination) {
     this.socketService.socket.emit('cloud_destination_disconnect', cloudDestination.id);
   }
-
+  
   public reconnectCloudDestination(cloudDestination: CloudDestination) {
     this.socketService.socket.emit('cloud_destination_reconnect', cloudDestination.id)
   }
-
-  public deleteDevice(device: Device) {
-    let result = confirm('Are you sure you want to delete this device?');
-    if (!result) {
-      return;
-    }
+  
+  @Confirmable('Are you sure you want to delete this device?')
+  public async deleteDevice(device: Device) {
     let listenerCount = this.socketService.listenerClients.filter((l) => l.deviceId == device.id).length;
     if (listenerCount > 0) {
-      let result = confirm('There are listeners connected to this device. Delete anyway?');
+      let result = await Swal.fire({
+        title: 'Confirmation',
+        text: "There are listeners connected to this device. Delete anyway?",
+        showCancelButton: true,
+        confirmButtonColor: "#2a70c7",
+        icon: 'question',
+        focusCancel: true,
+    });
       if (!result) {
         return;
       }
@@ -190,11 +195,8 @@ export class SettingsComponent {
     } as DeviceAction;
   }
 
+  @Confirmable("Are you sure you want to delete this device source mapping?")
   public deleteDeviceSource(deviceSource: DeviceSource) {
-    let result = confirm('Are you sure you want to delete this device source mapping?');
-    if (!result) {
-      return;
-    }
     let arbiterObj = {
       action: 'delete',
       type: 'device_source',
@@ -205,11 +207,8 @@ export class SettingsComponent {
     this.socketService.socket.emit('manage', arbiterObj);
   }
 
+  @Confirmable("Are you sure you want to delete this TSL Client?")
   public deleteTSLClient(tslClient: TSLClient) {
-    let result = confirm('Are you sure you want to delete this TSL Client?');
-    if (!result) {
-      return;
-    }
     let arbiterObj = {
       action: 'delete',
       type: 'tsl_client',
@@ -218,11 +217,9 @@ export class SettingsComponent {
     this.socketService.socket.emit('manage', arbiterObj);
   }
 
+  
+  @Confirmable("Are you sure you want to delete this Cloud Destination?")
   public deleteCloudDestination(cloudDestination: CloudDestination) {
-    let result = confirm('Are you sure you want to delete this Cloud Destination?');
-    if (!result) {
-      return;
-    }
     let arbiterObj = {
       action: 'delete',
       type: 'cloud_destination',
@@ -231,11 +228,8 @@ export class SettingsComponent {
     this.socketService.socket.emit('manage', arbiterObj);
   }
 
+  @Confirmable("Are you sure you want to delete this action?")
   public deleteDeviceAction(deviceAction: DeviceAction) {
-    let result = confirm('Are you sure you want to delete this action?');
-    if (!result) {
-      return;
-    }
     let arbiterObj = {
       action: 'delete',
       type: 'device_action',
@@ -287,11 +281,9 @@ export class SettingsComponent {
     this.modalService.open(deviceActionsModal, {size: "lg"});
   }
 
+  
+  @Confirmable("Are you sure you want to delete this source?")
   public deleteSource(source: Source) {
-    const result = confirm('Are you sure you want to delete this source?');
-    if (!result) {
-      return;
-    }
     const arbiterObj = {
       action: 'delete',
       type: 'source',
