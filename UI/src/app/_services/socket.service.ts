@@ -224,6 +224,8 @@ export class SocketService {
     this.socket.on('tslclients_1secupdate', (value) => {
       this.tslclients_1secupdate = value;
     });
+    
+    this.socket.emit('version');
   }
 
   private prepareSources(sources: Source[]): Source[] {
@@ -272,7 +274,6 @@ export class SocketService {
   }
 
   public joinAdmins() {
-    this.socket.emit('version');
     this.socket.emit('settings');
   }
 

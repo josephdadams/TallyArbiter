@@ -9,6 +9,7 @@ import { HomeComponent } from './_components/home/home.component';
 import { ProducerComponent } from './_components/producer/producer.component';
 import { SettingsComponent } from './_components/settings/settings.component';
 import { TallyComponent } from './_components/tally/tally.component';
+import { AboutComponent } from './_components/about/about.component';
 
 @NgModule({
   declarations: [
@@ -16,7 +17,8 @@ import { TallyComponent } from './_components/tally/tally.component';
     HomeComponent,
     ProducerComponent,
     SettingsComponent,
-    TallyComponent
+    TallyComponent,
+    AboutComponent
   ],
   imports: [
     BrowserModule,
