@@ -1,12 +1,26 @@
-<div class="container">
-    <div class="bg-light p-5 rounded">
-        <h1 class="display-4">Welcome!</h1>
-        <p class="lead">Tally Arbiter was written by Joseph Adams and is distributed under the MIT License.</p>
-        <div>
-            <qr-code [value]="tallyUrl" size="250" errorCorrectionLevel="M"></qr-code>
-            <p>{{tallyUrl}}</p>
-        </div>
-        <a class="btn btn-primary btn-lg" routerLink="/settings" role="button">Go to settings</a>
+<div class="container pt-5">
+    <div class="row text-center">
+        <h1 class="display-4">Welcome to Tally Arbiter</h1>
     </div>
-    
+    <div class="row mt-5 row-cols-1 row-cols-md-2 g-5 text-center">
+        <div class="col">
+            <div class="rounded bg-light p-3">
+                <h3><i class="fas fa-mobile-alt"></i> Tally Web Clients</h3>
+                <qr-code class="my-4 d-block" [value]="tallyUrl" size="250" errorCorrectionLevel="M"></qr-code>
+                <p>Scan the QR Code with your Phone or open the following URL:</p><a target="_blank" [href]="tallyUrl">{{tallyUrl}}</a>
+            </div>
+        </div>
+        <div class="col">
+            <div class="rounded bg-light p-3">
+                <h3><i class="fas fa-tasks"></i> Producer</h3>
+                <p>On the Producer page you get an overview of all connected devices and Tally clients.</p>
+                <a class="btn btn-outline-primary" routerLink="/producer">Producer Page</a>
+            </div>
+            <div class="rounded bg-light mt-5 p-3">
+                <h3><i class="fas fa-cogs"></i> Settings</h3>
+                <p>Here you can configure and setup all sources, devices, Tally clients and more.</p>
+                <a class="btn btn-outline-primary" routerLink="/settings">Settings</a>
+            </div>
+        </div>
+    </div>
 </div>
