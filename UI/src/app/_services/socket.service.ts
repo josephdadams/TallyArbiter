@@ -12,6 +12,7 @@ import { ListenerClient } from '../_models/ListenerClient';
 import { LogItem } from '../_models/LogItem';
 import { OutputType } from '../_models/OutputType';
 import { OutputTypeDataFields } from '../_models/OutputTypeDataFields';
+import { Port } from '../_models/Port';
 import { Source } from '../_models/Source';
 import { SourceTallyData } from '../_models/SourceTallyData';
 import { SourceType } from '../_models/SourceType';
@@ -50,6 +51,7 @@ export class SocketService {
   public cloudDestinations: CloudDestination[] = [];
   public cloudKeys: string[] = [];
   public cloudClients: CloudClient[] = [];
+  public portsInUse: Port[] = [];
 
   public scrollLogsSubject = new Subject();
   public scrollTallyDataSubject = new Subject();
@@ -223,6 +225,10 @@ export class SocketService {
     });
     this.socket.on('tslclients_1secupdate', (value) => {
       this.tslclients_1secupdate = value;
+    });
+    this.socket.on('PortsInUse', (ports) => {
+      this.portsInUse = ports;
+      console.log(ports);
     });
     
     this.socket.emit('version');

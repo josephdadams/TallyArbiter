@@ -14,6 +14,10 @@ import { TSLClient } from 'src/app/_models/TSLClient';
 import { SocketService } from 'src/app/_services/socket.service';
 import Swal from 'sweetalert2';
 
+const globalSwalOptions = {
+  confirmButtonColor: "#2a70c7",
+};
+
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
@@ -55,6 +59,23 @@ export class SettingsComponent {
     this.socketService.closeModals.subscribe(() => this.modalService.dismissAll());
     this.socketService.scrollTallyDataSubject.subscribe(() => this.scrollToBottom(this.tallyDataContainer));
     this.socketService.scrollLogsSubject.subscribe(() => this.scrollToBottom(this.logsContainer));
+  }
+
+  private portInUse(portToCheck: number, sourceId: string) {
+    console.log(this.socketService.portsInUse);
+    for (const port of this.socketService.portsInUse) {
+      if (port.port.toString() === portToCheck.toString()) {
+        if (port.sourceId === sourceId) {
+          //this source owns this port, it's ok
+          return false;
+        } else {
+          //this source doesn't own this port
+          return true;
+        }
+      }
+    }
+    //the port isn't in use, it's ok
+    return false;
   }
 
   public saveDeviceSource() {
@@ -156,9 +177,9 @@ export class SettingsComponent {
         title: 'Confirmation',
         text: "There are listeners connected to this device. Delete anyway?",
         showCancelButton: true,
-        confirmButtonColor: "#2a70c7",
         icon: 'question',
         focusCancel: true,
+        ...globalSwalOptions,
     });
       if (!result) {
         return;
@@ -293,6 +314,29 @@ export class SettingsComponent {
   }
 
   public saveCurrentSource() {
+    for (const field of this.getOptionFields(this.socketService.sourceTypes[this.currentSourceSelectedTypeIdx!])) {
+      if (this.currentSource.data[field.fieldName] === null || this.currentSource.data[field.fieldName] === undefined || this.currentSource.data[field.fieldName].toString().trim().length === 0) {
+        Swal.fire({
+          icon: "error",
+          text: "Not all fields filled out!",
+          title: "Error",
+          ...globalSwalOptions,
+        });
+        return;
+      }
+      if (field.fieldType == "port") {
+        if (this.portInUse(this.currentSource.data[field.fieldName], this.currentSource.id)) {
+          Swal.fire({
+            icon: "error",
+            text: "This port is already in use. Please pick another!",
+            title: "Error",
+            ...globalSwalOptions,
+          });
+          return;
+        }
+      }
+    }
+    console.log(this.currentSource.data);
     const sourceObj = {
       ...this.currentSource,
       sourceTypeId: this.socketService.sourceTypes[this.currentSourceSelectedTypeIdx!].id,
