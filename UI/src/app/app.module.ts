@@ -10,6 +10,8 @@ import { ProducerComponent } from './_components/producer/producer.component';
 import { SettingsComponent } from './_components/settings/settings.component';
 import { TallyComponent } from './_components/tally/tally.component';
 import { AboutComponent } from './_components/about/about.component';
+import { ServiceWorkerModule } from '@angular/service-worker';
+import { environment } from '../environments/environment';
 
 @NgModule({
   declarations: [
@@ -25,6 +27,12 @@ import { AboutComponent } from './_components/about/about.component';
     AppRoutingModule,
     QrCodeModule,
     FormsModule,
+    ServiceWorkerModule.register('ngsw-worker.js', {
+      enabled: environment.production,
+      // Register the ServiceWorker as soon as the app is stable
+      // or after 30 seconds (whichever comes first).
+      registrationStrategy: 'registerWhenStable:30000'
+    }),
   ],
   providers: [],
   bootstrap: [AppComponent]
