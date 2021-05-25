@@ -1130,6 +1130,7 @@ function initialSetup() {
 			socket.emit('devices', devices);
 			socket.emit('bus_options', bus_options);
 			socket.emit('listener_clients', listener_clients);
+			socket.emit('device_states', device_states);
 		});
 
 		socket.on('companion', function () {
