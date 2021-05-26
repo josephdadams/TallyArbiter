@@ -1,0 +1,26 @@
+name: Build
+
+on: [push]
+
+jobs:
+  build_cli:
+    name: Build CLI on Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: 12
+    - name: Install dependencies
+      run: npm i
+    - name: Build
+      run: npm pack
+    - uses: gagle/package-version@v1
+      id: package-version
+    - uses: actions/upload-artifact@v2
+      with:
+        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}'
+        path: 'TallyArbiter-${{ steps.package-version.outputs.version }}.tgz'
+
+    
