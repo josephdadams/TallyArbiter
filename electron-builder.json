@@ -1,0 +1,23 @@
+{
+    "productName": "TallyArbiter",
+    "directories": {
+        "output": "./release/"
+    },
+    "publish": ["github"],
+    "extraResources": ["build/**"],
+    "win": {
+        "target": [
+            "nsis"
+        ]
+    },
+    "mac": {
+        "target": [
+            "dmg"
+        ]
+    },
+    "linux": {
+        "target": [
+            "AppImage"
+        ]
+    }
+}

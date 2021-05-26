@@ -111,3 +111,6 @@ config.json
 
 # don't include the generated UI
 ui-dist/*
+
+# don't include any installers
+release
