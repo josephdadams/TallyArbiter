@@ -1,5 +1,6 @@
 // This is the electron startup script
 const { app, BrowserWindow, Tray, Menu } = require('electron');
+const path = require("path");
 require("./index");
 
 let mainWindow;
@@ -33,7 +34,7 @@ function createWindow() {
 }
 
 function createTrayIcon() {
-    trayIcon = new Tray("./build/icon.png");
+    trayIcon = new Tray(app.isPackaged ? path.join(process.resourcesPath, "build/icon.png") : "build/icon.png");
     trayIcon.setContextMenu(
         Menu.buildFromTemplate([
             {

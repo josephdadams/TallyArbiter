@@ -45,7 +45,6 @@
 		"axios": "^0.21.1",
 		"cli-color": "^2.0.0",
 		"detect-rpi": "^1.4.0",
-		"electron": "^13.0.1",
 		"esm": "^3.2.25",
 		"express": "^4.17.1",
 		"jquery": "^3.6.0",
@@ -62,6 +61,11 @@
 	"scripts": {
 		"start": "node index.js",
 		"prepare": "cd UI && npm i && npm run build",
-		"desktop": "electron ."
+		"desktop": "electron .",
+		"build-desktop": "electron-builder"
+	},
+	"devDependencies": {
+		"electron": "^12.0.9",
+		"electron-builder": "^22.10.5"
 	}
 }
