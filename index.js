@@ -697,17 +697,12 @@ function initialSetup() {
 
 	//about the author, this program, etc.
 	app.get('/', function (req, res) {
-		res.sendFile('views/index.html', { root: __dirname });
+		res.sendFile('ui-dist/index.html', { root: __dirname });
 	});
 
 	//gets the version of the software
 	app.get('/version', function (req, res) {
 		res.send(version);
-	});
-
-	//tally page - view tally state of any device
-	app.get('/tally', function (req, res) {
-		res.sendFile('views/tally.html', { root: __dirname });
 	});
 
 	//roland smart tally emulation
@@ -749,11 +744,6 @@ function initialSetup() {
 
 	app.use('/producer', appProducer);
 
-	//producer page - view tally states of all devices
-	appProducer.get('/', function (req, res) {
-		res.sendFile('views/producer.html', { root: __dirname });
-	});
-
 	appSettings.use((req, res, next) => {
 
 		// -----------------------------------------------------------------------
@@ -776,11 +766,6 @@ function initialSetup() {
 	});
 
 	app.use('/settings', appSettings);
-
-	//settings page - add sources, devices, actions, etc.
-	appSettings.get('/', function (req, res) {
-		res.sendFile('views/settings.html', { root: __dirname });
-	});
 
 	appSettings.get('/source_types', function (req, res) {
 		//gets all Tally Source Types
@@ -877,11 +862,8 @@ function initialSetup() {
 		res.send(result);
 	});
 
-	//serve up any files in the static folder like images, CSS, client-side JS, etc.
-	app.use(express.static(path.join(__dirname, 'views/static')));
-
-	//serve up jQuery from the Node module
-	app.use('/js/jquery', express.static(path.join(__dirname, 'node_modules/jquery/dist')));
+	//serve up any files in the ui-dist folder
+	app.use(express.static(path.join(__dirname, 'ui-dist')));
 
 	app.use(function (req, res) {
 		res.status(404).send({error: true, url: req.originalUrl + ' not found.'});
