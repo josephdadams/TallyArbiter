@@ -42,5 +42,8 @@
 		"xml2js": "^0.4.23"
 	},
 	"main": "index.js",
-	"scripts": {}
+	"scripts": {
+		"start": "node index.js",
+		"prepare": "cd UI && npm i && npm run build"
+	}
 }
