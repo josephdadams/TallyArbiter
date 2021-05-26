@@ -25,11 +25,27 @@
 	],
 	"license": "MIT",
 	"author": "Joseph Adams",
+	"bin": {
+	  "tallyarbiter": "bin/tallyarbiter"
+	},
+	"publishConfig": {
+	  "access": "public"
+	},
+	"files": [
+		"package.json",
+		"package-lock.json",
+		"index.js",
+		"bin",
+		"ui-dist",
+		"readme.md",
+		"LICENSE"
+	],
 	"dependencies": {
 		"atem-connection": "^2.2.2",
 		"axios": "^0.21.1",
 		"cli-color": "^2.0.0",
 		"detect-rpi": "^1.4.0",
+		"esm": "^3.2.25",
 		"express": "^4.17.1",
 		"jquery": "^3.6.0",
 		"jspack": "^0.0.4",
