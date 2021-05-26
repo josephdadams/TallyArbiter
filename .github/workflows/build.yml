@@ -16,7 +16,7 @@ jobs:
       run: npm i
     - name: Build
       run: npm pack
-    - uses: gagle/package-version@v1.0.0
+    - uses: Saionaro/extract-package-version@v1.0.6
       id: package-version
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
@@ -45,7 +45,8 @@ jobs:
         release: ${{ startsWith(github.ref, 'refs/tags/v') }}
         skip_build: true
         args: ${{ fromJSON('["--publish onTag", "--publish always"]')[startsWith(github.ref, 'refs/tags/v')] }}
-    - uses: gagle/package-version@v1.0.0
+    - name: Get current version
+      uses: Saionaro/extract-package-version@v1.0.6
       id: package-version
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
