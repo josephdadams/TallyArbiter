@@ -62,7 +62,6 @@ export class SettingsComponent {
   }
 
   private portInUse(portToCheck: number, sourceId: string) {
-    console.log(this.socketService.portsInUse);
     for (const port of this.socketService.portsInUse) {
       if (port.port.toString() === portToCheck.toString()) {
         if (port.sourceId === sourceId) {
@@ -93,7 +92,6 @@ export class SettingsComponent {
       type: "device_source",
       device_source: deviceSourceObj,
     };
-    console.log(deviceSourceObj)
     this.socketService.socket.emit('manage', arbiterObj);
   }
 
@@ -143,7 +141,6 @@ export class SettingsComponent {
       type: "device_action",
       device_action: deviceActionObj,
     };
-    console.log(deviceActionObj)
     this.socketService.socket.emit('manage', arbiterObj);
   }
 
@@ -336,7 +333,6 @@ export class SettingsComponent {
         }
       }
     }
-    console.log(this.currentSource.data);
     const sourceObj = {
       ...this.currentSource,
       sourceTypeId: this.socketService.sourceTypes[this.currentSourceSelectedTypeIdx!].id,
