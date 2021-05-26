@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { WakeLockService } from './_services/wake-lock.service';
 
 @Component({
   selector: 'app-root',
@@ -7,4 +8,7 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   public showMenu = false;
+  constructor(private wakeLockService: WakeLockService) {
+    wakeLockService.init();
+  }
 }
