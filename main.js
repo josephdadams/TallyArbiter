@@ -1,9 +1,12 @@
 // This is the electron startup script
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Tray, Menu } = require('electron');
 require("./index");
 
+let mainWindow;
+let trayIcon;
+
 function createWindow() {
-    const mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         width: 800,
         height: 600,
         minHeight: 850,
@@ -16,10 +19,53 @@ function createWindow() {
     mainWindow.webContents.on('did-finish-load', function() {
         mainWindow.show();
     });
+    mainWindow.on('minimize', function(event) {
+        event.preventDefault();
+        mainWindow.hide();
+    });
+    mainWindow.on('close', function(event) {
+        if (!app.isQuiting) {
+            event.preventDefault();
+            mainWindow.hide();
+        }
+        return false;
+    });
+}
+
+function createTrayIcon() {
+    trayIcon = new Tray("./build/icon.png");
+    trayIcon.setContextMenu(
+        Menu.buildFromTemplate([
+            {
+                label: 'Show',
+                click: () => {
+                    mainWindow.show();
+                },
+            },
+            {
+                type: "separator",
+            },
+            {
+                label: 'Quit',
+                click: () => {
+                    app.isQuiting = true;
+                    app.quit();
+                },
+            },
+        ]));
+    trayIcon.setToolTip("Tally Arbiter");
+    trayIcon.on("click", () => {
+        if (mainWindow.isVisible()) {
+            mainWindow.hide();
+        } else {
+            mainWindow.show();
+        }
+    });
 }
 
 app.whenReady().then(() => {
     createWindow();
+    createTrayIcon();
     app.on('activate', function() {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
