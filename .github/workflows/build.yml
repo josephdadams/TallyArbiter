@@ -18,9 +18,48 @@ jobs:
       run: npm pack
     - uses: gagle/package-version@v1.0.0
       id: package-version
-    - uses: actions/upload-artifact@v2
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
       with:
         name: 'TallyArbiter-${{ steps.package-version.outputs.version }}'
         path: 'TallyArbiter-${{ steps.package-version.outputs.version }}.tgz'
+
+  build_desktop:
+    name: Build Desktop on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: 12
+    - name: Install dependencies
+      run: npm i
+    - name: Build
+      run: npm run build-desktop
+    - uses: gagle/package-version@v1.0.0
+      id: package-version
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      if: matix.os == 'ubuntu-latest'
+      with:
+        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-Linux'
+        path: 'TallyArbiter-${{ steps.package-version.outputs.version }}.AppImage'
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      if: matix.os == 'macos-latest'
+      with:
+        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-MacOS'
+        path: 'TallyArbiter-${{ steps.package-version.outputs.version }}.dmg'
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      if: matix.os == 'windows-latest'
+      with:
+        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-Windows'
+        path: 'TallyArbiter Setup ${{ steps.package-version.outputs.version }}.exe'
+
 
     
