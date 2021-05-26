@@ -108,3 +108,6 @@ dist
 
 # Remove config.json from default repo
 config.json
+
+# don't include the generated UI
+ui-dist/*
