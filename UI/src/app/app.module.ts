@@ -13,6 +13,7 @@ import { AboutComponent } from './_components/about/about.component';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { environment } from '../environments/environment';
 import { LoginComponent } from './_components/login/login.component';
+import { ChatComponent } from './_components/chat/chat.component';
 
 @NgModule({
   declarations: [
@@ -22,7 +23,8 @@ import { LoginComponent } from './_components/login/login.component';
     SettingsComponent,
     TallyComponent,
     AboutComponent,
-    LoginComponent
+    LoginComponent,
+    ChatComponent
   ],
   imports: [
     BrowserModule,

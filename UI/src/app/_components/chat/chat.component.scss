@@ -1,0 +1,14 @@
+div.chat {
+    height: calc(90vh - 5rem);
+    .message {
+        width: 80%;
+        background-color: rgb(255, 255, 255);
+        &.server {
+            background-color: rgb(255, 255, 231);
+            font-size: small;
+        }
+        &.producer {
+            background-color: rgb(212, 236, 255);
+        }
+    }
+}
