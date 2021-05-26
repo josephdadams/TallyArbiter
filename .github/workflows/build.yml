@@ -44,19 +44,19 @@ jobs:
       id: package-version
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
-      if: matix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-latest'
       with:
         name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-Linux'
         path: 'TallyArbiter-${{ steps.package-version.outputs.version }}.AppImage'
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
-      if: matix.os == 'macos-latest'
+      if: matrix.os == 'macos-latest'
       with:
         name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-MacOS'
         path: 'TallyArbiter-${{ steps.package-version.outputs.version }}.dmg'
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
-      if: matix.os == 'windows-latest'
+      if: matrix.os == 'windows-latest'
       with:
         name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-Windows'
         path: 'TallyArbiter Setup ${{ steps.package-version.outputs.version }}.exe'
