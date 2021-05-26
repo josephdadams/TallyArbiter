@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from 'src/app/_services/auth.service';
 
@@ -13,6 +13,7 @@ export class LoginComponent {
   public username = "";
   public password = "";
   private type!: "producer" | "settings";
+  @ViewChild("inputPassword") public inputPassword!: ElementRef;
 
   constructor(private router: Router, private authService: AuthService) {
   }
