@@ -16,7 +16,7 @@ jobs:
       run: npm i
     - name: Build
       run: npm pack
-    - uses: gagle/package-version@v1
+    - uses: gagle/package-version@v1.0.0
       id: package-version
     - uses: actions/upload-artifact@v2
       with:
