@@ -4,6 +4,7 @@ import { io, Socket } from 'socket.io-client';
 import { BusOption } from '../_models/BusOption';
 import { CloudClient } from '../_models/CloudClient';
 import { CloudDestination } from '../_models/CloudDestination';
+import { Message } from '../_models/Message';
 import { Device } from '../_models/Device';
 import { DeviceAction } from '../_models/DeviceAction';
 import { DeviceSource } from '../_models/DeviceSource';
@@ -52,9 +53,11 @@ export class SocketService {
   public cloudKeys: string[] = [];
   public cloudClients: CloudClient[] = [];
   public portsInUse: Port[] = [];
+  public messages: Message[] = [];
 
   public scrollLogsSubject = new Subject();
   public scrollTallyDataSubject = new Subject();
+  public scrollChatSubject = new Subject();
   public closeModals = new Subject();
 
 
@@ -85,18 +88,25 @@ export class SocketService {
       this.deviceStates = states;
       this.setupDeviceStates();
     });
-    this.socket.on('messaging', (type, socketid, message) => {
-      // insertChat(type, socketid, message);
+    this.socket.on("messaging", (type, socketId, message) => {
+      this.messages.push({
+        type,
+        socketId,
+        text: message,
+        date: new Date(),
+      });
+      this.scrollChatSubject.next();
     });
     this.socket.on("version", (version: string) => {
       this.version = version;
     });
     this.socket.on("logs", (logs: LogItem[]) => {
       this.logs = logs;
+      this.scrollLogsSubject.next();
     });
     this.socket.on("log_item", (log: LogItem) => {
       this.logs.push(log);
-      // this.scrollToBottom(this.logsContainer);
+      this.scrollLogsSubject.next();
     });
     this.socket.on("source_tallydata", (sourceId: string, data: SourceTallyData[]) => {
       this.sourceTallyData[sourceId] = data;
@@ -109,14 +119,15 @@ export class SocketService {
         log: `Source: ${this.getSourceById(sourceId)?.name}  Address: ${tallyObj.address}  Label: ${tallyObj.label}  PVW: ${tallyPreview}  PGM: ${tallyProgram}`,
         type: 'info',
       });
-      // this.scrollToBottom(this.tallyDataContainer);
+      this.scrollTallyDataSubject.next();
     });
     this.socket.on('device_sources', (deviceSources: DeviceSource[]) => {
       this.deviceSources = deviceSources;
     });
     this.socket.on('device_actions', (deviceActions: DeviceAction[]) => {
       this.deviceActions = deviceActions;
-    });this.socket.on('tsl_clients', (clients: TSLClient[]) => {
+    });
+    this.socket.on('tsl_clients', (clients: TSLClient[]) => {
       this.tslClients = clients;
     });
     this.socket.on('cloud_destinations', (destinations: CloudDestination[]) => {
@@ -148,15 +159,12 @@ export class SocketService {
       this.cloudClients = cloudClients;
       this.setupDeviceStates();
     });
-
-    
     this.socket.on('listener_clients', (listenerClients: ListenerClient[]) => {
       this.listenerClients = listenerClients.map((l) => {
         l.ipAddress = l.ipAddress.replace("::ffff:", "");
         return l;
       });
     });
-
     this.socket.on('manage_response', (response) => {
       switch (response.result) {
         case 'source-added-successfully':
@@ -228,7 +236,6 @@ export class SocketService {
     });
     this.socket.on('PortsInUse', (ports) => {
       this.portsInUse = ports;
-      console.log(ports);
     });
     
     this.socket.emit('version');
