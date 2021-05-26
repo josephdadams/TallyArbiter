@@ -6,5 +6,5 @@ import { Component } from '@angular/core';
   styleUrls: ['./home.component.scss']
 })
 export class HomeComponent {
-  public tallyUrl = `http://${location.host}/tally`;
+  public tallyUrl = `http://${location.host}/#/tally`;
 }
