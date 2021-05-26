@@ -12,14 +12,14 @@ export class LoginComponent {
   public wrongUsernameOrPassword = false;
   public username = "";
   public password = "";
-  private type: "producer" | "settings";
+  private type!: "producer" | "settings";
 
   constructor(private router: Router, private authService: AuthService) {
-    this.type = this.router.url.endsWith("producer") ? "producer" : "settings";
   }
-
+  
   login(): void {
     this.loading = true;
+    this.type = this.router.url.endsWith("producer") ? "producer" : "settings";
     this.authService.login(this.type, this.username, this.password).then((result) => {
       this.loading = false;
       if (result === true) {
