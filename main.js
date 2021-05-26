@@ -34,7 +34,7 @@ function createWindow() {
 }
 
 function createTrayIcon() {
-    trayIcon = new Tray(app.isPackaged ? path.join(process.resourcesPath, "build/icon.png") : "build/icon.png");
+    trayIcon = new Tray(app.isPackaged ? path.join(process.resourcesPath, "build/trayicon.png") : "build/trayicon.png");
     trayIcon.setContextMenu(
         Menu.buildFromTemplate([
             {
