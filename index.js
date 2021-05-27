@@ -41,7 +41,7 @@ const oscPort 		= 5958;
 var oscUDP			= null;
 var vmix_emulator	= null; //TCP server for VMix Emulator
 var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
-const config_file 	= './config.json'; //local storage JSON file
+const config_file 	= getConfigFilePath(); //local storage JSON file
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var Logs 			= []; //array of actions, information, and errors
 var tallydata_ATEM 	= []; //array of ATEM sources and current tally data
@@ -6589,6 +6589,15 @@ function DeletePort(port) { //Deletes the port from the list of reserved or in-u
 
 function SendMessage(type, socketid, message) {
 	io.to('messaging').emit('messaging', type, socketid, message);
+}
+
+function getConfigFilePath() {
+	const configFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share"), "TallyArbiter");
+	if (!fs.existsSync(configFolder)) {
+		fs.mkdirSync(configFolder, { recursive: true });
+	}
+	const configName = "config.json";
+	return path.join(configFolder, configName);
 }
 
 startUp();
