@@ -8,7 +8,12 @@
     <h2 class="lead mt-5" *ngIf="devices.length == 0">No devices are available for tally monitoring at this time.</h2>
 </div>
 
-<div [class]="'max-height container-fluid pt-5 ' + (mode_program ? mode_preview ? 'bg-warning' : 'bg-danger' : mode_preview  ? 'bg-success text-white' : '')" class="text-center" *ngIf="currentDeviceIdx !== undefined">
-    <h1>{{devices[currentDeviceIdx].name}}</h1>
-    <small>{{devices[currentDeviceIdx].description }}</small>
+<div [class]="'d-flex flex-column max-height container-fluid pt-5 ' + (mode_program ? mode_preview ? 'bg-warning' : 'bg-danger' : mode_preview  ? 'bg-success text-white' : '')" class="text-center" *ngIf="currentDeviceIdx !== undefined">
+    <div>
+        <h1>{{devices[currentDeviceIdx].name}}</h1>
+        <small>{{devices[currentDeviceIdx].description }}</small>
+    </div>
+        <div class="container flex-fill pb-4">
+            <app-chat type="client"></app-chat>
+        </div>
 </div>
