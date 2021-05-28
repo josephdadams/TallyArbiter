@@ -1,19 +1,24 @@
-<div class="container mt-5" *ngIf="currentDeviceIdx === undefined">
-    <div class="form-group" *ngIf="devices.length > 0">
-        <select class='form-control col-xs-6 col-md-3' (change)="selectDevice($event)">
-            <option disabled selected>-- Select a device --</option>
-            <option [value]="device.id" *ngFor="let device of devices">{{device.name}}</option>
-        </select>
-    </div>
-    <h2 class="lead mt-5" *ngIf="devices.length == 0">No devices are available for tally monitoring at this time.</h2>
+<div class="d-flex justify-content-center mt-5 pt-5" *ngIf="!socketService.devices">
+    <div class="spinner spinner-border"></div>
 </div>
-
-<div [class]="'d-flex flex-column max-height container-fluid pt-5 ' + (mode_program ? mode_preview ? 'bg-warning' : 'bg-danger' : mode_preview  ? 'bg-success text-white' : 'bg-dark text-white')" class="text-center" *ngIf="currentDeviceIdx !== undefined">
-    <div>
-        <h1>{{devices[currentDeviceIdx].name}}</h1>
-        <small>{{devices[currentDeviceIdx].description }}</small>
+<div *ngIf="socketService.devices">
+    <div class="container mt-5" *ngIf="currentDeviceIdx === undefined">
+        <div class="form-group" *ngIf="socketService.devices.length > 0">
+            <select class='form-control col-xs-6 col-md-3' (change)="selectDevice($event)">
+                <option disabled selected>-- Select a device --</option>
+                <option [value]="device.id" *ngFor="let device of socketService.devices">{{device.name}}</option>
+            </select>
+        </div>
+        <h2 class="lead mt-5" *ngIf="socketService.devices.length == 0">No devices are available for tally monitoring at this time.</h2>
     </div>
-    <div class="container flex-fill py-4">
-        <app-chat type="client"></app-chat>
+    
+    <div [class]="'d-flex flex-column max-height container-fluid pt-5 ' + (socketService.devices[currentDeviceIdx].modeProgram ? socketService.devices[currentDeviceIdx].modePreview ? 'bg-warning' : 'bg-danger' : socketService.devices[currentDeviceIdx].modePreview  ? 'bg-success text-white' : 'bg-dark text-white')" class="text-center" *ngIf="currentDeviceIdx !== undefined && socketService.devices[currentDeviceIdx]">
+        <div>
+            <h1>{{socketService.devices[currentDeviceIdx].name}}</h1>
+            <small>{{socketService.devices[currentDeviceIdx].description }}</small>
+        </div>
+        <div class="container flex-fill py-4">
+            <app-chat type="client"></app-chat>
+        </div>
     </div>
 </div>
