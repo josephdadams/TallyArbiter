@@ -55,10 +55,14 @@ export class SocketService {
   public portsInUse: Port[] = [];
   public messages: Message[] = [];
 
+  public dataLoaded = new Promise<void>((resolve) => this._resolveDataLoadedPromise = resolve);
+  private _resolveDataLoadedPromise!: () => void;
+
   public scrollLogsSubject = new Subject();
   public scrollTallyDataSubject = new Subject();
   public scrollChatSubject = new Subject();
   public closeModals = new Subject();
+  public deviceStateChanged = new Subject<{ deviceId: string; preview?: boolean; program?: boolean }>();
 
 
   constructor() {
@@ -68,6 +72,7 @@ export class SocketService {
     });
     this.socket.on('devices', (devices: Device[]) => {
       this.devices = devices;
+      this._resolveDataLoadedPromise();
       this.setupDeviceStates();
     });
     this.socket.on('bus_options', (busOptions: BusOption[]) => {
@@ -88,7 +93,7 @@ export class SocketService {
       this.deviceStates = states;
       this.setupDeviceStates();
     });
-    this.socket.on("messaging", (type, socketId, message) => {
+    this.socket.on("messaging", (type: "server" | "client" | "producer", socketId: string, message: string) => {
       this.messages.push({
         type,
         socketId,
@@ -111,7 +116,7 @@ export class SocketService {
     this.socket.on("source_tallydata", (sourceId: string, data: SourceTallyData[]) => {
       this.sourceTallyData[sourceId] = data;
     });
-    this.socket.on('tally_data', (sourceId, tallyObj) => {
+    this.socket.on('tally_data', (sourceId: string, tallyObj: SourceTallyData) => {
       let tallyPreview = (tallyObj.tally1 === 1 ? 'True' : 'False');
       let tallyProgram = (tallyObj.tally2 === 1 ? 'True' : 'False');
       this.tallyData.push({
@@ -165,7 +170,7 @@ export class SocketService {
         return l;
       });
     });
-    this.socket.on('manage_response', (response) => {
+    this.socket.on('manage_response', (response: any) => {
       switch (response.result) {
         case 'source-added-successfully':
         case 'source-edited-successfully':
@@ -228,13 +233,13 @@ export class SocketService {
           break;
       }
     });
-    this.socket.on('testmode', (value) => {
+    this.socket.on('testmode', (value: boolean) => {
       this.testModeOn = value;
     });
-    this.socket.on('tslclients_1secupdate', (value) => {
+    this.socket.on('tslclients_1secupdate', (value: boolean) => {
       this.tslclients_1secupdate = value;
     });
-    this.socket.on('PortsInUse', (ports) => {
+    this.socket.on('PortsInUse', (ports: Port[]) => {
       this.portsInUse = ports;
     });
     
@@ -260,6 +265,8 @@ export class SocketService {
     for (const device of this.devices) {
       let sources_pvw = [];
       let sources_pgm = [];
+      const formerProgram = device.modeProgram;
+      const formerPreview = device.modePreview;
       device.modeProgram = false;
       device.modePreview = false;
       for (const state of this.deviceStates.filter((s) => s.deviceId == device.id)) {
@@ -278,6 +285,12 @@ export class SocketService {
             device.modeProgram = false;
           }
         }
+      }
+      if(!formerProgram && device.modeProgram) {
+        this.deviceStateChanged.next({ deviceId: device.id, program: true })
+      }
+      if (!formerPreview && device.modePreview) {
+        this.deviceStateChanged.next({ deviceId: device.id, preview: true })
       }
     }
   }
