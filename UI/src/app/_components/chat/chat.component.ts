@@ -17,6 +17,10 @@ export class ChatComponent {
   }
 
   public sendMessage(): void {
+    if (!this.message.trim()) {
+      return;
+    }
+    this.message = this.message.trim();
     this.socketService.socket.emit("messaging", this.type, this.message);
     this.message = "";
   }
