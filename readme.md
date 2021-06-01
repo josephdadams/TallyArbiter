@@ -27,11 +27,44 @@ Tally Arbiter is software that allows you to combine incoming tally data from mu
 * Tally Arbiter 1.5: https://youtu.be/zar6-x7hT4M
 
 # Installing the software
-The software is written in Node.js and is therefore cross-platform and can be run on MacOS, Linux, or Windows.
+The software comes in multiples distribution formates, each with its advantages and gotchas.
 
-You must have Node.js installed for the software to run. You can download it here: <https://nodejs.org/en/download/>
+## Desktop Application / Installer
+### Installation
+This is the easiest method and recommanded for users with less terminal experience. Just go to the [Releases](https://github.com/josephdadams/TallyArbiter/releases) page, grab the latest installer for Windows, MacOS or Linux, run it and you're ready to use TallyArbiter! After installation you can run it just like any other program.
+### Upgrading
+The Autoupdater for the Desktop version will be available soon. For now, just download the new installer and run it when there's an update available.
 
-If on MacOS, you may need to download and install XCode Command Line Tools.
+**Be sure to back up or save your [config file](#configuration)!**
+
+## CLI
+### Installation
+If you have Node.js and npm installed, you can install TallyArbiter as a CLI and run it from the command line or terminal using
+```sh
+npm install --global tallyarbiter
+```
+or in short: `npm i -g tallyarbiter`
+
+Then, start it ty typing `tallyarbiter`.
+
+### Upgrading
+To install the latest version, just run the same command from above (`npm i -g tallyarbiter`) again.
+
+**Be sure to back up or save your [config file](#configuration)!**
+
+### Running as a service
+1. Open a terminal window and change directory to the folder where you placed the source code.
+1. Install the Node.js library, `pm2`, by typing `npm install -g pm2`. This will install it globally on your system.
+1. After `pm2` is installed, type `pm2 start tallyarbiter --name TallyArbiter` to daemonize it as a service.
+1. If you would like it to start automatically upon bootup, type `pm2 save` and then `pm2 startup` and follow the instructions on-screen.
+1. To view the console output while running the software with `pm2`, type `pm2 logs TallyArbiter`.
+
+## Build and run from source
+### Installation
+To try out the latest features, you will likely need to build and run TallyArbiter from source. But no worries, it's very easy. 
+
+You must have Node.js installed. You can download it here: <https://nodejs.org/en/download/>.
+If you're on MacOS, you may also need to download and install XCode Command Line Tools.
 
 Download the Tallly Arbiter source code. You can download it directly from GitHub, or you can use `git` from the command line to download the files.
 
@@ -40,36 +73,38 @@ Type `git clone https://github.com/josephdadams/tallyarbiter` to download the so
 
 After downloading the software, type `npm install` to install all necessary libraries and packages.
 
-# Upgrading the software
+You can then start it by typing `npm start` in a terminal.
+
+### Upgrading
 If you downloaded the software using `git`, upgrades are simple. In the terminal window, change directly to the Tally Arbiter folder, and then type: `git pull`. This will download the latest source code.
 
 If you downloaded the source code manually, just replace the files in the folder manually.
 
-**Be Sure to back up or save your `config.json` file!**
-
 Now run `npm install` to make sure all packages are up to date.
 
-# Running the software
+**Be sure to back up or save your [config file](#configuration)!**
 
-**RUNNING DIRECTLY WITHIN NODE:**
-1. Open a terminal window and change directory to the folder where you placed the source code.
-1. Type `node index.js` within this folder to run the program. *If this folder does not contain a `config.json` configuration file, a new one will be created the next time you use the API or the Settings page.*
+# Control Interface
+TallyArbiter runs an HTTP server listening on port `4455`. If this port is in use and cannot be opened, you will receive an error.
+To get to the web interface, open your browser to <http://127.0.0.1:4455> if you're on the same machine where you're running the software. If now, just replace `127.0.0.1` with the IP of that machine.
 
-**RUNNING AS A SERVICE:**
-1. Open a terminal window and change directory to the folder where you placed the source code.
-1. Install the Node.js library, `pm2`, by typing `npm install -g pm2`. This will install it globally on your system.
-1. After `pm2` is installed, type `pm2 start index.js --name TallyArbiter` to daemonize it as a service.
-1. If you would like it to start automatically upon bootup, type `pm2 save` and then `pm2 startup` and follow the instructions on-screen.
-1. To view the console output while running the software with `pm2`, type `pm2 logs TallyArbiter`.
-
-This program runs an HTTP server listening on port `4455`. If this port is in use and cannot be opened, you will receive an error.
-
-Upon startup, the program will enumerate through all stored incoming tally connections and open them.
+If you're running the Desktop App, you get a window showing the GUI. However, the web interface is also available at the url described above.
 
 # Configuration
-Once running, a web interface is available to view tally sources, devices, and other information at `/settings`: <http://127.0.0.1:4455/settings>
+In the configuration interface, the settings page is available at `/settings`: <http://127.0.0.1:4455/settings>
 **This page is restricted by a username and password. The default username is `admin` and the default password is `12345`.**
-You can change the security of this area by adding the following section to your `config.json` file:
+
+All the changes you make there are saved to a `config.json` file. This file should also be backed up frequently to prevent data loss when updating. It's path is different depending on the OS that you're running:
+
+* Windows: `C:\Users\YourUsername\AppData\Roaming\TallyArbiter\config.json`
+* MacOS: `~/Library/Preferences/TallyArbiter/config.json`
+* Linux: `~/.local/share/TallyArbiter/config.json`
+
+You can also manually edit that file.
+
+**Make sure that TallyArbiter is closed while making changes, because otherwise they will be overwritten!**
+
+You can change the security of the settings and the producer page by adding the following section to your `config.json` file:
 ```javascript
 {
 	"security":
@@ -82,6 +117,7 @@ You can change the security of this area by adding the following section to your
 }
 ```
 
+# Usage
 Tally Arbiter consists of the following sections:
 
 ## Sources
