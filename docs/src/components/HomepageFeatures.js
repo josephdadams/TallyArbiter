@@ -17,7 +17,7 @@ const FeatureList = [
     Svg: require('../../static/img/features/switchers.svg').default,
     description: (
       <>
-        Combine incoming tally data from multiple video switchers and arbitrate the bus state across all of the sources
+        Combine incoming tally data from multiple video switchers and arbitrate the bus state across all of the sources.
       </>
     ),
   },
@@ -44,7 +44,7 @@ const FeatureList = [
     Svg: require('../../static/img/features/chat.svg').default,
     description: (
       <>
-        Send important messages to the Tally clients - directly from the producer page
+        Send important messages to the Tally clients - directly from the producer page.
       </>
     ),
   },
@@ -53,7 +53,7 @@ const FeatureList = [
     Svg: require('../../static/img/features/camera.svg').default,
     description: (
       <>
-        TallyArbiter can support an unlimied of cameras and therefore can be used for all productions - no matter how small of big it is!
+        TallyArbiter can support an unlimited of cameras and therefore can be used for any production - no matter how big or small it is!
       </>
     ),
   },
