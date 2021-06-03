@@ -12,6 +12,8 @@ Contributions are always welcome. Here's a quick guide on how to setup your loca
 1. Clone this repository (or your fork): `git clone https://github.com/josephdadams/TallyArbiter`
 1. Run `npm install` in the project's root folder
 1. Start the main server with `npm start`
+1. Make any code changes desired
+1. Submit your work as a pull request
 
 ### UI
 The UI lives in the `UI` folder and is written using Angular.
@@ -29,7 +31,7 @@ The socket&#46;io / REST API requests the UI makes are automatically proxied to 
 Running `npm install` in the project's root folder (not in the UI directory) the UI is built automatically. As the UI's bundled dist files are excluded from the git repository in the `.gitignore` file, this is needed to ensure users which install TallyArbiter from source also have bundled UI dist. This dist is also served by the main server using `express.static()`.
 
 ### Desktop App
-The Desktop App is made with Electron. It's main file is called [`main.js`](./main.js) (not to be confused with the [`index.js`](./index.js), which is the server's entrypoint.)
+The Desktop App is made with Electron. The main file is called [`main.js`](./main.js) (not to be confused with the [`index.js`](./index.js), which is the server's entrypoint.)
 
 The Electron App can be started with `npm run desktop`. It will always show the generated UI dist, so in order to see changes made to the UI in the desktop app, you need to build the UI (see above).
 
