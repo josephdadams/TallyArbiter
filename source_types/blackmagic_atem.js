@@ -30,12 +30,105 @@ class Blackmagic_ATEM extends EventEmitter {
 			source_connections[i].server.on('stateChanged', (state, path) => {
 				for (let h = 0; h < path.length; h++) {
 					if (path[h] === 'info.capabilities') {
-						//console.log(state.info.capabilities);
+						//info about what the switcher can do, process this later
 					}
-					else if ((path[h].indexOf('video.mixEffects') > -1) || (path[h].indexOf('video.ME') > -1)) {
+					else if ((path[h].indexOf('video.mixEffects') > -1) || (path[h].indexOf('video.ME') > -1)) {				
 						for (let i = 0; i < state.video.mixEffects.length; i++) {
-							processATEMTally(state.video.mixEffects[i].index+1, state.video.mixEffects[i].programInput, state.video.mixEffects[i].previewInput);
+								let atemSourceFound = false;
+
+								//first loop through the ATEM tally data array, by SourceId and ME; if it's present, update the current program/preview inputs
+								for (let k = 0; k < tallydata_ATEM.length; k++) {
+									if (tallydata_ATEM[k].sourceId === sourceId) {
+										if (tallydata_ATEM[k].me === (state.video.mixEffects[i].index).toString()) {
+					
+											atemSourceFound = true;												
+
+											tallydata_ATEM[k].programInput = [];
+											tallydata_ATEM[k].previewInput = [];
+											
+											// ##### SuperSource is on PGM
+											if (state.video.mixEffects[i].programInput >= 6000 && state.video.mixEffects[i].programInput < 6010) {
+												// --> since I do have no access to an ATEM with more than one SSRC we'll stay on the "safe side" … 
+												// most likely a second SSRC would have inputID 6001 - but I don't know. ;-)
+
+													for (let n = 0; n < state.video.superSources.length; n++) {
+														for (let m = 0; m < state.video.superSources[n].boxes.length; m++) {
+														//check if box "m" is enabled - if the box is not enabled, we do not have to show tally for the source.
+															if (state.video.superSources[n].boxes[m].enabled) {
+																// Add the source of the box to the tallydata_ATEM[k].programInput Array
+																tallydata_ATEM[k].programInput.push(state.video.superSources[n].boxes[m].source.toString());
+															}	
+														}
+													}
+											// ##### something else that SSRC is on PGM
+											}
+											else {
+													tallydata_ATEM[k].programInput.push(state.video.mixEffects[i].programInput.toString());
+											}
+											
+											// ##### SuperSource is on PVW
+											if (state.video.mixEffects[i].previewInput >= 6000 && state.video.mixEffects[i].previewInput < 6010) {
+												for (let n = 0; n < state.video.superSources.length; n++) {
+														for (let m = 0; m < state.video.superSources[n].boxes.length; m++) {
+														//check if box "m" is enabled - if the box is not enabled, we do not have to show tally for the source.
+															if (state.video.superSources[n].boxes[m].enabled) {
+																// Add the source of the box to the tallydata_ATEM[k].previewInput Array
+																tallydata_ATEM[k].previewInput.push(state.video.superSources[n].boxes[m].source.toString());
+															}	
+														}
+													}
+											// ##### something else that SSRC is on PVW
+											}
+											else {
+													tallydata_ATEM[k].previewInput.push(state.video.mixEffects[i].previewInput.toString());																										
+											}
+										}
+									}
+								}
+
+								//if it was not in the tally array for this SourceId and ME, add it
+								if (!atemSourceFound) {
+									let atemTallyObj = {};
+									atemTallyObj.sourceId = sourceId;
+									atemTallyObj.me = state.video.mixEffects[i].index.toString();
+									
+									atemTallyObj.programInput = [];
+									atemTallyObj.previewInput = [];
+											
+									// ##### SuperSource is on PGM
+									if (state.video.mixEffects[i].programInput >= 6000 && state.video.mixEffects[i].programInput < 6010) {
+											for (let n = 0; n < state.video.superSources.length; n++) {
+												for (let m = 0; m < state.video.superSources[n].boxes.length; m++) {
+													if (state.video.superSources[n].boxes[m].enabled) {
+														atemTallyObj.programInput.push(state.video.superSources[n].boxes[m].source.toString());
+													}	
+												}
+											}
+									// ##### something else that SSRC is on PGM
+									}
+									else {
+											atemTallyObj.programInput.push(state.video.mixEffects[i].programInput.toString());
+									}
+									
+									// ##### SuperSource is on PVW
+									if (state.video.mixEffects[i].previewInput >= 6000 && state.video.mixEffects[i].previewInput < 6010) {
+										for (let n = 0; n < state.video.superSources.length; n++) {
+												for (let m = 0; m < state.video.superSources[n].boxes.length; m++) {
+													if (state.video.superSources[n].boxes[m].enabled) {
+														atemTallyObj.previewInput.push(state.video.superSources[n].boxes[m].source.toString());
+													}	
+												}
+											}
+									// ##### something else that SSRC is on PVW
+									}
+									else {
+										atemTallyObj.previewInput.push(state.video.mixEffects[i].previewInput.toString());
+									}
+									
+									tallydata_ATEM.push(atemTallyObj);
+								}
 						}
+						processATEMTally();
 					}
 				}
 			});
@@ -71,40 +164,41 @@ class Blackmagic_ATEM extends EventEmitter {
 
 module.exports = Blackmagic_ATEM;
 
-function processATEMTally(me, programInput, previewInput) {
+function processATEMTally() {
 	let self = this;
 
-	let atemSourceFound = false;
-
-	//first loop through the ATEM tally data array, by ME; if it's present, update the current program/preview inputs
-	for (let i = 0; i < tallydata_ATEM.length; i++) {
-		if (tallydata_ATEM[i].me === me.toString()) {
-			atemSourceFound = true;
-			tallydata_ATEM[i].programInput = programInput.toString();
-			tallydata_ATEM[i].previewInput = previewInput.toString();
-		}
-	}
-
-	//if it was not in the tally array for this ME, add it
-	if (!atemSourceFound) {
-		let atemTallyObj = {};
-		atemTallyObj.me = me.toString();
-		atemTallyObj.programInput = programInput.toString();
-		atemTallyObj.previewInput = previewInput.toString();
-		tallydata_ATEM.push(atemTallyObj);
-	}
-
-	//now loop through the updated array, and if an ME is one chosen to monitor for this SourceId,
+	/now loop through the updated array, and if an ME is one chosen to monitor for this SourceId,
 	//grab the program input and put it into a temp array of program inputs
 	//grab the preview input and put it into a temp array of preview inputs
+
 
 	let allPrograms = [];
 	let allPreviews = [];
 
-	for (let i = 0; i < tallydata_ATEM.length; i++) {
-		if (source.data.me_onair.includes(tallydata_ATEM[i].me)) {
-			allPrograms.push(tallydata_ATEM[i].programInput.toString());
-			allPreviews.push(tallydata_ATEM[i].previewInput.toString());
+	for (let z = 0; z < tallydata_ATEM.length; z++) {
+
+		if (tallydata_ATEM[z].sourceId === sourceId) {
+			let currentME = parseInt(tallydata_ATEM[z].me) + 1;
+			if (source.data.me_onair.includes(currentME.toString())) {	
+						
+				for (let y = 0; y < tallydata_ATEM[z].programInput.length; y++) {
+					
+					allPrograms.push(tallydata_ATEM[z].programInput[y]);
+					
+				}
+
+				for (let y = 0; y < tallydata_ATEM[z].previewInput.length; y++) {
+					
+						allPreviews.push(tallydata_ATEM[z].previewInput[y]);
+						
+				}
+					
+			}
+			else {
+					
+				console.log ('ME ' + currentME + ' was not selected');
+				
+			}
 		}
 	}
 
@@ -152,8 +246,6 @@ function processATEMTally(me, programInput, previewInput) {
 		}
 	}
 
-
-	//GOTTA FIGURE THIS ONE OUT
 	//finally clear out any device state that is no longer in preview or program
 	let device_sources_atem = GetDeviceSourcesBySourceId(sourceId);
 	for (let i = 0; i < device_sources_atem.length; i++) {
@@ -179,7 +271,7 @@ function processATEMTally(me, programInput, previewInput) {
 			tallyObj.tally3 = 0;
 			tallyObj.tally4 = 0;
 			tallyObj.label = `Source ${device_sources_atem[i].address}`;
-			processTSLTally(sourceId, tallyObj);
+			self.emit('data', tallyObj);
 		}
 	}
 }
