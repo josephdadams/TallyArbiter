@@ -1850,15 +1850,13 @@ function logger(log, type) { //logs the item to the console, to the log array, a
 			break;
 	}
 
-	if (type.indexOf('quiet') === -1) {
-		let logObj = {};
-		logObj.datetime = dtNow;
-		logObj.log = log;
-		logObj.type = type;
-		Logs.push(logObj);
+	const logObj = {};
+	logObj.datetime = dtNow;
+	logObj.log = log;
+	logObj.type = type;
+	Logs.push(logObj);
 
-		io.to('settings').emit('log_item', logObj);
-	}
+	io.to('settings').emit('log_item', logObj);
 }
 
 function loadConfig() { // loads the JSON data from the config file to memory
