@@ -260,15 +260,21 @@
   <hr class="my-5" />
   <div class="row">
     <div class="col-xs-12 col-md-6" id="divContainer_Logs">
-      <h2>Logs</h2>
+      <h2>Logs
+        <select class="form-select d-inline w-50" [ngModel]="currentLogLevel" (ngModelChange)="setLogLevel($event)">
+          <option *ngFor="let logLevel of logLevels" [value]="logLevel.id">{{logLevel.title}}</option>
+        </select>
+      </h2>
       <div class="logs bg-light p-1" #logsContainer>
         <span class="d-block" [style.color]="
             log.type == 'console_action'
               ? '#00ff00'
               : log.type == 'error'
               ? '#FF0000'
+              : log.type == 'info-quiet'
+              ? '#888888'
               : '#0000FF'
-          " *ngFor="let log of socketService.logs">[{{ log.datetime | date: "shortDate" }}
+          " *ngFor="let log of visibleLogs">[{{ log.datetime | date: "shortDate" }}
           {{ log.datetime | date: "shortTime" }}] {{ log.log }}</span>
       </div>
     </div>

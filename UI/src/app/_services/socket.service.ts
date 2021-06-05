@@ -58,7 +58,7 @@ export class SocketService {
   public dataLoaded = new Promise<void>((resolve) => this._resolveDataLoadedPromise = resolve);
   private _resolveDataLoadedPromise!: () => void;
 
-  public scrollLogsSubject = new Subject();
+  public newLogsSubject = new Subject();
   public scrollTallyDataSubject = new Subject();
   public scrollChatSubject = new Subject();
   public closeModals = new Subject();
@@ -107,11 +107,11 @@ export class SocketService {
     });
     this.socket.on("logs", (logs: LogItem[]) => {
       this.logs = logs;
-      this.scrollLogsSubject.next();
+      this.newLogsSubject.next();
     });
     this.socket.on("log_item", (log: LogItem) => {
       this.logs.push(log);
-      this.scrollLogsSubject.next();
+      this.newLogsSubject.next();
     });
     this.socket.on("source_tallydata", (sourceId: string, data: SourceTallyData[]) => {
       this.sourceTallyData[sourceId] = data;
