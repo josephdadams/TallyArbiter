@@ -7,6 +7,7 @@ import { Device } from 'src/app/_models/Device';
 import { DeviceAction } from 'src/app/_models/DeviceAction';
 import { DeviceSource } from 'src/app/_models/DeviceSource';
 import { ListenerClient } from 'src/app/_models/ListenerClient';
+import { LogItem } from 'src/app/_models/LogItem';
 import { OutputType } from 'src/app/_models/OutputType';
 import { Source } from 'src/app/_models/Source';
 import { SourceType } from 'src/app/_models/SourceType';
@@ -18,6 +19,8 @@ const globalSwalOptions = {
   confirmButtonColor: "#2a70c7",
 };
 
+type LogLevel = { title: string; id: string };
+
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
@@ -27,6 +30,15 @@ export class SettingsComponent {
   @ViewChild('logsContainer') private logsContainer!: ElementRef;
   @ViewChild('tallyDataContainer') private tallyDataContainer!: ElementRef;
   
+  public logLevels: LogLevel[] = [
+    { title: "Error", id: "error" },
+    { title: "Console", id: "console-action" },
+    { title: "Info", id: "info" },
+    { title: "Verbose", id: "info-quiet" },
+  ];
+  public currentLogLevel = "info";
+  public visibleLogs: LogItem[] = [];
+
   // add / edit Source
   public editingSource = false;
   public currentSourceSelectedTypeIdx?: number;
@@ -58,7 +70,10 @@ export class SettingsComponent {
     this.socketService.joinAdmins();
     this.socketService.closeModals.subscribe(() => this.modalService.dismissAll());
     this.socketService.scrollTallyDataSubject.subscribe(() => this.scrollToBottom(this.tallyDataContainer));
-    this.socketService.scrollLogsSubject.subscribe(() => this.scrollToBottom(this.logsContainer));
+    this.socketService.newLogsSubject.subscribe(() => {
+      this.filterLogs();
+      this.scrollToBottom(this.logsContainer);
+    });
   }
 
   private portInUse(portToCheck: number, sourceId: string) {
@@ -75,6 +90,22 @@ export class SettingsComponent {
     }
     //the port isn't in use, it's ok
     return false;
+  }
+
+  public setLogLevel(logLevel: string) {
+    this.currentLogLevel = logLevel;
+    this.filterLogs();
+    this.scrollToBottom(this.logsContainer);
+  }
+
+  private filterLogs() {
+    const index = this.logLevels.findIndex((l) => l.id == this.currentLogLevel);
+    const allowedLogLevels = this.logLevels.filter((l, i) => i <= index).map((l) => l.id);
+    this.visibleLogs = this.socketService.logs.filter((l) => allowedLogLevels.includes(l.type));
+  }
+
+  public ngOnInit() {
+    this.setLogLevel(this.currentLogLevel);
   }
 
   public saveDeviceSource() {
