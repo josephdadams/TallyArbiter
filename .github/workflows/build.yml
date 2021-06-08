@@ -49,8 +49,6 @@ jobs:
         github_token: ${{ secrets.github_token }}
         release: ${{ startsWith(github.ref, 'refs/tags/v') }}
         skip_build: true
-        # needed because there's a bug in that action
-        args: ${{ fromJSON('["--publish onTag", "--publish always"]')[startsWith(github.ref, 'refs/tags/v')] }}
 ##    - name: Get current version
 ##      uses: Saionaro/extract-package-version@v1.0.6
 ##      id: package-version
