@@ -1,10 +1,11 @@
 // This is the electron startup script
 const { app, BrowserWindow, Tray, Menu } = require('electron');
 const path = require("path");
-require("./index");
 
 let mainWindow;
 let trayIcon;
+
+const gotTheLock = app.requestSingleInstanceLock()
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -20,10 +21,6 @@ function createWindow() {
     mainWindow.webContents.on('did-finish-load', function() {
         mainWindow.show();
     });
-    mainWindow.on('minimize', function(event) {
-        event.preventDefault();
-        mainWindow.hide();
-    });
     mainWindow.on('close', function(event) {
         if (!app.isQuiting) {
             event.preventDefault();
@@ -31,6 +28,8 @@ function createWindow() {
         }
         return false;
     });
+    // start the server
+    require("./index");
 }
 
 function createTrayIcon() {
@@ -64,14 +63,32 @@ function createTrayIcon() {
     });
 }
 
-app.whenReady().then(() => {
-    createWindow();
-    createTrayIcon();
-    app.on('activate', function() {
-        if (BrowserWindow.getAllWindows().length === 0) createWindow();
-    });
-});
 
-app.on('window-all-closed', function() {
-    if (process.platform !== 'darwin') app.quit();
-});
+if (!gotTheLock) {
+    app.quit();
+} else {
+    app.whenReady().then(() => {
+        createWindow();
+        createTrayIcon();
+        app.on('activate', function () {
+            if (BrowserWindow.getAllWindows().length === 0) createWindow();
+        });
+    });
+
+    app.on('second-instance', () => {
+        // Someone tried to run a second instance, we should focus our window.
+        if (mainWindow) {
+            if (!mainWindow.isVisible()) {
+                mainWindow.show();
+            }
+            if (mainWindow.isMinimized()) {
+                mainWindow.restore();
+            }
+            mainWindow.focus();
+        }
+    });
+
+    app.on('window-all-closed', function () {
+        if (process.platform !== 'darwin') app.quit();
+    });
+}
