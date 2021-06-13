@@ -41,7 +41,7 @@
 		"LICENSE"
 	],
 	"dependencies": {
-		"atem-connection": "^2.2.2",
+		"atem-connection": "3.0.0-nightly-latest-20210530-132658-16c3cdd.0",
 		"axios": "^0.21.1",
 		"cli-color": "^2.0.0",
 		"detect-rpi": "^1.4.0",
