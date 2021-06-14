@@ -66,6 +66,10 @@ This program runs an HTTP server listening on port `4455`. If this port is in us
 
 Upon startup, the program will enumerate through all stored incoming tally connections and open them.
 
+
+**ONLY FOR DEVELOPERS:**  
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/josephdadams/TallyArbiter)
+
 # Configuration
 Once running, a web interface is available to view tally sources, devices, and other information at `/settings`: <http://127.0.0.1:4455/settings>
 **This page is restricted by a username and password. The default username is `admin` and the default password is `12345`.**

@@ -1,0 +1,7 @@
+tasks:
+  - init: npm install; node index.js
+ports:
+  - port: 4455
+    onOpen: open-preview
+  - port: 8099
+    onOpen: ignore
