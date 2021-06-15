@@ -41,8 +41,10 @@
 		"ui-dist",
 		"readme.md",
 		"LICENSE"
+	],
 	"contributors": [
-		"Andreas H. Thomsen <mc-hauge@hotmail.com>"
+		"Andreas H. Thomsen <mc-hauge@hotmail.com>",
+		"Hannes Rüger <hannesrueger@gmx.de>"
 	],
 	"dependencies": {
 		"atem-connection": "3.0.0-nightly-latest-20210530-132658-16c3cdd.0",
