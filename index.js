@@ -6953,6 +6953,7 @@ function getConfigFilePath() {
 	}
 	const configName = "config.json";
 	return path.join(configFolder, configName);
+}
 
 function getNetworkInterfaces() { // Get all network interfaces on host device
 	var interfaces = []
