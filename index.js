@@ -88,6 +88,11 @@ portObj.sourceId = 'reserved';
 PortsInUse.push(portObj);
 
 portObj = {};
+portObj.port = '60020'; //Panasonic AV-HS410
+portObj.sourceId = 'reserved';
+PortsInUse.push(portObj);
+
+portObj = {};
 portObj.port = listenPort.toString(); //Tally Arbiter
 portObj.sourceId = 'reserved';
 PortsInUse.push(portObj);
@@ -227,6 +232,12 @@ var source_types_datafields = [ //data fields for the tally source types
 			] }
 		]
 	},
+
+	{ sourceTypeId: '7da3b526', fields: [ // Panasonic AV-HS410
+			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
+		]
+	},
+
 	{ sourceTypeId: '05d6bce1', fields: [ // OSC Listener
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'info', fieldLabel: 'Information', text: 'The device source address should be sent as an integer or a string to the server\'s IP address on the specified port. Sending to /tally/preview_on designates it as a Preview command, and /tally/program_on designates it as a Program command. Sending /tally/previewprogram_on and /tally/previewprogram_off will send both bus states at the same time. To turn off a preview or program, use preview_off and program_off. The first OSC argument received will be used for the device source address.', fieldType: 'info' }
@@ -922,6 +933,9 @@ function initialSetup() {
 					break;
 				case 'vmix': //VMix
 					result = source.connection.getTallyData();
+					break;
+				case 'panasonic': //panasonic
+					result = tallydata_Panasonic;
 					break;
 				case 'panasonic': //panasonic
 					result = tallydata_Panasonic;
@@ -3566,7 +3580,7 @@ function StartConnection(sourceId) {
 	for (let i = 0; i < sources.length; i++) {
 		if ((sources[i].enabled) && (!sources[i].cloudConnection)) {
 			let sourceType = source_types.find( ({ id }) => id === sources[i].sourceTypeId);
-
+      
 			if (sources[i].connection) {
 				sources[i].connection.stop();
 			}

@@ -1,6 +1,6 @@
 {
 	"name": "TallyArbiter",
-	"version": "1.5.9",
+	"version": "1.5.10",
 	"description": "Tally Arbiter is a Node.js server that is capable of listening/fetching tally data from multiple sources (and source types) and ultimately arbitrating whether a end device is considered to be in Preview or Program. Supports TSL UMD, Blackmagic ATEM, OBS Studio, and StudioCoast VMix (currently). Tally output can be viewed on the server, on a web page, or using a listener script to wirelessly trigger an output, such as blink(1) devices, relay contact closures via USB, or GPIO pins on a Raspberry Pi.",
 	"keywords": [
 		"util",
@@ -17,14 +17,19 @@
 		"ross",
 		"obs",
 		"vmix",
+		"panasonic",
+		"AV-HS410",
 		"analogway",
 		"blink1",
 		"roland",
 		"tricaster",
-		"gpio"
+		"gpio"		
 	],
 	"license": "MIT",
 	"author": "Joseph Adams",
+	"contributors": [
+		"Andreas H. Thomsen <mc-hauge@hotmail.com>"
+	],
 	"dependencies": {
 		"atem-connection": "^2.0.0",
 		"axios": "^0.21.1",
@@ -39,8 +44,15 @@
 		"socket.io": "2.3.0",
 		"socket.io-client": "2.3.0",
 		"tsl-umd": "^1.0.1",
-		"xml2js": "^0.4.23"
+		"xml2js": "^0.4.23",
+		"nodemon": "^2.0.7"
 	},
 	"main": "index.js",
-	"scripts": {}
+	"scripts": {
+		"start": "node index.js",
+		"start-dev": "nodemon index.js",
+		"install": "npm install",
+		"deamon_Install": "npm install -g pm2",
+		"deamon_Run": "pm2 start index.js --name TallyArbiter"
+	}
 }
