@@ -8,7 +8,7 @@ function updateQRCode() {
 	// this interface has only one ipv4 adress
 	console.log(location.host);
 	$('#qrcodeRegion').append($('<img/>', {
-		src: createQrCodeUrl('http://' + location.host + '/tally')
+		src: createQrCodeUrl(location.origin + location.pathname + 'tally')
 	}));
-	$('#qrcodeRegion').append($('<p>' + 'http://' + location.host + '/tally' + '</p>'));
+	$('#qrcodeRegion').append($('<p>' + location.origin + location.pathname + 'tally' + '</p>'));
 }
