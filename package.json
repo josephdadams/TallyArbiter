@@ -17,11 +17,13 @@
 		"ross",
 		"obs",
 		"vmix",
+		"panasonic",
+		"AV-HS410",
 		"analogway",
 		"blink1",
 		"roland",
 		"tricaster",
-		"gpio"
+		"gpio"		
 	],
 	"license": "MIT",
 	"author": "Joseph Adams",
@@ -39,6 +41,8 @@
 		"ui-dist",
 		"readme.md",
 		"LICENSE"
+	"contributors": [
+		"Andreas H. Thomsen <mc-hauge@hotmail.com>"
 	],
 	"dependencies": {
 		"atem-connection": "3.0.0-nightly-latest-20210530-132658-16c3cdd.0",
