@@ -22,6 +22,8 @@ const ioClient		= require('socket.io-client');
 const osc 			= require('osc');
 const xml2js		= require('xml2js');
 const jspack 		= require('jspack').jspack;
+const os 			= require('os') // For getting available Network interfaces on host device
+
 
 //Tally Arbiter variables
 const listenPort 	= process.env.PORT || 4455;
@@ -38,6 +40,7 @@ const socketupdates_Settings  = ['sources', 'devices', 'device_sources', 'device
 const socketupdates_Producer  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients'];
 const socketupdates_Companion = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
 const oscPort 		= 5958;
+const vmixEmulatorPort = '8099'; // Default 8099 
 var oscUDP			= null;
 var vmix_emulator	= null; //TCP server for VMix Emulator
 var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
@@ -53,6 +56,7 @@ var tallydata_RossCarbonite = []; //array of Ross Carbonite sources and current 
 var tallydata_VMix 	= []; //array of VMix sources and current tally data
 var tallydata_TC 	= []; //array of Tricaster sources and current tally data
 var tallydata_AWLivecore 	= []; //array of Analog Way sources and current tally data
+var tallydata_Panasonic 	= []; //array of Panasonic AV-HS410 sources and current tally data
 var PortsInUse		= []; //array of UDP/TCP ports in use, includes reserved ports
 var tsl_clients		= []; //array of TSL 3.1 clients that Tally Arbiter will send tally data to
 var tsl_clients_sockets = []; //array of actual socket connections
@@ -79,6 +83,11 @@ PortsInUse.push(portObj);
 
 portObj = {};
 portObj.port = oscPort.toString(); //OSC Broadcast
+portObj.sourceId = 'reserved';
+PortsInUse.push(portObj);
+
+portObj = {};
+portObj.port = '60020'; //Panasonic AV-HS410
 portObj.sourceId = 'reserved';
 PortsInUse.push(portObj);
 
@@ -113,6 +122,7 @@ var source_types 	= [ //available tally source types
 	{ id: '63d7ebc6', label: 'Ross Graphite', type: 'ross_carbonite', enabled: true, help: ''},
 	{ id: '22d507ab', label: 'Ross Carbonite Black SD/HD', type: 'ross_carbonite', enabled: true, help: ''},
 	{ id: '7da3b524', label: 'Ross Carbonite Ultra', type: 'ross_carbonite', enabled: true, help: ''},
+	{ id: '7da3b526', label: 'Panasonic AV-HS410', type: 'panasonic', enabled: true, help: 'Uses port 60020, Make sure to have Multicast Enabled on the network'},
 	{ id: 'f2b7dc72', label: 'Newtek Tricaster', type: 'tc', enabled: true, help: 'Uses Port 5951.'},
 	{ id: '05d6bce1', label: 'Open Sound Control (OSC)', type: 'osc', enabled: true, help: ''},
 	{ id: 'cf51e3c9', label: 'Incoming Webhook', type: 'webhook', enabled: false, help: ''},
@@ -221,6 +231,12 @@ var source_types_datafields = [ //data fields for the tally source types
 			] }
 		]
 	},
+
+	{ sourceTypeId: '7da3b526', fields: [ // Panasonic AV-HS410
+			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
+		]
+	},
+
 	{ sourceTypeId: '05d6bce1', fields: [ // OSC Listener
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'info', fieldLabel: 'Information', text: 'The device source address should be sent as an integer or a string to the server\'s IP address on the specified port. Sending to /tally/preview_on designates it as a Preview command, and /tally/program_on designates it as a Program command. Sending /tally/previewprogram_on and /tally/previewprogram_off will send both bus states at the same time. To turn off a preview or program, use preview_off and program_off. The first OSC argument received will be used for the device source address.', fieldType: 'info' }
@@ -558,6 +574,33 @@ var source_types_busaddresses = [
 	{ sourceTypeId: '7da3b524', address: '125', bus: 'aux26', label: "Aux 26", type: "program"},
 	{ sourceTypeId: '7da3b524', address: '126', bus: 'aux27', label: "Aux 27", type: "program"}
 	////////
+]
+
+var source_types_panasonic = [ // AV-HS410 INPUTS
+	{ id: '00', label: 'XPT 1' },
+	{ id: '01', label: 'XPT 2' },
+	{ id: '02', label: 'XPT 3' },
+	{ id: '03', label: 'XPT 4' },
+	{ id: '04', label: 'XPT 5' },
+	{ id: '05', label: 'XPT 6' },
+	{ id: '06', label: 'XPT 7' },
+	{ id: '07', label: 'XPT 8' },
+	{ id: '08', label: 'XPT 9' },
+	{ id: '09', label: 'XPT 10' },
+	{ id: '10', label: 'XPT 11' },
+	{ id: '11', label: 'XPT 12' },
+	{ id: '12', label: 'XPT 13' },
+	{ id: '13', label: 'XPT 14' },
+	{ id: '14', label: 'XPT 15' },
+	{ id: '15', label: 'XPT 16' },
+	{ id: '16', label: 'XPT 17' },
+	{ id: '17', label: 'XPT 18' },
+	{ id: '18', label: 'XPT 19' },
+	{ id: '19', label: 'XPT 20' },
+	{ id: '20', label: 'XPT 21' },
+	{ id: '21', label: 'XPT 22' },
+	{ id: '22', label: 'XPT 23' },
+	{ id: '23', label: 'XPT 24' },
 ]
 
 if (isPi()) {
@@ -909,6 +952,9 @@ function initialSetup() {
 					break;
 				case 'vmix': //VMix
 					result = tallydata_VMix;
+					break;
+				case 'panasonic': //panasonic
+					result = tallydata_Panasonic;
 					break;
 				case 'tricaster': //Tricaster
 					result = tallydata_TC;
@@ -1763,8 +1809,8 @@ function startVMixEmulator() {
 
 	vmix_emulator.on('connection', handleConnection);
 
-	vmix_emulator.listen(8099, function() {
-		logger(`Finished VMix Emulation Setup. Listening for VMix Tally Connections on TCP Port 8099.`, 'info-quiet');
+	vmix_emulator.listen(parseInt(vmixEmulatorPort), function() {
+		logger(`Finished VMix Emulation Setup. Listening for VMix Tally Connections on TCP Port ` + vmixEmulatorPort + `.`, 'info-quiet');
 	});
 
 	function handleConnection(conn) {
@@ -1998,6 +2044,9 @@ function loadConfig() { // loads the JSON data from the config file to memory
 					break;
 				case 'vmix':
 					SetUpVMixServer(sources[i].id);
+					break;
+				case 'panasonic':
+					SetUpPanasonicServer(sources[i].id);
 					break;
 				case 'roland':
 					SetUpRolandSmartTally(sources[i].id);
@@ -3392,6 +3441,308 @@ function StopVMixServer(sourceId) {
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
 			logger(`Source: ${source.name}  Closing VMix connection.`, 'info-quiet');
+			source_connections[i].server.write('QUIT\r\n');
+			break;
+		}
+	}
+}
+
+function SetUpPanasonicServer(sourceId) {
+	let source = sources.find( ({ id }) => id === sourceId);
+	let ip = source.data.ip;
+	let port = 60020;
+
+	try
+	{
+		let sourceConnectionObj = {};
+		sourceConnectionObj.sourceId = sourceId;
+		sourceConnectionObj.server = null;
+		sourceConnectionObj.multi = null;
+		sourceConnectionObj.timer = null;
+		source_connections.push(sourceConnectionObj);
+
+		var receivebuffer = ''
+		let multicastAddress = '224.0.0.200'
+		let multicastInterface = getNetworkInterfaces.apply() // get network interfaces
+		let multicastPort = 60020
+
+		var STX = String.fromCharCode(0x02)
+		var ETX = String.fromCharCode(0x03)
+	
+		for (let i = 0; i < source_connections.length; i++) {
+			if (source_connections[i].sourceId === sourceId) {
+				logger(`Source: ${source.name}  Creating Panasonic AV-HS410 connection.`, 'info-quiet');
+
+				// Post an array of inputs to the dropdowns
+				addPanasonicSource(sourceId);
+
+
+				source_connections[i].server = new net.Socket()
+				source_connections[i].multi = dgram.createSocket({ type: 'udp4', reuseAddr: true })
+
+				source_connections[i].server.connect(port, ip, function() {
+					logger(`Source: ${source.name}  AV-HS410 Connection Opened.`, 'info');
+
+					// source_connections[i].server.write('SUBSCRIBE TALLY\r\n');
+					// source_connections[i].server.write('SUBSCRIBE ACTS\r\n');
+
+					// addVMixSource(sourceId, '{{RECORDING}}', 'Recording');
+					// addVMixSource(sourceId, '{{STREAMING}}', 'Streaming');
+
+					for (let j = 0; j < sources.length; j++) {
+						if (sources[j].id === sourceId) {
+							sources[j].connected = true;
+							UnregisterReconnect(sources[j].id);
+							break;
+						}
+					}
+					UpdateSockets('sources');
+					UpdateCloud('sources');
+				});
+
+				source_connections[i].server.on('data', function (data) {
+					// Do nothing currently, we only really use the TCP to keep the connection alive
+				});
+
+				source_connections[i].server.on('error', function(error) {
+					logger(`Source: ${source.name}  Panasonic AV-HS410 Error occurred: ${error}`, 'error')
+				});
+
+				source_connections[i].server.on('close', function () {
+					logger(`Source: ${source.name}  Panasonic AV-HS410 Connection closed.`, 'info')
+					for (let j = 0; j < sources.length; j++) {
+						if (sources[j].id === sourceId) {
+							sources[j].connected = false;
+							CheckReconnect(sources[j].id);
+							break;
+						}
+					}
+					UpdateSockets('sources')
+					UpdateCloud('sources')
+				});
+
+				source_connections[i].multi.on('listening', function () {
+					logger(`Source: ${source.name}  Panasonic AV-HS410 Multicast Enabled.`, 'info')
+				})
+
+				source_connections[i].multi.on('message', function (message, remote) {
+					var i = 0,
+						packet = '',
+						offset = 0
+					receivebuffer += message
+			
+					// If we receve a data package from the unit - Parse it
+					while ((i = receivebuffer.indexOf(ETX, offset)) !== -1) {
+						packet = receivebuffer.substr(offset, i - offset)
+						offset = i + 1
+			
+						if (packet.substr(0, 1) == STX) {
+							let str_raw = packet.substr(1).toString()
+							// Ready for feedbacks on multicast data
+							let str = str_raw.trim() // remove new line, carage return and so on.
+							str = str.split(':') // Split Commands and data
+
+							// Create needed Variables for temp data
+							let address = parseInt(str[2]) + 1;
+							let input = {}
+							let old_input = {}
+							let change = false
+							
+							// Clear the old input from program
+							switch (str[0]) {
+								case 'ABST':
+									switch (str[1]) {
+										case '00': // Bus A
+											// Do something
+											break 
+										case '01': // Bus B
+											// Do something
+											break 
+										case '02': // PGM
+											// Clear the old input from Program Bus
+											old_input = tallydata_Panasonic.find( (inputs) => inputs.tally2 === 1)
+											if (old_input != undefined) {
+												if (old_input.tally2 != undefined) {
+													if (old_input.address != String(address)) {
+														old_input.tally2 = 0;												
+													}
+												}	
+											}
+
+											// Set the new input to Program Bus
+											input = tallydata_Panasonic.find( (inputs) => inputs.address === String(address))
+											if (input != undefined) {
+												if (input.tally2 != undefined) {
+													if (input.tally2 != 1) {
+														input.tally2 = 1;
+														change = true;
+													} else {
+														change = false;	
+													}
+												}	
+											}
+											break 
+										case '03': // PVW
+											// Clear the old input from Preview Bus
+											old_input = tallydata_Panasonic.find( (inputs) => inputs.tally1 === 1)
+											if (old_input != undefined) {
+												if (old_input.tally1 != undefined) {
+													if (old_input.address != String(address)) {
+														old_input.tally1 = 0;												
+													}
+												}	
+											}
+
+											// Set the new input to Preview Bus
+											input = tallydata_Panasonic.find( (inputs) => inputs.address === String(address))
+											if (input != undefined) {
+												if (input.tally1 != undefined) {
+													if (input.tally1 != 1) {
+														input.tally1 = 1;
+														change = true;
+													} else {
+														change = false;	
+													}
+												}	
+											}
+											break 
+										case '04': // Key Fill
+											// Do something
+											break 
+										case '05': // Key Source
+											// Do something
+											break 
+										case '06': // DSK Fill
+											// Do something
+											break 
+										case '07': // DSK Source
+											// Do something
+											break 
+										case '10': // PinP 1
+											// Do something
+											break 
+										case '11': // PinP 2
+											// Do something
+											break 
+										case '12': // AUX 1
+											// Do something
+											break 
+										case '13': // AUX 2
+											// Do something
+											break 
+										case '14': // AUX 3
+											// Do something
+											break 
+										case '15': // AUX 4
+											// Do something
+											break 
+										default:
+											break
+									}
+									break
+								case 'ATST':
+									break // Store some data when ATST command is recieved
+								case 'SPAT':
+									break // Store some data when SPAT command is recieved
+						
+								default:
+									break
+							}
+
+							if (change == true) {
+								if (old_input != undefined) {
+									processTSLTally(sourceId, old_input);
+								}
+								if (input != undefined) {
+									processTSLTally(sourceId, input);
+								}
+							}
+						}
+					}
+					receivebuffer = receivebuffer.substr(offset)
+				})
+			
+				source_connections[i].multi.on('error', function (err) {
+					logger(`Source: ${source.name}  Panasonic Multicast Error occurred: ${err.stack}`, 'error')
+				})
+			
+				source_connections[i].multi.bind(multicastPort, () => {
+					for (let x = 0; x < multicastInterface.length; x++) {
+						source_connections[i].multi.addMembership(multicastAddress, multicastInterface[x].address)
+					}
+				})			
+			
+				source_connections[i].timer = setInterval(function () {					
+					// if (source_connections[i].server !== undefined && source_connections[i].server.connected) {
+					if (source_connections[i].server !== undefined) {
+						source_connections[i].server.write(STX + 'SPAT:0:00' + ETX)
+						// console.log('send: SPAT:0:00')
+					} else {
+						logger(`Source: ${source.name}  Panasonic AV-HS410 Connection Lost.`, 'info')
+					}
+				
+				}, 500) // 500 ms keepalive command
+	
+				break;
+			}
+		}
+	}
+	catch (error) {
+		logger(`Source: ${source.name}. Panasonic AV-HS410 Error Occurred: ${error}`, 'error');
+	}
+}
+
+function addPanasonicSource(sourceId) {
+	let inputs = source_types_panasonic
+
+	inputs.forEach( input => {
+		let address = String(parseInt(input.id) + 1)
+
+		//Double check its not there already
+		var exists = tallydata_Panasonic.find(function(src){
+			return (src.sourceId == sourceId && src.address == address);
+		});
+
+	    if (exists !== undefined) return;
+
+		// //Doesn't exist, add it
+		tallydata_Panasonic.push({
+		    sourceId: sourceId,
+		    label: input.label,
+		    address: address,
+		    tally1: 0,
+		    tally2: 0,
+		    tally3: 0,
+		    tally4: 0
+		});
+
+		logger(`AV-HS410 Tally Source: ${sourceId} Added new source: ${input.label}`, 'info-quiet');
+	});	
+
+	// console.log(tallydata_Panasonic)
+}
+
+function StopPanasonicServer(sourceId) {
+	let source = GetSourceBySourceId(sourceId);
+
+	RegisterDisconnect(sourceId);
+
+	for (let i = 0; i < source_connections.length; i++) {
+		if (source_connections[i].sourceId === sourceId) {
+
+			// Close TCP Keep Alive Requests
+			if (source_connections[i].timer) {
+				clearInterval(source_connections[i].timer)
+				delete source_connections[i].timer
+			}
+
+			// Close UDP Multicast Interface
+			if (source_connections[i].multi !== undefined) {
+				source_connections[i].multi.close()
+				delete source_connections[i].multi
+			}
+		
+			logger(`Source: ${source.name}. Closing Panasonic AV-HS410 Connection.`, 'info-quiet');
 			source_connections[i].server.write('QUIT\r\n');
 			break;
 		}
@@ -5067,6 +5418,9 @@ function StartConnection(sourceId) {
 		case 'vmix':
 			SetUpVMixServer(sourceId);
 			break;
+		case 'panasonic':
+			SetUpPanasonicServer(sourceId);
+			break;
 		case 'roland':
 			SetUpRolandSmartTally(sourceId);
 			break;
@@ -5122,6 +5476,9 @@ function StopConnection(sourceId) {
 		case 'vmix':
 			StopVMixServer(sourceId);
 			break;
+		case 'panasonic':
+			StopPanasonicServer(sourceId);
+			break;	
 		case 'roland':
 			StopRolandSmartTally(sourceId);
 			break;
@@ -6596,6 +6953,33 @@ function getConfigFilePath() {
 	}
 	const configName = "config.json";
 	return path.join(configFolder, configName);
+
+function getNetworkInterfaces() { // Get all network interfaces on host device
+	var interfaces = []
+	const networkInterfaces = os.networkInterfaces()
+
+	for (const interface in networkInterfaces) {
+		let numberOfAddresses = networkInterfaces[interface].length
+		let v4Addresses = []
+		let iface = interface.split(' ')[0]
+
+		for (let i = 0; i < numberOfAddresses; i++) {
+			if (networkInterfaces[interface][i]['family'] === 'IPv4') {
+				v4Addresses.push(networkInterfaces[interface][i].address)
+			}
+		}
+		numV4s = v4Addresses.length
+		for (let i = 0; i < numV4s; i++) {
+			let aNum = numV4s > 1 ? `:${i}` : ''
+			interfaces.push({
+				label: `${interface}${aNum}`,
+				name: `${iface}${aNum}`,
+				address: v4Addresses[i],
+			})
+		}
+	}
+
+	return interfaces
 }
 
 startUp();
