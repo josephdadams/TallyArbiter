@@ -10,7 +10,7 @@ All connected listener clients are tracked and listed in the Settings page. You 
 ## Using a web page for tally output
 Navigate to `/tally` on the Tally Arbiter server in your browser and select a Device from the list. As long as the page remains connected to the system, it will display tally data (Preview, Program, Preview+Program, Clear) in real time. Web clients can also send/receive messages with the Producer, like a chat room.
 
-**You can also go to `/tally?deviceid=9fe2efd9a` (replace `9fe2efd9a` with your actual DeviceId) and auto load the page to that Device without having to choose it from the list.**
+**You can also go to `/#/tally/9fe2efd9a` (replace `9fe2efd9a` with your actual DeviceId) and auto load the page to that Device without having to choose it from the list.**
 
 If you include `?chat=false` to the request, you can turn off the Messaging/Chat functions.
 
