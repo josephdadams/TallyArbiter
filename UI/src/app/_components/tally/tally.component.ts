@@ -14,7 +14,7 @@ export class TallyComponent {
   
   constructor(
     private router: Router,
-    private route: ActivatedRoute,
+    public route: ActivatedRoute,
     public socketService: SocketService,
   ) {
     this.socketService.socket.emit('devices');
