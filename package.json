@@ -51,7 +51,6 @@
 	"scripts": {
 		"start": "node index.js",
 		"start-dev": "nodemon index.js",
-		"install": "npm install",
 		"deamon_Install": "npm install -g pm2",
 		"deamon_Run": "pm2 start index.js --name TallyArbiter"
 	}
