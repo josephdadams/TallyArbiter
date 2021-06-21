@@ -36,6 +36,7 @@ export class SocketService {
   public busOptions: BusOption[] = [];
   public initialDataLoaded = false;
   public version?: string;
+  public interfaces: any[] = [];
   public logs: LogItem[] = [];
   public tallyData: LogItem[] = [];
   public sourceTypes: SourceType[] = [];
@@ -104,6 +105,15 @@ export class SocketService {
     });
     this.socket.on("version", (version: string) => {
       this.version = version;
+    });
+    this.socket.on("interfaces", (interfaces: any[]) => {
+      interfaces.forEach((net_interface) => {
+        this.interfaces.push({
+          name: net_interface.name,
+          address: net_interface.address,
+          url: `http://${net_interface.address}:4455/#/tally`
+        });
+      });
     });
     this.socket.on("logs", (logs: LogItem[]) => {
       this.logs = logs;
@@ -244,6 +254,7 @@ export class SocketService {
     });
     
     this.socket.emit('version');
+    this.socket.emit('interfaces');
   }
 
   private prepareSources(sources: Source[]): Source[] {

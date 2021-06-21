@@ -6,8 +6,18 @@
         <div class="col">
             <div class="rounded bg-light p-3">
                 <h3><i class="fas fa-mobile-alt"></i> Tally Web Clients</h3>
-                <qr-code class="my-4 d-block" [value]="tallyUrl" size="250" errorCorrectionLevel="M"></qr-code>
-                <p>Scan the QR Code with your Phone or open the following URL:</p><a target="_blank" [href]="tallyUrl">{{tallyUrl}}</a>
+                <qr-code class="my-4 d-block" [value]="net_interface_url" size="250" errorCorrectionLevel="M"></qr-code>
+                <select [(ngModel)]="net_interface_url" name="net_interface">
+                    <option *ngFor="let net_interface of socketService.interfaces" [ngValue]="net_interface.url">
+                        {{net_interface.address}} ({{net_interface.name}})
+                    </option>
+                </select>
+                <p>Scan the QR Code with your Phone or open one of the following URLs:</p>
+                <ul>
+                    <li *ngFor="let net_interface of socketService.interfaces">
+                        <a target="_blank" [href]="net_interface.url">{{net_interface.url}}</a>
+                    </li>
+                </ul>
             </div>
         </div>
         <div class="col">
