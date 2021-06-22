@@ -1,28 +1,29 @@
 /* Tally Arbiter */
 
 //Protocol, Network, Socket, Server libraries/variables
-const net 			= require('net');
-const packet 		= require('packet');
-const TSLUMD 		= require('tsl-umd'); // TSL UDP package
-const dgram 		= require('dgram');
-const { Atem }		= require('atem-connection');
-const OBS 			= require('obs-websocket-js');
-const fs 			= require('fs');
-const path 			= require('path');
-const {version} 	= require('./package.json');
-const isPi 			= require('detect-rpi');
-const clc 			= require('cli-color');
-const util 			= require ('util');
-const express 		= require('express');
-const bodyParser 	= require('body-parser');
-const axios 		= require('axios');
-const http 			= require('http');
-const socketio		= require('socket.io');
-const ioClient		= require('socket.io-client');
-const osc 			= require('osc');
-const xml2js		= require('xml2js');
-const jspack 		= require('jspack').jspack;
-const os 			= require('os') // For getting available Network interfaces on host device
+const net 						= require('net');
+const packet 					= require('packet');
+const TSLUMD 					= require('tsl-umd'); // TSL UDP package
+const dgram 					= require('dgram');
+const { Atem }					= require('atem-connection');
+const AtemListVisibleInputs 	= require('atem-connection').listVisibleInputs;
+const OBS 						= require('obs-websocket-js');
+const fs 						= require('fs');
+const path 						= require('path');
+const {version} 				= require('./package.json');
+const isPi 						= require('detect-rpi');
+const clc 						= require('cli-color');
+const util 						= require ('util');
+const express 					= require('express');
+const bodyParser 				= require('body-parser');
+const axios 					= require('axios');
+const http 						= require('http');
+const socketio					= require('socket.io');
+const ioClient					= require('socket.io-client');
+const osc 						= require('osc');
+const xml2js					= require('xml2js');
+const jspack 					= require('jspack').jspack;
+const os 						= require('os') // For getting available Network interfaces on host device
 
 
 //Tally Arbiter variables
@@ -47,7 +48,6 @@ var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
 const config_file 	= './config.json'; //local storage JSON file
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var Logs 			= []; //array of actions, information, and errors
-var tallydata_ATEM 	= []; //array of ATEM sources and current tally data
 var labels_VideoHub = []; //array of VideoHub source labels
 var destinations_VideoHub = []; //array of VideoHub destination/source assignments
 var tallydata_VideoHub = []; //array of VideoHub sources and current tally data
@@ -2601,9 +2601,13 @@ function SetUpATEMServer(sourceId) {
 							if (path[h] === 'info.capabilities') {
 								//console.log(state.info.capabilities);
 							}
-							else if ((path[h].indexOf('video.mixEffects') > -1) || (path[h].indexOf('video.ME') > -1)) {
+							else if ((path[h].indexOf('video.mixEffects') > -1) || (path[h].indexOf('video.ME') > -1) || (path[h].indexOf('video.downstreamKeyers') > -1)) {
 								for (let i = 0; i < state.video.mixEffects.length; i++) {
-									processATEMTally(sourceId, state.video.mixEffects[i].index+1, state.video.mixEffects[i].programInput, state.video.mixEffects[i].previewInput);
+									if (source.data.me_onair.includes((i+1).toString())) {
+										const pgmList = AtemListVisibleInputs("program", state, i).map(n => n.toString());
+										const prvList = AtemListVisibleInputs("preview", state, i).map(n => n.toString());
+										processATEMTally(sourceId, pgmList, prvList);
+									}
 								}
 							}
 						}
@@ -2627,49 +2631,9 @@ function SetUpATEMServer(sourceId) {
 	}
 }
 
-function processATEMTally(sourceId, me, programInput, previewInput) {
-	let source = GetSourceBySourceId(sourceId);
+function processATEMTally(sourceId, allPrograms, allPreviews) {
 
-	let atemSourceFound = false;
-
-	//first loop through the ATEM tally data array, by SourceId and ME; if it's present, update the current program/preview inputs
-	for (let i = 0; i < tallydata_ATEM.length; i++) {
-		if (tallydata_ATEM[i].sourceId === sourceId) {
-			if (tallydata_ATEM[i].me === me.toString()) {
-				atemSourceFound = true;
-				tallydata_ATEM[i].programInput = programInput.toString();
-				tallydata_ATEM[i].previewInput = previewInput.toString();
-			}
-		}
-	}
-
-	//if it was not in the tally array for this SourceId and ME, add it
-	if (!atemSourceFound) {
-		let atemTallyObj = {};
-		atemTallyObj.sourceId = sourceId;
-		atemTallyObj.me = me.toString();
-		atemTallyObj.programInput = programInput.toString();
-		atemTallyObj.previewInput = previewInput.toString();
-		tallydata_ATEM.push(atemTallyObj);
-	}
-
-	//now loop through the updated array, and if an ME is one chosen to monitor for this SourceId,
-	//grab the program input and put it into a temp array of program inputs
-	//grab the preview input and put it into a temp array of preview inputs
-
-	let allPrograms = [];
-	let allPreviews = [];
-
-	for (let i = 0; i < tallydata_ATEM.length; i++) {
-		if (tallydata_ATEM[i].sourceId === sourceId) {
-			if (source.data.me_onair.includes(tallydata_ATEM[i].me)) {
-				allPrograms.push(tallydata_ATEM[i].programInput.toString());
-				allPreviews.push(tallydata_ATEM[i].previewInput.toString());
-			}
-		}
-	}
-
-	//loop through the temp array of program inputs;
+	//loop through the array of program inputs;
 	//if that program input is also in the preview array, build a TSL-type object that has it in pvw+pgm
 	//if only pgm, build an object of only pgm
 
@@ -2690,7 +2654,7 @@ function processATEMTally(sourceId, me, programInput, previewInput) {
 		processTSLTally(sourceId, tallyObj);
 	}
 
-	//now loop through the temp array of pvw inputs
+	//now loop through the array of pvw inputs
 	//if that input is not in the program array, build a TSL object of only pvw
 
 	for (let i = 0; i < allPreviews.length; i++) {
