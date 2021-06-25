@@ -2602,13 +2602,18 @@ function SetUpATEMServer(sourceId) {
 								//console.log(state.info.capabilities);
 							}
 							else if ((path[h].indexOf('video.mixEffects') > -1) || (path[h].indexOf('video.ME') > -1) || (path[h].indexOf('video.downstreamKeyers') > -1)) {
+								const pgmList = [], prvList = [];
+								const addUniqueInput = (n, list) => {
+									const s = n.toString();
+									if (!list.includes(s)) list.push(s);
+								}
 								for (let i = 0; i < state.video.mixEffects.length; i++) {
 									if (source.data.me_onair.includes((i+1).toString())) {
-										const pgmList = AtemListVisibleInputs("program", state, i).map(n => n.toString());
-										const prvList = AtemListVisibleInputs("preview", state, i).map(n => n.toString());
-										processATEMTally(sourceId, pgmList, prvList);
+										AtemListVisibleInputs("program", state, i).forEach(n => addUniqueInput(n, pgmList));
+										AtemListVisibleInputs("preview", state, i).forEach(n => addUniqueInput(n, prvList));
 									}
 								}
+								processATEMTally(sourceId, pgmList, prvList);
 							}
 						}
 					});
