@@ -6,10 +6,11 @@
         <div class="col">
             <div class="rounded bg-light p-3">
                 <h3><i class="fas fa-mobile-alt"></i> Tally Web Clients</h3>
-                <qr-code class="my-4 d-block" [value]="net_interface_url" size="250" errorCorrectionLevel="M"></qr-code>
-                <select [(ngModel)]="net_interface_url" name="net_interface">
-                    <option *ngFor="let net_interface of socketService.interfaces" [ngValue]="net_interface.url">
-                        {{net_interface.address}} ({{net_interface.name}})
+                <qr-code class="my-4 d-block" [value]="netInterfaceUrl" size="250" errorCorrectionLevel="M"></qr-code>
+                <select [(ngModel)]="netInterfaceUrl" class="form-select d-inline w-unset">
+                    <option [value]="localNetInterfaceUrl">localhost (Local)</option>
+                    <option *ngFor="let netInterface of socketService.interfaces" [ngValue]="netInterface.url">
+                        {{netInterface.address}} ({{netInterface.name}})
                     </option>
                 </select>
                 <p>Scan the QR Code with your Phone or open one of the following URLs:</p>
