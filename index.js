@@ -927,6 +927,10 @@ function initialSetup() {
 			socket.emit('version', version);
 		});
 
+		socket.on('interfaces', function() {
+			socket.emit('interfaces', getNetworkInterfaces());
+		});
+
 		socket.on('sources', function() { // sends the configured Sources to the socket
 			socket.emit('sources', sources);
 		});

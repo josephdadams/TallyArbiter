@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { SocketService } from 'src/app/_services/socket.service';
 
 @Component({
   selector: 'app-home',
@@ -6,5 +7,7 @@ import { Component } from '@angular/core';
   styleUrls: ['./home.component.scss']
 })
 export class HomeComponent {
-  public tallyUrl = `http://${location.host}/#/tally`;
+  public localNetInterfaceUrl = "http://localhost:4455/#/tally"
+  public netInterfaceUrl = this.localNetInterfaceUrl;
+  constructor(public socketService: SocketService) {}
 }
