@@ -425,6 +425,10 @@
       <label for="deviceDescription" class="form-label">Device Description</label>
       <input type="text" class="form-control" id="deviceDescription" [(ngModel)]="currentDevice.description" />
     </div>
+    <div class="mb-3">
+		  <label for="deviceTSLAddress" class="form-label">TSL Address</label>
+		  <input type="text" class="form-control" id="deviceTSLAddress" [(ngModel)]="currentDevice.tslAddress" />
+	  </div>
     <ng-container *ngIf="editingDevice">
       <div class="mb-3 form-check">
         <input type="checkbox" class="form-check-input" id="enabled" [(ngModel)]="currentDevice.enabled" />
