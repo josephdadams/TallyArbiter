@@ -2107,6 +2107,7 @@ function SaveConfig() {
 			devices: devices,
 			device_sources: device_sources,
 			device_actions: device_actions,
+			listener_clients: listener_clients,
 			tsl_clients: tsl_clients_clean,
 			tsl_clients_1secupdate: tsl_clients_1secupdate,
 			cloud_destinations: cloud_destinations,
@@ -6652,27 +6653,90 @@ function GetSmartTallyStatus(tallynumber) {
 }
 
 function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed) {
+	let i;
+	let configIsEmpty = true;
 	let clientObj = {};
+	let isKnownListener = false;
 
-	clientObj.id = uuidv4();
-	clientObj.socketId = socketId;
-	clientObj.deviceId = deviceId;
-	clientObj.listenerType = listenerType;
-	clientObj.ipAddress = ipAddress;
-	clientObj.datetime_connected = datetimeConnected;
-	clientObj.canBeReassigned = canBeReassigned;
-	clientObj.canBeFlashed = canBeFlashed;
-	clientObj.inactive = false;
+	if(listener_clients.length !== 0) {
+		configIsEmpty = false;
+		for (let i = 0; i <= listener_clients.length; i++) {
+			console.log(listener_clients[i]);
+			if(listener_clients[i].ipAddress === ipAddress && listener_clients[i].listenerType === listenerType && listener_clients[i].deviceId === deviceId) {
+				isKnownListener = true;
+				break;
+			} else {
+				if(listener_clients.length >= i) {
+					isKnownListener = false;
+					break;
+				} else {
+					isKnownListener = false;
+				}
+			}
+		}
+	} else if (listener_clients.length > 0) {
+		isKnownListener = false;
+		configIsEmpty = true;
+	} else {
+		isKnownListener = false;
+	}
 
-	listener_clients.push(clientObj);
+	console.log(isKnownListener);
+	if (isKnownListener === false) {
+		console.log('Unknown');
+		clientObj.id = uuidv4();
+		clientObj.socketId = socketId;
+		clientObj.deviceId = deviceId;
+		clientObj.listenerType = listenerType;
+		clientObj.ipAddress = ipAddress;
+		clientObj.datetime_connected = datetimeConnected;
+		clientObj.canBeReassigned = canBeReassigned;
+		clientObj.canBeFlashed = canBeFlashed;
+		clientObj.inactive = false;
+		listener_clients.push(clientObj);
+	} else if (isKnownListener === true){
+		console.log('known');
+		if (configIsEmpty = false) {
+			clientObj.id = listener_clients[i].id;
+			clientObj.socketId = listener_clients[i].socketId;
+			clientObj.deviceId = listener_clients[i].deviceId;
+			clientObj.listenerType = listener_clients[i].listenerType;
+			clientObj.ipAddress = listener_clients[i].ipAddress;
+			clientObj.datetime_connected = listener_clients[i].datetimeConnected;
+			clientObj.canBeReassigned = listener_clients[i].canBeReassigned;
+			clientObj.canBeFlashed = listener_clients[i].canBeFlashed;
+			clientObj.inactive = listener_clients[i].inactive;
+		}
+	} else {
+		console.log('unknown');
+		clientObj.id = uuidv4();
+		clientObj.socketId = socketId;
+		clientObj.deviceId = deviceId;
+		clientObj.listenerType = listenerType;
+		clientObj.ipAddress = ipAddress;
+		clientObj.datetime_connected = datetimeConnected;
+		clientObj.canBeReassigned = canBeReassigned;
+		clientObj.canBeFlashed = canBeFlashed;
+		clientObj.inactive = false;
+		listener_clients.push(clientObj);;
+	}
 
-	let message = `Listener Client Connected: ${clientObj.ipAddress.replace('::ffff:', '')} (${clientObj.listenerType}) at ${new Date()}`;
+	console.log(clientObj);
+
+	if(clientObj === undefined || null || {}) {
+		return;
+	} else if (clientObj !== undefined) {
+		let message = `Listener Client Connected: ${clientObj.ipAddress.replace('::ffff:', '')} (${clientObj.listenerType}) at ${new Date()}`;
 	SendMessage('server', null, message);
 
 	UpdateSockets('listener_clients');
 	UpdateCloud('listener_clients');
 
 	return clientObj.id;
+	} else {
+		return
+	};
+	
 }
 
 function ReassignListenerClient(clientId, oldDeviceId, deviceId) {
