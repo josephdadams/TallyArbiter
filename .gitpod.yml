@@ -1,6 +1,8 @@
 tasks:
-  - init: NG_CLI_ANALYTICS=ci npm install
+  - init: npm install
     command: npm start
+    env:
+     - NG_CLI_ANALYTICS=ci
 ports:
   - port: 4455
     onOpen: open-preview
@@ -8,7 +10,7 @@ ports:
     onOpen: ignore
   - port: 5958
     onOpen: ignore
-#vscode:
-#  extensions:
-#    - Angular.ng-template
-#    - esbenp.prettier-vscode
+vscode:
+  extensions:
+    - Angular.ng-template
+    - esbenp.prettier-vscode
