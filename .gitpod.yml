@@ -1,8 +1,6 @@
 tasks:
-  - init: npm install
+  - init: cd UI; npm i --ignore-scripts; npm run build; cd ..; npm i --ignore-scripts
     command: npm start
-    env:
-     - NG_CLI_ANALYTICS=ci
 ports:
   - port: 4455
     onOpen: open-preview
