@@ -1,0 +1,40 @@
+/* You can add global styles to this file, and also import other style files */
+
+@import "~bootstrap/scss/bootstrap.scss";
+@import "~@fortawesome/fontawesome-free/css/all.css";
+
+body {
+    padding-top: 60px;
+}
+
+.bg-success {
+    background-color: #3fe481 !important;
+}
+.text-success {
+    color: #3fe481 !important;
+}
+
+
+.bg-danger {
+    background-color: #e43f5a !important;
+}
+
+
+.flash {
+    animation: flasher 0.1s cubic-bezier(1, 0, 0, 1) infinite alternate;
+}
+
+@keyframes flasher {
+to {
+    background-color: white;
+    opacity: 0;
+}
+}
+
+.max-height {
+    height: calc(100vh - 60px);
+}
+
+.w-unset {
+    width: unset;
+}

@@ -1,0 +1,59 @@
+<div class="container pt-3">
+  <div class="row">
+    <div class="col-md-6">
+    <h2>Devices</h2>
+    <span class="text-muted mt-3" *ngIf="socketService.devices.length == 0">No devices configured.</span>
+    <table class="table table-hover" *ngIf="socketService.devices.length > 0">
+        <thead>
+          <tr>
+            <th>PVW</th>
+            <th>PGM</th>
+            <th>Name</th>
+            <th></th>
+            <th>Description</th>
+            <th>Active Listeners</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let device of socketService.devices" [class.text-muted]="!device.enabled">
+            <td [class.bg-success]="device.modePreview"></td>
+            <td [class.bg-danger]="device.modeProgram"></td>
+            <td>{{device.name}}</td>
+            <td><i class="fas fa-cloud text-muted" *ngIf="device.cloudConnection"></i></td>
+            <td>{{device.description}}</td>
+            <td><span class="badge bg-dark" *ngIf="device.listenerCount && device.listenerCount > 0">{{device.listenerCount}}</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <hr class="my-5" />
+      <h2>Clients</h2>
+      <span class="text-muted mt-3" *ngIf="socketService.listenerClients.length == 0">No clients connected.</span>
+      <table class="table table-hover" *ngIf="socketService.listenerClients.length > 0">
+        <thead>
+          <tr>
+            <th></th>
+            <th>IP</th>
+            <th>Type</th>
+            <th></th>
+            <th>Device</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let listenerClient of socketService.listenerClients" [class.text-muted]="listenerClient.inactive">
+            <td>{{listenerClient.datetime_connected | date: "shortTime"}}</td>
+            <td>{{listenerClient.ipAddress}}</td>
+            <td>{{listenerClient.listenerType}}</td>
+            <td><i class="fas fa-cloud text-muted" *ngIf="listenerClient.cloudConnection"></i></td>
+            <td>{{listenerClient.device?.name}}</td>
+            <td><button *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed" class="btn btn-outline-dark" (click)="socketService.flashListener(listenerClient)">Flash</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col-md-6 chat">
+        <h3>Chat</h3>
+        <app-chat type="producer"></app-chat>
+    </div>
+  </div>
+</div>
