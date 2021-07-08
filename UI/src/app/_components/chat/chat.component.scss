@@ -1,0 +1,16 @@
+div.chat {
+    height: 100%;
+    color: #000;
+    text-align: left;
+    .message {
+        width: 80%;
+        background-color: rgb(255, 255, 255);
+        &.server {
+            background-color: rgb(255, 255, 231);
+            font-size: small;
+        }
+        &.producer {
+            background-color: rgb(212, 236, 255);
+        }
+    }
+}

@@ -30,7 +30,7 @@ const os 						= require('os') // For getting available Network interfaces on ho
 const listenPort 	= process.env.PORT || 4455;
 const app 			= express();
 const httpServer	= http.Server(app);
-const io 			= socketio(httpServer);
+const io 			= socketio(httpServer, { allowEIO3: true });
 const appProducer	= require('express').Router();
 const appSettings	= require('express').Router();
 var username_producer = 'producer';
@@ -45,7 +45,7 @@ const vmixEmulatorPort = '8099'; // Default 8099
 var oscUDP			= null;
 var vmix_emulator	= null; //TCP server for VMix Emulator
 var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
-const config_file 	= './config.json'; //local storage JSON file
+const config_file 	= getConfigFilePath(); //local storage JSON file
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var Logs 			= []; //array of actions, information, and errors
 var labels_VideoHub = []; //array of VideoHub source labels
@@ -740,17 +740,12 @@ function initialSetup() {
 
 	//about the author, this program, etc.
 	app.get('/', function (req, res) {
-		res.sendFile('views/index.html', { root: __dirname });
+		res.sendFile('ui-dist/index.html', { root: __dirname });
 	});
 
 	//gets the version of the software
 	app.get('/version', function (req, res) {
 		res.send(version);
-	});
-
-	//tally page - view tally state of any device
-	app.get('/tally', function (req, res) {
-		res.sendFile('views/tally.html', { root: __dirname });
 	});
 
 	//roland smart tally emulation
@@ -792,11 +787,6 @@ function initialSetup() {
 
 	app.use('/producer', appProducer);
 
-	//producer page - view tally states of all devices
-	appProducer.get('/', function (req, res) {
-		res.sendFile('views/producer.html', { root: __dirname });
-	});
-
 	appSettings.use((req, res, next) => {
 
 		// -----------------------------------------------------------------------
@@ -819,11 +809,6 @@ function initialSetup() {
 	});
 
 	app.use('/settings', appSettings);
-
-	//settings page - add sources, devices, actions, etc.
-	appSettings.get('/', function (req, res) {
-		res.sendFile('views/settings.html', { root: __dirname });
-	});
 
 	appSettings.get('/source_types', function (req, res) {
 		//gets all Tally Source Types
@@ -920,11 +905,8 @@ function initialSetup() {
 		res.send(result);
 	});
 
-	//serve up any files in the static folder like images, CSS, client-side JS, etc.
-	app.use(express.static(path.join(__dirname, 'views/static')));
-
-	//serve up jQuery from the Node module
-	app.use('/js/jquery', express.static(path.join(__dirname, 'node_modules/jquery/dist')));
+	//serve up any files in the ui-dist folder
+	app.use(express.static(path.join(__dirname, 'ui-dist')));
 
 	app.use(function (req, res) {
 		res.status(404).send({error: true, url: req.originalUrl + ' not found.'});
@@ -936,8 +918,17 @@ function initialSetup() {
 
 	io.sockets.on('connection', function(socket) {
 
+		socket.on('login', function (type, username, password) {
+			socket.emit('login_result', (type === "producer" && username == username_producer && password == password_producer)
+				|| (type === "settings" && username == username_settings && password == password_settings));
+		});
+
 		socket.on('version', function() {
 			socket.emit('version', version);
+		});
+
+		socket.on('interfaces', function() {
+			socket.emit('interfaces', getNetworkInterfaces());
 		});
 
 		socket.on('sources', function() { // sends the configured Sources to the socket
@@ -1176,6 +1167,7 @@ function initialSetup() {
 			socket.emit('devices', devices);
 			socket.emit('bus_options', bus_options);
 			socket.emit('listener_clients', listener_clients);
+			socket.emit('device_states', device_states);
 		});
 
 		socket.on('companion', function () {
@@ -1908,15 +1900,13 @@ function logger(log, type) { //logs the item to the console, to the log array, a
 			break;
 	}
 
-	if (type.indexOf('quiet') === -1) {
-		let logObj = {};
-		logObj.datetime = dtNow;
-		logObj.log = log;
-		logObj.type = type;
-		Logs.push(logObj);
+	const logObj = {};
+	logObj.datetime = dtNow;
+	logObj.log = log;
+	logObj.type = type;
+	Logs.push(logObj);
 
-		io.to('settings').emit('log_item', logObj);
-	}
+	io.to('settings').emit('log_item', logObj);
 }
 
 function loadConfig() { // loads the JSON data from the config file to memory
@@ -5575,10 +5565,12 @@ function StartTSLClientConnection(tslClientId) {
 						UpdateSockets('tsl_clients');
 					});
 					tsl_clients[i].socket.on('close', function() {
-						logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
-						tsl_clients[i].error = false;
-						tsl_clients[i].connected = false;
-						UpdateSockets('tsl_clients');
+						if (tsl_clients[i]) {
+							logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
+							tsl_clients[i].error = false;
+							tsl_clients[i].connected = false;
+							UpdateSockets('tsl_clients');
+						}
 					});
 					tsl_clients[i].connected = true;
 					break;
@@ -5599,11 +5591,13 @@ function StartTSLClientConnection(tslClientId) {
 						tsl_clients[i].connected = true;
 						UpdateSockets('tsl_clients');
 					});
-					tsl_clients[i].socket.on('close', function() {
-						logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
-						tsl_clients[i].error = false;
-						tsl_clients[i].connected = false;
-						UpdateSockets('tsl_clients');
+					tsl_clients[i].socket.on('close', function () {
+						if (tsl_clients[i]) {
+							logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
+							tsl_clients[i].error = false;
+							tsl_clients[i].connected = false;
+							UpdateSockets('tsl_clients');
+						}
 					});
 					tsl_clients[i].socket.connect(parseInt(tsl_clients[i].port), tsl_clients[i].ip);
 					break;
@@ -6923,6 +6917,15 @@ function DeletePort(port) { //Deletes the port from the list of reserved or in-u
 
 function SendMessage(type, socketid, message) {
 	io.to('messaging').emit('messaging', type, socketid, message);
+}
+
+function getConfigFilePath() {
+	const configFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share"), "TallyArbiter");
+	if (!fs.existsSync(configFolder)) {
+		fs.mkdirSync(configFolder, { recursive: true });
+	}
+	const configName = "config.json";
+	return path.join(configFolder, configName);
 }
 
 function getNetworkInterfaces() { // Get all network interfaces on host device
