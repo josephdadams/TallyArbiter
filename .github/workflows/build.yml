@@ -41,10 +41,12 @@ jobs:
     - name: Install dependencies
       run: npm i
     - name: Set up QEMU
+      if: !startsWith(github.ref, 'refs/tags/v')
       uses: docker/setup-qemu-action@master
       with:
         platforms: all
     - name: Set up Docker Buildx
+      if: !startsWith(github.ref, 'refs/tags/v')
       id: buildx
       uses: docker/setup-buildx-action@master
     - name: Get Docker meta
@@ -64,6 +66,15 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Build and push
+      if: !startsWith(github.ref, 'refs/tags/v')
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+    - name: Build and push (multiarch)
+      if: startsWith(github.ref, 'refs/tags/v')
       uses: docker/build-push-action@v2
       with:
         builder: ${{ steps.buildx.outputs.name }}
