@@ -10,7 +10,7 @@ npm install --global tallyarbiter
 ```
 or in short: `npm i -g tallyarbiter`
 
-Then, start it ty typing `tallyarbiter`.
+Then, start it by typing `tallyarbiter`.
 
 ## Upgrading
 To install the latest version, just run the same command from above (`npm i -g tallyarbiter`) again.
