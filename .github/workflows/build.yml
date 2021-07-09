@@ -41,12 +41,12 @@ jobs:
     - name: Install dependencies
       run: npm i
     - name: Set up QEMU
-      if: startsWith(github.ref, 'refs/tags/v') != true
+      if: startsWith(github.ref, 'refs/tags/v')
       uses: docker/setup-qemu-action@master
       with:
         platforms: all
     - name: Set up Docker Buildx
-      if: startsWith(github.ref, 'refs/tags/v') != true
+      if: startsWith(github.ref, 'refs/tags/v')
       id: buildx
       uses: docker/setup-buildx-action@master
     - name: Get Docker meta
