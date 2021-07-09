@@ -1,8 +1,9 @@
 FROM alpine
 
 WORKDIR /app
-COPY . .
-RUN apk add --update nodejs npm; cd UI; npm i --ignore-scripts; npm run build; cd ..; npm i --ignore-scripts
+COPY package.json package-lock.json index.js ./
+COPY ui-dist /app/ui-dist
+RUN apk add --update nodejs npm; npm i --ignore-script
 
 EXPOSE 4455 8099 5958
 CMD ["node", "index.js"]
