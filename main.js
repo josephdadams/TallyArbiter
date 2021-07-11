@@ -1,5 +1,6 @@
 // This is the electron startup script
-const { app, BrowserWindow, Tray, Menu } = require('electron');
+const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');
+const { autoUpdater } = require("electron-updater");
 const path = require("path");
 
 let mainWindow;
@@ -63,6 +64,38 @@ function createTrayIcon() {
     });
 }
 
+function checkForUpdates() {
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = false;
+    autoUpdater.checkForUpdates();
+    autoUpdater.on("update-available", () => {
+        dialog.showMessageBox(mainWindow, {
+            title: "Update Available",
+            message: "There's an update available for TallyArbiter. Do you want to download and install it?",
+            buttons: ["Update", "Cancel"],
+        }).then((v) => {
+            if (v.response == 0) {
+                dialog.showMessageBox(mainWindow, {
+                    title: "Downloading update",
+                    message: "The update is being downloaded in the background. Once finished, you will be prompted to save your work and restart TallyArbiter."
+                });
+                autoUpdater.downloadUpdate();
+            }
+        });
+    });
+    autoUpdater.on("update-downloaded", () => {
+        dialog.showMessageBox(null, {
+            title: "Update downloaded",
+            message: "The update has been downloaded. Save your work and then press the Update button.",
+            buttons: ["Update"],
+        }).then((r) => {
+            if (r.response == 0) {
+                autoUpdater.quitAndInstall();
+            }
+        });
+    });
+}
+
 
 if (!gotTheLock) {
     app.quit();
@@ -70,6 +103,7 @@ if (!gotTheLock) {
     app.whenReady().then(() => {
         createWindow();
         createTrayIcon();
+        checkForUpdates();
         app.on('activate', function () {
             if (BrowserWindow.getAllWindows().length === 0) createWindow();
         });
