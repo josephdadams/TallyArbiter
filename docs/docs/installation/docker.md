@@ -10,7 +10,6 @@ You can pull the image from DockerHub using the following command:
 docker pull tallyarbiter:latest
 ```
 
-Then, start it by typing `docker run -p 4455:4455 tallyarbiter`.
-TODO: explain mounting config.json
+Then, start it by typing `docker run -p 4455:4455 -v $(pwd)/config.json:/app/config.json tallyarbiter`.
 
 **Be sure to mount your [config file](#configuration) using Docker volumes!**
