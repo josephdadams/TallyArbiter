@@ -11,7 +11,9 @@ docker pull tallyarbiter:latest
 ```
 
 Then, start it by typing `docker run -p 4455:4455 -v $(pwd)/config.json:/app/config.json --restart unless-stopped tallyarbiter`.
-If you preferr using docker-compose, you can use this configuration:
+If you are using traditional Windows CMD, you can use `docker run -p 4455:4455 -v %CD%\config.json:/app/config.json --restart unless-stopped tallyarbiter`.
+If you are using Powershell, you can use `docker run -p 4455:4455 -v $pwd\config.json:/app/config.json --restart unless-stopped tallyarbiter`.
+If you prefer using docker-compose, you can use this configuration:
 ```yaml
 version: '3.3'
 services:
@@ -19,7 +21,7 @@ services:
         ports:
             - '4455:4455'
         volumes:
-            - '$(pwd)/config.json:/app/config.json'
+            - './config.json:/app/config.json'
         restart: unless-stopped
         image: tallyarbiter
 ```
