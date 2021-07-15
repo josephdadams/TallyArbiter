@@ -43,4 +43,7 @@ Use AdaFruit NeoPixel LED strips connected to an Arduino. Check out [NoahCallawa
 Use TTGO_T Display devices with Tally Arbiter using [peterfdej](http://github.com/peterfdej)'s repository: https://github.com/peterfdej/TallyArbiter-TTGO_T
 
 ## VMix Tally Emulation
-Tally Arbiter will also emulate a VMix server, which means you can use any compatible VMix tally client to view tally as well, such as the [VMix M5Stick Tally Light](https://github.com/guido-visser/vMix-M5Stick-Tally-Light) project by Guido Visser. Follow the instructions on that repository to set up your M5Stick device, and specify Tally Arbiter as your VMix server!
+Tally Arbiter will also emulate a VMix server, which means you can use any compatible VMix tally client to view tally as well, such as the [VMix M5Stick Tally Light](https://github.com/guido-visser/vMix-M5Stick-Tally-Light) project by Guido Visser. Follow the instructions on that repository to set up your M5Stick device, and specify Tally Arbiter as your VMix server.
+
+## Tally over NDI
+Tally Arbiter can send out TSL 3.1 data via the `TSL 3.1 Clients` section. Paired with the [TSL NDI tally](https://github.com/iliessens/TSL-NDI-tally) software by [iliessens](https://github.com/iliessens), you can send live tally data to your NDI devices.

@@ -1,0 +1,10 @@
+tasks:
+  - init: cd UI; npm i --ignore-scripts; npm run build; cd ..; npm i --ignore-scripts
+    command: npm start
+ports:
+  - port: 4455
+    onOpen: open-preview
+  - port: 8099
+    onOpen: ignore
+  - port: 5958
+    onOpen: ignore
