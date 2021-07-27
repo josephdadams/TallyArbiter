@@ -1062,7 +1062,7 @@ function initialSetup() {
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
 
-			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true, relayGroupId);
+			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true);
 			//add relayGroupId to client
 			for (let i = 0; i < listener_clients.length; i++) {
 				if (listener_clients[i].id === clientId) {
@@ -1880,11 +1880,6 @@ function logger(log, type) { //logs the item to the console, to the log array, a
 
 	let dtNow = new Date();
 
-	if (Logs.length === 1000) {
-		console.log("Log file too long. Clearing log file.");
-		Logs = [];
-	};
-
 	if (type === undefined) {
 		type = 'info-quiet';
 	}
@@ -2112,7 +2107,6 @@ function SaveConfig() {
 			devices: devices,
 			device_sources: device_sources,
 			device_actions: device_actions,
-			listener_clients: listener_clients,
 			tsl_clients: tsl_clients_clean,
 			tsl_clients_1secupdate: tsl_clients_1secupdate,
 			cloud_destinations: cloud_destinations,
@@ -6657,7 +6651,7 @@ function GetSmartTallyStatus(tallynumber) {
 	return return_val;
 }
 
-function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed, relayGroupId) {
+function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed) {
 	let clientObj = {};
 
 	clientObj.id = uuidv4();
@@ -6669,9 +6663,6 @@ function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetime
 	clientObj.canBeReassigned = canBeReassigned;
 	clientObj.canBeFlashed = canBeFlashed;
 	clientObj.inactive = false;
-	clientObj.relayGroupId = relayGroupId;
-
-	console.log(clientObj);
 
 	listener_clients.push(clientObj);
 
@@ -6683,8 +6674,6 @@ function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetime
 
 	return clientObj.id;
 }
-	
-
 
 function ReassignListenerClient(clientId, oldDeviceId, deviceId) {
 	for (let i = 0; i < listener_clients.length; i++) {
