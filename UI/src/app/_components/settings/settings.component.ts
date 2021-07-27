@@ -164,7 +164,7 @@ export class SettingsComponent {
       // @ts-ignore
       deviceId: this.currentDevice.id,
       ...this.currentDeviceAction,
-      outputTypeId: this.socketService.outputTypes[this.currentDeviceAction.outputTypeIdx!].id,
+	  outputTypeId: this.socketService.outputTypes[this.currentDeviceAction.outputTypeIdx!].id
     } as DeviceAction;
 
     let arbiterObj = {
