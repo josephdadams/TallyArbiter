@@ -1,5 +1,5 @@
 export interface DeviceAction {
-    active: true
+    active: boolean;
     busId: string;
     data: Record<string, any>;
     deviceId: string;

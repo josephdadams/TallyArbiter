@@ -16,6 +16,7 @@ The following source types are supported:
 * Ross Carbonite/Carbonite Black/Carbonite Black Solo/Carbonite Ultra/Graphite
 * Newtek Tricaster
 * Open Sound Control (OSC)
+* Panasonic AV-HS410
 * Analog Way Livecore Image Processors
 
 When you add a source and the connection to the tally source (video switcher, software, etc.) is successfully made, the source will be green. If there is an error, the source will be red. Look at the logs for more error information.
@@ -61,6 +62,9 @@ OSC paths must be one of the following:
 * `/tally/previewprogram_off`: Turns off both Preview and Program Program mode for the device.
 
 The device source address should be sent as an integer or a string. Send one argument of any type (integer, float, or string). If you send multiple arguments, they will be ignored.
+
+## Panasonic AV-HS410
+You will need the IP address of the switcher.
 
 ## Analog Way Livecore Image Processors
 You will need the IP address of the device, and the port (standard port is 10600).

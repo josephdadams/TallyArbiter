@@ -583,8 +583,8 @@
             <label for="bus" class="form-label">Active</label>
             <select class="form-select" [(ngModel)]="currentDeviceAction.active">
                 <option disabled selected [value]="undefined">-- Select --</option>
-                <option [value]="true">On</option>
-                <option [value]="true">Off</option>
+                <option [ngValue]="true">On</option>
+                <option [ngValue]="false">Off</option>
             </select>
         </div>
         <div class="mb-3">
