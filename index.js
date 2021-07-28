@@ -5634,12 +5634,12 @@ function SendTSLClientData(deviceId) {
 
 	let filtered_device_states = GetDeviceStatesByDeviceId(deviceId);
 
-	let tslAddress = (device.tslAddress) ? parseInt(device.tslAddress) : 0;
+	let tslAddress = (device.tslAddress) ? parseInt(device.tslAddress) : -1;
 
 	let mode_preview = false;
 	let mode_program = false;
 
-	if (tslAddress !== 0) {
+	if (tslAddress !== -1) {
 		let bufUMD = Buffer.alloc(18, 0); //ignores spec and pad with 0 for better aligning on Decimator etc
 		bufUMD[0] = 0x80 + tslAddress;
 		bufUMD.write(device.name, 2);
