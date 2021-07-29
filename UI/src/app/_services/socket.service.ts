@@ -120,6 +120,9 @@ export class SocketService {
       this.newLogsSubject.next();
     });
     this.socket.on("log_item", (log: LogItem) => {
+      if (this.logs.length > 5000) {
+        this.logs.shift();
+      }
       this.logs.push(log);
       this.newLogsSubject.next();
     });
@@ -127,6 +130,9 @@ export class SocketService {
       this.sourceTallyData[sourceId] = data;
     });
     this.socket.on('tally_data', (sourceId: string, tallyObj: SourceTallyData) => {
+      if (this.tallyData.length > 5000) {
+        this.tallyData.shift();
+      }
       let tallyPreview = (tallyObj.tally1 === 1 ? 'True' : 'False');
       let tallyProgram = (tallyObj.tally2 === 1 ? 'True' : 'False');
       this.tallyData.push({
