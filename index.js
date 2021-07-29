@@ -1914,7 +1914,7 @@ function logger(log, type) { //logs the item to the console, to the log array, a
 	logObj.type = type;
 	Logs.push(logObj);
 
-	writeLogFile(dtNow, log);
+	writeLogFile(log);
 
 	io.to('settings').emit('log_item', logObj);
 }
@@ -1924,7 +1924,8 @@ function writeLogFile(log) {
 		var humanFriendlyDtNow = new Date().toLocaleString();
 
 		var logString = '[' + humanFriendlyDtNow + '] ' + log;
-		fs.writeSync(logFile, logString + '\n');
+
+		fs.appendFileSync(logFile, logString + '\n');
 	}
 	catch (error) {
 		logger(`Error saving logs to file: ${error}`, 'error');
@@ -1936,7 +1937,7 @@ function writeTallyDataFile(log) {
 
 		logLine = JSON.stringify(log) + ','
 
-		fs.writeSync(tallyDataFile, logLine + '\n');
+		fs.appendFileSync(tallyDataFile, logLine + '\n');
 	}
 	catch (error) {
 		logger(`Error saving logs to file: ${error}`, 'error');
