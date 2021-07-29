@@ -386,7 +386,15 @@ export class SettingsComponent {
     } as Device;
     if (!this.editingDevice) {
       deviceObj.enabled = true;
-    }
+	}
+	
+	if (parseInt(deviceObj.tslAddress) > 126) {
+		deviceObj.tslAddress = "126";
+	}
+	else if (parseInt(deviceObj.tslAddress) < 0) {
+		deviceObj.tslAddress = "";
+	}
+
     const arbiterObj = {
       action: this.editingDevice ? 'edit' : 'add',
       type: 'device',
