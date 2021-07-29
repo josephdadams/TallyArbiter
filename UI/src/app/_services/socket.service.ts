@@ -120,14 +120,8 @@ export class SocketService {
       this.newLogsSubject.next();
     });
     this.socket.on("log_item", (log: LogItem) => {
-      if (this.logs.length > 10000) {
-        this.logs = [];
-        this.logs.push({
-          datetime: Date.now().toString(),
-          log: `Log Object To Long. Clearing Logs.`,
-          type: 'info',
-        });
-        this.newLogsSubject.next();
+      if (this.logs.length > 5000) {
+        this.logs.shift();
       }
       this.logs.push(log);
       this.newLogsSubject.next();
@@ -136,14 +130,8 @@ export class SocketService {
       this.sourceTallyData[sourceId] = data;
     });
     this.socket.on('tally_data', (sourceId: string, tallyObj: SourceTallyData) => {
-      if (this.tallyData.length > 10000) {
-        this.tallyData = [];
-        this.tallyData.push({
-          datetime: Date.now().toString(),
-          log: `Tally Data Object To Long. Clearing Tally Data.`,
-          type: 'info',
-        });
-        this.scrollTallyDataSubject.next();
+      if (this.tallyData.length > 5000) {
+        this.tallyData.shift();
       }
       let tallyPreview = (tallyObj.tally1 === 1 ? 'True' : 'False');
       let tallyProgram = (tallyObj.tally2 === 1 ? 'True' : 'False');
