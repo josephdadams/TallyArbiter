@@ -30,7 +30,12 @@ function createWindow() {
         return false;
     });
     // start the server
-    require("./index");
+    try {
+        require("./index");
+    } catch(e) {
+        dialog.showErrorBox("Unexpected error", "There was an unexpected error. Please open a bug report on the project's Github page or contact one of the developers. Stack Trace: " + e.toString());
+        console.error(e);
+    }
 }
 
 function createTrayIcon() {
