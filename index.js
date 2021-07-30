@@ -24,6 +24,7 @@ const osc 						= require('osc');
 const xml2js					= require('xml2js');
 const jspack 					= require('jspack').jspack;
 const os 						= require('os') // For getting available Network interfaces on host device
+const findRemoveSync            = require('find-remove');
 
 
 //Tally Arbiter variables
@@ -43,6 +44,8 @@ const socketupdates_Companion = ['sources', 'devices', 'device_sources', 'device
 const oscPort 		= 5958;
 const vmixEmulatorPort = '8099'; // Default 8099 
 var oscUDP			= null;
+var logFile = fs.openSync(getLogFilePath(), 'w'); // Setup Log file
+var tallyDataFile = fs.openSync(getTallyDataPath(), 'w'); // Setup TallyData File
 var vmix_emulator	= null; //TCP server for VMix Emulator
 var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
 const config_file 	= getConfigFilePath(); //local storage JSON file
@@ -936,6 +939,11 @@ function initialSetup() {
 		});
 
 		socket.on('source_tallydata', function(sourceId) { //gets all Source Tally Data
+
+			let tally_data = data;
+
+			
+
 			let source = GetSourceBySourceId(sourceId);
 			let sourceType = GetSourceTypeBySourceTypeId(source.sourceTypeId);
 			let result = false;
@@ -1906,7 +1914,34 @@ function logger(log, type) { //logs the item to the console, to the log array, a
 	logObj.type = type;
 	Logs.push(logObj);
 
+	writeLogFile(log);
+
 	io.to('settings').emit('log_item', logObj);
+}
+
+function writeLogFile(log) {
+	try {
+		var humanFriendlyDtNow = new Date().toLocaleString();
+
+		var logString = '[' + humanFriendlyDtNow + '] ' + log;
+
+		fs.appendFileSync(logFile, logString + '\n');
+	}
+	catch (error) {
+		logger(`Error saving logs to file: ${error}`, 'error');
+	}
+}
+
+function writeTallyDataFile(log) {
+	try {
+
+		logLine = JSON.stringify(log) + ','
+
+		fs.appendFileSync(tallyDataFile, logLine + '\n');
+	}
+	catch (error) {
+		logger(`Error saving logs to file: ${error}`, 'error');
+	}
 }
 
 function loadConfig() { // loads the JSON data from the config file to memory
@@ -4766,6 +4801,8 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 {
 	//logger(`Processing new tally object.`, 'info-quiet');
 
+	writeTallyDataFile(tallyObj);
+
 	io.to('settings').emit('tally_data', sourceId, tallyObj);
 
 	let deviceId = null;
@@ -6926,6 +6963,36 @@ function getConfigFilePath() {
 	}
 	const configName = "config.json";
 	return path.join(configFolder, configName);
+}
+
+function getLogFilePath() {
+
+	var today = new Date();
+
+	const logFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/logs");
+
+	findRemoveSync(logFolder, {age: {seconds: 604800}, extensions: '.talog', limit: 100});
+
+	if (!fs.existsSync(logFolder)) {
+		fs.mkdirSync(logFolder, { recursive: true });
+	}
+	var logName = today + ".talog"
+	return path.join(logFolder, logName);
+}
+
+function getTallyDataPath() {
+
+	var today = new Date();
+
+	const TallyDataFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/TallyData");
+
+	findRemoveSync(TallyDataFolder, {age: {seconds: 604800}, extensions: '.tadata', limit: 100});
+
+	if (!fs.existsSync(TallyDataFolder)) {
+		fs.mkdirSync(TallyDataFolder, { recursive: true });
+	}
+	var logName = today + ".tadata"
+	return path.join(TallyDataFolder, logName);
 }
 
 function getNetworkInterfaces() { // Get all network interfaces on host device
