@@ -6967,7 +6967,7 @@ function getConfigFilePath() {
 
 function getLogFilePath() {
 
-	var today = new Date();
+	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
 
 	const logFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/logs");
 
@@ -6982,7 +6982,7 @@ function getLogFilePath() {
 
 function getTallyDataPath() {
 
-	var today = new Date();
+	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
 
 	const TallyDataFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/TallyData");
 
