@@ -114,3 +114,6 @@ ui-dist/*
 
 # don't include any installers
 release
+
+UI/cypress/videos
+UI/cypress/screenshots

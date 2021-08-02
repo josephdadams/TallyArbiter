@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "e2e": "ng e2e"
   },
   "private": true,
   "dependencies": {
@@ -35,7 +36,7 @@
     "@angular-devkit/build-angular": "~12.0.1",
     "@angular/cli": "~12.0.1",
     "@angular/compiler-cli": "~12.0.1",
-    "@briebug/cypress-schematic": "^5.0.0",
+    "@cypress/schematic": "^1.5.0",
     "@types/node": "^12.11.1",
     "cypress": "7.7.0",
     "typescript": "~4.2.3"
