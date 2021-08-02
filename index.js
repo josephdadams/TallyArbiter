@@ -919,7 +919,6 @@ function initialSetup() {
 	io.sockets.on('connection', function(socket) {
 
 		socket.on('login', function (type, username, password) {
-			console.log(type, username, password);
 			socket.emit('login_result', (type === "producer" && username == username_producer && password == password_producer)
 				|| (type === "settings" && username == username_settings && password == password_settings));
 		});
