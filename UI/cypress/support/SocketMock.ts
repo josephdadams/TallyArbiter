@@ -92,9 +92,13 @@ class SocketMock {
     throw new NotImplementedError("removeAllListeners");
   }
 
-  off(event: string, callback: (...args: any) => void) {
-    //TODO: add support for "off"
-    throw new NotImplementedError("off");
+  off(event: string, callback?: (...args: any) => void) {
+    if(!callback) {
+      delete this.callbacks[event];
+    } else { 
+      //TODO: add support for "off" with callback
+      throw new NotImplementedError("off with callback");
+    }
   }
 
   once(event: string, callback: (...args: any) => void) {
