@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { environment } from 'src/environments/environment';
 import { Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { BusOption } from '../_models/BusOption';
@@ -20,6 +21,12 @@ import { SourceType } from '../_models/SourceType';
 import { SourceTypeBusOptions } from '../_models/SourceTypeBusOptions';
 import { SourceTypeDataFields } from '../_models/SourceTypeDataFields';
 import { TSLClient } from '../_models/TSLClient';
+
+declare global {
+  interface Window {
+    io:any;
+  }
+}
 
 @Injectable({
   providedIn: 'root'
@@ -67,7 +74,11 @@ export class SocketService {
 
 
   constructor() {
-    this.socket = io();
+    if(!environment.production && typeof window.io !== "undefined"){
+      this.socket = window.io;
+    } else {
+      this.socket = io();
+    }
     this.socket.on('sources', (sources: Source[]) => {
       this.sources = this.prepareSources(sources);
     });

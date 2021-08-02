@@ -23,7 +23,7 @@
 		"blink1",
 		"roland",
 		"tricaster",
-		"gpio"		
+		"gpio"
 	],
 	"license": "MIT",
 	"author": "Joseph Adams",
