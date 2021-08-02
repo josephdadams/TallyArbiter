@@ -629,6 +629,7 @@ var output_types = [ //output actions that Tally Arbiter can perform
 	{ id: '276a8dcc', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true },
 	{ id: 'ffe2b0b6', label: 'Outgoing Webhook', type: 'webhook', enabled: true},
 	{ id: '79e3ce27', label: 'Generic TCP', type: 'tcp', enabled: true},
+	{ id: '4827f903', label: 'RossTalk', type: 'rosstalk', enabled: true},
 	{ id: '6dbb7bf7', label: 'Local Console Output', type: 'console', enabled: true },
 	{ id: '58da987d', label: 'OSC Message', type: 'osc', enabled: true }
 ];
@@ -682,6 +683,11 @@ var output_types_datafields = [ //data fields for the outgoing actions
 			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 			{ fieldName: 'path', fieldLabel: 'Path', fieldType: 'text' },
 			{ fieldName: 'args', fieldLabel: 'Arguments', fieldType: 'text', help: 'Separate multiple argments with a space. Strings must be encapsulated by double quotes.'}
+		]
+	},
+	{ outputTypeId: '4827f903', fields: [ // RossTalk
+			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
+			{ fieldName: 'string', fieldLabel: 'Command', fieldType: 'text' }
 		]
 	}
 ];
@@ -5107,6 +5113,9 @@ function RunAction(deviceId, busId, active) {
 						case 'tcp':
 							RunAction_TCP(actionObj.data);
 							break;
+						case 'rosstalk':
+							RunAction_RossTalk(actionObj.data);
+							break;
 						case 'console':
 							logger(actionObj.data, 'console_action');
 							break;
@@ -5269,6 +5278,31 @@ function RunAction_TCP(data) {
 	}
 	catch (error) {
 		logger(`An error occured sending the Generic TCP: ${error}`, 'error');
+	}
+}
+
+function RunAction_RossTalk(data) {
+	try {
+		let tcpClient = new net.Socket();
+		data.port = '7788';
+		tcpClient.connect(data.port, data.ip);
+
+		tcpClient.on('connect', function() {
+			let sendBuf = Buffer.from(unescape(data.string) + '\r\n', 'latin1');
+			if (sendBuf !== '') {
+				tcpClient.write(data.string + '\r\n');
+				tcpClient.end();
+				tcpClient.destroy(); // kill client after sending data
+				logger(`RossTalk sent: ${data.ip}:${data.port} : ${data.string}`, 'info');
+			}
+		});
+
+		tcpClient.on('error', function(error) {
+			logger(`An error occured sending RossTalk: ${error}`, 'error');
+		});
+	}
+	catch (error) {
+		logger(`An error occured sending RossTalk: ${error}`, 'error');
 	}
 }
 
