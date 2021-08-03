@@ -9,8 +9,8 @@ on:
     - cron: '25 7 * * 5'
 
 jobs:
-  analyze:
-    name: Analyze
+  analyze_code:
+    name: Analyze code
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -39,15 +39,45 @@ jobs:
     - name: Install dependencies
       run: npm i
 
-    # Scan application code
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
 
-    # Scan Docker configs
+  analyze_docker:
+    name: Analyze Docker
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: 12
+
+    - name: Install dependencies
+      run: npm i
+
+    - name: Build an image from Dockerfile
+      run: |
+         docker build -t tallyarbiter-test-image:${{ github.sha }} .
+
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        scan-type: 'fs'
+        image-ref: 'tallyarbiter-test-image:${{ github.sha }}'
         ignore-unfixed: true
         format: 'template'
         template: '@/contrib/sarif.tpl'
