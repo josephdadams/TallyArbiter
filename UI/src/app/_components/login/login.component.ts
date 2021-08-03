@@ -9,7 +9,8 @@ import { AuthService } from 'src/app/_services/auth.service';
 })
 export class LoginComponent {
   public loading = false;
-  public wrongUsernameOrPassword = false;
+  public loginFailed = false;
+  public errorMessage = '';
   public username = "";
   public password = "";
   private type!: "producer" | "settings";
@@ -25,8 +26,12 @@ export class LoginComponent {
       this.loading = false;
       if (result === true) {
         this.router.navigate([this.type]);
+      } else if (result === -1) {
+        this.loginFailed = true;
+        this.errorMessage = "Too many attemps! Please retry later.";
       } else {
-        this.wrongUsernameOrPassword = true;
+        this.loginFailed = true;
+        this.errorMessage = "Wrong username or password!";
       }
     });
   }

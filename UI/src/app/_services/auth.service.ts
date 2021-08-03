@@ -20,7 +20,7 @@ export class AuthService {
   public login(type: "producer" | "settings", username: string, password: string) {
     return new Promise((resolve) => {
       this.socketService.socket.emit("login", type, username, password);
-      this.socketService.socket.once("login_result", (result: boolean) => {
+      this.socketService.socket.once("login_result", (result: boolean|number) => {
         if (result === true) {
           if (type == "producer") {
             this._isProducer = true;
@@ -28,6 +28,8 @@ export class AuthService {
             this._isAdmin = true;
           }
           resolve(true);
+        } else if(result === -1) {
+          resolve(-1);
         } else {
           resolve(false);
         }
