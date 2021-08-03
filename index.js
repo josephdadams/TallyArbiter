@@ -29,18 +29,18 @@ const findRemoveSync            = require('find-remove');
 
 //Rate limiter configurations
 const maxWrongAttemptsByIPperDay = 100;
-const maxConsecutiveFailsByUsernameAndIP = 2;
+const maxConsecutiveFailsByUsernameAndIP = 10;
 const limiterSlowBruteByIP = new RateLimiterMemory({
   keyPrefix: 'login_fail_ip_per_day',
   points: maxWrongAttemptsByIPperDay,
-  duration: 60 * 60 * 24,
-  blockDuration: 60 * 60 * 24, // Block for 4 hours
+  duration: 60 * 60 * 24, // Store number for 1 day since first fail
+  blockDuration: 60 * 60 * 24, // Block for 1 day
 });
 const limiterConsecutiveFailsByUsernameAndIP = new RateLimiterMemory({
   keyPrefix: 'login_fail_consecutive_username_and_ip',
   points: maxConsecutiveFailsByUsernameAndIP,
-  duration: 60 * 60 * 24, // Store number for 90 days since first fail
-  blockDuration: 60 * 60, // Block for 1 hour
+  duration: 60 * 60 * 24, // Store number for 1 day since first fail
+  blockDuration: 60 * 60 * 2, // Block for 2 hours
 });
 
 //Tally Arbiter variables
