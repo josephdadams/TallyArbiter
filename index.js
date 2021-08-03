@@ -15,6 +15,7 @@ const isPi 						= require('detect-rpi');
 const clc 						= require('cli-color');
 const util 						= require ('util');
 const express 					= require('express');
+const { RateLimiterMemory }		= require('rate-limiter-flexible');
 const bodyParser 				= require('body-parser');
 const axios 					= require('axios');
 const http 						= require('http');
@@ -26,6 +27,21 @@ const jspack 					= require('jspack').jspack;
 const os 						= require('os') // For getting available Network interfaces on host device
 const findRemoveSync            = require('find-remove');
 
+//Rate limiter configurations
+const maxWrongAttemptsByIPperDay = 100;
+const maxConsecutiveFailsByUsernameAndIP = 2;
+const limiterSlowBruteByIP = new RateLimiterMemory({
+  keyPrefix: 'login_fail_ip_per_day',
+  points: maxWrongAttemptsByIPperDay,
+  duration: 60 * 60 * 24,
+  blockDuration: 60 * 60 * 24, // Block for 4 hours
+});
+const limiterConsecutiveFailsByUsernameAndIP = new RateLimiterMemory({
+  keyPrefix: 'login_fail_consecutive_username_and_ip',
+  points: maxConsecutiveFailsByUsernameAndIP,
+  duration: 60 * 60 * 24, // Store number for 90 days since first fail
+  blockDuration: 60 * 60, // Block for 1 hour
+});
 
 //Tally Arbiter variables
 const listenPort 	= process.env.PORT || 4455;
@@ -926,10 +942,18 @@ function initialSetup() {
 	logger('Starting socket.IO Setup.', 'info-quiet');
 
 	io.sockets.on('connection', function(socket) {
+		const ipAddr = socket.handshake.address;
 
 		socket.on('login', function (type, username, password) {
-			socket.emit('login_result', (type === "producer" && username == username_producer && password == password_producer)
+			Promise.all([
+				limiterConsecutiveFailsByUsernameAndIP.consume(ipAddr),
+				limiterSlowBruteByIP.consume(`${username}_${ipAddr}`)
+			]).then((values) => {
+				socket.emit('login_result', (type === "producer" && username == username_producer && password == password_producer)
 				|| (type === "settings" && username == username_settings && password == password_settings));
+			}).catch((error) => {
+				socket.emit('login_result', -1);
+			});
 		});
 
 		socket.on('version', function() {
