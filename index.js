@@ -945,15 +945,23 @@ function initialSetup() {
 		const ipAddr = socket.handshake.address;
 
 		socket.on('login', function (type, username, password) {
-			Promise.all([
-				limiterConsecutiveFailsByUsernameAndIP.consume(ipAddr),
-				limiterSlowBruteByIP.consume(`${username}_${ipAddr}`)
-			]).then((values) => {
-				socket.emit('login_result', (type === "producer" && username == username_producer && password == password_producer)
-				|| (type === "settings" && username == username_settings && password == password_settings));
-			}).catch((error) => {
-				socket.emit('login_result', -1);
-			});
+			if((type === "producer" && username == username_producer && password == password_producer)
+			|| (type === "settings" && username == username_settings && password == password_settings)) {
+				//login successfull
+				socket.emit('login_result', true);
+			} else {
+				//wrong credentials
+				Promise.all([
+					limiterConsecutiveFailsByUsernameAndIP.consume(ipAddr),
+					limiterSlowBruteByIP.consume(`${username}_${ipAddr}`)
+				]).then((values) => {
+					//rate limits not exceeded
+					socket.emit('login_result', false);
+				}).catch((error) => {
+					//rate limits exceeded
+					socket.emit('login_result', -1);
+				});
+			}
 		});
 
 		socket.on('version', function() {
