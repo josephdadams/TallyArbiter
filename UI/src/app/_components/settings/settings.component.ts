@@ -343,14 +343,16 @@ export class SettingsComponent {
 
   public saveCurrentSource() {
     for (const field of this.getOptionFields(this.socketService.sourceTypes[this.currentSourceSelectedTypeIdx!])) {
-      if (this.currentSource.data[field.fieldName] === null || this.currentSource.data[field.fieldName] === undefined || this.currentSource.data[field.fieldName].toString().trim().length === 0) {
-        Swal.fire({
-          icon: "error",
-          text: "Not all fields filled out!",
-          title: "Error",
-          ...globalSwalOptions,
-        });
-        return;
+      if (field.fieldName != 'info') {
+        if (this.currentSource.data[field.fieldName] === null || this.currentSource.data[field.fieldName] === undefined || this.currentSource.data[field.fieldName].toString().trim().length === 0) {
+          Swal.fire({
+            icon: "error",
+            text: "Not all fields filled out!",
+            title: "Error",
+            ...globalSwalOptions,
+          });
+          return;
+        }
       }
       if (field.fieldType == "port") {
         if (this.portInUse(this.currentSource.data[field.fieldName], this.currentSource.id)) {
