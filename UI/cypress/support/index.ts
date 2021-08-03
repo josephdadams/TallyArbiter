@@ -26,5 +26,13 @@ socket.interceptResponse("interfaces", (...args) => {
 });
 
 Cypress.on('window:before:load', (win) => {
-    win.io = socket;
+  win.io = socket;
+});
+
+Cypress.Commands.add('login', (username, password) => {
+  cy.get('#username').clear();
+  cy.get('#username').type(username);
+  cy.get('#password').clear();
+  cy.get('#password').type(password);
+  cy.contains("Login").click();
 });

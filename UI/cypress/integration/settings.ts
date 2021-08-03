@@ -10,11 +10,7 @@ describe('Settings page', () => {
 
   describe('Check if login works', () => {
     it('Login with wrong username', () => {
-      cy.get('#username').clear();
-      cy.get('#username').type('thisusernamedoesnotexists'+Date.now()); //username is totally random
-      cy.get('#password').clear();
-      cy.get('#password').type('12345');
-      cy.contains("Login").click();
+      cy.login('thisusernamedoesnotexists'+Date.now(), '12345'); //username is totally random
       cy.get('.my-2').should('have.text', 'Wrong username or password!');
     });
 
@@ -22,17 +18,13 @@ describe('Settings page', () => {
       cy.get('#username').clear();
       cy.get('#username').type('admin');
       cy.get('#password').clear();
-      cy.get('#password').type('wrongpassword'+Date.now()); //password is totally random
+      cy.login('admin', 'wrongpassword'+Date.now()); //password is totally random
       cy.contains("Login").click();
       cy.get('.my-2').should('have.text', 'Wrong username or password!');
     });
 
     it('Login', () => {
-      cy.get('#username').clear();
-      cy.get('#username').type(Cypress.env("SETTINGS_USERNAME"));
-      cy.get('#password').clear();
-      cy.get('#password').type(Cypress.env("SETTINGS_PASSWORD"));
-      cy.contains("Login").click();
+      cy.login(Cypress.env("PRODUCER_USERNAME"), Cypress.env("PRODUCER_PASSWORD"));
       cy.get('.container > :nth-child(1) > h2').should('be.visible');
       cy.contains("Sources");
     });
