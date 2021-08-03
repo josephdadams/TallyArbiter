@@ -1,10 +1,10 @@
-describe('Settings page', () => {
+describe('Producer page', () => {
   beforeEach(() => {
-    cy.visit('/#/settings');
+    cy.visit('/#/producer');
   });
 
-  it('Open settings page', () => {
-    cy.location('hash').should('eq', '#/login/settings')
+  it('Open producer page', () => {
+    cy.location('hash').should('eq', '#/login/producer')
     cy.contains('Please sign in');
   });
 
@@ -29,12 +29,12 @@ describe('Settings page', () => {
 
     it('Login', () => {
       cy.get('#username').clear();
-      cy.get('#username').type(Cypress.env("SETTINGS_USERNAME"));
+      cy.get('#username').type(Cypress.env("PRODUCER_USERNAME"));
       cy.get('#password').clear();
-      cy.get('#password').type(Cypress.env("SETTINGS_PASSWORD"));
+      cy.get('#password').type(Cypress.env("PRODUCER_PASSWORD"));
       cy.contains("Login").click();
-      cy.get('.container > :nth-child(1) > h2').should('be.visible');
-      cy.contains("Sources");
+      cy.contains("Devices");
+      cy.get('.form-control').should('have.attr', 'placeholder', 'Type a message');
     });
   });
 });
