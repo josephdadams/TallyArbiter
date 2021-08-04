@@ -945,11 +945,6 @@ function initialSetup() {
 		});
 
 		socket.on('source_tallydata', function(sourceId) { //gets all Source Tally Data
-
-			let tally_data = data;
-
-			
-
 			let source = GetSourceBySourceId(sourceId);
 			let sourceType = GetSourceTypeBySourceTypeId(source.sourceTypeId);
 			let result = false;
