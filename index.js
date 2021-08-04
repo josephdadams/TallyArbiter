@@ -2587,8 +2587,6 @@ function processTSL5Tally(sourceId, data) {
 function SetUpATEMServer(sourceId) {
 	let source = sources.find( ({ id }) => id === sourceId);
 
-	let cutBussMode = source.data.cut_buss_mode;
-
 	try {
 		let atemIP = source.data.ip;
 
@@ -2646,7 +2644,7 @@ function SetUpATEMServer(sourceId) {
 										AtemListVisibleInputs("preview", state, i).forEach(n => addUniqueInput(n, prvList));
 									}
 								}
-								processATEMTally(sourceId, pgmList, prvList, cutBussMode);
+								processATEMTally(sourceId, pgmList, prvList);
 							}
 						}
 					});
@@ -2669,13 +2667,18 @@ function SetUpATEMServer(sourceId) {
 	}
 }
 
-function processATEMTally(sourceId, allPrograms, allPreviews, cutBussMode) {
+function processATEMTally(sourceId, allPrograms, allPreviews) {
+
+	let source = sources.find( ({ id }) => id === sourceId);
+
+	let cutBussMode = source.data.cut_buss_mode;
 
 	//loop through the array of program inputs;
 	//if that program input is also in the preview array, build a TSL-type object that has it in pvw+pgm
 	//if only pgm, build an object of only pgm
 
-	if (cutBussMode === 'off') {
+	if (cutBussMode === 'on') {
+		console.log('Cut buss on');
 		for (let i = 0; i < allPrograms.length; i++) {
 			let tallyObj = {};
 			tallyObj.address = allPrograms[i];
@@ -2709,8 +2712,26 @@ function processATEMTally(sourceId, allPrograms, allPreviews, cutBussMode) {
 	//now loop through the array of pvw inputs
 	//if that input is not in the program array, build a TSL object of only pvw
 
-	if (cutBussMode === 'off') {
-		return;
+	if (cutBussMode === 'on') {
+		for (let i = 0; i < allPreviews.length; i++) {
+			let onlyPreview = true;
+	
+			if (allPrograms.includes(allPreviews[i])) {
+				onlyPreview = false;
+			}
+	
+			if (onlyPreview) {
+				let tallyObj = {};
+				tallyObj.address = allPreviews[i];
+				tallyObj.brightness = 1;
+				tallyObj.tally1 = 0;
+				tallyObj.tally2 = 0;
+				tallyObj.tally3 = 0;
+				tallyObj.tally4 = 0;
+				tallyObj.label = `Source ${allPreviews[i]}`;
+				processTSLTally(sourceId, tallyObj);
+			}
+		}
 	} else {
 		for (let i = 0; i < allPreviews.length; i++) {
 			let onlyPreview = true;
