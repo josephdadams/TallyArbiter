@@ -24,7 +24,7 @@ describe('Settings page', () => {
     });
 
     it('Login', () => {
-      cy.login(Cypress.env("PRODUCER_USERNAME"), Cypress.env("PRODUCER_PASSWORD"));
+      cy.login(Cypress.env("SETTINGS_USERNAME"), Cypress.env("SETTINGS_PASSWORD"));
       cy.get('.container > :nth-child(1) > h2').should('be.visible');
       cy.contains("Sources");
     });
