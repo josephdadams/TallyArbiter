@@ -162,10 +162,10 @@ var source_types_datafields = [ //data fields for the tally source types
 					{ id: '6', label: 'ME 6' }
 				]
 			},
-			{ fieldName: 'cut_buss_mode', fieldLabel: 'Cut Buss Mode', fieldType: 'dropdown',
+			{ fieldName: 'cut_bus_mode', fieldLabel: 'Bus Mode', fieldType: 'dropdown',
 			options: [
-				{ id: 'off', label: 'Off'},
-				{ id: 'on', label: 'On'}
+				{ id: 'off', label: 'Preview / Program Mode'},
+				{ id: 'on', label: 'Cut Bus Mode'}
 			] }
 		]
 	},
@@ -2671,7 +2671,7 @@ function processATEMTally(sourceId, allPrograms, allPreviews) {
 
 	let source = sources.find( ({ id }) => id === sourceId);
 
-	let cutBussMode = source.data.cut_buss_mode;
+	let cutBussMode = source.data.cut_bus_mode;
 
 	//loop through the array of program inputs;
 	//if that program input is also in the preview array, build a TSL-type object that has it in pvw+pgm
