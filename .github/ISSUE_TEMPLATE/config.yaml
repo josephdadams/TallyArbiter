@@ -1,8 +1,1 @@
 blank_issues_enabled: false
-contact_links:
-  - name: Bug Report
-    url: https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=bug&template=bug.yaml&title=%5BBug%5D%3A+
-    about: Report and ask about bugs here.
-  - name: Feature Request
-    url: https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=feature&template=feature.yaml&title=%5BFeature+Request%5D%3A+
-    about: Please request features and enhancements here.
