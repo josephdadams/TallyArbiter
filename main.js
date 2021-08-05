@@ -139,7 +139,6 @@ if (!gotTheLock) {
                 e.preventDefault();
                 const win = new BrowserWindow({ show: false });
                 win.loadURL(url);
-                win.maximize();
                 win.setMenu(null);
                 win.webContents.on('did-finish-load', function() {
                     win.show();
