@@ -130,4 +130,20 @@ if (!gotTheLock) {
     app.on('window-all-closed', function () {
         if (process.platform !== 'darwin') app.quit();
     });
+
+    // Listen for web contents being created
+    app.on('web-contents-created', (e, contents) => {
+        if (contents.getType() == 'window') {
+            // Listen for any new window events
+            contents.on('new-window', (e, url) => {
+                e.preventDefault();
+                const win = new BrowserWindow({ show: false });
+                win.maximize();
+                win.setMenu(null);
+                win.webContents.on('did-finish-load', function() {
+                    win.show();
+                });
+            });
+        }
+    })
 }
