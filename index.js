@@ -757,6 +757,22 @@ function startUp() {
 	});*/
 }
 
+//based on https://stackoverflow.com/a/37096512
+//used in login function for displaying rate limits
+function secondsToHms(d) {
+    d = Number(d);
+    var h = Math.floor(d / 3600);
+    var m = Math.floor(d % 3600 / 60);
+    var s = Math.floor(d % 3600 % 60);
+
+    var hDisplay = h > 0 ? h + (h == 1 ? " hour, " : " hours, ") : "";
+    var mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " minutes, ") : "";
+    var sDisplay = s > 0 ? s + (s == 1 ? " second" : " seconds") : "";
+	hmsString = hDisplay + mDisplay + sDisplay;
+	if(hmsString.endsWith(", ")) hmsString = hmsString.slice(0, -2);
+    return hmsString;
+}
+
 //sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
 function initialSetup() {
 	logger('Setting up the REST API.', 'info-quiet');
@@ -957,12 +973,22 @@ function initialSetup() {
 					limiterSlowBruteByIP.consume(`${username}_${ipAddr}`)
 				]).then((values) => {
 					//rate limits not exceeded
+					let points = values[0].remainingPoints;
+					let message = "Wrong username or password!";
+					if(points < 4) {
+						message += " Remaining attemps:"+points;
+					}
 					socket.emit('login_result', false); //old response, for compatibility with old UI clients
-					socket.emit('login_response', { loginOk: false, message: "Wrong username or password!" });
+					socket.emit('login_response', { loginOk: false, message: message });
 				}).catch((error) => {
 					//rate limits exceeded
 					socket.emit('login_result', false); //old response, for compatibility with old UI clients
-					socket.emit('login_response', { loginOk: false, message: "Too many attemps! Please retry later." });
+					try{
+						retrySecs = Math.round(error.msBeforeNext / 1000) || 1;
+					} catch(e) {
+						retrySecs = Math.round(error[0].msBeforeNext / 1000) || 1;
+					}
+					socket.emit('login_response', { loginOk: false, message: "Too many attemps! Please try "+secondsToHms(retrySecs)+" later." });
 				});
 			}
 		});
