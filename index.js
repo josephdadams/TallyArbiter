@@ -745,6 +745,7 @@ function startUp() {
 function initialSetup() {
 	logger('Setting up the REST API.', 'info-quiet');
 
+	app.disable('x-powered-by');
 	app.use(bodyParser.json({ type: 'application/json' }));
 
 	//about the author, this program, etc.
