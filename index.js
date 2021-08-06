@@ -948,7 +948,8 @@ function initialSetup() {
 			if((type === "producer" && username == username_producer && password == password_producer)
 			|| (type === "settings" && username == username_settings && password == password_settings)) {
 				//login successfull
-				socket.emit('login_result', true);
+				socket.emit('login_result', true); //old response, for compatibility with old UI clients
+				socket.emit('login_response', { loginOk: true, message: "" });
 			} else {
 				//wrong credentials
 				Promise.all([
@@ -956,10 +957,12 @@ function initialSetup() {
 					limiterSlowBruteByIP.consume(`${username}_${ipAddr}`)
 				]).then((values) => {
 					//rate limits not exceeded
-					socket.emit('login_result', false);
+					socket.emit('login_result', false); //old response, for compatibility with old UI clients
+					socket.emit('login_response', { loginOk: false, message: "Wrong username or password!" });
 				}).catch((error) => {
 					//rate limits exceeded
-					socket.emit('login_result', -1);
+					socket.emit('login_result', false); //old response, for compatibility with old UI clients
+					socket.emit('login_response', { loginOk: false, message: "Too many attemps! Please retry later." });
 				});
 			}
 		});
