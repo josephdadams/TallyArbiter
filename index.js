@@ -15,6 +15,7 @@ const isPi 						= require('detect-rpi');
 const clc 						= require('cli-color');
 const util 						= require ('util');
 const express 					= require('express');
+const { RateLimiterMemory }		= require('rate-limiter-flexible');
 const bodyParser 				= require('body-parser');
 const axios 					= require('axios');
 const http 						= require('http');
@@ -26,6 +27,21 @@ const jspack 					= require('jspack').jspack;
 const os 						= require('os') // For getting available Network interfaces on host device
 const findRemoveSync            = require('find-remove');
 
+//Rate limiter configurations
+const maxWrongAttemptsByIPperDay = 100;
+const maxConsecutiveFailsByUsernameAndIP = 10;
+const limiterSlowBruteByIP = new RateLimiterMemory({
+  keyPrefix: 'login_fail_ip_per_day',
+  points: maxWrongAttemptsByIPperDay,
+  duration: 60 * 60 * 24, // Store number for 1 day since first fail
+  blockDuration: 60 * 60 * 24, // Block for 1 day
+});
+const limiterConsecutiveFailsByUsernameAndIP = new RateLimiterMemory({
+  keyPrefix: 'login_fail_consecutive_username_and_ip',
+  points: maxConsecutiveFailsByUsernameAndIP,
+  duration: 60 * 60 * 24, // Store number for 1 day since first fail
+  blockDuration: 60 * 60 * 2, // Block for 2 hours
+});
 
 //Tally Arbiter variables
 const listenPort 	= process.env.PORT || 4455;
@@ -746,10 +762,27 @@ function startUp() {
 	});*/
 }
 
+//based on https://stackoverflow.com/a/37096512
+//used in login function for displaying rate limits
+function secondsToHms(d) {
+    d = Number(d);
+    var h = Math.floor(d / 3600);
+    var m = Math.floor(d % 3600 / 60);
+    var s = Math.floor(d % 3600 % 60);
+
+    var hDisplay = h > 0 ? h + (h == 1 ? " hour, " : " hours, ") : "";
+    var mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " minutes, ") : "";
+    var sDisplay = s > 0 ? s + (s == 1 ? " second" : " seconds") : "";
+	hmsString = hDisplay + mDisplay + sDisplay;
+	if(hmsString.endsWith(", ")) hmsString = hmsString.slice(0, -2);
+    return hmsString;
+}
+
 //sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
 function initialSetup() {
 	logger('Setting up the REST API.', 'info-quiet');
 
+	app.disable('x-powered-by');
 	app.use(bodyParser.json({ type: 'application/json' }));
 
 	//about the author, this program, etc.
@@ -931,10 +964,39 @@ function initialSetup() {
 	logger('Starting socket.IO Setup.', 'info-quiet');
 
 	io.sockets.on('connection', function(socket) {
+		const ipAddr = socket.handshake.address;
 
 		socket.on('login', function (type, username, password) {
-			socket.emit('login_result', (type === "producer" && username == username_producer && password == password_producer)
-				|| (type === "settings" && username == username_settings && password == password_settings));
+			if((type === "producer" && username == username_producer && password == password_producer)
+			|| (type === "settings" && username == username_settings && password == password_settings)) {
+				//login successfull
+				socket.emit('login_result', true); //old response, for compatibility with old UI clients
+				socket.emit('login_response', { loginOk: true, message: "" });
+			} else {
+				//wrong credentials
+				Promise.all([
+					limiterConsecutiveFailsByUsernameAndIP.consume(ipAddr),
+					limiterSlowBruteByIP.consume(`${username}_${ipAddr}`)
+				]).then((values) => {
+					//rate limits not exceeded
+					let points = values[0].remainingPoints;
+					let message = "Wrong username or password!";
+					if(points < 4) {
+						message += " Remaining attemps:"+points;
+					}
+					socket.emit('login_result', false); //old response, for compatibility with old UI clients
+					socket.emit('login_response', { loginOk: false, message: message });
+				}).catch((error) => {
+					//rate limits exceeded
+					socket.emit('login_result', false); //old response, for compatibility with old UI clients
+					try{
+						retrySecs = Math.round(error.msBeforeNext / 1000) || 1;
+					} catch(e) {
+						retrySecs = Math.round(error[0].msBeforeNext / 1000) || 1;
+					}
+					socket.emit('login_response', { loginOk: false, message: "Too many attemps! Please try "+secondsToHms(retrySecs)+" later." });
+				});
+			}
 		});
 
 		socket.on('version', function() {
