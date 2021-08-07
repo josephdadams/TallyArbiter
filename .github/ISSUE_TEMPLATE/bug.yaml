@@ -38,8 +38,8 @@ body:
   - type: dropdown
     id: distro
     attributes:
-      label: Distrobution
-      description: What distrobution of TallyArbiter are you running?
+      label: Distribution
+      description: What distribution of TallyArbiter are you running?
       options:
         - Desktop
         - CLI
