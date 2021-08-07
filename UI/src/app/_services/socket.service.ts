@@ -162,7 +162,7 @@ export class SocketService {
     });
     this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], sourceTypesBusOptions: SourceTypeBusOptions[], outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], deviceStates: DeviceState[], tslClients: TSLClient[], cloudDestinations: CloudDestination[], cloudKeys: string[], cloudClients: CloudClient[]) => {
       this.initialDataLoaded = true;
-      this.sourceTypes = sourceTypes;
+      this.sourceTypes = sourceTypes.filter((s: SourceType) => s.enabled);
       this.sourceTypeDataFields = sourceTypesDataFields;
       this.sourceTypesBusOptions = sourceTypesBusOptions;
       this.outputTypes = outputTypes;
