@@ -297,10 +297,6 @@ export class SettingsComponent {
     return this.socketService.outputTypeDataFields.find((t) => t.outputTypeId == outputType.id)?.fields || [];
   }
 
-  public filterEnabledSourceTypes(sourceTypes: SourceType[]) {
-    return sourceTypes.filter((s) => s.enabled);
-  }
-
   public getSourceBusOptionsBySourceTypeId(sourceTypeId: string) {
     return this.socketService.sourceTypesBusOptions.filter((obj) => obj.sourceTypeId === sourceTypeId);
   }

@@ -318,7 +318,7 @@
       <select class="form-select" ngbAutofocus [(ngModel)]="currentSourceSelectedTypeIdx">
         <option selected disabled [value]="undefined">-- Choose Source Type --</option>
         <option *ngFor="
-            let sourceType of filterEnabledSourceTypes(socketService.sourceTypes);
+            let sourceType of socketService.sourceTypes;
             index as index
           " [value]="index">
           {{ sourceType.label }}
