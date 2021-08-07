@@ -177,7 +177,12 @@ var source_types_datafields = [ //data fields for the tally source types
 					{ id: '5', label: 'ME 5' },
 					{ id: '6', label: 'ME 6' }
 				]
-			}
+			},
+			{ fieldName: 'cut_bus_mode', fieldLabel: 'Bus Mode', fieldType: 'dropdown',
+			options: [
+				{ id: 'off', label: 'Preview / Program Mode'},
+				{ id: 'on', label: 'Cut Bus Mode'}
+			] }
 		]
 	},
 	{ sourceTypeId: '627a5902', fields: [ //Blackmagic VideoHub
@@ -2726,49 +2731,91 @@ function SetUpATEMServer(sourceId) {
 
 function processATEMTally(sourceId, allPrograms, allPreviews) {
 
+	let source = sources.find( ({ id }) => id === sourceId);
+
+	let cutBussMode = source.data.cut_bus_mode;
+
 	//loop through the array of program inputs;
 	//if that program input is also in the preview array, build a TSL-type object that has it in pvw+pgm
 	//if only pgm, build an object of only pgm
 
-	for (let i = 0; i < allPrograms.length; i++) {
-		let includePreview = false;
-		if (allPreviews.includes(allPrograms[i])) {
-			includePreview = true;
+	if (cutBussMode === 'on') {
+		console.log('Cut buss on');
+		for (let i = 0; i < allPrograms.length; i++) {
+			let tallyObj = {};
+			tallyObj.address = allPrograms[i];
+			tallyObj.brightness = 1;
+			tallyObj.tally1 = 0;
+			tallyObj.tally2 = 1;
+			tallyObj.tally3 = 0;
+			tallyObj.tally4 = 0;
+			tallyObj.label = `Source ${allPrograms[i]}`;
+			processTSLTally(sourceId, tallyObj);
 		}
-
-		let tallyObj = {};
-		tallyObj.address = allPrograms[i];
-		tallyObj.brightness = 1;
-		tallyObj.tally1 = (includePreview ? 1 : 0);
-		tallyObj.tally2 = 1;
-		tallyObj.tally3 = 0;
-		tallyObj.tally4 = 0;
-		tallyObj.label = `Source ${allPrograms[i]}`;
-		processTSLTally(sourceId, tallyObj);
+	} else {
+		for (let i = 0; i < allPrograms.length; i++) {
+			let includePreview = false;
+			if (allPreviews.includes(allPrograms[i])) {
+				includePreview = true;
+			}
+	
+			let tallyObj = {};
+			tallyObj.address = allPrograms[i];
+			tallyObj.brightness = 1;
+			tallyObj.tally1 = (includePreview ? 1 : 0);
+			tallyObj.tally2 = 1;
+			tallyObj.tally3 = 0;
+			tallyObj.tally4 = 0;
+			tallyObj.label = `Source ${allPrograms[i]}`;
+			processTSLTally(sourceId, tallyObj);
+		}
 	}
 
 	//now loop through the array of pvw inputs
 	//if that input is not in the program array, build a TSL object of only pvw
 
-	for (let i = 0; i < allPreviews.length; i++) {
-		let onlyPreview = true;
-
-		if (allPrograms.includes(allPreviews[i])) {
-			onlyPreview = false;
+	if (cutBussMode === 'on') {
+		for (let i = 0; i < allPreviews.length; i++) {
+			let onlyPreview = true;
+	
+			if (allPrograms.includes(allPreviews[i])) {
+				onlyPreview = false;
+			}
+	
+			if (onlyPreview) {
+				let tallyObj = {};
+				tallyObj.address = allPreviews[i];
+				tallyObj.brightness = 1;
+				tallyObj.tally1 = 0;
+				tallyObj.tally2 = 0;
+				tallyObj.tally3 = 0;
+				tallyObj.tally4 = 0;
+				tallyObj.label = `Source ${allPreviews[i]}`;
+				processTSLTally(sourceId, tallyObj);
+			}
 		}
-
-		if (onlyPreview) {
-			let tallyObj = {};
-			tallyObj.address = allPreviews[i];
-			tallyObj.brightness = 1;
-			tallyObj.tally1 = 1;
-			tallyObj.tally2 = 0;
-			tallyObj.tally3 = 0;
-			tallyObj.tally4 = 0;
-			tallyObj.label = `Source ${allPreviews[i]}`;
-			processTSLTally(sourceId, tallyObj);
+	} else {
+		for (let i = 0; i < allPreviews.length; i++) {
+			let onlyPreview = true;
+	
+			if (allPrograms.includes(allPreviews[i])) {
+				onlyPreview = false;
+			}
+	
+			if (onlyPreview) {
+				let tallyObj = {};
+				tallyObj.address = allPreviews[i];
+				tallyObj.brightness = 1;
+				tallyObj.tally1 = 1;
+				tallyObj.tally2 = 0;
+				tallyObj.tally3 = 0;
+				tallyObj.tally4 = 0;
+				tallyObj.label = `Source ${allPreviews[i]}`;
+				processTSLTally(sourceId, tallyObj);
+			}
 		}
 	}
+	
 
 	//finally clear out any device state that is no longer in preview or program
 	let device_sources_atem = GetDeviceSourcesBySourceId(sourceId);
