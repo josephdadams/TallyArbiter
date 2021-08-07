@@ -36,6 +36,29 @@ body:
     validations:
       required: true
   - type: dropdown
+    id: distro
+    attributes:
+      label: Distrobution
+      description: What distrobution of TallyArbiter are you running?
+      options:
+        - Desktop
+        - CLI
+        - Docker
+        - Source
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      description: What operating system are you running?
+      options:
+        - MacOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: dropdown
     id: browsers
     attributes:
       label: What browsers are you seeing the problem on?
@@ -45,6 +68,21 @@ body:
         - Chrome
         - Safari
         - Microsoft Edge
+  - type: dropdown
+    id: clients
+    attributes:
+      label: If applicable, What Listener Clients are You Using?
+      multiple: true
+      options:
+        - Web (Chrome)
+        - Web (Safari)
+        - Web (Firefox)
+        - Web (Microsoft Edge)
+        - M5 Stick
+        - Blink(1)
+        - Blinkt
+        - Relay
+        - GPI
   - type: textarea
     id: logs
     attributes:
