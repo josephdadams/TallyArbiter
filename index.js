@@ -60,8 +60,10 @@ const socketupdates_Companion = ['sources', 'devices', 'device_sources', 'device
 const oscPort 		= 5958;
 const vmixEmulatorPort = '8099'; // Default 8099 
 var oscUDP			= null;
-var logFile = fs.openSync(getLogFilePath(), 'w'); // Setup Log file
-var tallyDataFile = fs.openSync(getTallyDataPath(), 'w'); // Setup TallyData File
+var logFilePath = getLogFilePath();
+var logFile = fs.openSync(logFilePath, 'w'); // Setup Log file
+var tallyDataFilePath = getTallyDataPath();
+var tallyDataFile = fs.openSync(tallyDataFilePath, 'w'); // Setup TallyData File
 var vmix_emulator	= null; //TCP server for VMix Emulator
 var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
 const config_file 	= getConfigFilePath(); //local storage JSON file
@@ -7162,3 +7164,11 @@ function getNetworkInterfaces() { // Get all network interfaces on host device
 }
 
 startUp();
+
+exports.logs = Logs;
+exports.logFilePath = logFilePath;
+exports.tallyDataFilePath = tallyDataFilePath;
+exports.getConfigFilePath = getConfigFilePath;
+exports.getConfig = () => {
+	return JSON.parse(fs.readFileSync(getConfigFilePath()));
+};
