@@ -1,12 +1,55 @@
 // This is the electron startup script
-const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, dialog, ipcMain, shell } = require('electron');
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
+const fs = require('fs');
 
+let server;
 let mainWindow;
 let trayIcon;
 
 const gotTheLock = app.requestSingleInstanceLock()
+
+function processError(err) {
+    console.error(err);
+    const errorWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        minHeight: 850,
+        minWidth: 1260,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        },
+        show: false
+    });
+    errorWindow.setMenu(null);
+
+    let logs = "No log obtained before the error."
+    let logsFilePath = server.logFilePath;
+    if (fs.existsSync(logsFilePath)) {
+        logs = fs.readFileSync(logsFilePath, 'utf8');
+    }
+    ipcMain.on('pageLoaded', (event, arg) => {
+        event.reply("stacktrace", err.stack);
+        event.reply("logs", logs);
+        event.reply("config", JSON.stringify(server.getConfig(), null, 2));
+    });
+    ipcMain.on('bugReportButtonPressed', (event, arg) => {
+        let url = `https://github.com/josephdadams/TallyArbiter/issues/new?labels=bug&template=bug.yaml&title=%5BBug%5D%3A+&version=${app.getVersion()}&logs=${encodeURIComponent(logs)}`;
+        shell.openExternal(url);
+    });
+
+    errorWindow.loadFile("electron_error_page.html").then(() => {
+        errorWindow.show();
+        if(mainWindow !== undefined) mainWindow.blur();
+        errorWindow.focus();
+    }).catch((err) => { console.error(err); });
+}
+
+process.on('uncaughtException', (err) => {
+    processError(err);
+})
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -30,12 +73,7 @@ function createWindow() {
         return false;
     });
     // start the server
-    try {
-        require("./index");
-    } catch(e) {
-        console.error(e);
-        dialog.showErrorBox("Unexpected error", "There was an unexpected error. Please open a bug report on the project's Github page or contact one of the developers. Stack Trace: " + e.toString());
-    }
+    server = require("./index");
 }
 
 function createTrayIcon() {
@@ -112,6 +150,8 @@ if (!gotTheLock) {
         app.on('activate', function () {
             if (BrowserWindow.getAllWindows().length === 0) createWindow();
         });
+    }).catch((err) => {
+        processError(err);
     });
 
     app.on('second-instance', () => {
