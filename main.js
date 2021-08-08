@@ -33,7 +33,7 @@ function processError(err) {
     ipcMain.on('pageLoaded', (event, arg) => {
         event.reply("stacktrace", err.stack);
         event.reply("logs", logs);
-        event.reply("config", JSON.stringify(server.getConfig(), null, 2));
+        event.reply("config", JSON.stringify(server.getConfigRedacted(), null, 2));
     });
     ipcMain.on('bugReportButtonPressed', (event, arg) => {
         let url = `https://github.com/josephdadams/TallyArbiter/issues/new?labels=bug&template=bug.yaml&title=%5BBug%5D%3A+&version=${app.getVersion()}&logs=${encodeURIComponent(logs)}`;
