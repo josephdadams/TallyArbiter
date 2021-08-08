@@ -2232,6 +2232,23 @@ function SaveConfig() {
 	}
 }
 
+function getConfig() {
+	return JSON.parse(fs.readFileSync(getConfigFilePath()));
+}
+
+function getConfigRedacted() {
+	let config = JSON.parse(fs.readFileSync(getConfigFilePath()));
+	config["security"] = {
+		username_settings: "admin",
+		password_settings: "12345",
+		username_producer: "producer",
+		password_producer: "12345"
+	};
+	config["cloud_destinations"] = [];
+	config["cloud_keys"] = [];
+	return config;
+}
+
 function initializeDeviceStates() { // initializes each device state in the array upon server startup
 	logger('Initializing Device States.', 'info-quiet');
 
@@ -7169,6 +7186,5 @@ exports.logs = Logs;
 exports.logFilePath = logFilePath;
 exports.tallyDataFilePath = tallyDataFilePath;
 exports.getConfigFilePath = getConfigFilePath;
-exports.getConfig = () => {
-	return JSON.parse(fs.readFileSync(getConfigFilePath()));
-};
+exports.getConfig = getConfig;
+exports.getConfigRedacted = getConfigRedacted;
