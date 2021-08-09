@@ -30,13 +30,14 @@ function processError(err) {
     if (fs.existsSync(logsFilePath)) {
         logs = fs.readFileSync(logsFilePath, 'utf8');
     }
+    let config = JSON.stringify(server.getConfigRedacted(), null, 2);
     ipcMain.on('pageLoaded', (event, arg) => {
         event.reply("stacktrace", err.stack);
         event.reply("logs", logs);
-        event.reply("config", JSON.stringify(server.getConfigRedacted(), null, 2));
+        event.reply("config", config);
     });
     ipcMain.on('bugReportButtonPressed', (event, arg) => {
-        let url = `https://github.com/josephdadams/TallyArbiter/issues/new?labels=bug&template=bug.yaml&title=%5BBug%5D%3A+&version=${app.getVersion()}&logs=${encodeURIComponent(logs)}`;
+        let url = `https://github.com/josephdadams/TallyArbiter/issues/new?labels=bug&template=bug.yaml&title=%5BBug%5D%3A+&version=${app.getVersion()}&config=${encodeURIComponent(config)}&logs=${encodeURIComponent(logs)}&stacktrace=${encodeURIComponent(err.stack)}`;
         shell.openExternal(url);
     });
 
