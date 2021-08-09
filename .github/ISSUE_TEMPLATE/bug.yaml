@@ -89,5 +89,5 @@ body:
     id: stacktrace
     attributes:
       label: Error stacktrace (if applicable)
-      description: Please copy and paste the error stacktrace, if you have it.
+      description: Please copy and paste the error stacktrace, if you have it. This will be automatically formatted into code, so no need for backticks.
       render: shell
