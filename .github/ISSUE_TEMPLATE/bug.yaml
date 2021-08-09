@@ -76,7 +76,7 @@ body:
   - type: textarea
     id: config
     attributes:
-      label: TallyArbiter config
+      label: TallyArbiter configuration
       description: Please copy and paste here your config.json file. This will be automatically formatted into code, so no need for backticks.
       render: javascript
   - type: textarea
