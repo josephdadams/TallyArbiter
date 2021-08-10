@@ -1,4 +1,4 @@
-/* Tally Arbiter 2.0.10 */
+/* Tally Arbiter */
 
 //Protocol, Network, Socket, Server libraries/variables
 const net 						= require('net');
