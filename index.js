@@ -7179,6 +7179,7 @@ function getErrorReportsList() {
 
 function getErrorReport(reportId) {
 	try {
+		if(!reportId.match(/^[a-zA-Z0-9]+$/i)) return false;
 		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
 		const ErrorReportFile = path.join(ErrorReportsFolder, reportId + ".json");
 		return JSON.parse(fs.readFileSync(ErrorReportFile, "utf8"));
