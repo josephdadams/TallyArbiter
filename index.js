@@ -759,9 +759,10 @@ function startUp() {
 	initialSetup();
 	DeleteInactiveListenerClients();
 
-	/*process.on('uncaughtException', function (err) {
+	process.on('uncaughtException', function (err) {
 		logger(`Caught exception: ${err}`, 'error');
-	});*/
+		generateErrorReport(err.stack);
+	});
 }
 
 //based on https://stackoverflow.com/a/37096512
@@ -1721,6 +1722,14 @@ function initialSetup() {
 
 		socket.on('messaging', function(type, message) {
 			SendMessage(type, socket.id, message);
+		});
+
+		socket.on('get_error_reports', function() {
+			socket.emit('error_reports', getErrorReportsList());
+		});
+
+		socket.on('get_error_report', function(errorReportId) {
+			socket.emit('error_report', getErrorReport(errorReportId));
 		});
 
 		socket.on('disconnect', function() { // emitted when any socket.io client disconnects from the server
@@ -7150,6 +7159,56 @@ function getTallyDataPath() {
 	}
 	var logName = today + ".tadata"
 	return path.join(TallyDataFolder, logName);
+}
+
+function getErrorReportsList() {
+	try {
+		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
+		const ErrorReportsFiles = fs.readdirSync(ErrorReportsFolder);
+		let errorReports = [];
+		ErrorReportsFiles.forEach((file) => {
+			let currentErrorReport = JSON.parse(fs.readFileSync(path.join(ErrorReportsFolder, file), "utf8"));
+			let reportId = file.replace(/\.[^/.]+$/, "");
+			errorReports.push({ id: reportId, datetime: currentErrorReport.datetime });
+		});
+		return errorReports;
+	} catch (e) {
+		return [];
+	}
+}
+
+function getErrorReport(reportId) {
+	try {
+		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
+		const ErrorReportFile = path.join(ErrorReportsFolder, reportId + ".json");
+		return JSON.parse(fs.readFileSync(ErrorReportFile, "utf8"));
+	} catch (e) {
+		return false;
+	}
+}
+
+function getErrorReportPath(id) {
+
+	const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
+
+	if (!fs.existsSync(ErrorReportsFolder)) {
+		fs.mkdirSync(ErrorReportsFolder, { recursive: true });
+	}
+	var errorReportName = id + ".json"
+	return path.join(ErrorReportsFolder, errorReportName);
+}
+
+function generateErrorReport(stacktrace) {
+	let id = uuidv4();
+	if(!stacktrace) stacktrace = "No stacktrace captured.";
+	var errorReport = {
+		"datetime": new Date(),
+		"stacktrace": stacktrace,
+		"logs": fs.readFileSync(logFilePath, 'utf8'),
+		"config": getConfigRedacted()
+	};
+	fs.writeFileSync(getErrorReportPath(id), JSON.stringify(errorReport));
+	io.emit("server_error", id);
 }
 
 function getNetworkInterfaces() { // Get all network interfaces on host device

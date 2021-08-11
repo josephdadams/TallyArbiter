@@ -10,48 +10,6 @@ let trayIcon;
 
 const gotTheLock = app.requestSingleInstanceLock()
 
-function processError(err) {
-    console.error(err);
-    const errorWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
-        minHeight: 850,
-        minWidth: 1260,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
-        },
-        show: false
-    });
-    errorWindow.setMenu(null);
-
-    let logs = "No log obtained before the error."
-    let logsFilePath = server.logFilePath;
-    if (fs.existsSync(logsFilePath)) {
-        logs = fs.readFileSync(logsFilePath, 'utf8');
-    }
-    let config = JSON.stringify(server.getConfigRedacted(), null, 2);
-    ipcMain.on('pageLoaded', (event, arg) => {
-        event.reply("stacktrace", err.stack);
-        event.reply("logs", logs);
-        event.reply("config", config);
-    });
-    ipcMain.on('bugReportButtonPressed', (event, arg) => {
-        let url = `https://github.com/josephdadams/TallyArbiter/issues/new?labels=bug&template=bug.yaml&title=%5BBug%5D%3A+&version=${app.getVersion()}&config=${encodeURIComponent(config)}&logs=${encodeURIComponent(logs)}&stacktrace=${encodeURIComponent(err.stack)}`;
-        shell.openExternal(url);
-    });
-
-    errorWindow.loadFile("electron_error_page.html").then(() => {
-        errorWindow.show();
-        if(mainWindow !== undefined) mainWindow.blur();
-        errorWindow.focus();
-    }).catch((err) => { console.error(err); });
-}
-
-process.on('uncaughtException', (err) => {
-    processError(err);
-})
-
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 800,
@@ -151,8 +109,6 @@ if (!gotTheLock) {
         app.on('activate', function () {
             if (BrowserWindow.getAllWindows().length === 0) createWindow();
         });
-    }).catch((err) => {
-        processError(err);
     });
 
     app.on('second-instance', () => {
