@@ -1,6 +1,8 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AboutComponent } from './_components/about/about.component';
+import { ErrorReportComponent } from './_components/error-report/error-report.component';
+import { ErrorReportsListComponent } from './_components/error-reports-list/error-reports-list.component';
 import { HomeComponent } from './_components/home/home.component';
 import { LoginComponent } from './_components/login/login.component';
 import { ProducerComponent } from './_components/producer/producer.component';
@@ -18,6 +20,8 @@ const routes: Routes = [
   { path: "about", component: AboutComponent },
   { path: "login/producer", component: LoginComponent },
   { path: "login/settings", component: LoginComponent },
+  { path: "errors/:errorReportId", component: ErrorReportComponent },
+  { path: "errors", component: ErrorReportsListComponent },
   //
   { path: "**", redirectTo: "/home", pathMatch: "full" },
 ];

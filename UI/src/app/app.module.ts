@@ -14,6 +14,8 @@ import { ServiceWorkerModule } from '@angular/service-worker';
 import { environment } from '../environments/environment';
 import { LoginComponent } from './_components/login/login.component';
 import { ChatComponent } from './_components/chat/chat.component';
+import { ErrorReportComponent } from './_components/error-report/error-report.component';
+import { ErrorReportsListComponent } from './_components/error-reports-list/error-reports-list.component';
 
 @NgModule({
   declarations: [
@@ -24,7 +26,9 @@ import { ChatComponent } from './_components/chat/chat.component';
     TallyComponent,
     AboutComponent,
     LoginComponent,
-    ChatComponent
+    ChatComponent,
+    ErrorReportComponent,
+    ErrorReportsListComponent
   ],
   imports: [
     BrowserModule,

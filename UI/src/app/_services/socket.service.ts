@@ -20,6 +20,8 @@ import { SourceType } from '../_models/SourceType';
 import { SourceTypeBusOptions } from '../_models/SourceTypeBusOptions';
 import { SourceTypeDataFields } from '../_models/SourceTypeDataFields';
 import { TSLClient } from '../_models/TSLClient';
+import { ErrorReport } from '../_models/ErrorReport';
+import { ErrorReportsListElement } from '../_models/ErrorReportsListElement';
 
 @Injectable({
   providedIn: 'root'
@@ -55,6 +57,7 @@ export class SocketService {
   public cloudClients: CloudClient[] = [];
   public portsInUse: Port[] = [];
   public messages: Message[] = [];
+  public errorReports: ErrorReportsListElement[] = [] as ErrorReportsListElement[];
 
   public dataLoaded = new Promise<void>((resolve) => this._resolveDataLoadedPromise = resolve);
   private _resolveDataLoadedPromise!: () => void;
@@ -258,6 +261,10 @@ export class SocketService {
     this.socket.on('PortsInUse', (ports: Port[]) => {
       this.portsInUse = ports;
     });
+    this.socket.on('error_reports', (errorReports: ErrorReportsListElement[]) => {
+      this.errorReports = errorReports;
+    });
+    this.socket.emit('get_error_reports');
     
     this.socket.emit('version');
     this.socket.emit('interfaces');
@@ -333,5 +340,18 @@ export class SocketService {
     //gets the bus type (preview/program) by the bus id
     let bus = this.busOptions.find(({id}: {id: string}) => id === busId);
     return bus?.type;
+  }
+
+  public getErrorReportById(id: string) {
+    return new Promise<ErrorReport|boolean>((resolve, reject) => {
+      this.socket.emit('get_error_report', id);
+      this.socket.once("error_report", (response: any) => {
+        if (response !== false) {
+          resolve(response);
+        } else {
+          reject(response);
+        }
+      });
+    });
   }
 }
