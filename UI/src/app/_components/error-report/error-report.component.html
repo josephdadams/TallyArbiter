@@ -1,6 +1,7 @@
 <div class="d-flex justify-content-center mt-5 pt-5" *ngIf="loading">
     <div class="spinner spinner-border"></div>
 </div>
+<button (click)="this.locationBackService.goBack()" id="backBtn" title="Go back"><i class="fas fa-arrow-left"></i> Back</button>
 <div id="page" *ngIf="validReport">
     <div id="text">
         <h1>:(</h1>
