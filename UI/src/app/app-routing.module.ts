@@ -10,6 +10,7 @@ import { SettingsComponent } from './_components/settings/settings.component';
 import { TallyComponent } from './_components/tally/tally.component';
 import { ProducerGuard } from './_guards/producer.guard';
 import { SettingsGuard } from './_guards/settings.guard';
+import { ErrorsGuard } from './_guards/errors.guard';
 
 const routes: Routes = [
   { path: "home", component: HomeComponent },
@@ -17,11 +18,11 @@ const routes: Routes = [
   { path: "tally", component: TallyComponent },
   { path: "producer", component: ProducerComponent, canActivate: [ProducerGuard] },
   { path: "settings", component: SettingsComponent, canActivate: [SettingsGuard] },
+  { path: "errors/:errorReportId", component: ErrorReportComponent, canActivate: [ErrorsGuard] },
+  { path: "errors", component: ErrorReportsListComponent, canActivate: [ErrorsGuard] },
   { path: "about", component: AboutComponent },
-  { path: "login/producer", component: LoginComponent },
-  { path: "login/settings", component: LoginComponent },
-  { path: "errors/:errorReportId", component: ErrorReportComponent },
-  { path: "errors", component: ErrorReportsListComponent },
+  { path: "login/:redirect/:extraParam", component: LoginComponent },
+  { path: "login/:redirect", component: LoginComponent },
   //
   { path: "**", redirectTo: "/home", pathMatch: "full" },
 ];
