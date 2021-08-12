@@ -2617,23 +2617,26 @@ function processTSL5Tally(sourceId, data) {
 
 		tallyobj.TEXT = jspack.Unpack( "s".repeat(LENGTH), data, cursor)
 
-		//tally1 === lh tally
-		//tally2 === rh tally
-
 		let inPreview = 0;
 		let inProgram = 0;
-
-		if ((tallyobj.control.lh_tally === 2) && (tallyobj.control.rh_tally === 2)) { //device is in Preview only
-			inPreview = 1;
-			inProgram = 0;
-		}
-		else if ((tallyobj.control.lh_tally === 1) && (tallyobj.control.rh_tally === 1)) { //device is in Program only
-			inPreview = 0;
-			inProgram = 1;
-		}
-		else if ((tallyobj.control.lh_tally === 1) && (tallyobj.control.rh_tally === 2)) { //device is in PVW+PGM
-			inPreview = 1;
-			inProgram = 1;
+        
+		switch(tallyobj.control.text_tally) {
+			case 0:
+				inPreview = 0;
+				inProgram = 0;
+				break;
+			case 1:
+				inPreview = 0;
+				inProgram = 1;
+				break;
+			case 2:
+				inPreview = 1;
+				inProgram = 0;
+				break;
+			case 3:
+				inPreview = 1;
+				inProgram = 1;
+				break;
 		}
 
 		let newTallyObj = {};
