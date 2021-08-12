@@ -1729,7 +1729,12 @@ function initialSetup() {
 			socket.emit('error_reports', getErrorReportsList());
 		});
 
+		socket.on('get_unreaded_error_reports', function() {
+			socket.emit('unreaded_error_reports', getUnreadedErrorReportsList());
+		});
+
 		socket.on('get_error_report', function(errorReportId) {
+			markErrorReportAsReaded(errorReportId);
 			socket.emit('error_report', getErrorReport(errorReportId));
 		});
 
@@ -7176,6 +7181,33 @@ function getErrorReportsList() {
 	} catch (e) {
 		return [];
 	}
+}
+
+function getReadedErrorReports() {
+	try {
+		const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
+		return JSON.parse(fs.readFileSync(readedErrorReportsFilePath, 'utf8'));
+	} catch(e) {
+		return [];
+	}
+}
+
+function markErrorReportAsReaded(errorReportId) {
+	try {
+		const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
+		let readedErrorReportsList = getReadedErrorReports();
+		readedErrorReportsList.push(errorReportId);
+		fs.writeFileSync(readedErrorReportsFilePath, JSON.stringify(readedErrorReportsList));
+		return true;
+	} catch(e) {
+		return false;
+	}
+}
+
+function getUnreadedErrorReportsList() {
+	let errorReports = getErrorReportsList();
+	let readedErrorReports = getReadedErrorReports();
+	return errorReports.filter((report) => { return !readedErrorReports.includes(report.id); });
 }
 
 function getErrorReport(reportId) {
