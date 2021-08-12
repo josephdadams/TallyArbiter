@@ -78,11 +78,23 @@ export class SettingsComponent {
     this.socketService.socket.on('server_error', (id: string) => {
       this.show_error(id);
     });
+    this.socketService.socket.on('unreaded_error_reports', (list) => {
+      console.log(list);
+      if(list.length > 0) {
+        this.show_errors_list();
+      }
+    });
+    this.socketService.socket.emit('get_unreaded_error_reports');
   }
 
   @Confirmable("There was an unexpected error. Do you want to view the bug report?", false)
   public show_error(id: string) {
     this.router.navigate(['/errors', id]);
+  }
+
+  @Confirmable(`There are error reports that you haven't read yet. Do you want to open the list of errors now?`, false)
+  public show_errors_list() {
+    this.router.navigate(['/errors']);
   }
 
   private portInUse(portToCheck: number, sourceId: string) {
