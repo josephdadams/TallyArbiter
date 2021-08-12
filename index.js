@@ -760,8 +760,9 @@ function startUp() {
 	DeleteInactiveListenerClients();
 
 	process.on('uncaughtException', function (err) {
-		logger(`Caught exception: ${err}`, 'error');
-		generateErrorReport(err.stack);
+		if (!process.versions.hasOwnProperty('electron')) {
+			generateErrorReport(err);
+		}
 	});
 }
 
@@ -7199,9 +7200,13 @@ function getErrorReportPath(id) {
 	return path.join(ErrorReportsFolder, errorReportName);
 }
 
-function generateErrorReport(stacktrace) {
+function generateErrorReport(error) {
+	logger(`Caught exception: ${error}`, 'error');
 	let id = uuidv4();
-	if(!stacktrace) stacktrace = "No stacktrace captured.";
+	let stacktrace = "No stacktrace captured.";
+	if(error !== undefined){
+		stacktrace = error.stack;
+	}
 	var errorReport = {
 		"datetime": new Date(),
 		"stacktrace": stacktrace,
@@ -7248,3 +7253,4 @@ exports.tallyDataFilePath = tallyDataFilePath;
 exports.getConfigFilePath = getConfigFilePath;
 exports.getConfig = getConfig;
 exports.getConfigRedacted = getConfigRedacted;
+exports.generateErrorReport = generateErrorReport;
