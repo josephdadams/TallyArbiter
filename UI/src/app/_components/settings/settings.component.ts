@@ -1,4 +1,5 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Router } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { Confirmable } from 'src/app/_decorators/confirmable.decorator';
 import { CloudClient } from 'src/app/_models/CloudClient';
@@ -66,7 +67,7 @@ export class SettingsComponent {
 
   public newCloudKey = "";
 
-  constructor(private modalService: NgbModal, public socketService: SocketService) {
+  constructor(private modalService: NgbModal, public socketService: SocketService, private router: Router) {
     this.socketService.joinAdmins();
     this.socketService.closeModals.subscribe(() => this.modalService.dismissAll());
     this.socketService.scrollTallyDataSubject.subscribe(() => this.scrollToBottom(this.tallyDataContainer));
@@ -74,6 +75,26 @@ export class SettingsComponent {
       this.filterLogs();
       this.scrollToBottom(this.logsContainer);
     });
+    this.socketService.socket.on('server_error', (id: string) => {
+      this.show_error(id);
+    });
+    this.socketService.socket.on('unreaded_error_reports', (list) => {
+      console.log(list);
+      if(list.length > 0) {
+        this.show_errors_list();
+      }
+    });
+    this.socketService.socket.emit('get_unreaded_error_reports');
+  }
+
+  @Confirmable("There was an unexpected error. Do you want to view the bug report?", false)
+  public show_error(id: string) {
+    this.router.navigate(['/errors', id]);
+  }
+
+  @Confirmable(`There are error reports that you haven't read yet. Do you want to open the list of errors now?`, false)
+  public show_errors_list() {
+    this.router.navigate(['/errors']);
   }
 
   private portInUse(portToCheck: number, sourceId: string) {
