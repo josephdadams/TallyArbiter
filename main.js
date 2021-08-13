@@ -141,16 +141,15 @@ if (!gotTheLock) {
     app.on('window-all-closed', function () {
         if (process.platform !== 'darwin') {
             app.preventDefault() // Prevents the window from closing 
-                dialog.showMessageBox({
-                    type: 'question',
-                    buttons: ['Yes', 'No'],
-                    title: 'Confirm',
-                    message: 'Are you sure you want to quit?'
-                }, function (response) {
-                    if (response === 0) { // Runs the following if 'Yes' is clicked
-                        app.quit();
-                    }
-                })
+            dialog.showMessageBox(mainWindow, {
+                title: "Are you sure?",
+                message: "Are you sure you want to quit TallyArbiter?",
+                buttons: ["Yes", "No"],
+            }).then((v) => {
+                if (v.response == 0) {
+                    app.quit();
+                }
+            });
         }
     });
 
