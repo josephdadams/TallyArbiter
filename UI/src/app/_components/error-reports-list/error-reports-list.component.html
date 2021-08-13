@@ -1,0 +1,14 @@
+<div class="d-flex justify-content-center mt-5 pt-5" *ngIf="!socketService.errorReports">
+    <div class="spinner spinner-border"></div>
+</div>
+<div *ngIf="socketService.errorReports">
+    <div class="container mt-5">
+        <div class="form-group" *ngIf="socketService.errorReports.length > 0">
+            <select class='form-control col-xs-6 col-md-3' (change)="selectErrorReport($event)">
+                <option disabled selected>-- Select an error report --</option>
+                <option [value]="errorReport.id" *ngFor="let errorReport of socketService.errorReports">{{errorReport.datetime}}</option>
+            </select>
+        </div>
+    </div>
+    <h2 class="lead mt-5" *ngIf="socketService.errorReports.length == 0">Hurray! No error report detected.</h2>
+</div>

@@ -2,11 +2,23 @@
 const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
+const fs = require('fs');
 
+let server;
 let mainWindow;
 let trayIcon;
 
 const gotTheLock = app.requestSingleInstanceLock()
+
+function processError(err){
+    if(server !== undefined){
+        server.generateErrorReport(err);
+    } else {
+        dialog.showErrorBox("Unexpected error", "There was an unexpected error, and there was an other error generating the error report. Please open a bug report on the project's Github page or contact one of the developers. Stack Trace: " + err.toString());
+    }
+}
+
+process.on('uncaughtException', processError);
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -30,12 +42,7 @@ function createWindow() {
         return false;
     });
     // start the server
-    try {
-        require("./index");
-    } catch(e) {
-        console.error(e);
-        dialog.showErrorBox("Unexpected error", "There was an unexpected error. Please open a bug report on the project's Github page or contact one of the developers. Stack Trace: " + e.toString());
-    }
+    server = require("./index");
 }
 
 function createTrayIcon() {
@@ -112,6 +119,8 @@ if (!gotTheLock) {
         app.on('activate', function () {
             if (BrowserWindow.getAllWindows().length === 0) createWindow();
         });
+    }).catch((err) => {
+        processError(err);
     });
 
     app.on('second-instance', () => {
