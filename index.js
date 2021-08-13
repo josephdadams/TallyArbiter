@@ -60,8 +60,10 @@ const socketupdates_Companion = ['sources', 'devices', 'device_sources', 'device
 const oscPort 		= 5958;
 const vmixEmulatorPort = '8099'; // Default 8099 
 var oscUDP			= null;
-var logFile = fs.openSync(getLogFilePath(), 'w'); // Setup Log file
-var tallyDataFile = fs.openSync(getTallyDataPath(), 'w'); // Setup TallyData File
+var logFilePath = getLogFilePath();
+var logFile = fs.openSync(logFilePath, 'w'); // Setup Log file
+var tallyDataFilePath = getTallyDataPath();
+var tallyDataFile = fs.openSync(tallyDataFilePath, 'w'); // Setup TallyData File
 var vmix_emulator	= null; //TCP server for VMix Emulator
 var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
 const config_file 	= getConfigFilePath(); //local storage JSON file
@@ -757,9 +759,11 @@ function startUp() {
 	initialSetup();
 	DeleteInactiveListenerClients();
 
-	/*process.on('uncaughtException', function (err) {
-		logger(`Caught exception: ${err}`, 'error');
-	});*/
+	process.on('uncaughtException', function (err) {
+		if (!process.versions.hasOwnProperty('electron')) {
+			generateErrorReport(err);
+		}
+	});
 }
 
 //based on https://stackoverflow.com/a/37096512
@@ -1721,6 +1725,19 @@ function initialSetup() {
 			SendMessage(type, socket.id, message);
 		});
 
+		socket.on('get_error_reports', function() {
+			socket.emit('error_reports', getErrorReportsList());
+		});
+
+		socket.on('get_unreaded_error_reports', function() {
+			socket.emit('unreaded_error_reports', getUnreadedErrorReportsList());
+		});
+
+		socket.on('get_error_report', function(errorReportId) {
+			markErrorReportAsReaded(errorReportId);
+			socket.emit('error_report', getErrorReport(errorReportId));
+		});
+
 		socket.on('disconnect', function() { // emitted when any socket.io client disconnects from the server
 			DeactivateListenerClient(socket.id);
 			CheckCloudClients(socket.id);
@@ -2228,6 +2245,23 @@ function SaveConfig() {
 	catch (error) {
 		logger(`Error saving configuration to file: ${error}`, 'error');
 	}
+}
+
+function getConfig() {
+	return JSON.parse(fs.readFileSync(getConfigFilePath()));
+}
+
+function getConfigRedacted() {
+	let config = JSON.parse(fs.readFileSync(getConfigFilePath()));
+	config["security"] = {
+		username_settings: "admin",
+		password_settings: "12345",
+		username_producer: "producer",
+		password_producer: "12345"
+	};
+	config["cloud_destinations"] = [];
+	config["cloud_keys"] = [];
+	return config;
 }
 
 function initializeDeviceStates() { // initializes each device state in the array upon server startup
@@ -7136,6 +7170,88 @@ function getTallyDataPath() {
 	return path.join(TallyDataFolder, logName);
 }
 
+function getErrorReportsList() {
+	try {
+		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
+		const ErrorReportsFiles = fs.readdirSync(ErrorReportsFolder);
+		let errorReports = [];
+		ErrorReportsFiles.forEach((file) => {
+			let currentErrorReport = JSON.parse(fs.readFileSync(path.join(ErrorReportsFolder, file), "utf8"));
+			let reportId = file.replace(/\.[^/.]+$/, "");
+			errorReports.push({ id: reportId, datetime: currentErrorReport.datetime });
+		});
+		return errorReports;
+	} catch (e) {
+		return [];
+	}
+}
+
+function getReadedErrorReports() {
+	try {
+		const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
+		return JSON.parse(fs.readFileSync(readedErrorReportsFilePath, 'utf8'));
+	} catch(e) {
+		return [];
+	}
+}
+
+function markErrorReportAsReaded(errorReportId) {
+	try {
+		const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
+		let readedErrorReportsList = getReadedErrorReports();
+		readedErrorReportsList.push(errorReportId);
+		fs.writeFileSync(readedErrorReportsFilePath, JSON.stringify(readedErrorReportsList));
+		return true;
+	} catch(e) {
+		return false;
+	}
+}
+
+function getUnreadedErrorReportsList() {
+	let errorReports = getErrorReportsList();
+	let readedErrorReports = getReadedErrorReports();
+	return errorReports.filter((report) => { return !readedErrorReports.includes(report.id); });
+}
+
+function getErrorReport(reportId) {
+	try {
+		if(!reportId.match(/^[a-zA-Z0-9]+$/i)) return false;
+		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
+		const ErrorReportFile = path.join(ErrorReportsFolder, reportId + ".json");
+		return JSON.parse(fs.readFileSync(ErrorReportFile, "utf8"));
+	} catch (e) {
+		return false;
+	}
+}
+
+function getErrorReportPath(id) {
+
+	const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
+
+	if (!fs.existsSync(ErrorReportsFolder)) {
+		fs.mkdirSync(ErrorReportsFolder, { recursive: true });
+	}
+	var errorReportName = id + ".json"
+	return path.join(ErrorReportsFolder, errorReportName);
+}
+
+function generateErrorReport(error) {
+	logger(`Caught exception: ${error}`, 'error');
+	let id = uuidv4();
+	let stacktrace = "No stacktrace captured.";
+	if(error !== undefined){
+		stacktrace = error.stack;
+	}
+	var errorReport = {
+		"datetime": new Date(),
+		"stacktrace": stacktrace,
+		"logs": fs.readFileSync(logFilePath, 'utf8'),
+		"config": getConfigRedacted()
+	};
+	fs.writeFileSync(getErrorReportPath(id), JSON.stringify(errorReport));
+	io.emit("server_error", id);
+}
+
 function getNetworkInterfaces() { // Get all network interfaces on host device
 	var interfaces = []
 	const networkInterfaces = os.networkInterfaces()
@@ -7165,3 +7281,11 @@ function getNetworkInterfaces() { // Get all network interfaces on host device
 }
 
 startUp();
+
+exports.logs = Logs;
+exports.logFilePath = logFilePath;
+exports.tallyDataFilePath = tallyDataFilePath;
+exports.getConfigFilePath = getConfigFilePath;
+exports.getConfig = getConfig;
+exports.getConfigRedacted = getConfigRedacted;
+exports.generateErrorReport = generateErrorReport;
