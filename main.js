@@ -1,6 +1,7 @@
 // This is the electron startup script
 const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');
 const { autoUpdater } = require("electron-updater");
+const { nativeImage } = require('electron/common');
 const path = require("path");
 const fs = require('fs');
 
@@ -46,7 +47,9 @@ function createWindow() {
 }
 
 function createTrayIcon() {
-    trayIcon = new Tray(app.isPackaged ? path.join(process.resourcesPath, "build/trayicon.png") : "build/trayicon.png");
+    const icon = path.join(process.resourcesPath, "build/icon.png");
+    const nativeIcon = nativeImage.createFromPath(icon);
+    trayIcon = new Tray(app.isPackaged ? nativeIcon.resize({width: 32}) : nativeIcon.resize({width: 32}));
     trayIcon.setContextMenu(
         Menu.buildFromTemplate([
             {
@@ -61,8 +64,16 @@ function createTrayIcon() {
             {
                 label: 'Quit',
                 click: () => {
-                    app.isQuiting = true;
-                    app.quit();
+                    dialog.showMessageBox(mainWindow, {
+                        title: "Are you sure?",
+                        message: "Are you sure you want to quit TallyArbiter?",
+                        buttons: ["Yes", "No"],
+                    }).then((v) => {
+                        if (v.response == 0) {
+                            app.isQuiting =true;
+                            app.quit();
+                        }
+                    });                 
                 },
             },
         ]));
@@ -137,7 +148,18 @@ if (!gotTheLock) {
     });
 
     app.on('window-all-closed', function () {
-        if (process.platform !== 'darwin') app.quit();
+        if (process.platform !== 'darwin') {
+            app.preventDefault() // Prevents the window from closing 
+            dialog.showMessageBox(mainWindow, {
+                title: "Are you sure?",
+                message: "Are you sure you want to quit TallyArbiter?",
+                buttons: ["Yes", "No"],
+            }).then((v) => {
+                if (v.response == 0) {
+                    app.quit();
+                }
+            });
+        }
     });
 
     // Listen for web contents being created
