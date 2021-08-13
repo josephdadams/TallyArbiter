@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
 import { WakeLockService } from './_services/wake-lock.service';
+import { NavbarVisibilityService } from './_services/navbar-visibility.service';
+import { LocationBackService } from 'src/app/_services/locationBack.service';
 
 @Component({
   selector: 'app-root',
@@ -8,7 +10,12 @@ import { WakeLockService } from './_services/wake-lock.service';
 })
 export class AppComponent {
   public showMenu = false;
-  constructor(private wakeLockService: WakeLockService) {
+  public hideNavBar = false;
+  constructor(
+    private wakeLockService: WakeLockService,
+    public navbarVisibilityService: NavbarVisibilityService,
+    private locationBackService: LocationBackService
+  ) {
     wakeLockService.init();
   }
 }
