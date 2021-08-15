@@ -1,6 +1,6 @@
 {
 	"name": "tallyarbiter",
-	"version": "2.0.9",
+	"version": "2.0.11",
 	"description": "The flexible and customizable tally system",
 	"keywords": [
 		"util",
@@ -59,7 +59,7 @@
 		"jspack": "^0.0.4",
 		"obs-websocket-js": "^4.0.2",
 		"osc": "^2.4.1",
-		"packet": "0.0.7",
+		"packet": "0.0.6",
 		"rate-limiter-flexible": "^2.2.4",
 		"socket.io": "4.1.2",
 		"socket.io-client": "4.1.2",
