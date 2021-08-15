@@ -25,6 +25,15 @@
           <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/about">About</a>
         </li>
       </ul>
+      <ul class="navbar-nav mb-2 mb-md-0">  
+        <li class="nav-item">
+            <div mat-toggle-group name="theme" aria-label="Theme">
+              <button mat-toggle value="dark">Dark</button>
+              <button mat-toggle value="light">Light</button>
+              <button mat-toggle value="auto">Auto</button>
+            </div>                  
+        </li>
+    </ul>
     </div>
   </div>
 </nav>
