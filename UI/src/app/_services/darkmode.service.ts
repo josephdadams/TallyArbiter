@@ -11,7 +11,7 @@ import {
 export class DarkModeService {
     public darkModeTheme: object;
 
-    private getDarkMode(): string | null {
+    public getDarkMode(): string | null {
         return localStorage.getItem('darkMode');
     }
 

@@ -13,6 +13,7 @@
   ],
   "include": [
     "src/**/*.spec.ts",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    "node_modules/angular2-logger"
   ]
 }
