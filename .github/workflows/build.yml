@@ -17,10 +17,9 @@ jobs:
         with:
           #record: true
           #parallel: true
-          start: npm start
+          start: npm start, cd UI; npm run serve
           project: ./UI
-          wait-on: 'http://127.0.0.1:4455'
-          config: 'baseUrl=http://127.0.0.1:4455'
+          wait-on: 'http://127.0.0.1:4200'
           build: npm i -D cypress
       - uses: actions/upload-artifact@v1
         if: failure()
