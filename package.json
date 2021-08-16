@@ -66,6 +66,7 @@
 	"main": "main.js",
 	"scripts": {
 		"start": "node index.js",
+		"serve-UI": "cd UI && npm run serve",
 		"prepare": "cd UI && npm i && npm run build",
 		"desktop": "electron .",
 		"build-desktop": "electron-builder"

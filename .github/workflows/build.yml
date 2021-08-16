@@ -17,7 +17,7 @@ jobs:
         with:
           #record: true
           #parallel: true
-          start: npm start, cd UI; npm run serve
+          start: npm start, npm run serve-UI
           project: ./UI
           wait-on: 'http://127.0.0.1:4200'
           build: npm i -D cypress
