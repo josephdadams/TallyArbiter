@@ -22,7 +22,7 @@ Cypress.Commands.add('login', (username: string, password: string) => {
   cy.contains("Login").click();
 });
 
-Cypress.Commands.add('interceptWebsocket', (event: string, response: any, removeAllListenersAfterExec: boolean = true) => {
+Cypress.Commands.add('interceptWebsocket', (event: string, response: any, removeAllListenersAfterExec: boolean = false) => {
   socket.interceptResponse(event, (...args: any) => {
     socket.callEventListeners(event, response);
     if(removeAllListenersAfterExec) socket.removeResponseInterceptors(event);
