@@ -94,5 +94,18 @@ describe('Producer page', () => {
       cy.get(':nth-child(3) > :nth-child(6) > .btn').click();
       cy.get(':nth-child(4) > :nth-child(6) > .btn').click();
     });
+
+    it("Try to use chat", () => {
+      cy.simulateDevices();
+      cy.simulateListenerClients();
+      cy.simulateDeviceStates();
+      cy.interceptMessageFromServer((type: string, id: string, message: string) => {
+        expect(message).to.equal('message test 12345');
+      });
+      cy.login(Cypress.env("PRODUCER_USERNAME"), Cypress.env("PRODUCER_PASSWORD"));
+      cy.get('.form-control').clear();
+      cy.get('.form-control').type('message test 12345');
+      cy.get('.fas').click();
+    });
   });
 });

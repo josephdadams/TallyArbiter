@@ -22,6 +22,14 @@ Cypress.Commands.add('login', (username: string, password: string) => {
   cy.contains("Login").click();
 });
 
+Cypress.Commands.add('interceptMessageFromServer', (callback: (type: string, id: string, message: string) => void) => {
+  socket.interceptResponse('messaging', (type: string, id: string, message: string) => {
+    console.log(type, id, message);
+    socket.callEventListeners('messaging', type, id, message);
+    callback(type, id, message);
+  });
+});
+
 Cypress.Commands.add('interceptWebsocket', (event: string, response: any, removeAllListenersAfterExec: boolean = false) => {
   socket.interceptResponse(event, (...args: any) => {
     socket.callEventListeners(event, response);
