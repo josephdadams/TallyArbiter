@@ -43,6 +43,7 @@ describe('Producer page', () => {
       cy.get('table').contains('td', 'description#1').should('be.visible');
       cy.get('table').contains('td', 'dev_name#2').should('be.visible');
       cy.get('table').contains('td', 'description#2').should('be.visible');
+      cy.get('tbody > :nth-child(2) > :nth-child(2)').should('have.class', 'bg-danger');
     });
   });
 });

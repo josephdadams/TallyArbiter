@@ -67,24 +67,31 @@ Cypress.Commands.add('simulateDeviceStates', () => {
     {
       "deviceId": "0123ab45",
       "busId": "e393251c",
-      "sources": [],
-      "linkedSources": [],
-      "active": false
+      "sources": [
+        {
+          "sourceId": "TEST",
+          "address": "TEST"
+        }
+      ],
+      "active": true
     },
     {
       "deviceId": "0123ab45",
       "busId": "334e4eda",
-      "sources": [
-        {
-          "sourceId": "TEST",
-          "address": "TEST"
-        }
-      ],
-      "active": true
+      "sources": [],
+      "linkedSources": [],
+      "active": false
     },
     {
       "deviceId": "6789cd01",
       "busId": "e393251c",
+      "sources": [],
+      "linkedSources": [],
+      "active": false
+    },
+    {
+      "deviceId": "6789cd01",
+      "busId": "334e4eda",
       "sources": [
         {
           "sourceId": "TEST",
@@ -92,13 +99,6 @@ Cypress.Commands.add('simulateDeviceStates', () => {
         }
       ],
       "active": true
-    },
-    {
-      "deviceId": "6789cd01",
-      "busId": "334e4eda",
-      "sources": [],
-      "linkedSources": [],
-      "active": false
     }
   ]);
 });
