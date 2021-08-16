@@ -1,5 +1,5 @@
   
-<nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+<nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark" *ngIf="navbarVisibilityService.navbarIsVisible">
   <div class="container">
     <a class="navbar-brand" routerLink="/home"><img src="assets/logo_white.png" height="30" alt="" loading="lazy"></a>
     <button class="navbar-toggler" type="button" (click)="showMenu = !showMenu">

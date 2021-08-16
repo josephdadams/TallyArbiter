@@ -1,7 +1,7 @@
 import Swal, { SweetAlertOptions } from 'sweetalert2';
 
 
-export function Confirmable(text: string) { 
+export function Confirmable(text: string, focusCancel: boolean = true) { 
     return (target: Object, propertyKey: string, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
         const config: SweetAlertOptions = {
@@ -10,7 +10,7 @@ export function Confirmable(text: string) {
             showCancelButton: true,
             confirmButtonColor: "#2a70c7",
             icon: 'question',
-            focusCancel: true,
+            focusCancel: focusCancel,
         };
         descriptor.value = async function (...args: any[]) {
             const res = await Swal.fire(config);
