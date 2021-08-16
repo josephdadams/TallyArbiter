@@ -15,7 +15,7 @@ jobs:
       - name: Cypress run
         uses: cypress-io/github-action@v2
         with:
-          record: true
+          #record: true
           parallel: true
           start: npm start
           project: ./UI
