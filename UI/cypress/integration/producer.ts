@@ -36,70 +36,8 @@ describe('Producer page', () => {
 
     it('Simulate devices list with two devices', () => {
       cy.interceptWebsocket('listener_clients', []);
-      cy.interceptWebsocket('devices', [
-        {
-          "name": "dev_name#1",
-          "description": "description#1",
-          "enabled": true,
-          "id": "0123ab45"
-        },
-        {
-          "name": "dev_name#2",
-          "description": "description#2",
-          "enabled": true,
-          "id": "6789cd01"
-        }
-      ]);
-      cy.interceptWebsocket('bus_options', [
-        {
-          "id": "e393251c",
-          "label": "Preview",
-          "type": "preview"
-        },
-        {
-          "id": "334e4eda",
-          "label": "Program",
-          "type": "program"
-        }
-      ]);
-      cy.interceptWebsocket('device_states', [
-        {
-          "deviceId": "0123ab45",
-          "busId": "e393251c",
-          "sources": [],
-          "linkedSources": [],
-          "active": false
-        },
-        {
-          "deviceId": "0123ab45",
-          "busId": "334e4eda",
-          "sources": [
-            {
-              "sourceId": "TEST",
-              "address": "TEST"
-            }
-          ],
-          "active": true
-        },
-        {
-          "deviceId": "6789cd01",
-          "busId": "e393251c",
-          "sources": [
-            {
-              "sourceId": "TEST",
-              "address": "TEST"
-            }
-          ],
-          "active": true
-        },
-        {
-          "deviceId": "6789cd01",
-          "busId": "334e4eda",
-          "sources": [],
-          "linkedSources": [],
-          "active": false
-        }
-      ]);
+      cy.simulateDevices();
+      cy.simulateDeviceStates();
       cy.login(Cypress.env("PRODUCER_USERNAME"), Cypress.env("PRODUCER_PASSWORD"));
       cy.get('table').contains('td', 'dev_name#1').should('be.visible');
       cy.get('table').contains('td', 'description#1').should('be.visible');
