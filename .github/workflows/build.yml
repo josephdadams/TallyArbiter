@@ -20,7 +20,7 @@ jobs:
           start: npm start, npm run serve-UI
           project: ./UI
           wait-on: 'http://127.0.0.1:4200'
-          build: npm i -D cypress
+          build: npm i -D cypress @angular/cli
       - uses: actions/upload-artifact@v1
         if: failure()
         with:
