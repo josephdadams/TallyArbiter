@@ -8,11 +8,15 @@ import { SocketService } from 'src/app/_services/socket.service';
 })
 export class ProducerComponent {
   public dataLoaded: boolean = false;
+  public listenerClientsLoaded = false;
 
   constructor(public socketService: SocketService) {
     this.socketService.joinProducers();
     this.socketService.dataLoaded.then(() => {
       this.dataLoaded = true;
+    });
+    this.socketService.listenerClientsLoaded.then(() => {
+      this.listenerClientsLoaded = true;
     });
   }  
 }

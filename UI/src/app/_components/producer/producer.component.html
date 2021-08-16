@@ -30,8 +30,11 @@
       </table>
       <hr class="my-5" />
       <h2>Clients</h2>
-      <span class="text-muted mt-3" *ngIf="socketService.listenerClients.length == 0">No clients connected.</span>
-      <table class="table table-hover" *ngIf="socketService.listenerClients.length > 0">
+      <div class="d-flex justify-content-center mt-5 pt-5" *ngIf="!listenerClientsLoaded">
+        <div class="spinner spinner-border"></div>
+      </div>
+      <span class="text-muted mt-3" *ngIf="listenerClientsLoaded && socketService.listenerClients.length == 0">No clients connected.</span>
+      <table class="table table-hover" *ngIf="listenerClientsLoaded && socketService.listenerClients.length > 0">
         <thead>
           <tr>
             <th></th>

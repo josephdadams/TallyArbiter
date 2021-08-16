@@ -39,11 +39,60 @@ describe('Producer page', () => {
       cy.simulateDevices();
       cy.simulateDeviceStates();
       cy.login(Cypress.env("PRODUCER_USERNAME"), Cypress.env("PRODUCER_PASSWORD"));
-      cy.get('table').contains('td', 'dev_name#1').should('be.visible');
-      cy.get('table').contains('td', 'description#1').should('be.visible');
-      cy.get('table').contains('td', 'dev_name#2').should('be.visible');
-      cy.get('table').contains('td', 'description#2').should('be.visible');
-      cy.get('tbody > :nth-child(2) > :nth-child(2)').should('have.class', 'bg-danger');
+      cy.get('tbody tr').eq(0)
+        .should('contain', 'dev_name#1')
+        .and('contain', 'description#1')
+        .and('be.visible');
+      cy.get('tbody tr').eq(1)
+        .should('contain', 'dev_name#2')
+        .and('contain', 'description#2')
+        .and('be.visible');
+    });
+    
+    it('Simulate devices list with two devices and two listener clients and check if "Flash" works', () => {
+      cy.simulateDevices();
+      cy.simulateListenerClients();
+      cy.simulateDeviceStates();
+      cy.interceptWebsocketRequest('flash', (id: string) => {
+        expect(id).to.match(/testClient\#([0-9])/g);
+      });
+      cy.login(Cypress.env("PRODUCER_USERNAME"), Cypress.env("PRODUCER_PASSWORD"));
+      cy.get('tbody tr').eq(0)
+        .should('contain', 'dev_name#1')
+        .and('contain', 'description#1')
+        .and('contain', '2')
+        .and('be.visible');
+      cy.get('tbody tr').eq(1)
+        .should('contain', 'dev_name#2')
+        .and('contain', 'description#2')
+        .and('contain', '2')
+        .and('be.visible');
+      
+      cy.get('tbody tr').eq(2)
+        .should('contain', '127.0.0.1')
+        .and('contain', 'web')
+        .and('contain', 'dev_name#1')
+        .and('be.visible');
+      cy.get('tbody tr').eq(3)
+        .should('contain', '127.0.0.1')
+        .and('contain', 'web')
+        .and('contain', 'dev_name#1')
+        .and('be.visible');
+      cy.get('tbody tr').eq(4)
+        .should('contain', '127.0.0.1')
+        .and('contain', 'web')
+        .and('contain', 'dev_name#2')
+        .and('be.visible');
+      cy.get('tbody tr').eq(5)
+        .should('contain', '127.0.0.1')
+        .and('contain', 'web')
+        .and('contain', 'dev_name#2')
+        .and('be.visible');
+      
+      cy.get(':nth-child(1) > :nth-child(6) > .btn').click();
+      cy.get(':nth-child(2) > :nth-child(6) > .btn').click();
+      cy.get(':nth-child(3) > :nth-child(6) > .btn').click();
+      cy.get(':nth-child(4) > :nth-child(6) > .btn').click();
     });
   });
 });

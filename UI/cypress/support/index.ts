@@ -29,6 +29,13 @@ Cypress.Commands.add('interceptWebsocket', (event: string, response: any, remove
   });
 });
 
+Cypress.Commands.add('interceptWebsocketRequest', (event: string, callback: () => void, removeAllListenersAfterExec: boolean = false) => {
+  socket.interceptRequest(event, (...args: any) => {
+    callback(...args);
+    if(removeAllListenersAfterExec) socket.removeRequestInterceptors(event);
+  });
+});
+
 Cypress.Commands.add('simulateDevices', () => {
   cy.interceptWebsocket('devices', [
     {
@@ -99,6 +106,55 @@ Cypress.Commands.add('simulateDeviceStates', () => {
         }
       ],
       "active": true
+    }
+  ]);
+});
+
+Cypress.Commands.add('simulateListenerClients', () => {
+  cy.interceptWebsocket('listener_clients', [
+    {
+      "id": "testClient#1",
+      "socketId": "testSocketId"+Math.random(),
+      "deviceId": "0123ab45",
+      "listenerType": "web",
+      "ipAddress": "::ffff:127.0.0.1",
+      "datetime_connected": new Date(),
+      "canBeReassigned": true,
+      "canBeFlashed": true,
+      "inactive": false
+    },
+    {
+      "id": "testClient#2",
+      "socketId": "testSocketId"+Math.random(),
+      "deviceId": "0123ab45",
+      "listenerType": "web",
+      "ipAddress": "::ffff:127.0.0.1",
+      "datetime_connected": new Date(),
+      "canBeReassigned": true,
+      "canBeFlashed": true,
+      "inactive": false
+    },
+    {
+      "id": "testClient#3",
+      "socketId": "testSocketId"+Math.random(),
+      "deviceId": "6789cd01",
+      "listenerType": "web",
+      "ipAddress": "::ffff:127.0.0.1",
+      "datetime_connected": new Date(),
+      "canBeReassigned": true,
+      "canBeFlashed": true,
+      "inactive": false
+    },
+    {
+      "id": "testClient#4",
+      "socketId": "testSocketId"+Math.random(),
+      "deviceId": "6789cd01",
+      "listenerType": "web",
+      "ipAddress": "::ffff:127.0.0.1",
+      "datetime_connected": new Date(),
+      "canBeReassigned": true,
+      "canBeFlashed": true,
+      "inactive": false
     }
   ]);
 });

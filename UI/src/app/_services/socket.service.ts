@@ -66,6 +66,10 @@ export class SocketService {
   public dataLoaded = new Promise<void>((resolve) => this._resolveDataLoadedPromise = resolve);
   private _resolveDataLoadedPromise!: () => void;
 
+  public listenerClientsLoaded = new Promise<void>((resolve) => this._resolveListenerClientsLoadedPromise = resolve);
+  private _resolveListenerClientsLoadedPromise!: () => void;
+  private listenerClientsLoadedAlreadyResolved = false; 
+
   public newLogsSubject = new Subject();
   public scrollTallyDataSubject = new Subject();
   public scrollChatSubject = new Subject();
@@ -91,6 +95,10 @@ export class SocketService {
       this.busOptions = busOptions;
     });
     this.socket.on('listener_clients', (listenerClients: ListenerClient[]) => {
+      if(!this.listenerClientsLoadedAlreadyResolved) {
+        this._resolveListenerClientsLoadedPromise();
+        this.listenerClientsLoadedAlreadyResolved = true;
+      }
       for (const device of this.devices) {
         device.listenerCount = 0;
       }
