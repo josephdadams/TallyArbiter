@@ -25,9 +25,13 @@ class SocketMock {
         this.callEventListeners(event, ...args);
       } else {
         console.log("Intercepted event '%s' from realSocket. args: %o", event, args);
-        this.interceptResponseCallbacks[event].forEach((callback: (...args: any) => void) => {
-          callback(...args);
-        });
+        try{
+          this.interceptResponseCallbacks[event].forEach((callback: (...args: any) => void) => {
+            callback(...args);
+          });
+        } catch(e) {
+          //this.interceptResponseCallbacks[event] was deleted by the callbacks
+        }
       }
     });
   };
@@ -38,8 +42,11 @@ class SocketMock {
       this.interceptRequestCallbacks[event] = []
     }
     this.interceptRequestCallbacks[event].push(callback);
-    console.log(this.interceptedRequestSocketEvents);
-    console.log(this.interceptRequestCallbacks);
+  }
+
+  removeRequestInterceptors(event: string) {
+    delete this.interceptRequestCallbacks[event];
+    delete this.interceptedRequestSocketEvents[event];
   }
 
   interceptResponse(event: string, callback: (...args: any) => void) {
@@ -48,8 +55,11 @@ class SocketMock {
       this.interceptResponseCallbacks[event] = []
     }
     this.interceptResponseCallbacks[event].push(callback);
-    console.log(this.interceptedResponseSocketEvents);
-    console.log(this.interceptResponseCallbacks);
+  }
+
+  removeResponseInterceptors(event: string) {
+    delete this.interceptResponseCallbacks[event];
+    delete this.interceptedResponseSocketEvents[event];
   }
 
   callEventListeners(event: string, ...args: any) {
@@ -69,7 +79,6 @@ class SocketMock {
       this.callbacks[event] = []
     }
     this.callbacks[event].push(callback);
-    console.log(this.callbacks);
   }
 
   onAny(callback: (...args: any) => void) {
@@ -110,9 +119,13 @@ class SocketMock {
     if (!this.interceptedRequestSocketEvents.includes(event)) {
       this.emitRealSocket(event, ...args);
     } else {
-      this.interceptRequestCallbacks[event].forEach((callback: (...args: any) => void) => {
-        callback(...args);
-      });
+      try{
+        this.interceptRequestCallbacks[event].forEach((callback: (...args: any) => void) => {
+          callback(...args);
+        });
+      } catch(e) {
+        //this.interceptRequestCallbacks[event] was deleted by the callbacks
+      }
     }
   }
 }

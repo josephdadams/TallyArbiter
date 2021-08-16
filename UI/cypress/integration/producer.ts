@@ -26,10 +26,33 @@ describe('Producer page', () => {
     });
   });
 
-  describe('Check clients list', () => {
-    it('Simulate empty clients list', () => {
+  describe('Check devices list', () => {
+    it('Simulate empty devices list', () => {
+      cy.interceptWebsocket('devices', []);
       cy.login(Cypress.env("PRODUCER_USERNAME"), Cypress.env("PRODUCER_PASSWORD"));
-      //TODO
+      cy.get('.row > :nth-child(1) > :nth-child(2)').should('have.text', 'No devices configured.');
+    });
+
+    it('Simulate devices list with two devices', () => {
+      cy.interceptWebsocket('devices', [
+        {
+          "name": "dev_name#1",
+          "description": "description#1",
+          "enabled": true,
+          "id": "0123ab45"
+        },
+        {
+          "name": "dev_name#2",
+          "description": "description#2",
+          "enabled": true,
+          "id": "6789cd01"
+        }
+      ]);
+      cy.login(Cypress.env("PRODUCER_USERNAME"), Cypress.env("PRODUCER_PASSWORD"));
+      cy.get('table').contains('td', 'dev_name#1').should('be.visible');
+      cy.get('table').contains('td', 'description#1').should('be.visible');
+      cy.get('table').contains('td', 'dev_name#2').should('be.visible');
+      cy.get('table').contains('td', 'description#2').should('be.visible');
     });
   });
 });
