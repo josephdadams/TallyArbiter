@@ -10,6 +10,7 @@ import { DeviceAction } from '../_models/DeviceAction';
 import { DeviceSource } from '../_models/DeviceSource';
 import { DeviceState } from '../_models/DeviceState';
 import { ListenerClient } from '../_models/ListenerClient';
+import { VmixClient } from '../_models/VmixClient';
 import { LogItem } from '../_models/LogItem';
 import { OutputType } from '../_models/OutputType';
 import { OutputTypeDataFields } from '../_models/OutputTypeDataFields';
@@ -34,6 +35,7 @@ export class SocketService {
   public mode_preview?: boolean;
   public mode_program?: boolean;
   public listenerClients: ListenerClient[] = [];
+  public vmixClients: VmixClient[] = [];
   public sources: Source[] = [];
   public busOptions: BusOption[] = [];
   public initialDataLoaded = false;
@@ -92,6 +94,12 @@ export class SocketService {
         if (!l.inactive) l.device.listenerCount += 1;
         return l;
       }).sort((a: any, b: any) => (a.inactive === b.inactive)? 0 : a.inactive ? 1 : -1);
+    });
+    this.socket.on('vmix_clients', (vmix_clients: VmixClient[]) => {
+      this.vmixClients = vmix_clients.map((l: any) => {
+        l.host = l.host.replace('::ffff:', '');
+        return l;
+      })
     });
     this.socket.on('device_states', (states: DeviceState[]) => {
       this.deviceStates = states;
