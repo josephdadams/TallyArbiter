@@ -30,9 +30,13 @@ Cypress.Commands.add('interceptMessageFromServer', (callback: (type: string, id:
   });
 });
 
-Cypress.Commands.add('interceptWebsocket', (event: string, response: any, removeAllListenersAfterExec: boolean = false) => {
+Cypress.Commands.add('interceptWebsocket', (event: string, response: any, removeAllListenersAfterExec: boolean = false, passMultipleParams: boolean = false) => {
   socket.interceptResponse(event, (...args: any) => {
-    socket.callEventListeners(event, response);
+    if(passMultipleParams) {
+      socket.callEventListeners(event, ...response);
+    } else {
+      socket.callEventListeners(event, response);
+    }
     if(removeAllListenersAfterExec) socket.removeResponseInterceptors(event);
   });
 });
@@ -165,4 +169,51 @@ Cypress.Commands.add('simulateListenerClients', () => {
       "inactive": false
     }
   ]);
+});
+
+let simulatedInitialData: object = {
+  sourceTypes: [],
+  sourceTypesDataFields: [],
+  sourceTypesBusOptions: [],
+  outputTypes: [] = [],
+  outputTypesDataFields: [],
+  busOptions: [],
+  sourcesData: [],
+  devicesData: [],
+  deviceSources: [],
+  deviceActions: [],
+  deviceStates: [],
+  tslClients: [],
+  cloudDestinations: [],
+  cloudKeys: [],
+  cloudClients: []
+}
+
+Cypress.Commands.add('resetSimulatedInitialData', () => {
+  simulatedInitialData = {
+    sourceTypes: [],
+    sourceTypesDataFields: [],
+    sourceTypesBusOptions: [],
+    outputTypes: [] = [],
+    outputTypesDataFields: [],
+    busOptions: [],
+    sourcesData: [],
+    devicesData: [],
+    deviceSources: [],
+    deviceActions: [],
+    deviceStates: [],
+    tslClients: [],
+    cloudDestinations: [],
+    cloudKeys: [],
+    cloudClients: []
+  }
+});
+
+Cypress.Commands.add('setInitialDataValue', (key: string, value: any) => {
+  // @ts-ignore
+  simulatedInitialData[key] = value;
+});
+
+Cypress.Commands.add('simulateInitialData', () => {
+  cy.interceptWebsocket('initialdata', Object.values(simulatedInitialData), true, true);
 });
