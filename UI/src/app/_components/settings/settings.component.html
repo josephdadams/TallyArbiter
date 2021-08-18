@@ -105,7 +105,7 @@
           <td><i class="fas fa-cloud text-muted" *ngIf="listenerClient.cloudConnection"></i></td>
           <td class="bg-light">{{ listenerClient.listenerType }}</td>
           <td>
-            <select class="form-select" [ngModel]="listenerClient.deviceId" (ngModelChange)="reassignListenerClient(listenerClient, $event)"
+            <select class="form-select" *ngIf="listenerClient.listenerType != 'vmix'" [ngModel]="listenerClient.deviceId" (ngModelChange)="reassignListenerClient(listenerClient, $event)"
               [disabled]="!listenerClient.canBeReassigned">
               <option *ngFor="let device of socketService.devices" [value]="device.id">
                 {{ device.name }}
@@ -121,6 +121,23 @@
               <i class="fas fa-exclamation"></i> Flash
             </button>
           </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <hr class="my-5" />
+  <div class="row">
+    <h2>Connected vMix Listeners</h2>
+    <span class="text-muted mt-3" *ngIf="socketService.vmixClients.length == 0">No listeners connected.</span>
+    <table class="table table-hover" *ngIf="socketService.vmixClients.length > 0">
+      <thead>
+        <tr>
+          <th>IP Address</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let vmixClient of socketService.vmixClients">
+          <td>{{ vmixClient.host }}</td>
         </tr>
       </tbody>
     </table>

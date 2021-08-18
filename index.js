@@ -54,7 +54,7 @@ var username_producer = 'producer';
 var password_producer = '12345';
 var username_settings = 'admin';
 var password_settings = '12345';
-const socketupdates_Settings  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations', 'cloud_keys', 'cloud_clients', 'PortsInUse'];
+const socketupdates_Settings  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations', 'cloud_keys', 'cloud_clients', 'PortsInUse', 'vmix_clients'];
 const socketupdates_Producer  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients'];
 const socketupdates_Companion = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
 const oscPort 		= 5958;
@@ -68,6 +68,7 @@ var vmix_emulator	= null; //TCP server for VMix Emulator
 var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
 const config_file 	= getConfigFilePath(); //local storage JSON file
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
+var vmix_client_data = []; //array of connected Vmix clients
 var Logs 			= []; //array of actions, information, and errors
 var labels_VideoHub = []; //array of VideoHub source labels
 var destinations_VideoHub = []; //array of VideoHub destination/source assignments
@@ -758,6 +759,7 @@ function startUp() {
 	loadConfig();
 	initialSetup();
 	DeleteInactiveListenerClients();
+	DeleteInactiveVmixListenerClients();
 
 	process.on('uncaughtException', function (err) {
 		if (!process.versions.hasOwnProperty('electron')) {
@@ -1937,33 +1939,49 @@ function startVMixEmulator() {
 			logger(`VMix Emulator Connection from ${host} closed`, 'info');
 		}
 		function onConnError(err) {
-			logger(`VMix Emulator Connection ${host} error: ${err.message}`, 'error');
+			if (err.message === 'This socket has been ended by the other party') {
+				logger(`VMix Emulator Connection ${host} taking longer to respond than normal`, 'debug');
+				//removeVmixListener(host);
+			} else {
+				logger(`VMix Emulator Connection ${host} error: ${err.message}`, 'error');
+			}
 		}
 	}
 }
 
 function addVmixListener(conn, host) {
+	let data = {};
 	let socketId = 'vmix-' + uuidv4();
-	let listenerClientId = AddListenerClient(socketId, null, 'vmix', host, new Date().getTime(), false, false);
-	conn.listenerClientId = listenerClientId;
+	//listenerClientId = AddListenerClient(socketId, null, 'vmix', host, new Date().getTime(), false, false);
+	conn.listenerClientId = uuidv4();
 	conn.host = host;
 	conn.socketId = socketId;
 	vmix_clients.push(conn);
+
+	//Define Data
+	data.host = host;
+	data.socketID = socketId;
+	data.inactive = false;
+	//Push to global var
+	vmix_client_data.push(data);
+	console.log(vmix_client_data);
+	console.log(vmix_client_data.length);
+	UpdateSockets('vmix_clients');
 	logger(`VMix Emulator Connection ${host} subscribed to tally`, 'info');
 }
 
 function removeVmixListener(host) {
 	let socketId = null;
 
-	for (let i = 0; i < vmix_clients.length; i++) {
-		if (vmix_clients[i].host === host) {
-			socketId = vmix_clients[i].socketId;
-			vmix_clients.splice(i, 1);
+	for (let i = 0; i < vmix_client_data.length; i++) {
+		if (vmix_client_data[i].host === host) {
+			socketId = vmix_client_data[i].socketId;
+			vmix_client_data.splice(i, 1);
 		}
 	}
 
 	if (socketId !== null) {
-		DeactivateListenerClient(socketId);
+		DeactivateVmixListenerClient(socketId);
 	}
 
 	logger(`VMix Emulator Connection ${host} unsubscribed to tally`, 'info');
@@ -6165,6 +6183,11 @@ function UpdateSockets(dataType) {
 				io.to('companion').emit('listener_clients', listener_clients);
 			}
 			break;
+		case 'vmix_clients':
+			if (emitSettings) {
+				io.to('settings').emit('vmix_clients', vmix_client_data);
+			}
+			break;
 		case 'tsl_clients':
 			if (emitSettings) {
 				io.to('settings').emit('tsl_clients', tsl_clients);
@@ -6920,6 +6943,22 @@ function DeactivateListenerClient(socketId) {
 	UpdateCloud('listener_clients');
 }
 
+function DeactivateVmixListenerClient(socketId) {
+	for (let i = 0; i < vmix_client_data.length; i++) {
+		if (vmix_client_data[i].socketId === socketId) {
+			vmix_client_data[i].inactive = true;
+			vmix_client_data[i].datetime_inactive = new Date().getTime();
+			let message = `Listener Client Disconnected: ${vmix_client_data[i].host.replace('::ffff:', '')} at ${new Date()}`;
+			SendMessage('server', null, message);
+		}
+	}
+
+	console.log(vmix_client_data);
+
+	UpdateSockets('vmix_clients');
+	UpdateCloud('vmix_clients');
+}
+
 function DeleteInactiveListenerClients() {
 	let changesMade = false;
 	for (let i = listener_clients.length - 1; i >= 0; i--) {
@@ -6939,6 +6978,27 @@ function DeleteInactiveListenerClients() {
 	}
 
 	setTimeout(DeleteInactiveListenerClients, 5 * 1000); // runs every 5 minutes
+}
+
+function DeleteInactiveVmixListenerClients() {
+	let changesMade = false;
+	for (let i = vmix_client_data.length - 1; i >= 0; i--) {
+		if (vmix_client_data[i].inactive === true) {
+			let dtNow = new Date().getTime();
+			if ((dtNow - vmix_client_data[i].datetime_inactive) > (1000 * 60 * 60)) { //1 hour
+				logger(`Inactive Client removed: ${vmix_client_data[i].id}`, 'info');
+				vmix_client_data.splice(i, 1);
+				changesMade = true;
+			}
+		}
+	}
+
+	if (changesMade) {
+		UpdateSockets('vmix_clients');
+		UpdateCloud('vmix_clients');
+	}
+
+	setTimeout(DeleteInactiveVmixListenerClients, 5 * 1000); // runs every 5 minutes
 }
 
 function FlashListenerClient(listenerClientId) {
