@@ -1915,6 +1915,7 @@ function startVMixEmulator() {
 	function handleConnection(conn) {
 		let host = conn.remoteAddress + ':' + conn.remotePort;
 		logger(`New VMix Emulator Connection from ${host}`, 'info');
+		conn.write(`VERSION OK ${version}\r\n`);
 		conn.on('data', onConnData);
 		conn.once('close', onConnClose);
 		conn.on('error', onConnError);
