@@ -3386,7 +3386,7 @@ function renameOBSSource(sourceId, oldname, newname) {
     if(deviceSourceIndex > -1){
         device_sources[deviceSourceIndex].address = newname;
         UpdateCloud('device_sources');
-        logger(`Device Source Edited: ${deviceName} - ${sourceName}`, 'info');
+        logger(`Device Source Edited: ${sourceId} - ${oldname} to ${newname}`, 'info');
     }    
 }
 
@@ -4989,7 +4989,7 @@ function RenameDevice(deviceId, name) {
 
 	for (let i = 0; i < devices.length; i++) {
 		if (devices[i].id === deviceId) {
-			if (label) {
+			if (name) {
 				devices[i].name = name;
 			}
 			break;
@@ -4998,7 +4998,6 @@ function RenameDevice(deviceId, name) {
 
 	UpdateSockets('devices');
 	SendTSLClientData(deviceId);
-	SendCloudData(sourceId, tallyObj);
 }
 
 function CheckDeviceState(deviceId, sourceId, tallyObj) {
