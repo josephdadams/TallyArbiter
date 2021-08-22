@@ -52,6 +52,22 @@ export class TallyComponent {
     });
   }
 
+  public getCurrentBackgroundColor(): string {
+    if (this.currentDeviceIdx === undefined) {
+      return "#212529"; // dark grey
+    }
+    if (this.socketService.devices[this.currentDeviceIdx].modeProgram) {
+      if (this.socketService.devices[this.currentDeviceIdx].modePreview) {
+        return this.socketService.busOptions.find((b) => b.type == "previewprogram")?.color || "#ffc107"; // yellow
+      }
+      return this.socketService.busOptions.find((b) => b.type == "program")?.color || "#e43f5a"; // red
+    }
+    if (this.socketService.devices[this.currentDeviceIdx].modePreview) {
+      return this.socketService.busOptions.find((b) => b.type == "preview")?.color || "#3fe481"; // green
+    }
+    return "#212529"; // dark grey;
+  }
+
   public selectDevice(id: any) {
     this.router.navigate(["/", "tally", id.target.value]);
   }

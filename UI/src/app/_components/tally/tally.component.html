@@ -12,7 +12,7 @@
         <h2 class="lead mt-5" *ngIf="socketService.devices.length == 0">No devices are available for tally monitoring at this time.</h2>
     </div>
     
-    <div [class]="'d-flex flex-column max-height container-fluid pt-5 ' + (socketService.devices[currentDeviceIdx].modeProgram ? socketService.devices[currentDeviceIdx].modePreview ? 'bg-warning' : 'bg-danger' : socketService.devices[currentDeviceIdx].modePreview  ? 'bg-success text-white' : 'bg-dark text-white')" class="text-center" *ngIf="currentDeviceIdx !== undefined && socketService.devices[currentDeviceIdx]">
+    <div class="d-flex flex-column max-height container-fluid pt-5 text-center" [class.text-white]="getCurrentBackgroundColor() == '#212529'" [style.background-color]="getCurrentBackgroundColor()" *ngIf="currentDeviceIdx !== undefined && socketService.devices[currentDeviceIdx]">
         <div>
             <h1>{{socketService.devices[currentDeviceIdx].name}}</h1>
             <small>{{socketService.devices[currentDeviceIdx].description }}</small>
