@@ -493,7 +493,8 @@
           <tr>
             <th>Source</th>
             <th>Address</th>
-            <th>(Bus)</th>
+			<th>(Bus)</th>
+			<th>Allow Renaming</th>
             <th></th>
           </tr>
         </thead>
@@ -503,7 +504,8 @@
               {{socketService.getSourceById(deviceSource.sourceId)?.name}}
             </td>
             <td>{{deviceSource.address}}</td>
-            <td>{{deviceSource.bus}}</td>
+			<td>{{deviceSource.bus}}</td>
+			<td>{{deviceSource.rename}}</td>
             <td>
               <button class="btn btn-outline-dark me-1" (click)="editDeviceSource(deviceSource)"><i class="fas fa-pen"></i> Edit</button>
               <button class="btn btn-outline-danger" (click)="deleteDeviceSource(deviceSource)"><i class="fas fa-trash"></i> Delete</button>
@@ -547,6 +549,10 @@
             *ngFor="let bus of getSourceBusOptionsBySourceTypeId(socketService.sources[currentDeviceSource.sourceIdx!].sourceTypeId)[0].busses"
             [value]="bus.bus">{{bus.name}}</option>
         </select>
+	  </div>
+      <div class="mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!]">
+        <label for="deviceSourceRename" class="form-label">Allow Device Renaming</label>
+		<input type="checkbox" placholder="Rename" [(ngModel)]="currentDeviceSource.rename">
       </div>
       <div class="d-flex justify-content-end">
         <button class="btn btn-outline-dark" (click)="saveDeviceSource()"><i class="fas fa-save"></i> {{currentDeviceSource.id !== undefined ? 'Save Changes' : 'Add Device Source'}}</button>

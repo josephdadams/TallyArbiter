@@ -3386,7 +3386,7 @@ function renameOBSSource(sourceId, oldname, newname) {
     if(deviceSourceIndex > -1){
         device_sources[deviceSourceIndex].address = newname;
         UpdateCloud('device_sources');
-        logger(`Device Source Edited: ${deviceName} - ${sourceName}`, 'info');
+        logger(`Device Source Edited: ${sourceId} - ${oldname} to ${newname}`, 'info');
     }    
 }
 
@@ -4976,9 +4976,28 @@ function processTSLTally(sourceId, tallyObj) // Processes the TSL Data
 	for (let i = 0; i < device_sources.length; i++) {
 		if ((device_sources[i].sourceId === sourceId) && (device_sources[i].address === tallyObj.address.toString())) {
 			deviceId = device_sources[i].deviceId;
+			if (device_sources[i].rename === true) {
+				RenameDevice(deviceId, tallyObj.label);
+			}
 			CheckDeviceState(deviceId, sourceId, tallyObj);
 		}
 	}
+}
+
+function RenameDevice(deviceId, name) {
+	//renames the Device with the new name that originated in the source type
+
+	for (let i = 0; i < devices.length; i++) {
+		if (devices[i].id === deviceId) {
+			if (name) {
+				devices[i].name = name;
+			}
+			break;
+		}
+	}
+
+	UpdateSockets('devices');
+	SendTSLClientData(deviceId);
 }
 
 function CheckDeviceState(deviceId, sourceId, tallyObj) {
@@ -6502,6 +6521,7 @@ function TallyArbiter_Edit_Device_Source(obj) {
 		if (device_sources[i].bus) {
 			device_sources[i].bus = deviceSourceObj.bus;
 		}
+		device_sources[i].rename = deviceSourceObj.rename;
 	}
 
 	//also remove this device source address from device_states where device = this device, source = this source, address = this old address
