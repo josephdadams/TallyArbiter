@@ -236,7 +236,13 @@ export class SocketService {
         case 'tsl-client-deleted-successfully':
           this.closeModals.next();
           this.socket.emit('tsl_clients');
-          break;
+		  break;
+		case 'bus-option-added-successfully':
+		case 'bus-option-edited-successfully':
+		case 'bus-option-deleted-successfully':
+			this.closeModals.next();
+			this.socket.emit('bus_options');
+			break;
         case 'cloud-destination-added-successfully':
         case 'cloud-destination-edited-successfully':
         case 'cloud-destination-deleted-successfully':
