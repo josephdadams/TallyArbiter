@@ -1,5 +1,6 @@
 export interface BusOption {
     label: string;
     type: string;
-    id: string;
+	id: string;
+	color: string;
 }
