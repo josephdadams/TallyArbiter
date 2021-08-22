@@ -698,9 +698,9 @@ var output_types_datafields = [ //data fields for the outgoing actions
 ];
 
 var bus_options = [ // the busses available to monitor in Tally Arbiter
-	{ id: 'e393251c', label: 'Preview', type: 'preview', color: '#00FF00'},
-	{ id: '334e4eda', label: 'Program', type: 'program', color: '#FF0000'}
-	/* { id: '12c8d698', label: 'Preview + Program', type: 'previewprogram'}*/
+	{ id: 'e393251c', label: 'Preview', type: 'preview', color: '#3fe481'},
+	{ id: '334e4eda', label: 'Program', type: 'program', color: '#e43f5a'},
+	{ id: '12c8d698', label: 'Preview + Program', type: 'previewprogram', color: '#ffc107'},
 ]
 
 var sources 			= []; // the configured tally sources
