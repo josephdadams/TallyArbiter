@@ -11,7 +11,6 @@ const OBS 						= require('obs-websocket-js');
 const fs 						= require('fs');
 const path 						= require('path');
 const {version} 				= require('./package.json');
-const isPi 						= require('detect-rpi');
 const clc 						= require('cli-color');
 const util 						= require ('util');
 const express 					= require('express');
@@ -426,8 +425,8 @@ var source_types_busoptions = [
 		{ bus: 'aux25', name: 'Aux 25' },
 		{ bus: 'aux26', name: 'Aux 26' },
 		{ bus: 'aux27', name: 'Aux 27' }
-	]
-},
+		]
+	}
 ];
 
 var source_types_busaddresses = [
@@ -601,7 +600,7 @@ var source_types_busaddresses = [
 	{ sourceTypeId: '7da3b524', address: '125', bus: 'aux26', label: "Aux 26", type: "program"},
 	{ sourceTypeId: '7da3b524', address: '126', bus: 'aux27', label: "Aux 27", type: "program"}
 	////////
-]
+];
 
 var source_types_panasonic = [ // AV-HS410 INPUTS
 	{ id: '00', label: 'XPT 1' },
@@ -628,25 +627,7 @@ var source_types_panasonic = [ // AV-HS410 INPUTS
 	{ id: '21', label: 'XPT 22' },
 	{ id: '22', label: 'XPT 23' },
 	{ id: '23', label: 'XPT 24' },
-]
-
-if (isPi()) {
-	//adds the GPIO input type option if the software is running on a Raspberry Pi
-	let sourceTypeObj = {};
-	sourceTypeObj.id = 'bc0d5c91';
-	sourceTypeObj.label = 'Local GPIO';
-	sourceTypeObj.type = 'gpio';
-	sourceTypeObj.enabled = false;
-	source_types.push(sourceTypeObj);
-
-	let sourceTypeDataFieldObj = {};
-	sourceTypeDataFieldObj.sourceTypeId = sourceTypeObj.id;
-	let fields = [
-		{ fieldName: 'pins', fieldLabel: 'GPIO Pins', fieldType: 'text' }
-	];
-	sourceTypeDataFieldObj.fields = fields;
-	source_types_datafields.push(sourceTypeDataFieldObj);
-}
+];
 
 var output_types = [ //output actions that Tally Arbiter can perform
 	{ id: '7dcd66b5', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true},
@@ -715,24 +696,6 @@ var output_types_datafields = [ //data fields for the outgoing actions
 		]
 	}
 ];
-
-if (isPi()) {
-	//adds the GPIO output type option if the software is running on a Raspberry Pi
-	let outputTypeObj = {};
-	outputTypeObj.id = '73815fc2';
-	outputTypeObj.label = 'Local GPIO';
-	outputTypeObj.type = 'gpio';
-	outputTypeObj.enabled = false;
-	output_types.push(outputTypeObj);
-
-	let outputTypeDataFieldObj = {};
-	outputTypeDataFieldObj.outputTypeId = outputTypeObj.id;
-	let fields = [
-		{ fieldName: 'pins', fieldLabel: 'GPIO Pins', fieldType: 'text' }
-	];
-	outputTypeDataFieldObj.fields = fields;
-	output_types_datafields.push(outputTypeDataFieldObj);
-}
 
 const bus_options = [ // the busses available to monitor in Tally Arbiter
 	{ id: 'e393251c', label: 'Preview', type: 'preview'},
