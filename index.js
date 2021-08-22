@@ -697,9 +697,9 @@ var output_types_datafields = [ //data fields for the outgoing actions
 	}
 ];
 
-const bus_options = [ // the busses available to monitor in Tally Arbiter
-	{ id: 'e393251c', label: 'Preview', type: 'preview'},
-	{ id: '334e4eda', label: 'Program', type: 'program'}
+var bus_options = [ // the busses available to monitor in Tally Arbiter
+	{ id: 'e393251c', label: 'Preview', type: 'preview', color: '#00FF00'},
+	{ id: '334e4eda', label: 'Program', type: 'program', color: '#FF0000'}
 	/* { id: '12c8d698', label: 'Preview + Program', type: 'previewprogram'}*/
 ]
 
@@ -2031,6 +2031,12 @@ function loadConfig() { // loads the JSON data from the config file to memory
 			if (configJson.security.password_producer) {
 				password_producer = configJson.security.password_producer;
 			}
+		}
+
+		if (configJson.bus_options) {
+			bus_options = configJson.bus_options;
+			logger('Tally Arbiter Bus Options loaded.', 'info');
+			logger(`${bus_options.length} Busses configured.`, 'info');
 		}
 
 		if (configJson.sources) {
@@ -5541,6 +5547,18 @@ function TallyArbiter_Manage(obj) {
 				result = TallyArbiter_Delete_TSL_Client(obj);
 			}
 			break;
+		case 'bus_option':
+			if (obj.action === 'add') {
+				result = TallyArbiter_Add_Bus_Option(obj);
+			}
+			else if (obj.action === 'edit') {
+				result = TallyArbiter_Edit_Bus_Option(obj);
+			}
+			else if (obj.action === 'delete') {
+				result = TallyArbiter_Delete_Bus_Option(obj);
+			}
+			io.emit('bus_options', bus_options); //emit the new bus options array to everyone
+			break;
 		case 'cloud_destination':
 			if (obj.action === 'add') {
 				result = TallyArbiter_Add_Cloud_Destination(obj);
@@ -6656,6 +6674,49 @@ function TallyArbiter_Delete_TSL_Client(obj) {
 	logger(`TSL Client Deleted: ${tslClientObj.ip}:${tslClientObj.port} (${tslClientObj.transport})`, 'info');
 
 	return {result: 'tsl-client-deleted-successfully'};
+}
+
+function TallyArbiter_Add_Bus_Option(obj) {
+	let busOptionObj = obj.busOption;
+	busOptionObj.id = uuidv4();
+	bus_options.push(busOptionObj);
+
+	logger(`Bus Option Added: ${busOptionObj.label}:${busOptionObj.type} (${busOptionObj.color})`, 'info');
+
+	return {result: 'bus-option-added-successfully'};
+}
+
+function TallyArbiter_Edit_Bus_Option(obj) {
+	let busOptionObj = obj.busOption;
+
+	for (let i = 0; i < bus_options.length; i++) {
+		if (bus_options[i].id === busOptionObj.id) {
+			bus_options[i].label = busOptionObj.label;
+			bus_options[i].type = busOptionObj.type;
+			bus_options[i].color = busOptionObj.color;
+			break;
+		}
+	}
+
+	logger(`Bus Option Edited: ${busOptionObj.label}:${busOptionObj.type} (${busOptionObj.color})`, 'info');
+
+	return {result: 'bus-option-edited-successfully'};
+}
+
+function TallyArbiter_Delete_Bus_Option(obj) {
+	let busOptionObj = GetBusByBusId(obj.busOptionId);
+	let busOptionId = obj.busOptionId;
+
+	for (let i = 0; i < bus_options.length; i++) {
+		if (bus_options[i].id === busOptionId) {
+			bus_options.splice(i, 1);
+			break;
+		}
+	}
+
+	logger(`Bus Option Deleted: ${busOptionObj.label}:${busOptionObj.type} (${busOptionObj.color})`, 'info');
+
+	return {result: 'bus-option-deleted-successfully'};
 }
 
 function TallyArbiter_Add_Cloud_Destination(obj) {
