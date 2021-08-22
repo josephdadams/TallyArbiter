@@ -2219,6 +2219,7 @@ function SaveConfig() {
 			tsl_clients_1secupdate: tsl_clients_1secupdate,
 			cloud_destinations: cloud_destinations,
 			cloud_keys: cloud_keys,
+			bus_options: bus_options
 		};
 
 		fs.writeFileSync(config_file, JSON.stringify(configJson, null, 1), 'utf8', function(error) {
