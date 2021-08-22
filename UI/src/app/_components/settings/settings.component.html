@@ -291,7 +291,7 @@
               <tr *ngFor="let busOption of socketService.busOptions">
                 <td>{{busOption.label}}</td>
                 <td>{{busOption.type}}</td>
-                <td>{{busOption.color}}</td>
+                <td><span class="color-box me-3" [style.background-color]="busOption.color"></span>{{busOption.color}}</td>
                 <td>
                     <button class="btn btn-outline-dark" (click)="editBusOption(busOption, busOptionModal)">
                         <i class="fas fa-pen"></i> Edit
