@@ -220,7 +220,6 @@
                             <button class="btn btn-outline-dark" *ngIf="cloudDestination.status == 'connected'" (click)="disconnectCloudDestination(cloudDestination)">
                                 <i class="fas fa-times"></i> Disconnect
                             </button>
-
                         </td>
                     </tr>
                 </tbody>
@@ -273,6 +272,35 @@
                 </tbody>
             </table>
         </div>
+  </div>
+  <hr class="my-5" />
+  <div class="row">
+    <h2>Bus Options</h2>
+    <div>
+      <span class="text-muted mt-3 d-block" *ngIf="socketService.busOptions.length == 0">No Bus Options configured.</span>
+      <table class="table table-hover" *ngIf="socketService.busOptions.length > 0">
+          <thead>
+              <tr>
+                  <th>Label</th>
+                  <th>Type</th>
+                  <th>Color</th>
+                  <th></th>
+              </tr>
+          </thead>
+          <tbody>
+              <tr *ngFor="let busOption of socketService.busOptions">
+                <td>{{busOption.label}}</td>
+                <td>{{busOption.type}}</td>
+                <td>{{busOption.color}}</td>
+                <td>
+                    <button class="btn btn-outline-dark" (click)="editBusOption(busOption, busOptionModal)">
+                        <i class="fas fa-pen"></i> Edit
+                    </button>
+                </td>
+              </tr>
+          </tbody>
+      </table>
+    </div>
   </div>
   <hr class="my-5" />
   <div class="row">
@@ -659,7 +687,7 @@
 <ng-template #tslClientModal let-modal>
     <div class="modal-header">
       <h4 class="modal-title" id="modal-basic-title">
-        {{ editingSource ? "Edit" : "Add" }} TSL Client
+        {{ editingTSLClient ? "Edit" : "Add" }} TSL Client
       </h4>
       <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
     </div>
@@ -689,6 +717,41 @@
       <div class="d-flex justify-content-end">
         <button class="btn btn-outline-dark" (click)="saveCurrentTSLClient()">
           <i class="fas fa-save"></i> {{ editingTSLClient ? "Save Changes" : "Add TSL Client" }}
+        </button>
+      </div>
+    </div>
+  </ng-template>
+
+  <ng-template #busOptionModal let-modal>
+    <div class="modal-header">
+      <h4 class="modal-title" id="modal-basic-title">
+        {{ editingBusOption ? "Edit" : "Add" }} Bus Option
+      </h4>
+      <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+      <ng-container *ngIf="editingBusOption">
+        <div class="mb-3">
+          <label for="busId" class="form-label">Bus Id</label>
+          <input type="text" id="busId" class="form-control" disabled [ngModel]="currentBusOption.id" />
+        </div>
+      </ng-container>
+  
+      <div class="mb-3">
+        <label for="busLabel" class="form-label">Label</label>
+        <input type="text" class="form-control" id="busLabel" disabled [(ngModel)]="currentBusOption.label" />
+      </div>
+      <div class="mb-3">
+        <label for="busType" class="form-label">Type</label>
+        <input type="text" class="form-control" id="busType" disabled [(ngModel)]="currentBusOption.type" />
+      </div>
+      <div class="mb-3">
+        <label for="busColor" class="form-label">Color</label>
+        <input type="text" class="form-control" id="busColor" [(ngModel)]="currentBusOption.color" />
+      </div>
+      <div class="d-flex justify-content-end">
+        <button class="btn btn-outline-dark" (click)="saveCurrentBusOption()">
+          <i class="fas fa-save"></i> {{ editingBusOption ? "Save Changes" : "Add Bus Option" }}
         </button>
       </div>
     </div>
