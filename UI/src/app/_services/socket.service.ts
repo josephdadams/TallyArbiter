@@ -131,7 +131,7 @@ export class SocketService {
       this.newLogsSubject.next();
     });
     this.socket.on("log_item", (log: LogItem) => {
-      if (this.logs.length > 5000) {
+      if (this.logs.length > 1000) {
         this.logs.shift();
       }
       this.logs.push(log);
@@ -141,7 +141,7 @@ export class SocketService {
       this.sourceTallyData[sourceId] = data;
     });
     this.socket.on('tally_data', (sourceId: string, tallyObj: SourceTallyData) => {
-      if (this.tallyData.length > 5000) {
+      if (this.tallyData.length > 1000) {
         this.tallyData.shift();
       }
       let tallyPreview = (tallyObj.tally1 === 1 ? 'True' : 'False');
