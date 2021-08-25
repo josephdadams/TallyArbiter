@@ -1067,6 +1067,8 @@ function initialSetup() {
 		socket.on('device_listen_blink', function(obj) { // emitted by the Python blink(1) client that has selected a Device to listen for state information
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
+			let oldDeviceId = null;
+
 			if ((deviceId === 'null') || (device.id === 'unassigned')) {
 				if (devices.length > 0) {
 					deviceId = devices[0].id;
@@ -1074,6 +1076,8 @@ function initialSetup() {
 				else {
 					deviceId = 'unassigned';
 				}
+
+				oldDeviceId = deviceId;
 			}
 
 			let listenerType = 'blink(1)';
@@ -1086,7 +1090,11 @@ function initialSetup() {
 			let datetimeConnected = new Date().getTime();
 
 			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true);
+			socket.emit('devices', devices);
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
+			if (oldDeviceId !== null) {
+				ReassignListenerClient(clientId, oldDeviceId, deviceId);
+			}
 		});
 
 		socket.on('device_listen_relay', function(relayGroupId, deviceId) { // emitted by the Relay Controller accessory program that has selected a Device to listen for state information
