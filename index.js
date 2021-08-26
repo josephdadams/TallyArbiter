@@ -7019,6 +7019,7 @@ function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetime
 						listener_clients[i].datetime_connected = clientObj.datetime_connected;
 						listener_clients[i].canBeReassigned = clientObj.canBeReassigned;
 						listener_clients[i].canBeFlashed = clientObj.canBeFlashed;
+						clientObj.id = listener_clients[i].id;
 					}
 				}
 			}
@@ -7032,10 +7033,22 @@ function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetime
 	let message = `Listener Client Connected: ${clientObj.ipAddress.replace('::ffff:', '')} (${clientObj.listenerType}) at ${new Date()}`;
 	SendMessage('server', null, message);
 
+	UpdateListenerClients();
+
 	UpdateSockets('listener_clients');
 	UpdateCloud('listener_clients');
 
 	return clientObj.id;
+}
+
+function UpdateListenerClients() {
+	for (let i = 0; i < listener_clients.length; i++) {
+		if (!listener_clients[i].inactive) {
+			let device = GetDeviceByDeviceId(listener_clients[i].deviceId);
+			logger(`Sending device states to Listener Client: ${listener_clients[i].clientId} - ${device.name}`, 'info-quiet');
+			io.to(listener_clients[i].socketId).emit('device_states', GetDeviceStatesByDeviceId(listener_clients[i].deviceId));
+		}
+	}
 }
 
 function ReassignListenerClient(clientId, oldDeviceId, deviceId) {
