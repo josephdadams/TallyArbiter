@@ -7002,7 +7002,32 @@ function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetime
 	clientObj.canBeFlashed = canBeFlashed;
 	clientObj.inactive = false;
 
-	listener_clients.push(clientObj);
+	//search through the array of existing clients, and if the deviceId, listenerType, and ipAddress are the same, it's probably the same client as before, just reconnecting
+	//so don't add it to the array as new; just target the existing clientId, update the socketId, and mark inactive=false
+
+	let found = false;
+
+	for (let i = 0; i < listener_clients.length; i++) {
+		if (listener_clients[i].deviceId === clientObj.deviceId) {
+			if (listener_clients[i].listenerType === clientObj.listenerType) {
+				if (listener_clients[i].ipAddress === clientObj.ipAddress) {
+					if (listener_clients[i].inactive) {
+						//this is probably the same one
+						found = true;
+						listener_clients[i].socketId = clientObj.socketId;
+						listener_clients[i].inactive = false;
+						listener_clients[i].datetime_connected = clientObj.datetime_connected;
+						listener_clients[i].canBeReassigned = clientObj.canBeReassigned;
+						listener_clients[i].canBeFlashed = clientObj.canBeFlashed;
+					}
+				}
+			}
+		}
+	}
+
+	if (!found) {
+		listener_clients.push(clientObj);
+	}
 
 	let message = `Listener Client Connected: ${clientObj.ipAddress.replace('::ffff:', '')} (${clientObj.listenerType}) at ${new Date()}`;
 	SendMessage('server', null, message);
