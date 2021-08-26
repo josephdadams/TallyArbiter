@@ -1039,6 +1039,53 @@ function initialSetup() {
 			socket.emit('bus_options', bus_options);
 		});
 
+		socket.on('listenerclient_connect', function(obj) {
+			/*
+			This is the new listener client API, all clients should connect and send a JSON object with these properties:
+			deviceId
+			listenerType (string to be displayed)
+			canBeReassigned (bool)
+			canBeFlashed (bool)
+			*/
+
+			let deviceId = obj.deviceId;
+			let device = GetDeviceByDeviceId(deviceId);
+			let oldDeviceId = null;
+
+			if ((deviceId === 'null') || (device.id === 'unassigned')) {
+				if (devices.length > 0) {
+					oldDeviceId = deviceId;
+					deviceId = devices[0].id;
+					socket.emit('error', 'Invalid Device Id specified. Reassigning to the first Device on the server.');
+				}
+				else {
+					//send error state
+					socket.emit('error', 'No Devices are configured in Tally Arbiter.');
+				}
+			}
+
+			let listenerType = obj.listenerType ? obj.listenerType : 'client';
+			let canBeReassigned = obj.reassign ? obj.reassign : false;
+			let canBeFlashed = obj.flash ? obj.flash : false;
+
+			socket.join('device-' + deviceId);
+			let deviceName = GetDeviceByDeviceId(deviceId).name;
+			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
+
+			let ipAddress = socket.request.connection.remoteAddress;
+			let datetimeConnected = new Date().getTime();
+			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed);
+			
+			socket.emit('bus_options', bus_options);
+			socket.emit('devices', devices);
+			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
+
+			if (oldDeviceId !== null) {
+				//sends a reassign command to officially reassign the listener client to the new device ID since the first one was invalid
+				ReassignListenerClient(clientId, oldDeviceId, deviceId);
+			}
+		});
+
 		socket.on('device_listen', function(deviceId, listenerType) { // emitted by a socket (tally page) that has selected a Device to listen for state information
 			let device = GetDeviceByDeviceId(deviceId);
 			if ((deviceId === 'null') || (device.id === 'unassigned')) {
