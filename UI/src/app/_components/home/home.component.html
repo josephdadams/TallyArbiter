@@ -9,7 +9,7 @@
                 <qr-code class="my-4 d-block" [value]="netInterfaceUrl" size="250" errorCorrectionLevel="M"></qr-code>
                 <select [(ngModel)]="netInterfaceUrl" class="form-select d-inline w-unset">
                     <option [value]="localNetInterfaceUrl">localhost (Local)</option>
-                    <option [value]= "socketService.externalAddress">External Address</option>
+                    <option *ngIf="socketService.externalAddress !== 'http://0.0.0.0:4455/#/tally'" [value]= "socketService.externalAddress">External Address</option>
                     <option *ngFor="let netInterface of socketService.interfaces" [ngValue]="netInterface.url">
                         {{netInterface.address}} ({{netInterface.name}})
                     </option>
@@ -19,7 +19,7 @@
                     <li *ngFor="let net_interface of socketService.interfaces">
                         <a target="_blank" [href]="net_interface.url">{{net_interface.url}}</a>
                     </li>
-                    <li>
+                    <li *ngIf="socketService.externalAddress !== 'http://0.0.0.0:4455/#/tally'">
                         <a target="_blank" [href]="socketService.externalAddress">{{socketService.externalAddress}}</a> (External Address)
                     </li>
                 </ul>
