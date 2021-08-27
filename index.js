@@ -2213,6 +2213,7 @@ function SaveConfig() {
 		}
 
 		let configJson = {
+			externalAddress: externalAddress,
 			security: securityObj,
 			sources: sources,
 			devices: devices,
