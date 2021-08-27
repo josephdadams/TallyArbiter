@@ -9,7 +9,6 @@ import { SocketService } from 'src/app/_services/socket.service';
   styleUrls: ['./home.component.scss']
 })
 export class HomeComponent {
-  // public externalAddressIP = this.socketService.externalAddress; 
   public localNetInterfaceUrl = "http://localhost:4455/#/tally";
   public netInterfaceUrl = this.localNetInterfaceUrl;
   constructor(public socketService: SocketService) {}
