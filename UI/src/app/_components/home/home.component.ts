@@ -11,5 +11,3 @@ export class HomeComponent {
   public netInterfaceUrl = this.localNetInterfaceUrl;
   constructor(public socketService: SocketService) {}
 }
-
-
