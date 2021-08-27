@@ -40,6 +40,7 @@ export class SocketService {
   public busOptions: BusOption[] = [];
   public initialDataLoaded = false;
   public version?: string;
+  public externalAddress?: string;
   public interfaces: any[] = [];
   public logs: LogItem[] = [];
   public tallyData: LogItem[] = [];
@@ -117,6 +118,11 @@ export class SocketService {
     this.socket.on("version", (version: string) => {
       this.version = version;
     });
+
+    this.socket.on("externalAddress", (externalAddress: string) => {
+        this.externalAddress = externalAddress;
+    });
+
     this.socket.on("interfaces", (interfaces: any[]) => {
       interfaces.forEach((net_interface) => {
         this.interfaces.push({
@@ -275,6 +281,7 @@ export class SocketService {
     this.socket.emit('get_error_reports');
     
     this.socket.emit('version');
+    this.socket.emit('externalAddress');
     this.socket.emit('interfaces');
   }
 
