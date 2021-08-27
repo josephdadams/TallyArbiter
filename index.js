@@ -49,6 +49,7 @@ const httpServer	= http.Server(app);
 const io 			= socketio(httpServer, { allowEIO3: true });
 const appProducer	= require('express').Router();
 const appSettings	= require('express').Router();
+var externalAddress = "http://0.0.0.0:4455/#/tally";
 var username_producer = 'producer';
 var password_producer = '12345';
 var username_settings = 'admin';
@@ -970,6 +971,10 @@ function initialSetup() {
 
 		socket.on('version', function() {
 			socket.emit('version', version);
+		});
+
+		socket.on('externalAddress', function() {
+			socket.emit('externalAddress',externalAddress);
 		});
 
 		socket.on('interfaces', function() {
@@ -2031,6 +2036,10 @@ function loadConfig() { // loads the JSON data from the config file to memory
 			if (configJson.security.password_producer) {
 				password_producer = configJson.security.password_producer;
 			}
+		}
+
+		if (configJson.externalAddress) {
+			externalAddress = configJson.externalAddress;
 		}
 
 		if (configJson.sources) {
@@ -7333,3 +7342,4 @@ exports.getConfigFilePath = getConfigFilePath;
 exports.getConfig = getConfig;
 exports.getConfigRedacted = getConfigRedacted;
 exports.generateErrorReport = generateErrorReport;
+//exports.externalAddress = externalAddress;
