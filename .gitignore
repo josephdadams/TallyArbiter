@@ -115,3 +115,5 @@ ui-dist/*
 # don't include any installers
 release
 .DS_Store
+TallyArbiter.code-workspace
+
