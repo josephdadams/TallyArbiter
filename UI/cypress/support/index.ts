@@ -41,11 +41,15 @@ Cypress.Commands.add('interceptWebsocket', (event: string, response: any, remove
   });
 });
 
-Cypress.Commands.add('interceptWebsocketRequest', (event: string, callback: () => void, removeAllListenersAfterExec: boolean = false) => {
+Cypress.Commands.add('interceptWebsocketRequest', (event: string, callback: (...args: any) => void, removeAllListenersAfterExec: boolean = false) => {
   socket.interceptRequest(event, (...args: any) => {
     callback(...args);
     if(removeAllListenersAfterExec) socket.removeRequestInterceptors(event);
   });
+});
+
+Cypress.Commands.add('simulateSocketSentByServer', (event: string, ...args: any) => {
+  socket.callEventListeners(event, ...args);
 });
 
 Cypress.Commands.add('simulateDevices', () => {

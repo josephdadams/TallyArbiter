@@ -1,6 +1,7 @@
 describe('Settings page', () => {
   beforeEach(() => {
     cy.visit('/#/settings');
+    cy.resetSimulatedInitialData();
   });
 
   it('Open settings page', () => {
@@ -65,12 +66,64 @@ describe('Settings page', () => {
         .and('contain', '1234')
         .and('contain', 'tcp')
         .and('be.visible');
-        cy.get('tbody tr').eq(1)
+      cy.get('tbody tr').eq(1)
         .should('contain', '192.168.1.2')
         .and('contain', '5678')
         .and('contain', 'udp')
         .and('be.visible');
     });
 
+  });
+
+  describe('Check if "Cloud Settings" section works', ()  => {
+    it('Empty Destinations list', () => {
+      cy.setInitialDataValue("cloudDestinations", []);
+      cy.simulateInitialData();
+      cy.login(Cypress.env("SETTINGS_USERNAME"), Cypress.env("SETTINGS_PASSWORD"));
+      cy.contains('No cloud destinations configured.');
+    });
+
+    it('Destinations list with two destinations', () => {
+      cy.interceptWebsocketRequest('manage', (params: any) => {
+        expect(params.cloudDestination.key).to.match(/(first|second)_key_new/g);
+        cy.simulateSocketSentByServer("manage_response", {
+          "result": "cloud-destination-edited-successfully"
+        });
+      });
+      cy.setInitialDataValue("cloudDestinations", [
+        {
+          "host": "192.168.1.1",
+          "port": 1122,
+          "key": "first_key",
+          "id": "08f4first",
+          "status": "connected"
+        },
+        {
+          "host": "192.168.1.2",
+          "port": 3344,
+          "key": "second_key",
+          "id": "08second",
+          "status": "connected"
+        }
+      ]);
+      cy.simulateInitialData();
+      cy.login(Cypress.env("SETTINGS_USERNAME"), Cypress.env("SETTINGS_PASSWORD"));
+      cy.get('tbody tr').eq(0)
+        .should('contain', '192.168.1.1')
+        .and('contain', '1122')
+        .and('be.visible');
+      cy.get('tbody > :nth-child(1) > :nth-child(5) > :nth-child(1)').click({ force: true });
+      cy.wait(200);
+      cy.get('#cloudKey').type('_new');
+      cy.get('.d-flex > .btn').click();
+      cy.get('tbody tr').eq(1)
+        .should('contain', '192.168.1.2')
+        .and('contain', '3344')
+        .and('be.visible');
+      cy.get('tbody > :nth-child(2) > :nth-child(5) > :nth-child(1)').click({ force: true });
+      cy.wait(200);
+      cy.get('#cloudKey').type('_new');
+      cy.get('.d-flex > .btn').click();
+    });
   });
 });
