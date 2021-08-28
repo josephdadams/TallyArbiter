@@ -4,6 +4,7 @@
 const net 						= require('net');
 const packet 					= require('packet');
 const TSLUMD 					= require('tsl-umd'); // TSL UDP package
+const TSLUMDv5                  = require('tsl-umd-v5');
 const dgram 					= require('dgram');
 const { Atem }					= require('atem-connection');
 const AtemListVisibleInputs 	= require('atem-connection').listVisibleInputs;
@@ -633,6 +634,7 @@ var source_types_panasonic = [ // AV-HS410 INPUTS
 var output_types = [ //output actions that Tally Arbiter can perform
 	{ id: '7dcd66b5', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true},
 	{ id: '276a8dcc', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true },
+	{ id: '8b99d588', label: 'TSL 5 UDP', type: 'tsl_5_udp', enabled: true },
 	{ id: 'ffe2b0b6', label: 'Outgoing Webhook', type: 'webhook', enabled: true},
 	{ id: '79e3ce27', label: 'Generic TCP', type: 'tcp', enabled: true},
 	{ id: '4827f903', label: 'RossTalk', type: 'rosstalk', enabled: true},
@@ -663,6 +665,18 @@ var output_types_datafields = [ //data fields for the outgoing actions
 			{ fieldName: 'tally4', fieldLabel: 'Tally 4', fieldType: 'bool' }
 		]
 	},
+	{ outputTypeId: '8b99d588', fields: [ //TSL 5 UDP
+		{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
+		{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
+		{ fieldName: 'index', fieldLabel: 'Address Index', fieldType: 'number' },
+		{ fieldName: 'screen', fieldLabel: 'Screen', fieldType: 'number' },
+		{ fieldName: 'text', fieldLabel: 'Label', fieldType: 'text' },
+		{ fieldName: 'text_tally', fieldLabel: 'Text Tally', fieldType: 'dropdown', options: [ { id: '0', label: 'Off' }, { id: '1', label: 'Red'}, { id: '2', label: 'Green'}, { id: '3', label: 'Amber'} ] },
+		{ fieldName: 'rh_tally', fieldLabel: 'Right Tally', fieldType: 'dropdown',  options: [ { id: '0', label: 'Off' }, { id: '1', label: 'Red'}, { id: '2', label: 'Green'}, { id: '3', label: 'Amber'} ] },
+		{ fieldName: 'lh_tally', fieldLabel: 'Left Tally', fieldType: 'dropdown',   options: [ { id: '0', label: 'Off' }, { id: '1', label: 'Red'}, { id: '2', label: 'Green'}, { id: '3', label: 'Amber'} ] },
+		{ fieldName: 'brightness', fieldLabel: 'Brightness', fieldType: 'dropdown', options: [ { id: '0', label: '0' }, { id: '1', label: '1'}, { id: '2', label: '2'}, { id: '3', label: '3'} ] }
+	]
+},
 	{ outputTypeId: 'ffe2b0b6', fields: [ //Outgoing Webhook
 			{ fieldName: 'protocol', fieldLabel: 'Protocol', fieldType: 'dropdown', options: [ { id: 'http://', label: 'HTTP' }, { id: 'https://', label: 'HTTPS'} ] },
 			{ fieldName: 'ip', fieldLabel: 'IP Address/URL', fieldType: 'text' },
@@ -5259,6 +5273,9 @@ function RunAction(deviceId, busId, active) {
 						case 'tsl_31_tcp':
 							RunAction_TSL_31_TCP(actionObj.data);
 							break;
+						case 'tsl_5_udp':
+							RunAction_TSL_5_UDP(actionObj.data);
+							break;
 						case 'webhook':
 							RunAction_Webhook(actionObj.data);
 							break;
@@ -5362,6 +5379,37 @@ function RunAction_TSL_31_TCP(data) {
 	}
 	catch (error) {
 		logger(`An error occured sending the TCP 3.1 TCP Message: ${error}`, 'error');
+	}
+}
+
+function RunAction_TSL_5_UDP (data) {
+	try {
+		var umd = new TSLUMDv5();
+		var display_fields = ['rh_tally','text_tally','lh_tally','brightness','text']
+		let tally = { display: {} }
+		
+		if (!data.ip | !data.port) {
+			logger('Error in TSL 5 UDP Action. IP and Port must be given', 'error')
+		}
+		if (!data.index) {
+			logger('TSL 5 UDP Action. No index given. Using index 1 by default', 'info')
+			tally.index = 1
+		}
+		
+		for (var [key, value] of Object.entries(data)) {
+			if (display_fields.includes(key)) {
+				tally.display[key] = value
+			}
+			else {
+				tally[key] = value
+			}
+		}
+
+		umd.sendTallyUDP(data.ip, data.port, tally)
+		logger(`TSL 5 UDP Data sent.`, 'info');
+	}
+	catch (error) {
+		logger(`An error occured sending the TSL 5 UDP Message: ${error}`, 'error');
 	}
 }
 
