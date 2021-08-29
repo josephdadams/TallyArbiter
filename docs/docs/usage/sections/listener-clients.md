@@ -14,6 +14,8 @@ Navigate to `/tally` on the Tally Arbiter server in your browser and select a De
 
 If you include `?chat=false` to the request, you can turn off the Messaging/Chat functions.
 
+The web tally client will prioritize the program bus by default, whih means it will still show red (or your custom color defined in the settings) even if it is in program and preview. To disable that behaviour and show yellow in case of both busses, add `?programPriority=false` to the url. The suffix to disable the chat and the program priority is `?chat=false&programPriority=false`.
+
 ## Viewing all tally data
 Navigate to `/producer` on the Tally Arbiter server in your browser to view all Devices and their current states. This information is also available in the Settings GUI but is displayed in a minimal fashion here for in-service viewing. Messages can be sent and received to supported clients.
 **This page is restricted by a username and password. The default username is `producer` and the default password is `12345`.**

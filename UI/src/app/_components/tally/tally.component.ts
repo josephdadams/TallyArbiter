@@ -18,6 +18,7 @@ export class TallyComponent {
   public currentDeviceIdx?: number;
   public mode_preview?: boolean;
   public mode_program?: boolean;
+  public programPriority = true;
   
   constructor(
     private router: Router,
@@ -39,6 +40,9 @@ export class TallyComponent {
       setTimeout(function () {
         document.body.classList.remove('flash');
       }, 500);
+    });
+    this.route.queryParams.subscribe((queryParams) => {
+      this.programPriority = queryParams.programPriority == "false";
     });
     this.socketService.deviceStateChanged.subscribe(({ deviceId, program, preview }:
       { deviceId: string, program?: boolean, preview?: boolean }) => {
@@ -64,7 +68,7 @@ export class TallyComponent {
       return COLORS.DARK_GREY;
     }
     if (this.socketService.devices[this.currentDeviceIdx].modeProgram) {
-      if (this.socketService.devices[this.currentDeviceIdx].modePreview) {
+      if (this.socketService.devices[this.currentDeviceIdx].modePreview && !this.programPriority) {
         return this.socketService.busOptions.find((b) => b.type == "previewprogram")?.color || COLORS.YELLOW;
       }
       return this.socketService.busOptions.find((b) => b.type == "program")?.color || COLORS.RED;
