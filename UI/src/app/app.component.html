@@ -1,32 +1,33 @@
-  
 <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark" *ngIf="navbarVisibilityService.navbarIsVisible">
-  <div class="container">
-    <a class="navbar-brand" routerLink="/home"><img src="assets/logo_white.png" height="30" alt="" loading="lazy"></a>
-    <button class="navbar-toggler" type="button" (click)="showMenu = !showMenu">
+    <div class="container">
+        <a class="navbar-brand" routerLink="/home"><img src="assets/logo_white.png" height="30" alt="" loading="lazy"></a>
+        <button class="navbar-toggler" type="button" (click)="showMenu = !showMenu">
       <span class="navbar-toggler-icon"></span>
     </button>
-    <div class="collapse navbar-collapse" id="navbarCollapse" [class.show]="showMenu">
-      <ul class="navbar-nav me-auto mb-2 mb-md-0">
-        <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/home">Home</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/tally">Tally View</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/producer">Producer</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/settings">Settings</a>
-        </li>
-      </ul>
-      <ul class="navbar-nav mb-2 mb-md-0">  
-        <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/about">About</a>
-        </li>
-      </ul>
+        <div class="collapse navbar-collapse" id="navbarCollapse" [class.show]="showMenu">
+            <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                <li class="nav-item">
+                    <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/home">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/tally">Tally View</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/producer">Producer</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/settings">Settings</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav mb-2 mb-md-0">
+                <li class="nav-item">
+                    <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/about">About</a>
+                </li>
+            </ul>
+        </div>
     </div>
-  </div>
 </nav>
 
 <router-outlet></router-outlet>
+
+<tour-step-template></tour-step-template>
