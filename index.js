@@ -2455,7 +2455,7 @@ function StopTSLServer_TCP(sourceId) {
 			if (source_connections[i].sourceId === sourceId) {
 				source_connections[i].server.close(function() {});
 				DeletePort(source.data.port);
-				logger(`Source: ${source.name}  TSL 5 TCP Server Stopped.`, 'info');
+				logger(`Source: ${source.name}  TSL 3.1 TCP Server Stopped.`, 'info');
 				for (let j = 0; j < sources.length; j++) {
 					if (sources[j].id === sourceId) {
 						sources[j].connected = false;
@@ -2470,7 +2470,7 @@ function StopTSLServer_TCP(sourceId) {
 		}
 	}
 	catch (error) {
-		logger(`Source: ${source.name}  TSL 5 TCP Server Error occurred: ${error}`, 'error');
+		logger(`Source: ${source.name}  TSL 3.1 TCP Server Error occurred: ${error}`, 'error');
 	}
 }
 
