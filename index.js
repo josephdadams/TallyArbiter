@@ -635,6 +635,7 @@ var output_types = [ //output actions that Tally Arbiter can perform
 	{ id: '7dcd66b5', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true},
 	{ id: '276a8dcc', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true },
 	{ id: '8b99d588', label: 'TSL 5 UDP', type: 'tsl_5_udp', enabled: true },
+	{ id: '54ae4a7e', label: 'TSL 5 TCP', type: 'tsl_5_tcp', enabled: true },
 	{ id: 'ffe2b0b6', label: 'Outgoing Webhook', type: 'webhook', enabled: true},
 	{ id: '79e3ce27', label: 'Generic TCP', type: 'tcp', enabled: true},
 	{ id: '4827f903', label: 'RossTalk', type: 'rosstalk', enabled: true},
@@ -676,7 +677,19 @@ var output_types_datafields = [ //data fields for the outgoing actions
 		{ fieldName: 'lh_tally', fieldLabel: 'Left Tally', fieldType: 'dropdown',   options: [ { id: '0', label: 'Off' }, { id: '1', label: 'Red'}, { id: '2', label: 'Green'}, { id: '3', label: 'Amber'} ] },
 		{ fieldName: 'brightness', fieldLabel: 'Brightness', fieldType: 'dropdown', options: [ { id: '0', label: '0' }, { id: '1', label: '1'}, { id: '2', label: '2'}, { id: '3', label: '3'} ] }
 	]
-},
+	},
+	{ outputTypeId: '54ae4a7e', fields: [ //TSL 5 TCP
+		{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
+		{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
+		{ fieldName: 'index', fieldLabel: 'Address Index', fieldType: 'number' },
+		{ fieldName: 'screen', fieldLabel: 'Screen', fieldType: 'number' },
+		{ fieldName: 'text', fieldLabel: 'Label', fieldType: 'text' },
+		{ fieldName: 'text_tally', fieldLabel: 'Text Tally', fieldType: 'dropdown', options: [ { id: '0', label: 'Off' }, { id: '1', label: 'Red'}, { id: '2', label: 'Green'}, { id: '3', label: 'Amber'} ] },
+		{ fieldName: 'rh_tally', fieldLabel: 'Right Tally', fieldType: 'dropdown',  options: [ { id: '0', label: 'Off' }, { id: '1', label: 'Red'}, { id: '2', label: 'Green'}, { id: '3', label: 'Amber'} ] },
+		{ fieldName: 'lh_tally', fieldLabel: 'Left Tally', fieldType: 'dropdown',   options: [ { id: '0', label: 'Off' }, { id: '1', label: 'Red'}, { id: '2', label: 'Green'}, { id: '3', label: 'Amber'} ] },
+		{ fieldName: 'brightness', fieldLabel: 'Brightness', fieldType: 'dropdown', options: [ { id: '0', label: '0' }, { id: '1', label: '1'}, { id: '2', label: '2'}, { id: '3', label: '3'} ] }
+	]
+	},
 	{ outputTypeId: 'ffe2b0b6', fields: [ //Outgoing Webhook
 			{ fieldName: 'protocol', fieldLabel: 'Protocol', fieldType: 'dropdown', options: [ { id: 'http://', label: 'HTTP' }, { id: 'https://', label: 'HTTPS'} ] },
 			{ fieldName: 'ip', fieldLabel: 'IP Address/URL', fieldType: 'text' },
@@ -2442,7 +2455,7 @@ function StopTSLServer_TCP(sourceId) {
 			if (source_connections[i].sourceId === sourceId) {
 				source_connections[i].server.close(function() {});
 				DeletePort(source.data.port);
-				logger(`Source: ${source.name}  TSL 3.1 TCP Server Stopped.`, 'info');
+				logger(`Source: ${source.name}  TSL 5 TCP Server Stopped.`, 'info');
 				for (let j = 0; j < sources.length; j++) {
 					if (sources[j].id === sourceId) {
 						sources[j].connected = false;
@@ -2457,7 +2470,7 @@ function StopTSLServer_TCP(sourceId) {
 		}
 	}
 	catch (error) {
-		logger(`Source: ${source.name}  TSL 3.1 TCP Server Error occurred: ${error}`, 'error');
+		logger(`Source: ${source.name}  TSL 5 TCP Server Error occurred: ${error}`, 'error');
 	}
 }
 
@@ -2553,9 +2566,7 @@ function SetUpTSL5Server_TCP(sourceId)
 					});
 
 					socket.on('close', function () {
-						logger(`Source: ${source.name}  TSL 5.0 Server connection closed.`, 'info');
-						StopTSLServer_TCP(sourceId);
-						CheckReconnect(sourceId);
+						logger(`Source: ${source.name}  TSL 5.0 Server remote disconnected`, 'info');
 					});
 				}).listen(port, function() {
 					logger(`Source: ${source.name}  TSL 5.0 Server started. Listening for data on TCP Port: ${port}`, 'info');
@@ -5276,6 +5287,9 @@ function RunAction(deviceId, busId, active) {
 						case 'tsl_5_udp':
 							RunAction_TSL_5_UDP(actionObj.data);
 							break;
+						case 'tsl_5_tcp':
+							RunAction_TSL_5_TCP(actionObj.data);
+							break;
 						case 'webhook':
 							RunAction_Webhook(actionObj.data);
 							break;
@@ -5382,10 +5396,10 @@ function RunAction_TSL_31_TCP(data) {
 	}
 }
 
-function RunAction_TSL_5_UDP (data) {
+function RunAction_TSL_5_UDP(data) {
 	try {
 		var umd = new TSLUMDv5();
-		var display_fields = ['rh_tally','text_tally','lh_tally','brightness','text']
+		var display_fields = ['rh_tally', 'text_tally', 'lh_tally', 'brightness',' text']
 		let tally = { display: {} }
 		
 		if (!data.ip | !data.port) {
@@ -5395,7 +5409,7 @@ function RunAction_TSL_5_UDP (data) {
 			logger('TSL 5 UDP Action. No index given. Using index 1 by default', 'info')
 			tally.index = 1
 		}
-		
+
 		for (var [key, value] of Object.entries(data)) {
 			if (display_fields.includes(key)) {
 				tally.display[key] = value
@@ -5410,6 +5424,37 @@ function RunAction_TSL_5_UDP (data) {
 	}
 	catch (error) {
 		logger(`An error occured sending the TSL 5 UDP Message: ${error}`, 'error');
+	}
+}
+
+function RunAction_TSL_5_TCP(data) {
+	try {
+		var umd = new TSLUMDv5();
+		var display_fields = ['rh_tally', 'text_tally', 'lh_tally', 'brightness',' text']
+		let tally = { display: {} }
+		
+		if (!data.ip | !data.port) {
+			logger('Error in TSL 5 TCP Action. IP and Port must be given', 'error')
+		}
+		if (!data.index) {
+			logger('TSL 5 TCP Action. No index given. Using index 1 by default', 'info')
+			tally.index = 1
+		}
+
+		for (var [key, value] of Object.entries(data)) {
+			if (display_fields.includes(key)) {
+				tally.display[key] = value
+			}
+			else {
+				tally[key] = value
+			}
+		}
+
+		umd.sendTallyTCP(data.ip, data.port, tally)
+		logger(`TSL 5 TCP Data sent.`, 'info');
+	}
+	catch (error) {
+		logger(`An error occured sending the TSL 5 TCP Message: ${error}`, 'error');
 	}
 }
 
