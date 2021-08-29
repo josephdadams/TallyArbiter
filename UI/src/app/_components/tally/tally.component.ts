@@ -2,6 +2,13 @@ import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from 'src/app/_services/socket.service';
 
+enum COLORS {
+  DARK_GREY = "#212529",
+  GREEN = "#3fe481",
+  RED = "#e43f5a",
+  YELLOW = "#ffc107",
+}
+
 @Component({
   selector: 'app-tally',
   templateUrl: './tally.component.html',
@@ -54,18 +61,18 @@ export class TallyComponent {
 
   public getCurrentBackgroundColor(): string {
     if (this.currentDeviceIdx === undefined) {
-      return "#212529"; // dark grey
+      return COLORS.DARK_GREY;
     }
     if (this.socketService.devices[this.currentDeviceIdx].modeProgram) {
       if (this.socketService.devices[this.currentDeviceIdx].modePreview) {
-        return this.socketService.busOptions.find((b) => b.type == "previewprogram")?.color || "#ffc107"; // yellow
+        return this.socketService.busOptions.find((b) => b.type == "previewprogram")?.color || COLORS.YELLOW;
       }
-      return this.socketService.busOptions.find((b) => b.type == "program")?.color || "#e43f5a"; // red
+      return this.socketService.busOptions.find((b) => b.type == "program")?.color || COLORS.RED;
     }
     if (this.socketService.devices[this.currentDeviceIdx].modePreview) {
-      return this.socketService.busOptions.find((b) => b.type == "preview")?.color || "#3fe481"; // green
+      return this.socketService.busOptions.find((b) => b.type == "preview")?.color || COLORS.GREEN;
     }
-    return "#212529"; // dark grey;
+    return COLORS.DARK_GREY;
   }
 
   public selectDevice(id: any) {
