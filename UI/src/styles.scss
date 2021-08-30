@@ -2,7 +2,6 @@
 
 @import "~bootstrap/scss/bootstrap.scss";
 @import "~@fortawesome/fontawesome-free/css/all.css";
-
 body {
     padding-top: 60px;
 }
@@ -10,25 +9,31 @@ body {
 .bg-success {
     background-color: #3fe481 !important;
 }
+
 .text-success {
     color: #3fe481 !important;
 }
-
 
 .bg-danger {
     background-color: #e43f5a !important;
 }
 
+ngb-popover-window {
+    button.close {
+        border: 0;
+        float: right;
+    }
+}
 
 .flash {
     animation: flasher 0.1s cubic-bezier(1, 0, 0, 1) infinite alternate;
 }
 
 @keyframes flasher {
-to {
-    background-color: white;
-    opacity: 0;
-}
+    to {
+        background-color: white;
+        opacity: 0;
+    }
 }
 
 .max-height {
