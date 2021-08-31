@@ -9,7 +9,7 @@
             the developers.</h2>
     </div>
     <div style="text-align: center">
-        <a id="bugReportButton" class="btn btn-lg btn-custom" [attr.href]="bugReportUrl" target="_blank" role="button">Open a bug report on Github</a>
+        <button id="bugReportButton" class="btn btn-lg btn-custom" [disabled]="!bugReportUrlLoaded" (click)="bugReportButtonClick()" role="button">Open a bug report on Github</button>
     </div>
     <div class="col">
         <h3>Stacktrace:</h3>
