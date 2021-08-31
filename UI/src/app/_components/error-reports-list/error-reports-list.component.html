@@ -1,12 +1,12 @@
-<div class="d-flex justify-content-center mt-5 pt-5" *ngIf="!socketService.errorReports">
+<div class="d-flex justify-content-center mt-5 pt-5" *ngIf="!errorReportsLoaded">
     <div class="spinner spinner-border"></div>
 </div>
-<div *ngIf="socketService.errorReports">
+<div *ngIf="errorReportsLoaded">
     <div class="container mt-5">
         <div class="form-group" *ngIf="socketService.errorReports.length > 0">
             <select class='form-control col-xs-6 col-md-3' (change)="selectErrorReport($event)">
                 <option disabled selected>-- Select an error report --</option>
-                <option [value]="errorReport.id" *ngFor="let errorReport of socketService.errorReports">{{errorReport.datetime}}</option>
+                <option [value]="errorReport.id" *ngFor="let errorReport of socketService.errorReports">{{ errorReport.datetime }} {{ unreaded_error_reports.includes(errorReport.id) ? "(unread)" : "" }}</option>
             </select>
         </div>
     </div>
