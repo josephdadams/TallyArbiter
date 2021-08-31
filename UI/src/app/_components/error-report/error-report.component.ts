@@ -49,7 +49,7 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
   checkIfIssuesEnabled(url: string) {
     /* @ts-ignore: All code paths resolve the promise */
     return new Promise<boolean>((resolve, reject) => {
-      if(!url.includes("github.com/")) resolve(false);
+      if(new URL(url).host !== "github.com/") resolve(false);
       let repo = url.split("github.com/")[1].split("/", 2).join("/").toLowerCase();
       
       switch(repo) {
