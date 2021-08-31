@@ -1,10 +1,10 @@
 import Swal, { SweetAlertOptions } from 'sweetalert2';
 
 
-export function Confirmable(text: string, focusCancel: boolean = true) { 
+export function Confirmable(text: string, focusCancel: boolean = true, customOptions: SweetAlertOptions = {}) { 
     return (target: Object, propertyKey: string, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
-        const config: SweetAlertOptions = {
+        const defaultConfig: SweetAlertOptions = {
             title: 'Confirmation',
             text,
             showCancelButton: true,
@@ -12,6 +12,7 @@ export function Confirmable(text: string, focusCancel: boolean = true) {
             icon: 'question',
             focusCancel: focusCancel,
         };
+        const config: SweetAlertOptions = { ...defaultConfig, ...customOptions };
         descriptor.value = async function (...args: any[]) {
             const res = await Swal.fire(config);
             if (res.isConfirmed) {

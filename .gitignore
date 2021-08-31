@@ -112,8 +112,12 @@ config.json
 # don't include the generated UI
 ui-dist/*
 
+# don't include UI versions.ts file
+UI/src/environments/versions.ts
+
 # don't include any installers
 release
+
+# don't include .DS_Store file and vscode workspace file
 .DS_Store
 TallyArbiter.code-workspace
-
