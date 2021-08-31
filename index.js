@@ -700,7 +700,6 @@ var output_types_datafields = [ //data fields for the outgoing actions
 var bus_options = [ // the busses available to monitor in Tally Arbiter
 	{ id: 'e393251c', label: 'Preview', type: 'preview', color: '#3fe481', priority: 50},
 	{ id: '334e4eda', label: 'Program', type: 'program', color: '#e43f5a', priority: 200},
-	{ id: '12c8d698', label: 'Preview + Program', type: 'previewprogram', color: '#ffc107', priority: 201},
 	{ id: '12c8d699', label: 'Aux 1', type: 'aux', color: '#0000FF', priority: 100},
 	{ id: '12c8d689', label: 'Aux 2', type: 'aux', color: '#0000FF', priority: 100}
 ]
@@ -1518,33 +1517,13 @@ function initialSetup() {
 						data[i].cloudClientId = cloudClientId;
 						devices.push(data[i]);
 
-						let busId_preview = null;
-						let busId_program = null;
-
-						for (let i = 0; i < bus_options.length; i++) {
-							switch(bus_options[i].type) {
-								case 'preview':
-									busId_preview = bus_options[i].id;
-									break;
-								case 'program':
-									busId_program = bus_options[i].id;
-									break;
-								default:
-									break;
-							}
+						for (let j = 0; j < bus_options.length; j++) {
+							let deviceStateObj = {};
+							deviceStateObj.deviceId = data[i].id;
+							deviceStateObj.busId = bus_options[j].id;
+							deviceStateObj.sources = [];
+							device_states.push(deviceStateObj);
 						}
-
-						let deviceStateObj_preview = {};
-						deviceStateObj_preview.deviceId = data[i].id;
-						deviceStateObj_preview.busId = busId_preview;
-						deviceStateObj_preview.sources = [];
-						device_states.push(deviceStateObj_preview);
-
-						let deviceStateObj_program = {};
-						deviceStateObj_program.deviceId = data[i].id;
-						deviceStateObj_program.busId = busId_program;
-						deviceStateObj_program.sources = [];
-						device_states.push(deviceStateObj_program);
 					}
 				}
 
@@ -1695,17 +1674,32 @@ function initialSetup() {
 			StartConnection(sourceId);
 		});
 
-		socket.on('device_sources_link', function(deviceId, bus, choice) {
+		socket.on('device_sources_link', function(deviceId, busId, choice) {
 			for (let i = 0; i < devices.length; i++) {
 				if (devices[i].id === deviceId) {
-					switch(bus) {
-						case 'preview':
-							devices[i].linkedPreview = choice;
+					let found = false;
+					let busIndex = null;
+					for (let j = 0; j < devices[i].linkedBusses.length; j++) {
+						if (devices[i].linkedBusses[j] === busId) {
+							found = true;
+							if (!choice) {
+								//no longer linked, need to remove it
+								busIndex = j;
+							}
 							break;
-						case 'program':
-							devices[i].linkedProgram = choice;
-							break;
+						}
 					}
+
+					if (!found) {
+						//add it
+						devices[i].linkedBusses.push(busId);
+					}
+
+					if (busIndex !== null) {
+						//splice it
+						devices[i].linkedBusses.splice(busIndex, 1);
+					}
+
 					SaveConfig();
 					socket.emit('devices', devices);
 					break;
@@ -2313,36 +2307,12 @@ function getConfigRedacted() {
 function initializeDeviceStates() { // initializes each device state in the array upon server startup
 	logger('Initializing Device States.', 'info-quiet');
 
-	let busId_preview = null;
-	let busId_program = null;
-
 	for (let i = 0; i < bus_options.length; i++) {
-		switch(bus_options[i].type) {
-			case 'preview':
-				busId_preview = bus_options[i].id;
-				break;
-			case 'program':
-				busId_program = bus_options[i].id;
-				break;
-			default:
-				break;
-		}
-	}
-
-	for (let i = 0; i < devices.length; i++) {
-		let deviceStateObj_preview = {};
-		deviceStateObj_preview.deviceId = devices[i].id;
-		deviceStateObj_preview.busId = busId_preview;
-		deviceStateObj_preview.sources = [];
-		deviceStateObj_preview.linkedSources = [];
-		device_states.push(deviceStateObj_preview);
-
-		let deviceStateObj_program = {};
-		deviceStateObj_program.deviceId = devices[i].id;
-		deviceStateObj_program.busId = busId_program;
-		deviceStateObj_program.sources = [];
-		deviceStateObj_program.linkedSources = [];
-		device_states.push(deviceStateObj_program);
+		let deviceStateObj = {};
+		deviceStateObj.deviceId = deviceObj.id;
+		deviceStateObj.busId = bus_options[i].id;
+		deviceStateObj.sources = [];
+		device_states.push(deviceStateObj);
 	}
 
 	logger('Device States Initialized.', 'info-quiet');
@@ -2721,7 +2691,9 @@ function processTSL5Tally(sourceId, data) {
 
 		let newTallyObj = {};
 		newTallyObj.tally1 = inPreview;
+		newTallyObj.preview = inPreview;
 		newTallyObj.tally2 = inProgram;
+		ewTallyObj.program = inProgram;
 		newTallyObj.address = tallyobj.INDEX[0];
 		newTallyObj.label = tallyobj.TEXT.join('').trim();
 
@@ -2823,13 +2795,14 @@ function processATEMTally(sourceId, allPrograms, allPreviews) {
 	//if only pgm, build an object of only pgm
 
 	if (cutBussMode === 'on') {
-		console.log('Cut buss on');
 		for (let i = 0; i < allPrograms.length; i++) {
 			let tallyObj = {};
 			tallyObj.address = allPrograms[i];
 			tallyObj.brightness = 1;
 			tallyObj.tally1 = 0;
+			tallyObj.preview = 0;
 			tallyObj.tally2 = 1;
+			tallyObj.program = 1;
 			tallyObj.tally3 = 0;
 			tallyObj.tally4 = 0;
 			tallyObj.label = `Source ${allPrograms[i]}`;
@@ -2846,7 +2819,9 @@ function processATEMTally(sourceId, allPrograms, allPreviews) {
 			tallyObj.address = allPrograms[i];
 			tallyObj.brightness = 1;
 			tallyObj.tally1 = (includePreview ? 1 : 0);
+			tallyObj.preview = (includePreview ? 1 : 0);
 			tallyObj.tally2 = 1;
+			tallyObj.program = 1;
 			tallyObj.tally3 = 0;
 			tallyObj.tally4 = 0;
 			tallyObj.label = `Source ${allPrograms[i]}`;
@@ -2870,7 +2845,9 @@ function processATEMTally(sourceId, allPrograms, allPreviews) {
 				tallyObj.address = allPreviews[i];
 				tallyObj.brightness = 1;
 				tallyObj.tally1 = 0;
+				tallyObj.preview = 0;
 				tallyObj.tally2 = 0;
+				tallyObj.program = 0;
 				tallyObj.tally3 = 0;
 				tallyObj.tally4 = 0;
 				tallyObj.label = `Source ${allPreviews[i]}`;
@@ -2890,7 +2867,9 @@ function processATEMTally(sourceId, allPrograms, allPreviews) {
 				tallyObj.address = allPreviews[i];
 				tallyObj.brightness = 1;
 				tallyObj.tally1 = 1;
+				tallyObj.preview = 1;
 				tallyObj.tally2 = 0;
+				tallyObj.program = 0;
 				tallyObj.tally3 = 0;
 				tallyObj.tally4 = 0;
 				tallyObj.label = `Source ${allPreviews[i]}`;
@@ -2921,7 +2900,9 @@ function processATEMTally(sourceId, allPrograms, allPreviews) {
 			tallyObj.address = device_sources_atem[i].address;
 			tallyObj.brightness = 1;
 			tallyObj.tally1 = 0;
+			tallyObj.preview = 0;
 			tallyObj.tally2 = 0;
+			tallyObj.program = 0;
 			tallyObj.tally3 = 0;
 			tallyObj.tally4 = 0;
 			tallyObj.label = `Source ${device_sources_atem[i].address}`;
@@ -3159,7 +3140,9 @@ function updateVideoHubDestination(sourceId, destination, src) {
 		if (tallydata_VideoHub[i].sourceId === sourceId) {
 			if (tallydata_VideoHub[i].address === src) {
 				tallydata_VideoHub[i].tally1 = (inPreview ? 1 : 0);
-				tallydata_VideoHub[i].tally2 = (inProgram ? 1 : 0);	
+				tallydata_VideoHub[i].preview = (inPreview ? 1 : 0);
+				tallydata_VideoHub[i].tally2 = (inProgram ? 1 : 0);
+				tallydata_VideoHub[i].program = (inProgram ? 1 : 0);
 				processTSLTally(sourceId, tallydata_VideoHub[i]);
 			}
 		}
@@ -3185,7 +3168,9 @@ function updateVideoHubDestination(sourceId, destination, src) {
 			if (tallydata_VideoHub[j].sourceId === sourceId) {
 				if (tallydata_VideoHub[j].address === recheck_sources[i]) {
 					tallydata_VideoHub[j].tally1 = (inPreview ? 1 : 0);
-					tallydata_VideoHub[j].tally2 = (inProgram ? 1 : 0);	
+					tallydata_VideoHub[j].preview = (inPreview ? 1 : 0);
+					tallydata_VideoHub[j].tally2 = (inProgram ? 1 : 0);
+					tallydata_VideoHub[j].program = (inProgram ? 1 : 0);
 					processTSLTally(sourceId, tallydata_VideoHub[j]);
 				}
 			}
@@ -3440,9 +3425,11 @@ function processOBSTally(sourceId, sourceArray, tallyType) {
 					switch(tallyType) {
 						case 'preview':
 							tallydata_OBS[i].tally1 = ((sourceArray[j].render) ? 1 : 0);
+							tallydata_OBS[i].preview = ((sourceArray[j].render) ? 1 : 0);
 							break;
 						case 'program':
 							tallydata_OBS[i].tally2 = ((sourceArray[j].render) ? 1 : 0);
+							tallydata_OBS[i].program = ((sourceArray[j].render) ? 1 : 0);
 							break;
 						default:
 							break;
@@ -3459,9 +3446,11 @@ function processOBSTally(sourceId, sourceArray, tallyType) {
 				switch(tallyType) {
 					case 'preview':
 						tallydata_OBS[i].tally1 = 0;
+						tallydata_OBS[i].preview = 0;
 						break;
 					case 'program':
 						tallydata_OBS[i].tally2 = 0;
+						tallydata_OBS[i].program = 0;
 						break;
 					default:
 						break;
@@ -3541,7 +3530,9 @@ function SetUpVMixServer(sourceId) {
 							tallyObj.address = address.toString();
 							tallyObj.brightness = 1;
 							tallyObj.tally1 = ((value === '2') ? 1 : 0);
+							tallyObj.preview = ((value === '2') ? 1 : 0);
 							tallyObj.tally2 = ((value === '1') ? 1 : 0);
+							tallyObj.program = ((value === '1') ? 1 : 0);
 							tallyObj.tally3 = 0;
 							tallyObj.tally4 = 0;
 							tallyObj.label = `Input ${address}`;
@@ -3561,7 +3552,9 @@ function SetUpVMixServer(sourceId) {
 							tallyObj.address = '{{RECORDING}}';
 							tallyObj.brightness = 1;
 							tallyObj.tally1 = 0;
+							tallyObj.preview = 0;
 							tallyObj.tally2 = value;
+							tallyObj.program = value;
 							tallyObj.tally3 = 0;
 							tallyObj.tally4 = 0;
 							tallyObj.label = `Recording: ${value}`;
@@ -3578,7 +3571,9 @@ function SetUpVMixServer(sourceId) {
 							tallyObj.address = '{{STREAMING}}';
 							tallyObj.brightness = 1;
 							tallyObj.tally1 = 0;
+							tallyObj.preview = 0;
 							tallyObj.tally2 = value;
+							tallyObj.program = value;
 							tallyObj.tally3 = 0;
 							tallyObj.tally4 = 0;
 							tallyObj.label = `Streaming: ${value}`;
@@ -3765,7 +3760,8 @@ function SetUpPanasonicServer(sourceId) {
 											if (old_input != undefined) {
 												if (old_input.tally2 != undefined) {
 													if (old_input.address != String(address)) {
-														old_input.tally2 = 0;												
+														old_input.tally2 = 0;
+														old_input.program = 0;											
 													}
 												}	
 											}
@@ -3776,6 +3772,7 @@ function SetUpPanasonicServer(sourceId) {
 												if (input.tally2 != undefined) {
 													if (input.tally2 != 1) {
 														input.tally2 = 1;
+														input.program = 1;
 														change = true;
 													} else {
 														change = false;	
@@ -3789,7 +3786,8 @@ function SetUpPanasonicServer(sourceId) {
 											if (old_input != undefined) {
 												if (old_input.tally1 != undefined) {
 													if (old_input.address != String(address)) {
-														old_input.tally1 = 0;												
+														old_input.tally1 = 0;
+														old_input.preview = 0;											
 													}
 												}	
 											}
@@ -3800,6 +3798,7 @@ function SetUpPanasonicServer(sourceId) {
 												if (input.tally1 != undefined) {
 													if (input.tally1 != 1) {
 														input.tally1 = 1;
+														input.preview = 1;
 														change = true;
 													} else {
 														change = false;	
@@ -3998,21 +3997,29 @@ function checkRolandStatus(sourceId) {
 				tallyObj.tally3 = 0;
 				tallyObj.tally2 = 0;
 				tallyObj.tally1 = 0;
+				tallyObj.preview = 0;
+				tallyObj.program = 0;
 
 				switch(response.data)
 				{
 					case "onair":
 						tallyObj.tally2 = 1;
+						tallyObj.program = 1;
 						tallyObj.tally1 = 0;
+						tallyObj.preview = 0;
 						break;
 					case "selected":
 						tallyObj.tally2 = 0;
+						tallyObj.program = 0;
 						tallyObj.tally1 = 1;
+						tallyObj.preview = 1;
 						break;
 					case "unselected":
 					default:
 						tallyObj.tally2 = 0;
+						tallyObj.program = 0;
 						tallyObj.tally1 = 0;
+						tallyObj.preview = 1;
 						break;
 				}
 				processTSLTally(sourceId, tallyObj);
@@ -4087,7 +4094,9 @@ function SetUpRolandVR(sourceId) {
 								tallyObj.address = j;
 								tallyObj.label = j;
 								tallyObj.tally1 = 0;
+								tallyObj.preview = 0;
 								tallyObj.tally2 = 0;
+								tallyObj.program = 0;
 								processTSLTally(sourceId, tallyObj);
 							}
 							//now enter the new PGM value based on the received data
@@ -4114,7 +4123,9 @@ function SetUpRolandVR(sourceId) {
 									break;
 							}
 							tallyObj.tally1 = 0;
+							tallyObj.preview = 0;
 							tallyObj.tally2 = 1;
+							tallyObj.program = 1;
 							processTSLTally(sourceId, tallyObj);
 						}
 					}
@@ -4378,7 +4389,9 @@ function updateRossCarboniteTallyData(sourceId, address) {
 				let newTallyObj = {};
 				newTallyObj.address = address;
 				newTallyObj.tally1 = (inPreview ? 1 : 0);
+				newTallyObj.preview = (inPreview ? 1 : 0);
 				newTallyObj.tally2 = (inProgram ? 1 : 0);
+				newTallyObj.program = (inProgram ? 1 : 0);
 				CheckDeviceState(device_sources[i].deviceId, sourceId, newTallyObj);
 			}
 		}
@@ -4472,23 +4485,31 @@ function SetUpOSCServer(sourceId) {
 					switch(oscMsg.address) {
 						case '/tally/preview_on':
 							tallyObj.tally1 = 1;
+							tallyObj.preview = 1;
 							break;
 						case '/tally/preview_off':
 							tallyObj.tally1 = 0;
+							tallyObj.preview = 0;
 							break;
 						case '/tally/program_on':
 							tallyObj.tally2 = 1;
+							tallyObj.program = 1;
 							break;
 						case '/tally/program_off':
 							tallyObj.tally2 = 0;
+							tallyObj.program = 0;
 							break;
 						case '/tally/previewprogram_off':
 							tallyObj.tally1 = 0;
+							tallyObj.preview = 0;
 							tallyObj.tally2 = 0;
+							tallyObj.program = 0;
 							break;
 						case '/tally/previewprogram_on':
 							tallyObj.tally1 = 1;
+							tallyObj.preview = 1;
 							tallyObj.tally2 = 1;
+							tallyObj.program = 1;
 							break;
 						default:
 							break;
@@ -4662,6 +4683,8 @@ function processTricasterTally(sourceId, sourceArray, tallyType) {
 			tricasterTallyObj.tally3 = 0;
 			tricasterTallyObj.tally2 = 0; // PGM
 			tricasterTallyObj.tally1 = 0; // PVW
+			tricasterTallyObj.preview = 0;
+			tricasterTallyObj.program = 0;
 			tallydata_TC.push(tricasterTallyObj);
 		}
 	}
@@ -4676,9 +4699,11 @@ function processTricasterTally(sourceId, sourceArray, tallyType) {
 					switch(tallyType) {
 						case 'preview_tally':
 							tallydata_TC[i].tally1 = 1;
+							tallydata_TC[i].preview = 1;
 							break;
 						case 'program_tally':
 							tallydata_TC[i].tally2 = 1;
+							tallydata_TC[i].program = 1;
 							break;
 						default:
 							break;
@@ -4694,9 +4719,11 @@ function processTricasterTally(sourceId, sourceArray, tallyType) {
 			switch(tallyType) {
 				case 'preview_tally':
 					tallydata_TC[i].tally1 = 0;
+					tallydata_TC[i].preview = 0;
 					break;
 				case 'program_tally':
 					tallydata_TC[i].tally2 = 0;
+					tallydata_TC[i].program = 0;
 					break;
 				default:
 					break;
@@ -4805,6 +4832,7 @@ function SetUpAWLivecoreServer(sourceId) {
 						let tallyObj = {};
 						tallyObj.address = address.toString();
 						tallyObj.tally2 = ((value === '1') ? 1 : 0); // Program
+						tallyObj.program = ((value === '1') ? 1 : 0); // Program
 						tallyObj.label = `Input ${address}`;
 						processAWLivecoreTally(sourceId, tallyObj);
 					}
@@ -4818,6 +4846,7 @@ function SetUpAWLivecoreServer(sourceId) {
 						let tallyObj = {};
 						tallyObj.address = address.toString();
 						tallyObj.tally1 = ((value === '1') ? 1 : 0); // Preview
+						tallyObj.preview = ((value === '1') ? 1 : 0); // Preview
 						tallyObj.label = `Input ${address}`;
 						processAWLivecoreTally(sourceId, tallyObj);
 					}
@@ -4965,6 +4994,8 @@ function processAWLivecoreTally(sourceId, tallyObj) {
 		newTallyObj.tally3 = 0;
 		newTallyObj.tally2 = 0; // PGM
 		newTallyObj.tally1 = 0; // PVW
+		newTallyObj.preview = 0;
+		newTallyObj.program = 0;
 		tallydata_AWLivecore.push(newTallyObj);
 	}
 
@@ -4973,14 +5004,17 @@ function processAWLivecoreTally(sourceId, tallyObj) {
 			if (tallydata_AWLivecore[i].address === tallyObj.address) {
 				if(tallyObj.tally1 !== undefined) { // PVW
 					tallydata_AWLivecore[i].tally1 = tallyObj.tally1;
+					tallydata_AWLivecore[i].preview = tallyObj.tally1;
 				}
 				if(tallyObj.tally2 !== undefined) { // PGM
 					tallydata_AWLivecore[i].tally2 = tallyObj.tally2;
+					tallydata_AWLivecore[i].program = tallyObj.tally2;
 				}
 
 				let processedTallyObj =  Object.assign({}, tallydata_AWLivecore[i]);
 				if(processedTallyObj.tally2 === 1) { // PGM
 					processedTallyObj.tally1 = 0;
+					processedTallyObj.preview = 0;
 				}
 
 				processTSLTally(sourceId, processedTallyObj);
@@ -5028,22 +5062,6 @@ function RenameDevice(deviceId, name) {
 }
 
 function CheckDeviceState(deviceId, sourceId, tallyObj) {
-	let busId_preview = null;
-	let busId_program = null;
-
-	for (let i = 0; i < bus_options.length; i++) {
-		switch(bus_options[i].type) {
-			case 'preview':
-				busId_preview = bus_options[i].id;
-				break;
-			case 'program':
-				busId_program = bus_options[i].id;
-				break;
-			default:
-				break;
-		}
-	}
-
 	if (deviceId !== null) {
 		//do something with the device given the current state
 		let device = GetDeviceByDeviceId(deviceId);
@@ -5054,127 +5072,68 @@ function CheckDeviceState(deviceId, sourceId, tallyObj) {
 			}
 
 			if (device_states[i].deviceId === deviceId) {
-				if (device_states[i].busId === busId_preview) {
-					if (device.linkedPreview) {
-						//the preview bus is linked across device sources, so add this tally information to the linkedSources array
-						let sourceAddressFound = false;
-						for (let j = 0; j < device_states[i].linkedSources.length; j++) {
-							if (device_states[i].linkedSources[j].sourceId === sourceId) {
-								if (device_states[i].linkedSources[j].address === tallyObj.address) {
-									sourceAddressFound = true;
-									if (!tallyObj.tally1) {
-										device_states[i].linkedSources.splice(j, 1);
+				for (let k = 0; k < bus_options.length; k++) {
+					if (device_states[i].busId === bus_options[k].id) {
+						if (device.linkedBusses.includes(bus_options[k].id)) {
+							//the bus is linked across device sources, so add this tally information to the linkedSources array
+							let sourceAddressFound = false;
+							for (let j = 0; j < device_states[i].linkedSources.length; j++) {
+								if (device_states[i].linkedSources[j].sourceId === sourceId) {
+									if (device_states[i].linkedSources[j].address === tallyObj.address) {
+										sourceAddressFound = true;
+										if (!tallyObj[bus_options[k].type]) {
+											device_states[i].linkedSources.splice(j, 1);
+										}
 									}
 								}
 							}
-						}
-	
-						if (!sourceAddressFound) {
-							if (tallyObj.tally1) {
-								//add it, it's not already in preview on this source and address
-								let sourceObj = {};
-								sourceObj.sourceId = sourceId;
-								sourceObj.address = tallyObj.address;
-								device_states[i].linkedSources.push(sourceObj);
+		
+							if (!sourceAddressFound) {
+								if (tallyObj[bus_options[k].type]) {
+									//add it, it's not already in this bus on this source and address
+									let sourceObj = {};
+									sourceObj.sourceId = sourceId;
+									sourceObj.address = tallyObj.address;
+									device_states[i].linkedSources.push(sourceObj);
+								}
 							}
-						}
-
-						//now check and see if linkedSources should be pushed to sources
-						let devSources = GetDeviceSourcesByDeviceId(deviceId);
-						let sourcesLength = devSources.length;
-						let linkedSourcesLength = device_states[i].linkedSources.length;
-
-						if (sourcesLength === linkedSourcesLength) { //all source mappings are in this bus, so copy them over to the actual sources array now for processing
-							device_states[i].sources = device_states[i].linkedSources;
+	
+							//now check and see if linkedSources should be pushed to sources
+							let devSources = GetDeviceSourcesByDeviceId(deviceId);
+							let sourcesLength = devSources.length;
+							let linkedSourcesLength = device_states[i].linkedSources.length;
+	
+							if (sourcesLength === linkedSourcesLength) { //all source mappings are in this bus, so copy them over to the actual sources array now for processing
+								device_states[i].sources = device_states[i].linkedSources;
+							}
+							else {
+								device_states[i].sources = [];
+							}
 						}
 						else {
-							device_states[i].sources = [];
-						}
-					}
-					else {
-						let sourceAddressFound = false;
-						for (let j = 0; j < device_states[i].sources.length; j++) {
-							if (device_states[i].sources[j].sourceId === sourceId) {
-								if (device_states[i].sources[j].address === tallyObj.address) {
-									sourceAddressFound = true;
-									if (!tallyObj.tally1) {
-										device_states[i].sources.splice(j, 1);
+							let sourceAddressFound = false;
+							for (let j = 0; j < device_states[i].sources.length; j++) {
+								if (device_states[i].sources[j].sourceId === sourceId) {
+									if (device_states[i].sources[j].address === tallyObj.address) {
+										sourceAddressFound = true;
+										if (!tallyObj[bus_options[k].type]) {
+											device_states[i].sources.splice(j, 1);
+										}
 									}
 								}
 							}
-						}
-	
-						if (!sourceAddressFound) {
-							if (tallyObj.tally1) {
-								//add it, it's not already in preview on this source and address
-								let sourceObj = {};
-								sourceObj.sourceId = sourceId;
-								sourceObj.address = tallyObj.address;
-								device_states[i].sources.push(sourceObj);
-							}
-						}
-					}
-				}
-
-				if (device_states[i].busId === busId_program) {
-					if (device.linkedProgram) {
-						//the program bus is linked across device sources, so add this tally information to the linkedSources array
-						let sourceAddressFound = false;
-						for (let j = 0; j < device_states[i].linkedSources.length; j++) {
-							if (device_states[i].linkedSources[j].sourceId === sourceId) {
-								if (device_states[i].linkedSources[j].address === tallyObj.address) {
-									sourceAddressFound = true;
-									if (!tallyObj.tally2) {
-										device_states[i].linkedSources.splice(j, 1);
-									}
+		
+							if (!sourceAddressFound) {
+								if (tallyObj[bus_options[k].type]) {
+									//add it, it's not already in preview on this source and address
+									let sourceObj = {};
+									sourceObj.sourceId = sourceId;
+									sourceObj.address = tallyObj.address;
+									device_states[i].sources.push(sourceObj);
 								}
 							}
 						}
-	
-						if (!sourceAddressFound) {
-							if (tallyObj.tally2) {
-								//add it, it's not already in preview on this source and address
-								let sourceObj = {};
-								sourceObj.sourceId = sourceId;
-								sourceObj.address = tallyObj.address;
-								device_states[i].linkedSources.push(sourceObj);
-							}
-						}
-
-						//now check and see if linkedSources should be pushed to sources
-						let devSources = GetDeviceSourcesByDeviceId(deviceId);
-						let sourcesLength = devSources.length;
-						let linkedSourcesLength = device_states[i].linkedSources.length;
-
-						if (sourcesLength === linkedSourcesLength) { //all source mappings are in this bus, so copy them over to the actual sources array now for processing
-							device_states[i].sources = device_states[i].linkedSources;
-						}
-						else {
-							device_states[i].sources = [];
-						}
-					}
-					else {
-						let sourceAddressFound = false;
-						for (let j = 0; j < device_states[i].sources.length; j++) {
-							if (device_states[i].sources[j].sourceId === sourceId) {
-								if (device_states[i].sources[j].address === tallyObj.address) {
-									sourceAddressFound = true;
-									if (!tallyObj.tally2) {
-										device_states[i].sources.splice(j, 1);
-									}
-								}
-							}
-						}
-
-						if (!sourceAddressFound) {
-							if (tallyObj.tally2) {
-								//add it, it's not already in preview on this source and address
-								let sourceObj = {};
-								sourceObj.sourceId = sourceId;
-								sourceObj.address = tallyObj.address;
-								device_states[i].sources.push(sourceObj);
-							}
-						}
+						break;
 					}
 				}
 			}
@@ -5189,97 +5148,49 @@ function CheckDeviceState(deviceId, sourceId, tallyObj) {
 }
 
 function UpdateDeviceState(deviceId) {
-	let busId_preview = null;
-	let busId_program = null;
-
-	for (let i = 0; i < bus_options.length; i++) {
-		switch(bus_options[i].type) {
-			case 'preview':
-				busId_preview = bus_options[i].id;
-				break;
-			case 'program':
-				busId_program = bus_options[i].id;
-				break;
-			default:
-				break;
-		}
-	}
-
 	let device = GetDeviceByDeviceId(deviceId);
 	let deviceSources = GetDeviceSourcesByDeviceId(deviceId);
 
 	for (let i = 0; i < device_states.length; i++) {
 		if (device_states[i].deviceId === deviceId) {
-			if (device_states[i].busId === busId_preview) {
-				if ((device_states[i].sources.length > 0) && (!device_states[i].active)) {
-					//if the sources list is now greater than zero and the state is not already marked active for this device, run the action and make it active
-					//but first check if the device sources are linked; if they are, make sure all device sources are in this bus
-					if (device.linkedPreview) {
-						//check
-						if (device_states[i].linkedSources.length === deviceSources.length) {
-							//if the lengths are the same, then the device states match the device source mappings
+			//loop through all bus options first
+			for (let j = 0; j < bus_options.length; j++) {
+				if (device_states[i].busId === bus_options[j].id) {
+					if ((device_states[i].sources.length > 0) && (!device_states[i].active)) {
+						//if the sources list is now greater than zero and the state is not already marked active for this device, run the action and make it active
+						//but first check if the device sources are linked; if they are, make sure all device sources are in this bus
+						if (device.linkedBusses.includes(bus_options[j].id)) {
+							//check
+							if (device_states[i].linkedSources.length === deviceSources.length) {
+								//if the lengths are the same, then the device states match the device source mappings
+								RunAction(deviceId, device_states[i].busId, true);
+								device_states[i].active = true;
+							}
+						}
+						else {
+							//not linked, so run the action
 							RunAction(deviceId, device_states[i].busId, true);
 							device_states[i].active = true;
 						}
 					}
-					else {
-						//not linked, so run the action
-						RunAction(deviceId, device_states[i].busId, true);
-						device_states[i].active = true;
-					}
-				}
-				else if ((device_states[i].sources.length < 1) && (device_states[i].active)) {
-					//if the source list is now zero and the state is marked active, run the action and make it inactive
-					//but first check if the device sources are linked; if they are, make sure all device sources are in this bus
-					if (device.linkedPreview) {
-						//check
-						if (device_states[i].linkedSources.length === deviceSources.length) {
-							//if the lengths are the same, then the device states match the device source mappings
+					else if ((device_states[i].sources.length < 1) && (device_states[i].active)) {
+						//if the source list is now zero and the state is marked active, run the action and make it inactive
+						//but first check if the device sources are linked; if they are, make sure all device sources are in this bus
+						if (device.linkedBusses.includes(bus_options[j].id)) {
+							//check
+							if (device_states[i].linkedSources.length === deviceSources.length) {
+								//if the lengths are the same, then the device states match the device source mappings
+								RunAction(deviceId, device_states[i].busId, false);
+								device_states[i].active = false;	
+							}
+						}
+						else {
+							//not linked, so run the action
 							RunAction(deviceId, device_states[i].busId, false);
-							device_states[i].active = false;	
+							device_states[i].active = false;
 						}
 					}
-					else {
-						//not linked, so run the action
-						RunAction(deviceId, device_states[i].busId, false);
-						device_states[i].active = false;
-					}
-				}
-			}
-			else if (device_states[i].busId === busId_program) {
-				if ((device_states[i].sources.length > 0) && (!device_states[i].active)) {
-					//if the sources list is now greater than zero and the state is not already marked active for this device, run the action and make it active
-					//but first check if the device sources are linked; if they are, make sure all device sources are in this bus
-					if (device.linkedProgram) {
-						//check
-						if (device_states[i].linkedSources.length === deviceSources.length) {
-							//if the lengths are the same, then the device states match the device source mappings
-							RunAction(deviceId, device_states[i].busId, true);
-							device_states[i].active = true;
-						}
-					}
-					else {
-						//not linked, so run the action
-						RunAction(deviceId, device_states[i].busId, true);
-						device_states[i].active = true;
-					}
-				}
-				else if ((device_states[i].sources.length < 1) && (device_states[i].active)) {
-					//if the source list is now zero and the state is marked active, run the action and make it inactive
-					//but first check if the device sources are linked; if they are, make sure all device sources are in this bus
-					if (device.linkedProgram) {
-						//check
-						if (device_states[i].linkedSources.length === deviceSources.length) {
-							//if the lengths are the same, then the device states match the device source mappings
-							RunAction(deviceId, device_states[i].busId, false);
-							device_states[i].active = false;	
-						}
-					}
-					else {
-						//not linked, so run the action
-						RunAction(deviceId, device_states[i].busId, false);
-						device_states[i].active = false;
-					}
+					break;
 				}
 			}
 		}
@@ -5950,6 +5861,7 @@ function SendTSLClientData(deviceId) {
 					mode_program = false;
 				}
 			}
+			//could add support for other states here like tally3, tally4, whatever the TSL protocol supports
 		}
 
 		let data = {};
@@ -6286,7 +6198,6 @@ function UpdateVMixClients() {
 
 	let busId_preview = null;
 	let busId_program = null;
-	//let busId_previewprogram = null;
 
 	for (let i = 0; i < bus_options.length; i++) {
 		switch(bus_options[i].type) {
@@ -6443,33 +6354,13 @@ function TallyArbiter_Add_Device(obj) {
 
 	UpdateCloud('devices');
 
-	let busId_preview = null;
-	let busId_program = null;
-
 	for (let i = 0; i < bus_options.length; i++) {
-		switch(bus_options[i].type) {
-			case 'preview':
-				busId_preview = bus_options[i].id;
-				break;
-			case 'program':
-				busId_program = bus_options[i].id;
-				break;
-			default:
-				break;
-		}
+		let deviceStateObj = {};
+		deviceStateObj.deviceId = deviceObj.id;
+		deviceStateObj.busId = bus_options[i].id;
+		deviceStateObj.sources = [];
+		device_states.push(deviceStateObj);
 	}
-
-	let deviceStateObj_preview = {};
-	deviceStateObj_preview.deviceId = deviceObj.id;
-	deviceStateObj_preview.busId = busId_preview;
-	deviceStateObj_preview.sources = [];
-	device_states.push(deviceStateObj_preview);
-
-	let deviceStateObj_program = {};
-	deviceStateObj_program.deviceId = deviceObj.id;
-	deviceStateObj_program.busId = busId_program;
-	deviceStateObj_program.sources = [];
-	device_states.push(deviceStateObj_program);
 
 	SendTSLClientData(deviceObj.id);
 
