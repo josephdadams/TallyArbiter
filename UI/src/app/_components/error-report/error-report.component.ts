@@ -72,7 +72,7 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-  generateBugReportUrlParams(bugTitle: string, version: string, config: object, logs: string, stacktrace: string, runningRecursive: boolean = false): string {
+  generateBugReportUrlParams(bugTitle: string, version: string, config: any, logs: string, stacktrace: string, runningRecursive: boolean = false): string {
     
     //https://medium.com/@DylanAttal/truncate-a-string-in-javascript-41f33171d5a8
     function truncateString(str: string, num: number) {
@@ -93,6 +93,14 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
         logs_split.splice(0,logs_split.length-5);
         logs = logs_split.join('\n');
       }
+      delete config.tsl_clients;
+      delete config.tsl_clients_1secupdate;
+      delete config.cloud_destinations;
+      delete config.cloud_keys;
+      bugReportUrl = this.generateBugReportUrlParams(bugTitle, version, config, logs, stacktrace, true);
+    }
+    if(bugReportUrl.length > 8140 && runningRecursive) {
+      config = {error: "config redacted since the issue url was too long"};
       bugReportUrl = this.generateBugReportUrlParams(bugTitle, version, config, logs, stacktrace, true);
     }
     return bugReportUrl;
