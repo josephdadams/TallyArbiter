@@ -67,24 +67,24 @@ var Logs = []; //Used for loading logs in settings page
 var tallyDataFilePath = getTallyDataPath();
 
 const serverLoggerLevels = {
-  levels: {
-    critical: 0,
-    error: 2,
-    warning: 3,
-    console_action: 4,
-    info: 5,
-    'info-quiet': 6,
-    debug: 7
-  },
-  colors: {
-    critical: 'red',
-    error: 'red',
-    warning: 'yellow',
-    console_action: 'green',
-    info: 'white',
-    'info-quiet': 'white',
-    debug: 'blue'
-  }
+	levels: {
+	    critical: 0,
+	    error: 2,
+	    warning: 3,
+		console_action: 4,
+		info: 5,
+	    'info-quiet': 6,
+	    debug: 7
+	},
+	colors: {
+		critical: 'red',
+	    error: 'red',
+	    warning: 'yellow',
+		console_action: 'green',
+		info: 'white',
+	    'info-quiet': 'white',
+	    debug: 'blue'
+	}
 };
 winston.addColors(serverLoggerLevels.colors);
 let serverLoggerFormat = printf(({ timestamp, level, message }) => {
@@ -119,7 +119,7 @@ winston.loggers.add('server', {
 });
 
 let tallyLoggerFormat = printf((info) => {
-    return `${info.message}`;
+    return JSON.stringify({timestamp: Date.now(), tally: JSON.parse(info.message)});
 });
 winston.loggers.add('tally', {
 	format: tallyLoggerFormat,
@@ -2102,7 +2102,7 @@ function logger(log, type = "info-quiet") { //logs the item to the console, to t
 }
 
 function writeTallyDataFile(log) {
-	tallyLogger.info(JSON.stringify(log) + ',');
+	tallyLogger.info(JSON.stringify(log));
 }
 
 function loadConfig() { // loads the JSON data from the config file to memory
