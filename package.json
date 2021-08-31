@@ -54,6 +54,7 @@
 		"esm": "^3.2.25",
 		"express": "^4.17.1",
 		"find-remove": "^3.1.0",
+		"fs-extra": "^10.0.0",
 		"jquery": "^3.6.0",
 		"jspack": "^0.0.4",
 		"obs-websocket-js": "^4.0.2",

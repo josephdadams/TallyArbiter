@@ -31,6 +31,14 @@ export class ErrorReportsListComponent implements OnInit {
     this.router.navigate(["/", "errors", id.target.value]);
   }
 
+  public markErrorReportsAsReaded() {
+    this.socketService.socket.emit('mark_error_reports_as_read');
+  }
+
+  public deleteEveryErrorReport() {
+    this.socketService.socket.emit('delete_every_error_report');
+  }
+
   ngOnInit(): void {
   }
 
