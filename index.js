@@ -31,11 +31,40 @@ const findRemoveSync            = require('find-remove');
 const winston = require('winston');
 const { combine, printf } = winston.format;
 
+function getLogFilePath() {
+
+	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
+
+	const logFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/logs");
+
+	findRemoveSync(logFolder, {age: {seconds: 604800}, extensions: '.talog', limit: 100});
+
+	if (!fs.existsSync(logFolder)) {
+		fs.mkdirSync(logFolder, { recursive: true });
+	}
+	var logName = today + ".talog"
+	return path.join(logFolder, logName);
+}
+
+function getTallyDataPath() {
+
+	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
+
+	const TallyDataFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/TallyData");
+
+	findRemoveSync(TallyDataFolder, {age: {seconds: 604800}, extensions: '.tadata', limit: 100});
+
+	if (!fs.existsSync(TallyDataFolder)) {
+		fs.mkdirSync(TallyDataFolder, { recursive: true });
+	}
+	var logName = today + ".tadata"
+	return path.join(TallyDataFolder, logName);
+}
+
 var logFilePath = getLogFilePath();
 var Logs = []; //Used for loading logs in settings page
 
 var tallyDataFilePath = getTallyDataPath();
-var tallyDataFile = fs.openSync(tallyDataFilePath, 'w'); // Setup TallyData File
 
 const serverLoggerLevels = {
 	levels: {
@@ -90,15 +119,10 @@ winston.loggers.add('server', {
 });
 
 let tallyLoggerFormat = printf((info) => {
-    return `[${info.timestamp}] ${info.message}`;
+    return `${info.message}`;
 });
 winston.loggers.add('tally', {
-	format: combine(
-		winston.format.timestamp({
-		  format: 'YYYY-MM-DD HH:mm:ss'
-		}),
-        tallyLoggerFormat
-	),
+	format: tallyLoggerFormat,
 	transports: [
 	  new winston.transports.File({
 		  filename: tallyDataFilePath,
@@ -2078,15 +2102,7 @@ function logger(log, type = "info-quiet") { //logs the item to the console, to t
 }
 
 function writeTallyDataFile(log) {
-	try {
-
-		logLine = JSON.stringify(log) + ','
-
-		fs.appendFileSync(tallyDataFile, logLine + '\n');
-	}
-	catch (error) {
-		logger(`Error saving logs to file: ${error}`, 'error');
-	}
+	tallyLogger.info(JSON.stringify(log) + ',');
 }
 
 function loadConfig() { // loads the JSON data from the config file to memory
@@ -7331,36 +7347,6 @@ function getConfigFilePath() {
 	}
 	const configName = "config.json";
 	return path.join(configFolder, configName);
-}
-
-function getLogFilePath() {
-
-	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
-
-	const logFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/logs");
-
-	findRemoveSync(logFolder, {age: {seconds: 604800}, extensions: '.talog', limit: 100});
-
-	if (!fs.existsSync(logFolder)) {
-		fs.mkdirSync(logFolder, { recursive: true });
-	}
-	var logName = today + ".talog"
-	return path.join(logFolder, logName);
-}
-
-function getTallyDataPath() {
-
-	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
-
-	const TallyDataFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/TallyData");
-
-	findRemoveSync(TallyDataFolder, {age: {seconds: 604800}, extensions: '.tadata', limit: 100});
-
-	if (!fs.existsSync(TallyDataFolder)) {
-		fs.mkdirSync(TallyDataFolder, { recursive: true });
-	}
-	var logName = today + ".tadata"
-	return path.join(TallyDataFolder, logName);
 }
 
 function getErrorReportsList() {
