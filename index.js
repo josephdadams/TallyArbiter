@@ -1719,7 +1719,6 @@ function initialSetup() {
 		})
 
 		socket.on('messaging', function(type, message) {
-			prova();
 			SendMessage(type, socket.id, message);
 		});
 
