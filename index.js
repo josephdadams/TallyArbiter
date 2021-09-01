@@ -1045,6 +1045,7 @@ function initialSetup() {
 			listenerType (string to be displayed)
 			canBeReassigned (bool)
 			canBeFlashed (bool)
+			supportsChat (bool)
 			*/
 
 			let deviceId = obj.deviceId;
@@ -1066,6 +1067,7 @@ function initialSetup() {
 			let listenerType = obj.listenerType ? obj.listenerType : 'client';
 			let canBeReassigned = obj.reassign ? obj.reassign : false;
 			let canBeFlashed = obj.flash ? obj.flash : false;
+			let supportsChat = obj.chat ? obj.chat : false;
 
 			socket.join('device-' + deviceId);
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
@@ -1073,8 +1075,15 @@ function initialSetup() {
 
 			let ipAddress = socket.request.connection.remoteAddress;
 			let datetimeConnected = new Date().getTime();
-			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed);
+			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed, supportsChat);
 			
+			if (supportsChat) {
+				socket.join('messaging');
+			}
+			else {
+				socket.leave('messaging');
+			}
+
 			socket.emit('bus_options', bus_options);
 			socket.emit('devices', devices);
 			socket.emit('device_states', GetDeviceStatesByDeviceId(deviceId));
@@ -6882,7 +6891,7 @@ function GetSmartTallyStatus(tallynumber) {
 	return return_val;
 }
 
-function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed) {
+function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetimeConnected, canBeReassigned = true, canBeFlashed = true, supportsChat = false) {
 	let clientObj = {};
 
 	clientObj.id = uuidv4();
@@ -6893,6 +6902,7 @@ function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetime
 	clientObj.datetime_connected = datetimeConnected;
 	clientObj.canBeReassigned = canBeReassigned;
 	clientObj.canBeFlashed = canBeFlashed;
+	clientObj.supportsChat = supportsChat;
 	clientObj.inactive = false;
 
 	//search through the array of existing clients, and if the deviceId, listenerType, and ipAddress are the same, it's probably the same client as before, just reconnecting
@@ -6912,6 +6922,7 @@ function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetime
 						listener_clients[i].datetime_connected = clientObj.datetime_connected;
 						listener_clients[i].canBeReassigned = clientObj.canBeReassigned;
 						listener_clients[i].canBeFlashed = clientObj.canBeFlashed;
+						listener_clients[i].supportsChat = clientObj.supportsChat;
 						clientObj.id = listener_clients[i].id;
 					}
 				}
