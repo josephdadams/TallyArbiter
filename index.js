@@ -2307,12 +2307,14 @@ function getConfigRedacted() {
 function initializeDeviceStates() { // initializes each device state in the array upon server startup
 	logger('Initializing Device States.', 'info-quiet');
 
-	for (let i = 0; i < bus_options.length; i++) {
-		let deviceStateObj = {};
-		deviceStateObj.deviceId = deviceObj.id;
-		deviceStateObj.busId = bus_options[i].id;
-		deviceStateObj.sources = [];
-		device_states.push(deviceStateObj);
+	for (let k = 0; k < devices.length; k++) {
+		for (let i = 0; i < bus_options.length; i++) {
+			let deviceStateObj = {};
+			deviceStateObj.deviceId = devices[k].id;
+			deviceStateObj.busId = bus_options[i].id;
+			deviceStateObj.sources = [];
+			device_states.push(deviceStateObj);
+		}
 	}
 
 	logger('Device States Initialized.', 'info-quiet');
