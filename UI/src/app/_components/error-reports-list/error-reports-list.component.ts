@@ -2,6 +2,8 @@ import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { SocketService } from 'src/app/_services/socket.service';
 import { ErrorReportsListElement } from 'src/app/_models/ErrorReportsListElement';
+import { NavbarVisibilityService } from 'src/app/_services/navbar-visibility.service';
+import { LocationBackService } from 'src/app/_services/locationBack.service';
 
 @Component({
   selector: 'app-error-reports-list',
@@ -15,6 +17,8 @@ export class ErrorReportsListComponent implements OnInit {
   constructor(
     private router: Router,
     public socketService: SocketService,
+    public navbarVisibilityService: NavbarVisibilityService,
+    public locationBackService: LocationBackService
   ) {
     console.log(this.socketService.errorReports);
     this.socketService.socket.on('unreaded_error_reports', (list) => {
