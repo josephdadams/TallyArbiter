@@ -1,13 +1,8 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { BusOption } from 'src/app/_models/BusOption';
+import { DeviceState } from 'src/app/_models/DeviceState';
 import { SocketService } from 'src/app/_services/socket.service';
-
-enum COLORS {
-  DARK_GREY = "#212529",
-  GREEN = "#3fe481",
-  RED = "#e43f5a",
-  YELLOW = "#ffc107",
-}
 
 @Component({
   selector: 'app-tally',
@@ -19,6 +14,11 @@ export class TallyComponent {
   public mode_preview?: boolean;
   public mode_program?: boolean;
   public programPriority = true;
+  public currentBus?: BusOption;
+  
+  public COLORS = {
+    DARK_GREY: "#212529",
+  }
   
   constructor(
     private router: Router,
@@ -44,39 +44,27 @@ export class TallyComponent {
     this.route.queryParams.subscribe((queryParams) => {
       this.programPriority = queryParams.programPriority == "false";
     });
-    this.socketService.deviceStateChanged.subscribe(({ deviceId, program, preview }:
-      { deviceId: string, program?: boolean, preview?: boolean }) => {
-      if (this.currentDeviceIdx === undefined || deviceId !== this.socketService.devices[this.currentDeviceIdx].id) {
+    this.socketService.deviceStateChanged.subscribe(({device, states}) => {
+      if (this.currentDeviceIdx === undefined || device.id !== this.socketService.devices[this.currentDeviceIdx].id) {
         return;
       }
-      if (program) {
+      const hightestPriorityBus = states.map((s) => this.socketService.busOptions.find((b) => b.id == s.busId)).reduce((a: any, b: any) => a?.priority > b?.priority ? a : b, {});
+      if (!hightestPriorityBus || Object.entries(hightestPriorityBus).length == 0) {
+        this.currentBus = undefined;
+        return;
+      }
+      if (hightestPriorityBus.id == "program") {
         window.navigator.vibrate(400);
-      } else if (preview) {
+      } else if (hightestPriorityBus.id == "preview") {
         window.navigator.vibrate([100, 30, 100, 30, 100]);
       }
-      
+      this.currentBus = hightestPriorityBus;
     });
     this.socketService.socket.on('reassign', (oldDeviceId: string, deviceId: string) => {
       //processes a reassign request that comes from the Settings GUI and relays the command so it originates from this socket
       this.socketService.socket.emit('listener_reassign', oldDeviceId, deviceId);
       this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id === deviceId);
     });
-  }
-
-  public getCurrentBackgroundColor(): string {
-    if (this.currentDeviceIdx === undefined) {
-      return COLORS.DARK_GREY;
-    }
-    if (this.socketService.devices[this.currentDeviceIdx].modeProgram) {
-      if (this.socketService.devices[this.currentDeviceIdx].modePreview && !this.programPriority) {
-        return this.socketService.busOptions.find((b) => b.type == "previewprogram")?.color || COLORS.YELLOW;
-      }
-      return this.socketService.busOptions.find((b) => b.type == "program")?.color || COLORS.RED;
-    }
-    if (this.socketService.devices[this.currentDeviceIdx].modePreview) {
-      return this.socketService.busOptions.find((b) => b.type == "preview")?.color || COLORS.GREEN;
-    }
-    return COLORS.DARK_GREY;
   }
 
   public selectDevice(id: any) {
