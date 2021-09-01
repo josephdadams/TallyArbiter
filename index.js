@@ -5085,7 +5085,7 @@ function CheckDeviceState(deviceId, sourceId, tallyObj) {
 			if (device_states[i].deviceId === deviceId) {
 				for (let k = 0; k < bus_options.length; k++) {
 					if (device_states[i].busId === bus_options[k].id) {
-						if (device.linkedBusses.includes(bus_options[k].id)) {
+						if (device.linkedBusses && device.linkedBusses.includes(bus_options[k].id)) {
 							//the bus is linked across device sources, so add this tally information to the linkedSources array
 							let sourceAddressFound = false;
 							for (let j = 0; j < device_states[i].linkedSources.length; j++) {
@@ -5170,7 +5170,7 @@ function UpdateDeviceState(deviceId) {
 					if ((device_states[i].sources.length > 0) && (!device_states[i].active)) {
 						//if the sources list is now greater than zero and the state is not already marked active for this device, run the action and make it active
 						//but first check if the device sources are linked; if they are, make sure all device sources are in this bus
-						if (device.linkedBusses.includes(bus_options[j].id)) {
+						if (device.linkedBusses && device.linkedBusses.includes(bus_options[j].id)) {
 							//check
 							if (device_states[i].linkedSources.length === deviceSources.length) {
 								//if the lengths are the same, then the device states match the device source mappings
@@ -5187,7 +5187,7 @@ function UpdateDeviceState(deviceId) {
 					else if ((device_states[i].sources.length < 1) && (device_states[i].active)) {
 						//if the source list is now zero and the state is marked active, run the action and make it inactive
 						//but first check if the device sources are linked; if they are, make sure all device sources are in this bus
-						if (device.linkedBusses.includes(bus_options[j].id)) {
+						if (device.linkedBusses && device.linkedBusses.includes(bus_options[j].id)) {
 							//check
 							if (device_states[i].linkedSources.length === deviceSources.length) {
 								//if the lengths are the same, then the device states match the device source mappings
