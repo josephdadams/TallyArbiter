@@ -226,4 +226,93 @@ describe('Settings page', () => {
       cy.get('tbody > :nth-child(2) > :nth-child(3) > .btn').click({ force: true });
     });
   });
+
+  describe('Check if "Logs" section works', ()  => {
+    it.only('Simulate logs of all types', () => {
+      cy.interceptWebsocket('logs', [
+        {
+          "datetime": "2021-09-01T10:24:40.389Z",
+          "log": "info-quiet example #1",
+          "type": "info-quiet"
+        },
+        {
+          "datetime": "2021-09-01T10:24:40.389Z",
+          "log": "info-quiet example #2",
+          "type": "info-quiet"
+        },
+        {
+          "datetime": "2021-09-01T10:24:40.389Z",
+          "log": "info example #1",
+          "type": "info"
+        },
+        {
+          "datetime": "2021-09-01T10:24:40.389Z",
+          "log": "info example #2",
+          "type": "info"
+        },
+        {
+          "datetime": "2021-09-01T10:24:40.389Z",
+          "log": "console-action example #1",
+          "type": "console-action"
+        },
+        {
+          "datetime": "2021-09-01T10:24:40.389Z",
+          "log": "console-action example #2",
+          "type": "console-action"
+        },
+        {
+          "datetime": "2021-09-01T10:24:40.389Z",
+          "log": "error example #1",
+          "type": "error"
+        },
+        {
+          "datetime": "2021-09-01T10:24:40.389Z",
+          "log": "error example #2",
+          "type": "error"
+        }
+      ]);
+      cy.login(Cypress.env("SETTINGS_USERNAME"), Cypress.env("SETTINGS_PASSWORD"));
+
+      //Check info (default selection)
+      cy.get('.form-select').should('have.value', 'info');
+      cy.get('.logs > :nth-child(1)').should('have.text', '[9/1/21 12:24 PM] info example #1');
+      cy.get('.logs > :nth-child(2)').should('have.text', '[9/1/21 12:24 PM] info example #2');
+      cy.get('.logs > :nth-child(3)').should('have.text', '[9/1/21 12:24 PM] console-action example #1');
+      cy.get('.logs > :nth-child(4)').should('have.text', '[9/1/21 12:24 PM] console-action example #2');
+      cy.get('.logs > :nth-child(5)').should('have.text', '[9/1/21 12:24 PM] error example #1');
+      cy.get('.logs > :nth-child(6)').should('have.text', '[9/1/21 12:24 PM] error example #2');
+
+      //Check info-quiet
+      cy.get('.form-select').select('info-quiet');
+      cy.get('.logs > :nth-child(1)').should('have.text', '[9/1/21 12:24 PM] info-quiet example #1');
+      cy.get('.logs > :nth-child(2)').should('have.text', '[9/1/21 12:24 PM] info-quiet example #2');
+      cy.get('.logs > :nth-child(3)').should('have.text', '[9/1/21 12:24 PM] info example #1');
+      cy.get('.logs > :nth-child(4)').should('have.text', '[9/1/21 12:24 PM] info example #2');
+      cy.get('.logs > :nth-child(5)').should('have.text', '[9/1/21 12:24 PM] console-action example #1');
+      cy.get('.logs > :nth-child(6)').should('have.text', '[9/1/21 12:24 PM] console-action example #2');
+      cy.get('.logs > :nth-child(7)').should('have.text', '[9/1/21 12:24 PM] error example #1');
+      cy.get('.logs > :nth-child(8)').should('have.text', '[9/1/21 12:24 PM] error example #2');
+
+      //Check console-action
+      cy.get('.form-select').select('console-action');
+      cy.get('.logs > :nth-child(1)').should('have.text', '[9/1/21 12:24 PM] console-action example #1');
+      cy.get('.logs > :nth-child(2)').should('have.text', '[9/1/21 12:24 PM] console-action example #2');
+      cy.get('.logs > :nth-child(3)').should('have.text', '[9/1/21 12:24 PM] error example #1');
+      cy.get('.logs > :nth-child(4)').should('have.text', '[9/1/21 12:24 PM] error example #2');
+
+      //Check error
+      cy.get('.form-select').select('error');
+      cy.get('.logs > :nth-child(1)').should('have.text', '[9/1/21 12:24 PM] error example #1');
+      cy.get('.logs > :nth-child(2)').should('have.text', '[9/1/21 12:24 PM] error example #2');
+
+      //Check if sending a new log works
+      cy.get('.form-select').select('info');
+      cy.simulateSocketSentByServer("log_item", {
+        "datetime": "2021-09-01T10:24:40.389Z",
+        "log": "info example #3",
+        "type": "info"
+      });
+      cy.get('.logs > :nth-child(7)').should('have.text', '[9/1/21 12:24 PM] info example #3');
+    });
+  });
 });
