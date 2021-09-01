@@ -41,11 +41,20 @@ Cypress.Commands.add('interceptWebsocket', (event: string, response: any, remove
   });
 });
 
-Cypress.Commands.add('interceptWebsocketRequest', (event: string, callback: (...args: any) => void, removeAllListenersAfterExec: boolean = false) => {
+Cypress.Commands.add('interceptWebsocketRequest', (event: string, callback: (...args: any) => void, removeWebsocketRequestListenerAfterUse: boolean = false) => {
+  console.log(removeWebsocketRequestListenerAfterUse);
   socket.interceptRequest(event, (...args: any) => {
+    if(removeWebsocketRequestListenerAfterUse) socket.removeRequestInterceptors(event);
     callback(...args);
-    if(removeAllListenersAfterExec) socket.removeRequestInterceptors(event);
   });
+});
+
+Cypress.Commands.add('removeWebsocketResponseInterceptors', (event) => {
+  socket.removeResponseInterceptors(event);
+});
+
+Cypress.Commands.add('removeWebsocketRequestInterceptors', (event) => {
+  socket.removeRequestInterceptors(event);
 });
 
 Cypress.Commands.add('simulateSocketSentByServer', (event: string, ...args: any) => {

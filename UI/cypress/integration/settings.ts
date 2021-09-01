@@ -2,6 +2,7 @@ describe('Settings page', () => {
   beforeEach(() => {
     cy.visit('/#/settings');
     cy.resetSimulatedInitialData();
+    cy.removeWebsocketRequestInterceptors('manage'); //for extra security
   });
 
   it('Open settings page', () => {
@@ -76,13 +77,28 @@ describe('Settings page', () => {
   });
 
   describe('Check if "Cloud Settings" section works', ()  => {
-    it('Empty Destinations list', () => {
+    //Destinations list
+    it('Add new destination', () => {
+      
+      cy.interceptWebsocketRequest('manage', (params: any) => {
+        expect(params.cloudDestination.host).to.equal("192.168.1.1");
+        expect(params.cloudDestination.port).to.equal(1234);
+        expect(params.cloudDestination.key).to.equal("key");
+        cy.simulateSocketSentByServer("manage_response", {
+          "result": "cloud-destination-added-successfully"
+        });
+      }, true);
+      
       cy.setInitialDataValue("cloudDestinations", []);
       cy.simulateInitialData();
       cy.login(Cypress.env("SETTINGS_USERNAME"), Cypress.env("SETTINGS_PASSWORD"));
       cy.contains('No cloud destinations configured.');
+      cy.get(':nth-child(2) > h4 > .btn').click({ force: true });
+      cy.get('#cloudHost').type('192.168.1.1');
+      cy.get('#cloudPort').type('1234');
+      cy.get('#cloudKey').type('key');
+      cy.get('.d-flex > .btn').click();
     });
-
     it('Destinations list with two destinations', () => {
       cy.interceptWebsocketRequest('manage', (params: any) => {
         expect(params.cloudDestination.key).to.match(/(first|second)_key_new/g);
@@ -124,6 +140,90 @@ describe('Settings page', () => {
       cy.wait(200);
       cy.get('#cloudKey').type('_new');
       cy.get('.d-flex > .btn').click();
+    });
+
+    //Keys list
+    it('Add new key', () => {
+      cy.interceptWebsocketRequest('manage', (params: any) => {
+        expect(params.key).to.equal("key");
+        cy.simulateSocketSentByServer("manage_response", {
+          "result": "cloud-key-added-successfully"
+        });
+      }, true);
+      cy.setInitialDataValue("cloudKeys", []);
+      cy.simulateInitialData();
+      cy.login(Cypress.env("SETTINGS_USERNAME"), Cypress.env("SETTINGS_PASSWORD"));
+      cy.contains('No cloud keys configured.');
+      cy.get(':nth-child(3) > h4 > .btn').click({ force: true });
+      cy.get('#key').type('key');
+      cy.get('.d-flex > .btn').click();
+    });
+    it('Keys list with two keys', () => {
+      cy.interceptWebsocketRequest('manage', (params: any) => {
+        expect(params.key).to.match(/key(1|2)/g);
+        cy.simulateSocketSentByServer("manage_response", {
+          "result": "cloud-destination-deleted-successfully"
+        });
+      });
+      cy.setInitialDataValue("cloudKeys", ["key1", "key2"]);
+      cy.simulateInitialData();
+      cy.login(Cypress.env("SETTINGS_USERNAME"), Cypress.env("SETTINGS_PASSWORD"));
+      cy.get('tbody tr').eq(0)
+        .should('contain', 'key1')
+        .and('be.visible');
+      cy.get('tbody > :nth-child(1) > :nth-child(2) > .btn').click({ force: true });
+      cy.get('.swal2-confirm').click();
+      cy.get('tbody tr').eq(1)
+        .should('contain', 'key2')
+        .and('be.visible');
+      cy.get('tbody > :nth-child(2) > :nth-child(2) > .btn').click({ force: true });
+      cy.get('.swal2-confirm').click();
+    });
+
+    //Clients list
+    it('Empty clients list', () => {
+      cy.setInitialDataValue("cloudClients", []);
+      cy.simulateInitialData();
+      cy.login(Cypress.env("SETTINGS_USERNAME"), Cypress.env("SETTINGS_PASSWORD"));
+      cy.contains('No cloud clients connected.');
+    });
+    it('Clients list with two clients', () => {
+      cy.interceptWebsocketRequest('manage', (params: any) => {
+        expect(params.id).to.match(/client(1|2)/g);
+        cy.simulateSocketSentByServer("manage_response", {
+          "result": "cloud-destination-deleted-successfully"
+        });
+      });
+      cy.setInitialDataValue("cloudClients", [
+        {
+          "id": "client1",
+          "socketId": "_h-tbogHWXYlt0kmABCD",
+          "key": "key1",
+          "ipAddress": "192.168.1.1",
+          "datetimeConnected": 1630351508761,
+          "inactive": false
+        },
+        {
+          "id": "client2",
+          "socketId": "_h-tbogHWXYlt0kmEFGH",
+          "key": "key2",
+          "ipAddress": "192.168.1.2",
+          "datetimeConnected": 1630351508761,
+          "inactive": false
+        }
+      ]);
+      cy.simulateInitialData();
+      cy.login(Cypress.env("SETTINGS_USERNAME"), Cypress.env("SETTINGS_PASSWORD"));
+      cy.get('tbody tr').eq(0)
+        .should('contain', '192.168.1.1')
+        .and('contain', 'key1')
+        .and('be.visible');
+      cy.get('tbody > :nth-child(1) > :nth-child(3) > .btn').click({ force: true });
+      cy.get('tbody tr').eq(1)
+        .should('contain', '192.168.1.2')
+        .and('contain', 'key2')
+        .and('be.visible');
+      cy.get('tbody > :nth-child(2) > :nth-child(3) > .btn').click({ force: true });
     });
   });
 });
