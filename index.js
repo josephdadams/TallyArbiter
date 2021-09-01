@@ -27,6 +27,114 @@ const jspack 					= require('jspack').jspack;
 const os 						= require('os') // For getting available Network interfaces on host device
 const findRemoveSync            = require('find-remove');
 
+//Setup logger
+const winston = require('winston');
+const { combine, printf } = winston.format;
+
+function getLogFilePath() {
+
+	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
+
+	const logFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/logs");
+
+	findRemoveSync(logFolder, {age: {seconds: 604800}, extensions: '.talog', limit: 100});
+
+	if (!fs.existsSync(logFolder)) {
+		fs.mkdirSync(logFolder, { recursive: true });
+	}
+	var logName = today + ".talog"
+	return path.join(logFolder, logName);
+}
+
+function getTallyDataPath() {
+
+	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
+
+	const TallyDataFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/TallyData");
+
+	findRemoveSync(TallyDataFolder, {age: {seconds: 604800}, extensions: '.tadata', limit: 100});
+
+	if (!fs.existsSync(TallyDataFolder)) {
+		fs.mkdirSync(TallyDataFolder, { recursive: true });
+	}
+	var logName = today + ".tadata"
+	return path.join(TallyDataFolder, logName);
+}
+
+var logFilePath = getLogFilePath();
+var Logs = []; //Used for loading logs in settings page
+
+var tallyDataFilePath = getTallyDataPath();
+
+const serverLoggerLevels = {
+	levels: {
+	    critical: 0,
+	    error: 2,
+	    warning: 3,
+		console_action: 4,
+		info: 5,
+	    'info-quiet': 6,
+	    debug: 7
+	},
+	colors: {
+		critical: 'red',
+	    error: 'red',
+	    warning: 'yellow',
+		console_action: 'green',
+		info: 'white',
+	    'info-quiet': 'white',
+	    debug: 'blue'
+	}
+};
+winston.addColors(serverLoggerLevels.colors);
+let serverLoggerFormat = printf(({ timestamp, level, message }) => {
+	if(level === "info-quiet"){
+		level = "info";
+	}
+	if(level === "[37minfo-quiet[39m"){
+		level = "[37minfo[39m";
+	}
+
+    return `[${timestamp}] ${level}: ${message}`;
+});
+var serverLoggerOptions = {
+    console: {
+        level: 'debug',
+        format: combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), winston.format.colorize(), serverLoggerFormat)
+    },
+    file: {
+        filename: logFilePath,
+		maxsize: 3e+7, //3MB
+		maxFiles: 3,
+        level: 'debug',
+        format: combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), serverLoggerFormat)
+    },
+}
+winston.loggers.add('server', {
+	levels: serverLoggerLevels.levels,
+	transports: [
+	  new winston.transports.Console(serverLoggerOptions.console),
+	  new winston.transports.File(serverLoggerOptions.file)
+	]
+});
+
+let tallyLoggerFormat = printf((info) => {
+    return JSON.stringify({timestamp: Date.now(), tally: JSON.parse(info.message)});
+});
+winston.loggers.add('tally', {
+	format: tallyLoggerFormat,
+	transports: [
+	  new winston.transports.File({
+		  filename: tallyDataFilePath,
+		  maxsize: 3e+7, //3MB
+		  maxFiles: 3,
+		})
+	]
+});
+
+const serverLogger = winston.loggers.get('server');
+const tallyLogger = winston.loggers.get('tally');
+
 //Rate limiter configurations
 const maxWrongAttemptsByIPperDay = 100;
 const maxConsecutiveFailsByUsernameAndIP = 10;
@@ -61,16 +169,11 @@ const socketupdates_Companion = ['sources', 'devices', 'device_sources', 'device
 const oscPort 		= 5958;
 const vmixEmulatorPort = '8099'; // Default 8099 
 var oscUDP			= null;
-var logFilePath = getLogFilePath();
-var logFile = fs.openSync(logFilePath, 'w'); // Setup Log file
-var tallyDataFilePath = getTallyDataPath();
-var tallyDataFile = fs.openSync(tallyDataFilePath, 'w'); // Setup TallyData File
 var vmix_emulator	= null; //TCP server for VMix Emulator
 var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
 const config_file 	= getConfigFilePath(); //local storage JSON file
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var vmix_client_data = []; //array of connected Vmix clients
-var Logs 			= []; //array of actions, information, and errors
 var labels_VideoHub = []; //array of VideoHub source labels
 var destinations_VideoHub = []; //array of VideoHub destination/source assignments
 var tallydata_VideoHub = []; //array of VideoHub sources and current tally data
@@ -1991,64 +2094,23 @@ function removeVmixListener(host) {
 	logger(`VMix Emulator Connection ${host} unsubscribed to tally`, 'info');
 }
 
-function logger(log, type) { //logs the item to the console, to the log array, and sends the log item to the settings page
-
-	let dtNow = new Date();
-
-	if (type === undefined) {
-		type = 'info-quiet';
-	}
-
-	switch(type) {
-		case 'info':
-		case 'info-quiet':
-			console.log(`[${dtNow}]     ${log}`);
-			break;
-		case 'error':
-			console.log(`[${dtNow}]     ${clc.red.bold(log)}`);
-			break;
-		case 'console_action':
-			console.log(`[${dtNow}]     ${clc.green.bold(log)}`);
-			break;
-		default:
-			console.log(`[${dtNow}]     ${util.inspect(log, {depth: null})}`);
-			break;
-	}
-
+//loggertest
+function logger(log, type = "info-quiet") { //logs the item to the console, to the log array, and sends the log item to the settings page
+	serverLogger.log({
+		level: type,
+		message: log
+	});
+	
 	const logObj = {};
-	logObj.datetime = dtNow;
+	logObj.datetime = new Date();
 	logObj.log = log;
 	logObj.type = type;
 	Logs.push(logObj);
-
-	writeLogFile(log);
-
 	io.to('settings').emit('log_item', logObj);
 }
 
-function writeLogFile(log) {
-	try {
-		var humanFriendlyDtNow = new Date().toLocaleString();
-
-		var logString = '[' + humanFriendlyDtNow + '] ' + log;
-
-		fs.appendFileSync(logFile, logString + '\n');
-	}
-	catch (error) {
-		logger(`Error saving logs to file: ${error}`, 'error');
-	}
-}
-
 function writeTallyDataFile(log) {
-	try {
-
-		logLine = JSON.stringify(log) + ','
-
-		fs.appendFileSync(tallyDataFile, logLine + '\n');
-	}
-	catch (error) {
-		logger(`Error saving logs to file: ${error}`, 'error');
-	}
+	tallyLogger.info(JSON.stringify(log));
 }
 
 function loadConfig() { // loads the JSON data from the config file to memory
@@ -7300,36 +7362,6 @@ function getConfigFilePath() {
 	return path.join(configFolder, configName);
 }
 
-function getLogFilePath() {
-
-	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
-
-	const logFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/logs");
-
-	findRemoveSync(logFolder, {age: {seconds: 604800}, extensions: '.talog', limit: 100});
-
-	if (!fs.existsSync(logFolder)) {
-		fs.mkdirSync(logFolder, { recursive: true });
-	}
-	var logName = today + ".talog"
-	return path.join(logFolder, logName);
-}
-
-function getTallyDataPath() {
-
-	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
-
-	const TallyDataFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/TallyData");
-
-	findRemoveSync(TallyDataFolder, {age: {seconds: 604800}, extensions: '.tadata', limit: 100});
-
-	if (!fs.existsSync(TallyDataFolder)) {
-		fs.mkdirSync(TallyDataFolder, { recursive: true });
-	}
-	var logName = today + ".tadata"
-	return path.join(TallyDataFolder, logName);
-}
-
 function getErrorReportsList() {
 	try {
 		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
@@ -7414,10 +7446,14 @@ function generateErrorReport(error) {
 	if(error !== undefined){
 		stacktrace = error.stack;
 	}
+	let logs = ""
+	try {
+		logs = fs.readFileSync(logFilePath, 'utf8');
+	} catch(e) {}
 	var errorReport = {
 		"datetime": new Date(),
 		"stacktrace": stacktrace,
-		"logs": fs.readFileSync(logFilePath, 'utf8'),
+		"logs": logs,
 		"config": getConfigRedacted()
 	};
 	fs.writeFileSync(getErrorReportPath(id), JSON.stringify(errorReport));
@@ -7461,7 +7497,6 @@ function getNetworkInterfaces() { // Get all network interfaces on host device
 
 startUp();
 
-exports.logs = Logs;
 exports.logFilePath = logFilePath;
 exports.tallyDataFilePath = tallyDataFilePath;
 exports.getConfigFilePath = getConfigFilePath;
