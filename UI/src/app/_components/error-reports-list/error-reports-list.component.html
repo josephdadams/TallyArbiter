@@ -1,6 +1,7 @@
 <div class="d-flex justify-content-center mt-5 pt-5" *ngIf="!errorReportsLoaded">
     <div class="spinner spinner-border"></div>
 </div>
+<button (click)="locationBackService.goBack()" class="btn btn-outline-primary" style="margin: 10px" title="Go back"><i class="fas fa-arrow-left"></i> Back</button>
 <div *ngIf="errorReportsLoaded">
     <div class="container mt-5">
         <div class="form-group" *ngIf="socketService.errorReports.length > 0">
