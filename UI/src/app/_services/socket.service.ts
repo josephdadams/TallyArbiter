@@ -68,7 +68,7 @@ export class SocketService {
   public scrollTallyDataSubject = new Subject();
   public scrollChatSubject = new Subject();
   public closeModals = new Subject();
-  public deviceStateChanged = new Subject<{ deviceId: string; preview?: boolean; program?: boolean }>();
+  public deviceStateChanged = new Subject<{device: Device, states: DeviceState[]}>();
 
 
   constructor() {
@@ -301,35 +301,7 @@ export class SocketService {
 
   private setupDeviceStates() {
     for (const device of this.devices) {
-      let sources_pvw = [];
-      let sources_pgm = [];
-      const formerProgram = device.modeProgram;
-      const formerPreview = device.modePreview;
-      device.modeProgram = false;
-      device.modePreview = false;
-      for (const state of this.deviceStates.filter((s) => s.deviceId == device.id)) {
-        if (this.getBusById(state.busId)!.type === 'preview') {
-          if (state.sources.length > 0) {
-            device.modePreview = true;
-            sources_pvw = state.sources;
-          } else {
-            device.modePreview = false;
-          }
-        } else if (this.getBusById(state.busId)!.type === 'program') {
-          if (state.sources.length > 0) {
-            device.modeProgram = true;
-            sources_pgm = state.sources;
-          } else {
-            device.modeProgram = false;
-          }
-        }
-      }
-      if(!formerProgram && device.modeProgram) {
-        this.deviceStateChanged.next({ deviceId: device.id, program: true })
-      }
-      if (!formerPreview && device.modePreview) {
-        this.deviceStateChanged.next({ deviceId: device.id, preview: true })
-      }
+      this.deviceStateChanged.next({device, states: this.deviceStates.filter((s) => s.active && s.deviceId == device.id)});
     }
   }
 
