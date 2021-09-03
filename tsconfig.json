@@ -2,9 +2,10 @@
     "compilerOptions": {
         "lib": ["ES2019"],
         "target": "es5",
-        "module": "commonjs",
+        "module": "CommonJS",
         "moduleResolution": "node",
         "outDir": "./dist",
+        "resolveJsonModule": true,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
         "downlevelIteration": true,

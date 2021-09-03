@@ -1,34 +1,36 @@
 /* Tally Arbiter */
 
 //Protocol, Network, Socket, Server libraries/variables
-const net 						= require('net');
-const packet 					= require('packet');
-const TSLUMD 					= require('tsl-umd'); // TSL UDP package
-const dgram 					= require('dgram');
-const { Atem }					= require('atem-connection');
-const AtemListVisibleInputs 	= require('atem-connection').listVisibleInputs;
-const OBS 						= require('obs-websocket-js');
-const fs 						= require('fs');
-const path 						= require('path');
-const {version} 				= require('./package.json');
-const clc 						= require('cli-color');
-const util 						= require ('util');
-const express 					= require('express');
-const { RateLimiterMemory }		= require('rate-limiter-flexible');
-const bodyParser 				= require('body-parser');
-const axios 					= require('axios');
-const http 						= require('http');
-const socketio					= require('socket.io');
-const ioClient					= require('socket.io-client');
-const osc 						= require('osc');
-const xml2js					= require('xml2js');
-const jspack 					= require('jspack').jspack;
-const os 						= require('os') // For getting available Network interfaces on host device
-const findRemoveSync = require('find-remove');
+import net from 'net';
+import packet from 'packet';
+import TSLUMD from 'tsl-umd'; // TSL UDP package
+import dgram from 'dgram';
+import { Atem } from 'atem-connection';
+import { listVisibleInputs as AtemListVisibleInputs } from 'atem-connection';
+import OBS from 'obs-websocket-js';
+import fs from 'fs';
+import findPackageJson from "find-package-json";
+import path from 'path';
+import clc from 'cli-color';
+import util from 'util';
+import express from 'express';
+import { RateLimiterMemory } from 'rate-limiter-flexible';
+import bodyParser from 'body-parser';
+import axios from 'axios';
+import http from 'http';
+import socketio from 'socket.io';
+import ioClient from 'socket.io-client';
+import osc from 'osc';
+import xml2js from 'xml2js';
+import { jspack } from "jspack";
+import os from 'os'; // For getting available Network interfaces on host device
+import findRemoveSync from 'find-remove';
 import { CloudClient } from "./_models/CloudClient";
 import { DeviceState } from "./_models/DeviceState";
 import { LogItem } from "./_models/LogItem";
 import { Port } from "./_models/Port";
+
+const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
 //Rate limiter configurations
 const maxWrongAttemptsByIPperDay = 100;
@@ -49,8 +51,8 @@ const limiterConsecutiveFailsByUsernameAndIP = new RateLimiterMemory({
 //Tally Arbiter variables
 const listenPort 	= process.env.PORT || 4455;
 const app 			= express();
-const httpServer	= http.Server(app);
-const io 			= socketio(httpServer, { allowEIO3: true });
+const httpServer	= new http.Server(app);
+const io 			= new socketio.Server(httpServer, { allowEIO3: true });
 const appProducer	= require('express').Router();
 const appSettings	= require('express').Router();
 var username_producer = 'producer';
@@ -2077,7 +2079,7 @@ function loadConfig() { // loads the JSON data from the config file to memory
 	logger('Loading the stored Tally Arbiter configuration file.', 'info-quiet');
 
 	try {
-		let rawdata = fs.readFileSync(config_file);
+		let rawdata = fs.readFileSync(config_file).toString();
 		let configJson = JSON.parse(rawdata);
 
 		if (configJson.security) {
@@ -2284,12 +2286,7 @@ function SaveConfig() {
 			bus_options: bus_options
 		};
 
-		fs.writeFileSync(config_file, JSON.stringify(configJson, null, 1), 'utf8', function(error) {
-			if (error)
-			{ 
-				logger(`Error saving configuration to file: ${error}`, 'error');
-			}
-		});
+		fs.writeFileSync(config_file, JSON.stringify(configJson, null, 1), 'utf8');
 
 		logger('Config file saved to disk.', 'info-quiet');
 	}
@@ -2299,11 +2296,11 @@ function SaveConfig() {
 }
 
 function getConfig() {
-	return JSON.parse(fs.readFileSync(getConfigFilePath()));
+	return JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
 }
 
 function getConfigRedacted() {
-	let config = JSON.parse(fs.readFileSync(getConfigFilePath()));
+	let config = JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
 	config["security"] = {
 		username_settings: "admin",
 		password_settings: "12345",
@@ -6804,8 +6801,8 @@ function TallyArbiter_Remove_Cloud_Client(obj) {
 			//disconnect the cloud client
 			ipAddress = cloud_clients[i].ipAddress;
 			key = cloud_clients[i].key;
-			if (io.sockets.connected[cloud_clients[i].socketId]) {
-				io.sockets.connected[cloud_clients[i].socketId].disconnect(true);
+			if ((io.sockets as any).connected[cloud_clients[i].socketId]) {
+				(io.sockets as any).connected[cloud_clients[i].socketId].disconnect(true);
 			}
 			cloud_clients.splice(i, 1);
 			break;
@@ -7087,8 +7084,8 @@ function FlashListenerClient(listenerClientId): any | void {
 	if (listenerClientObj) {
 		if (listenerClientObj.cloudConnection) {
 			let cloudClientSocketId = GetCloudClientById(listenerClientObj.cloudClientId).socketId;
-			if (io.sockets.connected[cloudClientSocketId]) {
-				io.sockets.connected[cloudClientSocketId].emit('flash', listenerClientId);
+			if ((io.sockets as any).connected[cloudClientSocketId]) {
+				(io.sockets as any).connected[cloudClientSocketId].emit('flash', listenerClientId);
 			}
 		}
 		else {
@@ -7121,8 +7118,8 @@ function MessageListenerClient(listenerClientId, type, socketid, message): any |
 	if (listenerClientObj) {
 		if (listenerClientObj.cloudConnection) {
 			let cloudClientSocketId = GetCloudClientById(listenerClientObj.cloudClientId).socketId;
-			if (io.sockets.connected[cloudClientSocketId]) {
-				io.sockets.connected[cloudClientSocketId].emit('messaging_client', listenerClientId, type, socketid, message);
+			if ((io.sockets as any).connected[cloudClientSocketId]) {
+				(io.sockets as any).connected[cloudClientSocketId].emit('messaging_client', listenerClientId, type, socketid, message);
 			}
 		}
 		else {
@@ -7166,8 +7163,8 @@ function AddCloudClient(socketId, key, ipAddress, datetimeConnected) {
 function DeleteCloudClients(key) {
 	for (let i = cloud_clients.length - 1; i >= 0; i--) {
 		if (cloud_clients[i].key === key) {
-			if (io.sockets.connected[cloud_clients[i].socketId]) {
-				io.sockets.connected[cloud_clients[i].socketId].disconnect(true);
+			if ((io.sockets as any).connected[cloud_clients[i].socketId]) {
+				(io.sockets as any).connected[cloud_clients[i].socketId].disconnect(true);
 				cloud_clients.splice(i, 1);
 			}
 		}

@@ -53,6 +53,7 @@
         "electron-updater": "^4.3.9",
         "esm": "^3.2.25",
         "express": "^4.17.1",
+        "find-package-json": "^1.2.0",
         "find-remove": "^3.1.0",
         "jquery": "^3.6.0",
         "jspack": "^0.0.4",
@@ -73,7 +74,10 @@
         "build-desktop": "electron-builder"
     },
     "devDependencies": {
+        "@types/find-package-json": "^1.2.2",
+        "@types/find-remove": "^2.0.1",
         "@types/node": "^16.7.10",
+        "@types/xml2js": "^0.4.9",
         "electron": "^12.0.9",
         "electron-builder": "^22.10.5",
         "ts-node-dev": "^1.1.6",
