@@ -1,79 +1,82 @@
 {
-	"name": "tallyarbiter",
-	"version": "2.0.13",
-	"description": "The flexible and customizable tally system",
-	"keywords": [
-		"util",
-		"functional",
-		"server",
-		"client",
-		"browser",
-		"tsl",
-		"tally",
-		"carbonite",
-		"graphite",
-		"blackmagic",
-		"atem",
-		"ross",
-		"obs",
-		"vmix",
-		"panasonic",
-		"AV-HS410",
-		"analogway",
-		"blink1",
-		"roland",
-		"tricaster",
-		"gpio"
-	],
-	"license": "MIT",
-	"author": "Joseph Adams",
-	"bin": {
-		"tallyarbiter": "bin/tallyarbiter"
-	},
-	"publishConfig": {
-		"access": "public"
-	},
-	"files": [
-		"package.json",
-		"package-lock.json",
-		"index.js",
-		"bin",
-		"ui-dist",
-		"readme.md",
-		"LICENSE"
-	],
-	"contributors": [
-		"Andreas H. Thomsen <mc-hauge@hotmail.com>",
-		"Hannes Rüger <hannesrueger@gmx.de>"
-	],
-	"dependencies": {
-		"atem-connection": "3.0.0-nightly-latest-20210530-132658-16c3cdd.0",
-		"axios": "^0.21.1",
-		"cli-color": "^2.0.0",
-		"electron-updater": "^4.3.9",
-		"esm": "^3.2.25",
-		"express": "^4.17.1",
-		"find-remove": "^3.1.0",
-		"jquery": "^3.6.0",
-		"jspack": "^0.0.4",
-		"obs-websocket-js": "^4.0.2",
-		"osc": "^2.4.1",
-		"packet": "0.0.6",
-		"rate-limiter-flexible": "^2.2.4",
-		"socket.io": "4.1.2",
-		"socket.io-client": "4.1.2",
-		"tsl-umd": "^1.1.2",
-		"xml2js": "^0.4.23"
-	},
-	"main": "main.js",
-	"scripts": {
-		"start": "node index.js",
-		"prepare": "cd UI && npm i && npm run build",
-		"desktop": "electron .",
-		"build-desktop": "electron-builder"
-	},
-	"devDependencies": {
-		"electron": "^12.0.9",
-		"electron-builder": "^22.10.5"
-	}
+    "name": "tallyarbiter",
+    "version": "2.0.13",
+    "description": "The flexible and customizable tally system",
+    "keywords": [
+        "util",
+        "functional",
+        "server",
+        "client",
+        "browser",
+        "tsl",
+        "tally",
+        "carbonite",
+        "graphite",
+        "blackmagic",
+        "atem",
+        "ross",
+        "obs",
+        "vmix",
+        "panasonic",
+        "AV-HS410",
+        "analogway",
+        "blink1",
+        "roland",
+        "tricaster",
+        "gpio"
+    ],
+    "license": "MIT",
+    "author": "Joseph Adams",
+    "bin": {
+        "tallyarbiter": "bin/tallyarbiter"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": [
+        "package.json",
+        "package-lock.json",
+        "index.js",
+        "bin",
+        "ui-dist",
+        "readme.md",
+        "LICENSE"
+    ],
+    "contributors": [
+        "Andreas H. Thomsen <mc-hauge@hotmail.com>",
+        "Hannes Rüger <hannesrueger@gmx.de>"
+    ],
+    "dependencies": {
+        "atem-connection": "3.0.0-nightly-latest-20210530-132658-16c3cdd.0",
+        "axios": "^0.21.1",
+        "cli-color": "^2.0.0",
+        "electron-updater": "^4.3.9",
+        "esm": "^3.2.25",
+        "express": "^4.17.1",
+        "find-remove": "^3.1.0",
+        "jquery": "^3.6.0",
+        "jspack": "^0.0.4",
+        "obs-websocket-js": "^4.0.2",
+        "osc": "^2.4.1",
+        "packet": "0.0.6",
+        "rate-limiter-flexible": "^2.2.4",
+        "socket.io": "4.1.2",
+        "socket.io-client": "4.1.2",
+        "tsl-umd": "^1.1.2",
+        "xml2js": "^0.4.23"
+    },
+    "main": "main.js",
+    "scripts": {
+        "start": "ts-node-dev src/index.ts",
+        "prepare": "cd UI && npm i && npm run build",
+        "desktop": "electron .",
+        "build-desktop": "electron-builder"
+    },
+    "devDependencies": {
+        "@types/node": "^16.7.10",
+        "electron": "^12.0.9",
+        "electron-builder": "^22.10.5",
+        "ts-node-dev": "^1.1.6",
+        "typescript": "^4.3.4"
+    }
 }
