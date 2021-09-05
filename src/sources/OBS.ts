@@ -47,15 +47,17 @@ export class OBSSource extends TallyInput {
         this.obsClient.on('PreviewSceneChanged', (data) => {
             logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
             if (data?.sources) {
+                this.removeBusFromAllAddresses("preview");
                 for (const source of data.sources) {
                     this.addBusToAddress(source.name, "preview");
                 }
             }
         });
-
+        
         this.obsClient.on('SwitchScenes', (data) => {
             logger(`Source: ${source.name}  Program Scene Changed.`, 'info-quiet');
             if (data?.sources) {
+                this.removeBusFromAllAddresses("program");
                 for (const source of data.sources) {
                     this.addBusToAddress(source.name, "program");
                 }
@@ -64,33 +66,33 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('SourceCreated', (data) => {
             logger(`Source: ${source.name}  New source created`, 'info-quiet');
-            this.addAddress(data.sourceName, data.sourceName);
+            //this.addAddress(data.sourceName, data.sourceName);
         });
 
         this.obsClient.on('SourceDestroyed', (data) => {
             logger(`Source: ${source.name} Deleted source: ${data.sourceName}`, 'info-quiet');
-            this.removeAddress(data.sourceName);
+            //this.removeAddress(data.sourceName);
         });
 
         this.obsClient.on('SourceRenamed', (data) => {
             logger(`Source: ${source.name}  Source renamed`, 'info-quiet');
-            this.renameAddress(data.previousName, data.newName, data.newName);
+            //this.renameAddress(data.previousName, data.newName, data.newName);
         });
 
         this.obsClient.on('StreamStarted', () => {
-            this.setBussesForAddress("{{STREAMING}}", ["program"]);
+            //this.setBussesForAddress("{{STREAMING}}", ["program"]);
         });
 
         this.obsClient.on('StreamStopped', () => {
-            this.setBussesForAddress("{{STREAMING}}", []);
+            //this.setBussesForAddress("{{STREAMING}}", []);
         });
 
         this.obsClient.on('RecordingStarted', () => {
-            this.setBussesForAddress("{{RECORDING}}", ["program"]);
+            //this.setBussesForAddress("{{RECORDING}}", ["program"]);
         });
 
         this.obsClient.on('RecordingStopped', () => {
-            this.setBussesForAddress("{{RECORDING}}", []);
+            //this.setBussesForAddress("{{RECORDING}}", []);
         });
 
         

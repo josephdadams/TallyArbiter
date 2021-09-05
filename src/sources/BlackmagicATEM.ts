@@ -72,7 +72,7 @@ export class ATEMSource extends TallyInput {
             }
         });
 
-        this.atemClient.on('info', console.log);
+        // this.atemClient.on('info', console.log);
         this.atemClient.on('error', console.error);
 
         this.atemClient.connect(atemIP);

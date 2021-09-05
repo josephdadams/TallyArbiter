@@ -85,6 +85,14 @@ export class TallyInput extends EventEmitter {
         this.tally.next(tally);
     }
 
+    protected removeBusFromAllAddresses(bus: string) {
+        const tally = this.tally.value;
+        for (const address of Object.keys(tally)) {
+            tally[address] = tally[address].filter((b) => b !== bus);
+        }
+        this.tally.next(tally);
+    }
+
     protected setBussesForAddress(address: string, busses: string[]) {
         const tally = this.tally.value;
         tally[address] = busses || [];
