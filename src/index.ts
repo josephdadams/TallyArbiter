@@ -27,12 +27,15 @@ import { DeviceState } from "./_models/DeviceState";
 import { LogItem } from "./_models/LogItem";
 import { Port } from "./_models/Port";
 import { TallyInput } from './sources/_Source';
-import { Source } from '../UI/src/app/_models/Source';
+import { Source } from './_models/Source';
 import { SourceType } from './_models/SourceType';
 import { SourceTypeDataFields } from './_models/SourceTypeDataFields';
-import { BusOption } from '../UI/src/app/_models/BusOption';
+import { BusOption } from './_models/BusOption';
 import { TallyInputs } from './_globals/TallyInputs';
 import { PortsInUse } from './_globals/PortsInUse';
+import { DeviceSource } from './_models/DeviceSource';
+import { DeviceAction } from './_models/DeviceAction';
+import { Device } from './_models/Device';
 
 for (const file of fs.readdirSync(path.join(__dirname, "sources"))) {
 	require(`./sources/${file.replace(".ts", "")}`);
@@ -100,8 +103,6 @@ var cloud_destinations	= []; //array of Tally Arbiter Cloud Destinations (host, 
 var cloud_destinations_sockets = []; //array of actual socket connections
 var cloud_keys 			= []; //array of Tally Arbiter Cloud Sources (key only)
 var cloud_clients		= []; //array of Tally Arbiter Cloud Clients that have connected with a key
-
-var source_reconnects	= []; //array of sources and their reconnect timers/intervals
 
 var TestMode = false; //if the system is in test mode or not
 const SourceClients: Record<string, TallyInput> = {};
@@ -553,11 +554,11 @@ var bus_options: BusOption[] = [ // the busses available to monitor in Tally Arb
 	{ id: '12c8d689', label: 'Aux 2', type: 'aux', color: '#0000FF', priority: 100}
 ]
 
-var sources 			= []; // the configured tally sources
-var devices 			= []; // the configured tally devices
-var device_sources		= []; // the configured tally device-source mappings
-var device_actions		= []; // the configured device output actions
-var device_states		= []; // array of tally data as it has come in and the known state
+var sources: Source[] 			= []; // the configured tally sources
+var devices: Device[] 			= []; // the configured tally devices
+var device_sources: DeviceSource[]		= []; // the configured tally device-source mappings
+var device_actions: DeviceAction[]		= []; // the configured device output actions
+var device_states: DeviceState[]		= []; // array of tally data as it has come in and the known state
 var source_connections	= []; // array of source connections/servers as they are established
 
 function uuidv4() //unique UUID generator for IDs
@@ -819,16 +820,16 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('version', function() {
+		socket.on('version', () =>  {
 			socket.emit('version', version);
 		});
 
-		socket.on('interfaces', function() {
+		socket.on('interfaces', () =>  {
 			socket.emit('interfaces', getNetworkInterfaces());
 		});
 
-		socket.on('sources', function() { // sends the configured Sources to the socket
-			socket.emit('sources', sources);
+		socket.on('sources', () =>  { // sends the configured Sources to the socket
+			socket.emit('sources', getSources());
 		});
 
 		socket.on('source_tallydata', function(sourceId) { //gets all Source Tally Data
@@ -872,19 +873,19 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('devices', function() { // sends the configured Devices to the socket
+		socket.on('devices', () =>  { // sends the configured Devices to the socket
 			socket.emit('devices', devices);
 		});
 
-		socket.on('device_sources', function() { // sends the configured Device Sources to the socket
+		socket.on('device_sources', () =>  { // sends the configured Device Sources to the socket
 			socket.emit('device_sources', device_sources);
 		});
 
-		socket.on('device_actions', function() { // sends the configured Device Actions to the socket
+		socket.on('device_actions', () =>  { // sends the configured Device Actions to the socket
 			socket.emit('device_actions', device_actions);
 		});
 
-		socket.on('bus_options', function() { // sends the Bus Options (preview, program) to the socket
+		socket.on('bus_options', () =>  { // sends the Bus Options (preview, program) to the socket
 			socket.emit('bus_options', bus_options);
 		});
 
@@ -1113,7 +1114,7 @@ function initialSetup() {
 		socket.on('settings', function () {
 			socket.join('settings');
 			socket.join('messaging');
-			socket.emit('initialdata', getSourceTypes(), getSOurceTypeDataFields(), source_types_busoptions, output_types, output_types_datafields, bus_options, sources, devices, device_sources, device_actions, device_states, tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
+			socket.emit('initialdata', getSourceTypes(), getSOurceTypeDataFields(), source_types_busoptions, output_types, output_types_datafields, bus_options, getSources(), devices, device_sources, device_actions, device_states, tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
 			socket.emit('listener_clients', listener_clients);
 			socket.emit('logs', Logs);
 			socket.emit('PortsInUse', PortsInUse);
@@ -1123,7 +1124,7 @@ function initialSetup() {
 		socket.on('producer', function () {
 			socket.join('producer');
 			socket.join('messaging');
-			socket.emit('sources', sources);
+			socket.emit('sources', getSources());
 			socket.emit('devices', devices);
 			socket.emit('bus_options', bus_options);
 			socket.emit('listener_clients', listener_clients);
@@ -1132,7 +1133,7 @@ function initialSetup() {
 
 		socket.on('companion', function () {
 			socket.join('companion');
-			socket.emit('sources', sources);
+			socket.emit('sources', getSources());
 			socket.emit('devices', devices);
 			socket.emit('bus_options', bus_options);
 			socket.emit('device_sources', device_sources);
@@ -1381,7 +1382,7 @@ function initialSetup() {
                                 deviceId: data[i].id,
 							    busId: bus_options[j].id,
 							    sources: [],
-                            });
+                            } as DeviceState);
 						}
 					}
 				}
@@ -1566,23 +1567,23 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('listener_clients', function() {
+		socket.on('listener_clients', () =>  {
 			socket.emit('listener_clients', listener_clients);
 		});
 		
-		socket.on('tsl_clients', function() {
+		socket.on('tsl_clients', () =>  {
 			socket.emit('tsl_clients', tsl_clients);
 		});
 		
-		socket.on('cloud_destinations', function() {
+		socket.on('cloud_destinations', () =>  {
 			socket.emit('cloud_destinations', cloud_destinations);
 		});
 
-		socket.on('cloud_keys', function() {
+		socket.on('cloud_keys', () =>  {
 			socket.emit('cloud_keys', cloud_keys);
 		});
 
-		socket.on('cloud_clients', function() {
+		socket.on('cloud_clients', () =>  {
 			socket.emit('cloud_clients', cloud_clients);
 		});
 
@@ -1600,11 +1601,11 @@ function initialSetup() {
 			SendMessage(type, socket.id, message);
 		});
 
-		socket.on('get_error_reports', function() {
+		socket.on('get_error_reports', () =>  {
 			socket.emit('error_reports', getErrorReportsList());
 		});
 
-		socket.on('get_unreaded_error_reports', function() {
+		socket.on('get_unreaded_error_reports', () =>  {
 			socket.emit('unreaded_error_reports', getUnreadedErrorReportsList());
 		});
 
@@ -1613,7 +1614,7 @@ function initialSetup() {
 			socket.emit('error_report', getErrorReport(errorReportId));
 		});
 
-		socket.on('disconnect', function() { // emitted when any socket.io client disconnects from the server
+		socket.on('disconnect', () =>  { // emitted when any socket.io client disconnects from the server
 			DeactivateListenerClient(socket.id);
 			CheckCloudClients(socket.id);
 		});
@@ -1672,6 +1673,13 @@ function initialSetup() {
 
 	httpServer.listen(listenPort, function () { // start up http server
 		logger(`Tally Arbiter running on port ${listenPort}`, 'info');
+	});
+}
+
+function getSources(): any {
+	return sources.map((s) => {
+		s.connected = SourceClients[s.id]?.connected?.value || false;
+		return s;
 	});
 }
 
@@ -1797,7 +1805,7 @@ function startVMixEmulator() {
 
 	vmix_emulator.on('connection', handleConnection);
 
-	vmix_emulator.listen(parseInt(vmixEmulatorPort), function() {
+	vmix_emulator.listen(parseInt(vmixEmulatorPort), () =>  {
 		logger(`Finished VMix Emulation Setup. Listening for VMix Tally Connections on TCP Port ` + vmixEmulatorPort + `.`, 'info-quiet');
 	});
 
@@ -1878,7 +1886,7 @@ function removeVmixListener(host) {
 
 export function logger(log, type) { //logs the item to the console, to the log array, and sends the log item to the settings page
 
-	let dtNow = new Date();
+	let dtNow = new Date().toISOString();
 
 	if (type === undefined) {
 		type = 'info-quiet';
@@ -2066,15 +2074,11 @@ function loadConfig() { // loads the JSON data from the config file to memory
 function initializeSource(source: Source): void {
 	if (!TallyInputs[source.sourceTypeId]?.cls) {
 		console.log(TallyInputs);
+		console.log(source)
 		throw Error(`No class found for Source ${source.name} (${source.sourceTypeId})`);
 	}
 	const sourceClient = new TallyInputs[source.sourceTypeId].cls(source) as TallyInput;
-	sourceClient.connected.subscribe((connected) => {
-		if (connected) {
-			UnregisterReconnect(source.id);
-		} else {
-			RegisterDisconnect(source.id);
-		}
+	sourceClient.connected.subscribe(() => {
 		UpdateSockets('sources');
 		UpdateCloud('sources');
 	});
@@ -2264,12 +2268,11 @@ function SetUpTSLServer_TCP(sourceId)
 						logger(`Source: ${source.name}  TSL 3.1 Server connection closed.`, 'info');
 						StopTSLServer_TCP(sourceId);
 					});
-				}).listen(port, function() {
+				}).listen(port, () =>  {
 					logger(`Source: ${source.name}  TSL 3.1 Server started. Listening for data on TCP Port: ${port}`, 'info');
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = true;
-							UnregisterReconnect(sources[j].id);
 							break;
 						}
 					}
@@ -2289,13 +2292,11 @@ function SetUpTSLServer_TCP(sourceId)
 function StopTSLServer_TCP(sourceId) {
 	let source = sources.find( ({ id }) => id === sourceId);
 
-	RegisterDisconnect(sourceId);
-
 	try
 	{
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
-				source_connections[i].server.close(function() {});
+				source_connections[i].server.close(() =>  {});
 				DeletePort(source.data.port);
 				logger(`Source: ${source.name}  TSL 3.1 TCP Server Stopped.`, 'info');
 				for (let j = 0; j < sources.length; j++) {
@@ -2412,14 +2413,12 @@ function SetUpTSL5Server_TCP(sourceId)
 					socket.on('close', function () {
 						logger(`Source: ${source.name}  TSL 5.0 Server connection closed.`, 'info');
 						StopTSLServer_TCP(sourceId);
-						CheckReconnect(sourceId);
 					});
-				}).listen(port, function() {
+				}).listen(port, () =>  {
 					logger(`Source: ${source.name}  TSL 5.0 Server started. Listening for data on TCP Port: ${port}`, 'info');
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = true;
-							UnregisterReconnect(sources[j].id);
 							break;
 						}
 					}
@@ -2438,13 +2437,11 @@ function SetUpTSL5Server_TCP(sourceId)
 function StopTSL5Server_TCP(sourceId) {
 	let source = sources.find( ({ id }) => id === sourceId);
 
-	RegisterDisconnect(sourceId);
-
 	try
 	{
 		for (let i = 0; i < source_connections.length; i++) {
 			if (source_connections[i].sourceId === sourceId) {
-				source_connections[i].server.close(function() {});
+				source_connections[i].server.close(() =>  {});
 				DeletePort(source.data.port);
 				logger(`Source: ${source.name}  TSL 5.0 TCP Server Stopped.`, 'info');
 				for (let j = 0; j < sources.length; j++) {
@@ -2577,12 +2574,11 @@ function SetUpVideoHubServer(sourceId) {
 						logger(`VideoHub Error: ${error}`, 'error');
 					});
 
-					source_connections[i].server.on('connect', function() {
+					source_connections[i].server.on('connect', () =>  {
 						logger(`Source: ${source.name}  VideoHub connected.`, 'info-quiet');
 						for (let j = 0; j < sources.length; j++) {
 							if (sources[j].id === sourceId) {
 								sources[j].connected = true;
-								UnregisterReconnect(sources[j].id);
 								break;
 							}
 						}
@@ -2620,12 +2616,11 @@ function SetUpVideoHubServer(sourceId) {
 						}
 					});
 
-					source_connections[i].server.on('close', function() {
+					source_connections[i].server.on('close', () =>  {
 						logger(`Source: ${source.name}  VideoHub Connection closed.`, 'info');
 						for (let j = 0; j < sources.length; j++) {
 							if (sources[j].id === sourceId) {
 								sources[j].connected = false;
-								CheckReconnect(sources[j].id);
 								break;
 							}
 						}
@@ -2824,8 +2819,6 @@ function getVideoHubSourceName(sourceId, source) {
 function StopVideoHubServer(sourceId) {
 	let source = GetSourceBySourceId(sourceId);
 
-	RegisterDisconnect(sourceId);
-
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
 			source_connections[i].server.end();
@@ -2877,7 +2870,7 @@ function SetUpVMixServer(sourceId) {
 			if (source_connections[i].sourceId === sourceId) {
 				logger(`Source: ${source.name}  Creating VMix connection.`, 'info-quiet');
 				source_connections[i].server = new net.Socket();
-				source_connections[i].server.connect(port, ip, function() {
+				source_connections[i].server.connect(port, ip, () =>  {
 					logger(`Source: ${source.name}  VMix Connection Opened.`, 'info');
 
 					source_connections[i].server.write('SUBSCRIBE TALLY\r\n');
@@ -2889,7 +2882,6 @@ function SetUpVMixServer(sourceId) {
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = true;
-							UnregisterReconnect(sources[j].id);
 							break;
 						}
 					}
@@ -2977,7 +2969,6 @@ function SetUpVMixServer(sourceId) {
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = false;
-							CheckReconnect(sources[j].id);
 							break;
 						}
 					}
@@ -3017,8 +3008,6 @@ function addVMixSource(sourceId, address, label) {
 
 function StopVMixServer(sourceId) {
 	let source = GetSourceBySourceId(sourceId);
-
-	RegisterDisconnect(sourceId);
 
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
@@ -3063,7 +3052,7 @@ function SetUpPanasonicServer(sourceId) {
 				source_connections[i].server = new net.Socket()
 				source_connections[i].multi = dgram.createSocket({ type: 'udp4', reuseAddr: true })
 
-				source_connections[i].server.connect(port, ip, function() {
+				source_connections[i].server.connect(port, ip, () =>  {
 					logger(`Source: ${source.name}  AV-HS410 Connection Opened.`, 'info');
 
 					// source_connections[i].server.write('SUBSCRIBE TALLY\r\n');
@@ -3075,7 +3064,6 @@ function SetUpPanasonicServer(sourceId) {
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = true;
-							UnregisterReconnect(sources[j].id);
 							break;
 						}
 					}
@@ -3096,7 +3084,6 @@ function SetUpPanasonicServer(sourceId) {
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = false;
-							CheckReconnect(sources[j].id);
 							break;
 						}
 					}
@@ -3312,8 +3299,6 @@ function addPanasonicSource(sourceId) {
 function StopPanasonicServer(sourceId) {
 	let source = GetSourceBySourceId(sourceId);
 
-	RegisterDisconnect(sourceId);
-
 	for (let i = 0; i < source_connections.length; i++) {
 		if (source_connections[i].sourceId === sourceId) {
 
@@ -3352,7 +3337,6 @@ function SetUpRolandSmartTally(sourceId) {
 				for (let j = 0; j < sources.length; j++) {
 					if (sources[j].id === sourceId) {
 						sources[j].connected = true;
-						UnregisterReconnect(sources[j].id);
 						break;
 					}
 				}
@@ -3458,14 +3442,13 @@ function SetUpRolandVR(sourceId) {
 			if (source_connections[i].sourceId === sourceId) {
 				logger(`Source: ${source.name}  Creating Roland VR Connection.`, 'info-quiet');
 				source_connections[i].server = new net.Socket();
-				source_connections[i].server.connect({port: port, host: ip}, function() {
+				source_connections[i].server.connect({port: port, host: ip}, () =>  {
 					let tallyCmd = '\u0002CPG:1;';
 					source_connections[i].server.write(tallyCmd + '\n');
 					logger(`Source: ${source.name}  Roland VR Connection opened. Listening for data.`, 'info');
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = true;
-							UnregisterReconnect(sources[j].id);
 							break;
 						}
 					}
@@ -3523,13 +3506,12 @@ function SetUpRolandVR(sourceId) {
 					}
 				});
 
-				source_connections[i].server.on('close', function() {
+				source_connections[i].server.on('close', () =>  {
 
 					logger(`Source: ${source.name}  Roland VR Connection Stopped.`, 'info');
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = false;
-							CheckReconnect(sources[j].id);
 							break;
 						}
 					}
@@ -3552,8 +3534,6 @@ function SetUpRolandVR(sourceId) {
 
 function StopRolandVR(sourceId) {
 	let source = sources.find( ({ id }) => id === sourceId);
-
-	RegisterDisconnect(sourceId);
 
 	try
 	{
@@ -3639,14 +3619,12 @@ function SetUpRossCarbonite(sourceId)
 	
 						socket.on('close', function () {
 							logger(`Source: ${source.name}  Ross Carbonite TCP Server connection closed.`, 'info');
-							CheckReconnect(source.id);
 						});
-					}).listen(port, function() {
+					}).listen(port, () =>  {
 						logger(`Source: ${source.name}  Ross Carbonite Server started. Listening for data on TCP Port: ${port}`, 'info');
 						for (let j = 0; j < sources.length; j++) {
 							if (sources[j].id === sourceId) {
 								sources[j].connected = true;
-								UnregisterReconnect(sources[j].id);
 								break;
 							}
 						}
@@ -3823,13 +3801,12 @@ function StopRossCarbonite(sourceId) {
 		}
 	}
 	else {
-		RegisterDisconnect(sourceId);
 
 		try
 		{
 			for (let i = 0; i < source_connections.length; i++) {
 				if (source_connections[i].sourceId === sourceId) {
-					source_connections[i].server.close(function() {});
+					source_connections[i].server.close(() =>  {});
 					DeletePort(source.data.port);
 					logger(`Source: ${source.name}  Ross Carbonite TCP Server Stopped.`, 'info');
 					for (let j = 0; j < sources.length; j++) {
@@ -3977,14 +3954,13 @@ function SetUpTricasterServer(sourceId) {
 			if (source_connections[i].sourceId === sourceId) {
 				logger(`Source: ${source.name}  Creating Tricaster Connection.`, 'info-quiet');
 				source_connections[i].server = new net.Socket();
-				source_connections[i].server.connect({port: port, host: ip}, function() {
+				source_connections[i].server.connect({port: port, host: ip}, () =>  {
 					let tallyCmd = '<register name="NTK_states"/>';
 					source_connections[i].server.write(tallyCmd + '\n');
 					logger(`Source: ${source.name}  Tricaster Connection opened. Listening for data.`, 'info');
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = true;
-							UnregisterReconnect(sources[j].id);
 							break;
 						}
 					}
@@ -4029,13 +4005,12 @@ function SetUpTricasterServer(sourceId) {
 					}
 				});
 
-				source_connections[i].server.on('close', function() {
+				source_connections[i].server.on('close', () =>  {
 
 					logger(`Source: ${source.name}  Tricaster Connection Stopped.`, 'info');
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = false;
-							CheckReconnect(sources[j].id);
 							break;
 						}
 					}
@@ -4131,8 +4106,6 @@ function processTricasterTally(sourceId, sourceArray, tallyType) {
 function StopTricasterServer(sourceId) {
 	let source = sources.find( ({ id }) => id === sourceId);
 
-	RegisterDisconnect(sourceId);
-
 	try
 	{
 		for (let i = 0; i < source_connections.length; i++) {
@@ -4166,13 +4139,12 @@ function SetUpAWLivecoreServer(sourceId) {
 			if (source_connections[i].sourceId === sourceId) {
 				logger(`Source: ${source.name}  Creating AW Livecore connection.`, 'info-quiet');
 				source_connections[i].server = new net.Socket();
-				source_connections[i].server.connect(port, ip, function() {
+				source_connections[i].server.connect(port, ip, () =>  {
 					logger(`Source: ${source.name}  AW Livecore Connection Opened.`, 'info');
 					source_connections[i].server.write('?\n');
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = true;
-							UnregisterReconnect(sources[j].id);
 							break;
 						}
 					}
@@ -4187,7 +4159,6 @@ function SetUpAWLivecoreServer(sourceId) {
 									clearInterval(source_connections[i].heartbeat_interval);
 									source_connections[i].server.end();
 									source_connections[i].server.destroy();
-									CheckReconnect(sourceId);
 									break;
 								}
 							}
@@ -4330,7 +4301,6 @@ function SetUpAWLivecoreServer(sourceId) {
 					for (let j = 0; j < sources.length; j++) {
 						if (sources[j].id === sourceId) {
 							sources[j].connected = false;
-							CheckReconnect(sources[j].id);
 							break;
 						}
 					}
@@ -4350,7 +4320,6 @@ function SetUpAWLivecoreServer(sourceId) {
 function StopAWLivecoreServer(sourceId) {
 	let source = GetSourceBySourceId(sourceId);
 
-	RegisterDisconnect(sourceId);
 
 	try {
 		for (let i = 0; i < source_connections.length; i++) {
@@ -4711,7 +4680,7 @@ function RunAction_TSL_31_TCP(data) {
 		bufUMD[1] = bufTally;
 
 		let client = new net.Socket();
-		client.connect(data.port, data.ip, function() {
+		client.connect(data.port, data.ip, () =>  {
 			client.write(bufUMD);
 		});
 
@@ -4719,7 +4688,7 @@ function RunAction_TSL_31_TCP(data) {
 			client.destroy(); // kill client after server's response
 		});
 
-		client.on('close', function() {
+		client.on('close', () =>  {
 		});
 	}
 	catch (error) {
@@ -4776,7 +4745,7 @@ function RunAction_TCP(data) {
 		let tcpClient = new net.Socket();
 		tcpClient.connect(data.port, data.ip);
 
-		tcpClient.on('connect', function() {
+		tcpClient.on('connect', () =>  {
             let sendBuf = Buffer.from(unescape(data.string) + data.end, 'latin1');
             // @ts-ignore
 			if (sendBuf !== '') {
@@ -4802,7 +4771,7 @@ function RunAction_RossTalk(data) {
 		data.port = '7788';
 		tcpClient.connect(data.port, data.ip);
 
-		tcpClient.on('connect', function() {
+		tcpClient.on('connect', () =>  {
             let sendBuf = Buffer.from(unescape(data.string) + '\r\n', 'latin1');
             // @ts-ignore
 			if (sendBuf !== '') {
@@ -4966,73 +4935,6 @@ function StopConnection(sourceId) {
 	SourceClients[sourceId]?.exit();
 }
 
-function RegisterDisconnect(sourceId) {
-	let found = false;
-
-	for (let i = 0; i < source_reconnects.length; i++) {
-		if (source_reconnects[i].sourceId === sourceId) {
-			found = true;
-		}
-	}
-
-	if (!found) {
-        let reconnectObj = {
-            sourceId,
-            forcibly: true,
-        };
-		source_reconnects.push(reconnectObj);
-	}
-}
-
-function CheckReconnect(sourceId) {
-	let source = GetSourceBySourceId(sourceId);
-
-	if (source) {
-		if (source.connected === false) {
-			let found = false;
-	
-			for (let i = 0; i < source_reconnects.length; i++) {
-				if (source_reconnects[i].sourceId === sourceId) {
-					found = true;
-					if (source_reconnects[i].forcibly !== true) {
-						if (source_reconnects[i].attempts < 5) {
-							source_reconnects[i].attempts = source_reconnects[i].attempts + 1;
-							logger(`Attempting to reconnect to ${source.name} (${source_reconnects[i].attempts} of 5)`, 'info');
-							SourceClients
-							setTimeout(CheckReconnect, 5000, sourceId);
-						}
-					}
-					break;
-				}
-			}
-	
-			if (!found) {
-				let reconnectObj = {
-                    sourceId,
-                    forcibly: false,
-                    attempts: 1,
-                };
-				source_reconnects.push(reconnectObj);
-				logger(`Attempting to reconnect to ${source.name} (${reconnectObj.attempts} of 5)`, 'info');
-				SourceClients[sourceId]?.reconnect();
-				setTimeout(CheckReconnect, 5000, sourceId);
-			}
-		}
-		else {
-			UnregisterReconnect(sourceId);
-		}
-	}
-}
-
-function UnregisterReconnect(sourceId) {
-	for (let i = 0; i < source_reconnects.length; i++) {
-		if (source_reconnects[i].sourceId === sourceId) {
-			source_reconnects.splice(i, 1);
-			break;
-		}
-	}
-}
-
 function StartTSLClientConnection(tslClientId) {
 	for (let i = 0; i < tsl_clients.length; i++) {
 		if (tsl_clients[i].id === tslClientId) {
@@ -5048,13 +4950,13 @@ function StartTSLClientConnection(tslClientId) {
 						}
 						UpdateSockets('tsl_clients');
 					});
-					tsl_clients[i].socket.on('connect', function() {
+					tsl_clients[i].socket.on('connect', () =>  {
 						logger(`TSL Client ${tslClientId} Connection Established: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
 						tsl_clients[i].error = false;
 						tsl_clients[i].connected = true;
 						UpdateSockets('tsl_clients');
 					});
-					tsl_clients[i].socket.on('close', function() {
+					tsl_clients[i].socket.on('close', () =>  {
 						if (tsl_clients[i]) {
 							logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
 							tsl_clients[i].error = false;
@@ -5075,7 +4977,7 @@ function StartTSLClientConnection(tslClientId) {
 						}
 						UpdateSockets('tsl_clients');
 					});
-					tsl_clients[i].socket.on('connect', function() {
+					tsl_clients[i].socket.on('connect', () =>  {
 						logger(`TSL Client ${tslClientId} Connection Established: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
 						tsl_clients[i].error = false;
 						tsl_clients[i].connected = true;
@@ -5257,7 +5159,7 @@ function StartCloudDestination(cloudDestinationId) {
 
 			cloud_destinations_sockets[i].socket = ioClient('http://' + cloud_destinations_sockets[i].host + ':' + cloud_destinations_sockets[i].port, {reconnection: true});
 
-			cloud_destinations_sockets[i].socket.on('connect', function() { 
+			cloud_destinations_sockets[i].socket.on('connect', () =>  { 
 				logger(`Cloud Destination: ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port} Connected. Sending Initial Data.`, 'info-quiet');
 				cloud_destinations_sockets[i].connected = true;
 				SetCloudDestinationStatus(cloud_destinations_sockets[i].id, 'connected');
@@ -5288,7 +5190,7 @@ function StartCloudDestination(cloudDestinationId) {
 				SetCloudDestinationStatus(cloud_destinations_sockets[i].id, 'error');
 			});
 
-			cloud_destinations_sockets[i].socket.on('disconnect', function() { 
+			cloud_destinations_sockets[i].socket.on('disconnect', () =>  { 
 				logger(`Cloud Connection Disconnected: ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port}`, 'error');
 				cloud_destinations_sockets[i].connected = false;
 				SetCloudDestinationStatus(cloud_destinations_sockets[i].id, 'disconnected');
@@ -5351,7 +5253,7 @@ function UpdateCloud(dataType) {
 			try {
 				switch(dataType) {
 					case 'sources':
-						cloud_destinations_sockets[i].socket.emit('cloud_sources', cloud_destinations_sockets[i].key, sources);
+						cloud_destinations_sockets[i].socket.emit('cloud_sources', cloud_destinations_sockets[i].key, getSources());
 						break;
 					case 'devices':
 						cloud_destinations_sockets[i].socket.emit('cloud_devices', cloud_destinations_sockets[i].key, devices);
@@ -5551,7 +5453,7 @@ function UpdateVMixClients() {
 }
 
 function TallyArbiter_Add_Source(obj) {
-	let sourceObj = obj.source;
+	let sourceObj = obj.source as Source;
 	sourceObj.id = uuidv4();
 	sources.push(sourceObj);
 
@@ -5559,7 +5461,7 @@ function TallyArbiter_Add_Source(obj) {
 
 	logger(`Source Added: ${sourceObj.name}`, 'info');
 
-	initializeSource(sourceObj.id);
+	initializeSource(sourceObj);
 
 	return {result: 'source-added-successfully'};
 }
@@ -5652,7 +5554,7 @@ function TallyArbiter_Add_Device(obj) {
             busId: bus_options[i].id,
             sources: [],
         };
-		device_states.push(deviceStateObj);
+		device_states.push(deviceStateObj as DeviceState);
 	}
 
 	SendTSLClientData(deviceObj.id);

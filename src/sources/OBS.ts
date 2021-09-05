@@ -13,25 +13,10 @@ export class OBSSource extends TallyInput {
     private obsClient: ObsWebSocket;
     constructor(source: Source) {
         super(source);
-        let ip = source.data.ip;
-        let port = source.data.port;
-        let password = source.data.password;
-
-
-        logger(`Source: ${source.name}  Creating OBS Websocket connection.`, 'info-quiet');
         this.obsClient = new ObsWebSocket();
 
-        this.obsClient.connect({ address: ip + ':' + port, password: password }).then((data) => {
-            logger(`Source: ${source.name} Connected to OBS @ ${ip}:${port}`, 'info');
-        })
-            .catch(function (error) {
-                if (error.code === 'CONNECTION_ERROR') {
-                    logger(`Source: ${source.name}  OBS websocket connection error. Is OBS running?`, 'error');
-                }
-            });
-
         this.obsClient.on('ConnectionOpened', () => {
-            logger(`Source: ${source.name}  OBS Connection opened.`, 'info');
+            logger(`Source: ${source.name} Connected to OBS @ ${this.source.data.ip}:${this.source.data.port}`, 'info');
             this.addAddress('{{STREAMING}}', '{{STREAMING}}');
             this.addAddress('{{STREAMING}}', '{{RECORDING}}');
             //Retrieve all the current sources and add them
@@ -51,7 +36,7 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('AuthenticationSuccess', () => {
             logger(`Source: ${source.name}  OBS Authenticated.`, 'info-quiet');
-            this.connected.next(false);
+            this.connected.next(true);
         });
 
         this.obsClient.on('AuthenticationFailure', () => {
@@ -61,18 +46,18 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('PreviewSceneChanged', (data) => {
             logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
-            if (data) {
-                if (data.sources) {
-                    // this.processOBSTally(data.sources, 'preview');
+            if (data?.sources) {
+                for (const source of data.sources) {
+                    this.addBusToAddress(source.name, "preview");
                 }
             }
         });
 
         this.obsClient.on('SwitchScenes', (data) => {
             logger(`Source: ${source.name}  Program Scene Changed.`, 'info-quiet');
-            if (data) {
-                if (data.sources) {
-                    // this.processOBSTally(data.sources, 'program');
+            if (data?.sources) {
+                for (const source of data.sources) {
+                    this.addBusToAddress(source.name, "program");
                 }
             }
         });
@@ -93,50 +78,42 @@ export class OBSSource extends TallyInput {
         });
 
         this.obsClient.on('StreamStarted', () => {
-            let obsTally = [
-                {
-                    name: '{{STREAMING}}',
-                    render: true
-                }
-            ];
-            // this.processOBSTally(obsTally, 'program');
+            this.setBussesForAddress("{{STREAMING}}", ["program"]);
         });
 
-        this.obsClient.on('StreamStopped', function () {
-            let obsTally = [
-                {
-                    name: '{{STREAMING}}',
-                    render: false
-                }
-            ];
-            this.processOBSTally(obsTally, 'program');
+        this.obsClient.on('StreamStopped', () => {
+            this.setBussesForAddress("{{STREAMING}}", []);
         });
 
-        this.obsClient.on('RecordingStarted', function () {
-            let obsTally = [
-                {
-                    name: '{{RECORDING}}',
-                    render: true
-                }
-            ];
-            this.processOBSTally(obsTally, 'program');
+        this.obsClient.on('RecordingStarted', () => {
+            this.setBussesForAddress("{{RECORDING}}", ["program"]);
         });
 
-        this.obsClient.on('RecordingStopped', function () {
-            let obsTally = [
-                {
-                    name: '{{RECORDING}}',
-                    render: false
-                }
-            ];
-            this.processOBSTally(obsTally, 'program');
+        this.obsClient.on('RecordingStopped', () => {
+            this.setBussesForAddress("{{RECORDING}}", []);
         });
 
+        
+        this.connect();
+    }
+
+    private connect() {
+        this.obsClient.connect({ address: this.source.data.ip + ':' + this.source.data.port, password: this.source.data.password })
+            .catch((error) => {
+                if (error.code === 'CONNECTION_ERROR') {
+                    logger(`Source: ${this.source.name}  OBS websocket connection error. Is OBS running?`, 'error');
+                    this.connected.next(false);
+                }
+            });
+    }
+
+    public reconnect() {
+        this.connect();
     }
 
 
     public exit(): void {
-        logger(`Source: ${this.source.name}  Closing OBS connection.`, 'info-quiet');
         this.obsClient.disconnect();
+        super.exit();
     }
 }

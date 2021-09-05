@@ -173,6 +173,6 @@ export class ATEMSource extends TallyInput {
 
     public exit(): void {
         this.atemClient.disconnect();
-        logger(`Source: ${this.source.name}  ATEM connection closed.`, 'info');
+        super.exit();
     }
 }

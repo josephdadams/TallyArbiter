@@ -1,4 +1,5 @@
 export interface DeviceSource {
+	cloudClientId: any;
     address: string;
     deviceId: string;
     id: string;
