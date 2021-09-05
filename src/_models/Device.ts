@@ -1,4 +1,6 @@
 export interface Device {
+	linkedBusses: any;
+	cloudClientId: any;
     name: string;
     description: string;
     enabled: boolean;

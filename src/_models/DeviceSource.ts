@@ -7,5 +7,7 @@ export interface DeviceSource {
 	rename: boolean;
     
     // Volatile
+	cloudConnection?: any;
+	cloudClientId?: any;
     sourceIdx?: number;
 }
