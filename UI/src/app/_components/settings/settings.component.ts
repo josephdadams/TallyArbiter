@@ -40,7 +40,7 @@ export class SettingsComponent {
 	];
 	public currentLogLevel = "info";
 	public visibleLogs: LogItem[] = [];
-	public deviceBusColors: Record<string, Record<string, boolean>> = {};
+	public deviceBusColors: Record<string, string[]> = {};
 
 	// add / edit Source
 	public editingSource = false;
@@ -78,8 +78,8 @@ export class SettingsComponent {
 		this.socketService.joinAdmins();
 		this.socketService.closeModals.subscribe(() => this.modalService.dismissAll());
 		this.socketService.scrollTallyDataSubject.subscribe(() => this.scrollToBottom(this.tallyDataContainer));
-		this.socketService.deviceStateChanged.subscribe(({ device, states }) => {
-			this.deviceBusColors[device.id] = Object.fromEntries(states.map((s) => ([s.busId, s.active])));
+		this.socketService.deviceStateChanged.subscribe(({ device, tallyData }) => {
+			this.deviceBusColors[device.id] = tallyData.busses;
 		});
 		this.socketService.newLogsSubject.subscribe(() => {
 			this.filterLogs();

@@ -23,7 +23,7 @@ export class OBSSource extends TallyInput {
             this.obsClient.send('GetSourcesList').then((data) => {
                 if (!Array.isArray(data.sources)) return;
                 for (const source of data.sources) {
-                    this.addAddress(source, source);
+                    this.addAddress(source.name, source.name);
                 }
             }).catch(() => undefined);
             this.connected.next(true);

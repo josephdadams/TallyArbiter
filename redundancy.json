@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "files": [{
+        "src": "src/_models/*",
+        "dest": "UI/src/app/_models"
+    }]
+}

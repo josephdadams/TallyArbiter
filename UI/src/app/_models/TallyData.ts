@@ -6,9 +6,14 @@
 /*    |    Then, run "npx redundancyjs" in the terminal.                      |    */
 /*    +-----------------------------------------------------------------------+    */
 
-/* do not edit */ export interface Message {
-/* do not edit */     type: "producer" | "client" | "server";
-/* do not edit */     socketId: string;
-/* do not edit */     text: string;
-/* do not edit */     date: Date;
+/* do not edit */ export type AddressTallyData = {
+/* do not edit */     [address: string]: string[];
+/* do not edit */ }
+/* do not edit */ 
+/* do not edit */ export type SourceTallyData = {
+/* do not edit */     [sourceId: string]: string[];
+/* do not edit */ }
+/* do not edit */ 
+/* do not edit */ export type DeviceTallyData = {
+/* do not edit */     [deviceId: string]: string[];
 /* do not edit */ }
