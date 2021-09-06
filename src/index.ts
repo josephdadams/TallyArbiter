@@ -1536,39 +1536,6 @@ function initialSetup() {
 			SourceClients[sourceId]?.reconnect();
 		});
 
-		socket.on('device_sources_link', function(deviceId, busId, choice) {
-			for (let i = 0; i < devices.length; i++) {
-				if (devices[i].id === deviceId) {
-					let found = false;
-					let busIndex = null;
-					for (let j = 0; j < devices[i].linkedBusses.length; j++) {
-						if (devices[i].linkedBusses[j] === busId) {
-							found = true;
-							if (!choice) {
-								//no longer linked, need to remove it
-								busIndex = j;
-							}
-							break;
-						}
-					}
-
-					if (!found) {
-						//add it
-						devices[i].linkedBusses.push(busId);
-					}
-
-					if (busIndex !== null) {
-						//splice it
-						devices[i].linkedBusses.splice(busIndex, 1);
-					}
-
-					SaveConfig();
-					socket.emit('devices', devices);
-					break;
-				}
-			}
-		});
-
 		socket.on('listener_clients', () =>  {
 			socket.emit('listener_clients', listener_clients);
 		});
@@ -1761,8 +1728,16 @@ function UpdateDeviceState(deviceId: string) {
 
 	const deviceSources = device_sources.filter((d) => d.deviceId == deviceId);
 	for (const bus of bus_options) {
-		if (deviceSources.findIndex((s) => currentSourceTallyData?.[s.id]?.includes(bus.type)) !== -1) {
-			currentDeviceTallyData[device.id].push(bus.id);
+		if (device.linkedBusses.includes(bus.id)) {
+			// bus is linked, which means all sources must be in this bus
+			if (deviceSources.findIndex((s) => !currentSourceTallyData?.[s.id]?.includes(bus.type)) === -1) {
+				currentDeviceTallyData[device.id].push(bus.id);
+			}
+		} else {
+			// bus is unlinked
+			if (deviceSources.findIndex((s) => currentSourceTallyData?.[s.id]?.includes(bus.type)) !== -1) {
+				currentDeviceTallyData[device.id].push(bus.id);
+			}
 		}
 	}
 	UpdateSockets("currentTallyData");
@@ -5373,6 +5348,7 @@ function TallyArbiter_Edit_Device(obj) {
 			devices[i].description = deviceObj.description;
 			devices[i].tslAddress = deviceObj.tslAddress;
 			devices[i].enabled = deviceObj.enabled;
+			devices[i].linkedBusses = deviceObj.linkedBusses;
 		}
 	}
 

@@ -89,7 +89,6 @@ export class SettingsComponent {
 			this.show_error(id);
 		});
 		this.socketService.socket.on('unreaded_error_reports', (list) => {
-			console.log(list);
 			if(list.length > 0) {
 			this.show_errors_list();
 			}
@@ -204,10 +203,6 @@ export class SettingsComponent {
 			device_action: deviceActionObj,
 		};
 		this.socketService.socket.emit('manage', arbiterObj);
-	}
-
-	public updateDeviceSourceLink(bus: 'preview' | 'program', value: boolean) {
-		this.socketService.socket.emit('device_sources_link', this.currentDevice.id, bus, value);
 	}
 
 	@Confirmable('If you delete this key, all connected cloud clients using this key will be disconnected. Are you sure you want to delete it?')
