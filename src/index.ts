@@ -30,6 +30,8 @@ import { ErrorReport } from './_models/ErrorReport';
 import { ErrorReportsListElement } from "./_models/ErrorReportsListElement";
 import { NetworkInterface } from "./_models/NetworkInterface";
 import { ConfigSecuritySection } from "./_models/ConfigSecuritySection";
+import { ConfigTSLClient } from "./_models/ConfigTSLClient";
+import { Config } from './_models/Config';
 import { ManageResponse } from './_models/ManageResponse';
 import { LogItem } from "./_models/LogItem";
 import { Port } from "./_models/Port";
@@ -1993,10 +1995,10 @@ function SaveConfig() {
 		securityObj.username_producer = username_producer;
 		securityObj.password_producer = password_producer;
 
-		let tsl_clients_clean = [];
+		let tsl_clients_clean: ConfigTSLClient[] = [];
 
 		for (let i = 0; i < tsl_clients.length; i++) {
-            let tslClientObj: any = {};
+            let tslClientObj: ConfigTSLClient = {} as ConfigTSLClient;
 			tslClientObj.id = tsl_clients[i].id;
 			tslClientObj.ip = tsl_clients[i].ip;
 			tslClientObj.port = tsl_clients[i].port;
@@ -2004,7 +2006,7 @@ function SaveConfig() {
 			tsl_clients_clean.push(tslClientObj);
 		}
 
-		let configJson = {
+		let configJson: Config = {
 			security: securityObj,
 			sources: sources,
 			devices: devices,
@@ -2026,12 +2028,12 @@ function SaveConfig() {
 	}
 }
 
-function getConfig() {
+function getConfig(): Config {
 	return JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
 }
 
-function getConfigRedacted() {
-	let config = JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
+function getConfigRedacted(): Config {
+	let config: Config = JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
 	config["security"] = {
 		username_settings: "admin",
 		password_settings: "12345",
@@ -5878,7 +5880,7 @@ function SendMessage(type, socketid, message) {
 	io.to('messaging').emit('messaging', type, socketid, message);
 }
 
-function getConfigFilePath() {
+function getConfigFilePath(): string {
 	const configFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share"), "TallyArbiter");
 	if (!fs.existsSync(configFolder)) {
 		fs.mkdirSync(configFolder, { recursive: true });
@@ -5887,7 +5889,7 @@ function getConfigFilePath() {
 	return path.join(configFolder, configName);
 }
 
-function getLogFilePath() {
+function getLogFilePath(): string {
 
 	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
 
@@ -5902,7 +5904,7 @@ function getLogFilePath() {
 	return path.join(logFolder, logName);
 }
 
-function getTallyDataPath() {
+function getTallyDataPath(): string {
 
 	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
 
