@@ -24,6 +24,8 @@ import os from 'os'; // For getting available Network interfaces on host device
 import findRemoveSync from 'find-remove';
 import { CloudClient } from "./_models/CloudClient";
 import { DeviceState } from "./_models/DeviceState";
+import { FlashListenerClientResponse } from "./_models/FlashListenerClientResponse";
+import { MessageListenerClientResponse } from "./_models/MessageListenerClientResponse";
 import { LogItem } from "./_models/LogItem";
 import { Port } from "./_models/Port";
 import { TallyInput } from './sources/_Source';
@@ -5855,7 +5857,7 @@ function DeleteInactiveVmixListenerClients() {
 	setTimeout(DeleteInactiveVmixListenerClients, 5 * 1000); // runs every 5 minutes
 }
 
-function FlashListenerClient(listenerClientId): any | void {
+function FlashListenerClient(listenerClientId): FlashListenerClientResponse | void {
 	let listenerClientObj = listener_clients.find( ({ id }) => id === listenerClientId);
 
 	if (listenerClientObj) {
@@ -5889,7 +5891,7 @@ function FlashListenerClient(listenerClientId): any | void {
 	}
 }
 
-function MessageListenerClient(listenerClientId, type, socketid, message): any | void {
+function MessageListenerClient(listenerClientId, type, socketid, message): MessageListenerClientResponse | void {
 	let listenerClientObj = listener_clients.find( ({ id }) => id === listenerClientId);
 
 	if (listenerClientObj) {
