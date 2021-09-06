@@ -10,7 +10,7 @@ import findPackageJson from "find-package-json";
 import path from 'path';
 import clc from 'cli-color';
 import util from 'util';
-import express from 'express';
+import express, { Router } from 'express';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import bodyParser from 'body-parser';
 import axios from 'axios';
@@ -50,6 +50,9 @@ import { OutputType } from './_models/OutputType';
 import { TSLClient } from './_models/TSLClient';
 import { OutputTypeDataFields } from './_models/OutputTypeDataFields';
 import { Actions } from './_globals/Actions';
+import { ListenerClient } from './_models/ListenerClient';
+import { ListenerClientConnect } from './_models/ListenerClientConnect';
+import { Manage } from './_models/Manage';
 
 function loadClassesFromFolder(folder: string): void {
 	for (const file of fs.readdirSync(path.join(__dirname, folder)).filter((f) => !f.startsWith("_"))) {
@@ -85,8 +88,8 @@ const listenPort 	= process.env.PORT || 4455;
 const app 			= express();
 const httpServer	= new http.Server(app);
 const io 			= new socketio.Server(httpServer, { allowEIO3: true });
-const appProducer	= require('express').Router();
-const appSettings	= require('express').Router();
+const appProducer: Router	= require('express').Router();
+const appSettings: Router	= require('express').Router();
 var username_producer = 'producer';
 var password_producer = '12345';
 var username_settings = 'admin';
@@ -525,7 +528,7 @@ function startUp() {
 	DeleteInactiveListenerClients();
 	DeleteInactiveVmixListenerClients();
 
-	process.on('uncaughtException', function (err) {
+	process.on('uncaughtException', function (err: Error) {
 		if (!process.versions.hasOwnProperty('electron')) {
 			generateErrorReport(err);
 		}
@@ -534,7 +537,7 @@ function startUp() {
 
 //based on https://stackoverflow.com/a/37096512
 //used in login function for displaying rate limits
-function secondsToHms(d) {
+function secondsToHms(d: number | string) {
     d = Number(d);
     var h = Math.floor(d / 3600);
     var m = Math.floor(d % 3600 / 60);
@@ -737,7 +740,7 @@ function initialSetup() {
 	io.sockets.on('connection', function(socket) {
 		const ipAddr = socket.handshake.address;
 
-		socket.on('login', function (type, username, password) {
+		socket.on('login', function (type: "settings" | "producer", username: string, password: string) {
 			if((type === "producer" && username == username_producer && password == password_producer)
 			|| (type === "settings" && username == username_settings && password == password_settings)) {
 				//login successfull
@@ -783,7 +786,7 @@ function initialSetup() {
 			socket.emit('sources', getSources());
 		});
 
-		socket.on('source_tallydata', function(sourceId) { //gets all Source Tally Data
+		socket.on('source_tallydata', function(sourceId: string) { //gets all Source Tally Data
 			let source = GetSourceBySourceId(sourceId);
 			let sourceType = GetSourceTypeBySourceTypeId(source.sourceTypeId);
 			let result: false | any[] = false;
@@ -840,7 +843,7 @@ function initialSetup() {
 			socket.emit('bus_options', bus_options);
 		});
 
-		socket.on('listenerclient_connect', function(obj) {
+		socket.on('listenerclient_connect', function(obj: ListenerClientConnect) {
 			/*
 			This is the new listener client API, all clients should connect and send a JSON object with these properties:
 			deviceId
@@ -875,7 +878,7 @@ function initialSetup() {
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
 
-			let ipAddress = socket.request.connection.remoteAddress;
+			let ipAddress = socket.handshake.address;
 			let datetimeConnected = new Date().getTime();
 			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed, supportsChat);
 			
@@ -896,7 +899,7 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('device_listen', function(deviceId, listenerType) { // emitted by a socket (tally page) that has selected a Device to listen for state information
+		socket.on('device_listen', function(deviceId: string, listenerType: string) { // emitted by a socket (tally page) that has selected a Device to listen for state information
 			let device = GetDeviceByDeviceId(deviceId);
 			if ((deviceId === 'null') || (device.id === 'unassigned')) {
 				if (devices.length > 0) {
@@ -914,14 +917,14 @@ function initialSetup() {
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
 
-			let ipAddress = socket.request.connection.remoteAddress;
+			let ipAddress = socket.handshake.address;
 			let datetimeConnected = new Date().getTime();
 
 			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true);
 			socket.emit('currentTallyData', currentDeviceTallyData);
 		});
 
-		socket.on('device_listen_blink', function(obj) { // emitted by the Python blink(1) client that has selected a Device to listen for state information
+		socket.on('device_listen_blink', function(obj: { deviceId: string }) { // emitted by the Python blink(1) client that has selected a Device to listen for state information
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
 			let oldDeviceId = null;
@@ -943,7 +946,7 @@ function initialSetup() {
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
 
-			let ipAddress = socket.request.connection.remoteAddress;
+			let ipAddress = socket.handshake.address;
 			let datetimeConnected = new Date().getTime();
 
 			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true);
@@ -954,7 +957,7 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('device_listen_relay', function(relayGroupId, deviceId) { // emitted by the Relay Controller accessory program that has selected a Device to listen for state information
+		socket.on('device_listen_relay', function(relayGroupId: string, deviceId: string) { // emitted by the Relay Controller accessory program that has selected a Device to listen for state information
 			let device = GetDeviceByDeviceId(deviceId);
 			if (device.id === 'unassigned') {
 				if (devices.length > 0) {
@@ -971,7 +974,7 @@ function initialSetup() {
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
 
-			let ipAddress = socket.request.connection.remoteAddress;
+			let ipAddress = socket.handshake.address;
 			let datetimeConnected = new Date().getTime();
 
 			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true);
@@ -985,7 +988,7 @@ function initialSetup() {
 			socket.emit('listener_relay_assignment', relayGroupId, deviceId);
 		});
 
-		socket.on('device_listen_gpo', function(obj) { // emitted by the Python GPO Controller client that has selected a Device to listen for state information
+		socket.on('device_listen_gpo', function(obj: { gpoGroupId: string, deviceId: string }) { // emitted by the Python GPO Controller client that has selected a Device to listen for state information
 			let gpoGroupId = obj.gpoGroupId;
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
@@ -1004,7 +1007,7 @@ function initialSetup() {
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
 
-			let ipAddress = socket.request.connection.remoteAddress;
+			let ipAddress = socket.handshake.address;
 			let datetimeConnected = new Date().getTime();
 
 			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true);
@@ -1018,7 +1021,7 @@ function initialSetup() {
 			socket.emit('listener_relay_assignment', gpoGroupId, deviceId);
 		});
 
-		socket.on('device_listen_m5', function(obj) { // emitted by the M5 Arduino clients (Atom, Stick C, Stick C Plus, etc.) that has selected a Device to listen for state information
+		socket.on('device_listen_m5', function(obj: { deviceId: string, listenerType?: string }) { // emitted by the M5 Arduino clients (Atom, Stick C, Stick C Plus, etc.) that has selected a Device to listen for state information
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
 			let listenerType = 'm5';
@@ -1052,13 +1055,13 @@ function initialSetup() {
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName} DeviceID: ${deviceId}`, 'info');
 
-			let ipAddress = socket.request.connection.remoteAddress;
+			let ipAddress = socket.handshake.address;
 			let datetimeConnected = new Date().getTime();
 
 			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true);
 		});
 
-		socket.on('currentTallyData', function(deviceId) {
+		socket.on('currentTallyData', function(deviceId: string) {
 			socket.emit('currentTallyData', currentDeviceTallyData);
 		});
 
@@ -1098,15 +1101,18 @@ function initialSetup() {
 			FlashListenerClient(clientId);
 		});
 
-		socket.on('messaging_client', function(clientId, type, socketid, message) {
+		socket.on('messaging_client', function(clientId: {
+			relayGroupId?: string;
+			gpoGroupId?: string;
+		}, type: string, socketid: string, message: string) {
 			MessageListenerClient(clientId, type, socketid, message);
 		});
 
-		socket.on('reassign', function(clientId, oldDeviceId, deviceId) {
+		socket.on('reassign', function(clientId: string, oldDeviceId: string, deviceId: string) {
 			ReassignListenerClient(clientId, oldDeviceId, deviceId);
 		});
 
-		socket.on('listener_reassign', function(oldDeviceId, deviceId) {
+		socket.on('listener_reassign', function(oldDeviceId: string, deviceId: string) {
 			socket.leave('device-' + oldDeviceId);
 			socket.join('device-' + deviceId);
 
@@ -1235,7 +1241,7 @@ function initialSetup() {
 		});
 
 		socket.on('cloud_client', function(key) {
-			let ipAddress = socket.request.connection.remoteAddress;
+			let ipAddress = socket.handshake.address;
 
 			if (cloud_keys.includes(key)) {
 				let datetimeConnected = new Date().getTime();
@@ -1402,7 +1408,7 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('cloud_listeners', function(key, data) {
+		socket.on('cloud_listeners', function(key: string, data) {
 			let cloudClientId = GetCloudClientBySocketId(socket.id).id;
 
 			//loop through the received array and if an item in the array isn't already in the listener_clients array, add it, and attach the cloud ID as a property
@@ -1458,7 +1464,7 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('cloud_data', function(key, sourceId, tallyObj) {
+		socket.on('cloud_data', function(key: string, sourceId: string, tallyObj: SourceTallyData) {
 			if (cloud_keys.includes(key)) {
 				processSourceTallyData(sourceId, tallyObj);
 			}
@@ -1468,12 +1474,12 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('manage', function(arbiterObj) {
+		socket.on('manage', function(arbiterObj: Manage) {
 			const response = TallyArbiter_Manage(arbiterObj);
 			io.to('settings').emit('manage_response', response);
 		});
 
-		socket.on('reconnect_source', function(sourceId) {
+		socket.on('reconnect_source', function(sourceId: string) {
 			SourceClients[sourceId]?.reconnect();
 		});
 
@@ -1497,17 +1503,17 @@ function initialSetup() {
 			socket.emit('cloud_clients', cloud_clients);
 		});
 
-		socket.on('testmode', function(value) {
+		socket.on('testmode', function(value: boolean) {
 			EnableTestMode(value);
 		});
 
-		socket.on('tslclients_1secupdate', function(value) {
+		socket.on('tslclients_1secupdate', function(value: boolean) {
 			tsl_clients_1secupdate = value;
 			SaveConfig();
 			TSLClients_1SecUpdate(value);
 		})
 
-		socket.on('messaging', function(type, message) {
+		socket.on('messaging', function(type: string, message: string) {
 			SendMessage(type, socket.id, message);
 		});
 
@@ -1519,7 +1525,7 @@ function initialSetup() {
 			socket.emit('unreaded_error_reports', getUnreadedErrorReportsList());
 		});
 
-		socket.on('get_error_report', function(errorReportId) {
+		socket.on('get_error_report', function(errorReportId: string) {
 			markErrorReportAsReaded(errorReportId);
 			socket.emit('error_report', getErrorReport(errorReportId));
 		});
@@ -1781,7 +1787,7 @@ function removeVmixListener(host) {
 	logger(`VMix Emulator Connection ${host} unsubscribed to tally`, 'info');
 }
 
-export function logger(log, type) { //logs the item to the console, to the log array, and sends the log item to the settings page
+export function logger(log: string, type: string) { //logs the item to the console, to the log array, and sends the log item to the settings page
 
 	let dtNow = new Date().toISOString();
 
@@ -1808,7 +1814,7 @@ export function logger(log, type) { //logs the item to the console, to the log a
     const logObj: LogItem = {
         datetime: dtNow.toString(),
         log: log,
-        type: type,
+        type: type as LogItem["type"],
     };
 	Logs.push(logObj);
 
@@ -4328,7 +4334,7 @@ function RunAction(deviceId, busId, active) {
 	}
 }
 
-function TallyArbiter_Manage(obj): ManageResponse {
+function TallyArbiter_Manage(obj: Manage): ManageResponse {
     let result: ManageResponse;
 	switch(obj.type) {
 		case 'source':
@@ -4432,7 +4438,7 @@ function TallyArbiter_Manage(obj): ManageResponse {
 	return result;
 }
 
-function StopConnection(sourceId) {
+function StopConnection(sourceId: string) {
 	SourceClients[sourceId]?.exit();
 }
 
@@ -4748,7 +4754,7 @@ function SetCloudDestinationStatus(cloudId, status) {
 	UpdateSockets('cloud_destinations');
 }
 
-function UpdateCloud(dataType) {
+function UpdateCloud(dataType: 'sources' | 'devices' | 'device_sources' | 'currentTallyData' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse") {
 	for (let i = 0; i < cloud_destinations_sockets.length; i++) {
 		if (cloud_destinations_sockets[i].connected === true) {
 			try {
@@ -4776,7 +4782,7 @@ function UpdateCloud(dataType) {
 	}
 }
 
-function UpdateSockets(dataType) {
+function UpdateSockets(dataType: 'sources' | 'devices' | 'device_sources' | 'currentTallyData' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse") {
 	let emitSettings = false;
 	let emitProducer =  false;
 	let emitCompanion =  false;
@@ -5598,7 +5604,7 @@ function UpdateListenerClients(deviceId: string) {
 	}
 }
 
-function ReassignListenerClient(clientId, oldDeviceId, deviceId) {
+function ReassignListenerClient(clientId: string, oldDeviceId: string, deviceId: string) {
 	for (let i = 0; i < listener_clients.length; i++) {
 		if (listener_clients[i].id === clientId) {
 			if (listener_clients[i].canBeReassigned) {
@@ -5723,7 +5729,7 @@ function FlashListenerClient(listenerClientId): FlashListenerClientResponse | vo
 	}
 }
 
-function MessageListenerClient(listenerClientId, type, socketid, message): MessageListenerClientResponse | void {
+function MessageListenerClient(listenerClientId: { relayGroupId?: string; gpoGroupId?: string }, type: string, socketid: string, message: string): MessageListenerClientResponse | void {
 	let listenerClientObj = listener_clients.find( ({ id }) => id === listenerClientId);
 
 	if (listenerClientObj) {
@@ -5876,7 +5882,7 @@ function DeletePort(port) { //Deletes the port from the list of reserved or in-u
 	UpdateSockets('PortsInUse');
 }
 
-function SendMessage(type, socketid, message) {
+function SendMessage(type: string, socketid: string | null, message: string) {
 	io.to('messaging').emit('messaging', type, socketid, message);
 }
 
@@ -5944,7 +5950,7 @@ function getReadedErrorReports(): string[] {
 	}
 }
 
-function markErrorReportAsReaded(errorReportId): boolean {
+function markErrorReportAsReaded(errorReportId: string): boolean {
 	try {
 		const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
 		let readedErrorReportsList = getReadedErrorReports();
@@ -5962,7 +5968,7 @@ function getUnreadedErrorReportsList(): ErrorReportsListElement[] {
 	return errorReports.filter((report) => { return !readedErrorReports.includes(report.id); });
 }
 
-function getErrorReport(reportId): ErrorReport | false {
+function getErrorReport(reportId: string): ErrorReport | false {
 	try {
 		if(!reportId.match(/^[a-zA-Z0-9]+$/i)) return false;
 		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
@@ -5973,7 +5979,7 @@ function getErrorReport(reportId): ErrorReport | false {
 	}
 }
 
-function getErrorReportPath(id): string {
+function getErrorReportPath(id: string): string {
 
 	const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
 
@@ -5984,7 +5990,7 @@ function getErrorReportPath(id): string {
 	return path.join(ErrorReportsFolder, errorReportName);
 }
 
-function generateErrorReport(error) {
+function generateErrorReport(error: Error) {
 	logger(`Caught exception: ${error}`, 'error');
 	let id = uuidv4();
 	let stacktrace = "No stacktrace captured.";
