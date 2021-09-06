@@ -64,6 +64,10 @@ const limiterConsecutiveFailsByUsernameAndIP = new RateLimiterMemory({
 });
 
 //Tally Arbiter variables
+var uiDistPath = path.join(__dirname, 'ui-dist');
+if (!fs.existsSync(uiDistPath)) {
+    uiDistPath = path.join(__dirname, '..', 'ui-dist');
+}
 const listenPort 	= process.env.PORT || 4455;
 const app 			= express();
 const httpServer	= new http.Server(app);
@@ -612,7 +616,7 @@ function initialSetup() {
 
 	//about the author, this program, etc.
 	app.get('/', function (req, res) {
-		res.sendFile('index.html', { root: path.join(__dirname, '..', 'ui-dist') });
+		res.sendFile('index.html', { root: uiDistPath });
 	});
 
 	//gets the version of the software
@@ -779,7 +783,7 @@ function initialSetup() {
 	});
 
 	//serve up any files in the ui-dist folder
-	app.use(express.static(path.join(__dirname, '..', 'ui-dist')));
+	app.use(express.static(uiDistPath));
 
 	app.use(function (req, res) {
 		res.status(404).send({error: true, url: req.originalUrl + ' not found.'});
@@ -6204,8 +6208,7 @@ function getLogFilePath() {
 
 	const logFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/logs");
 
-	//TODO: fix findRemoveSync for Webpack
-	//findRemoveSync(logFolder, {age: {seconds: 604800}, extensions: '.talog', limit: 100});
+	findRemoveSync(logFolder, {age: {seconds: 604800}, extensions: '.talog', limit: 100});
 
 	if (!fs.existsSync(logFolder)) {
 		fs.mkdirSync(logFolder, { recursive: true });
@@ -6220,8 +6223,7 @@ function getTallyDataPath() {
 
 	const TallyDataFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/TallyData");
 
-	//TODO: fix findRemoveSync for Webpack
-	//findRemoveSync(TallyDataFolder, {age: {seconds: 604800}, extensions: '.tadata', limit: 100});
+	findRemoveSync(TallyDataFolder, {age: {seconds: 604800}, extensions: '.tadata', limit: 100});
 
 	if (!fs.existsSync(TallyDataFolder)) {
 		fs.mkdirSync(TallyDataFolder, { recursive: true });
