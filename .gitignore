@@ -112,5 +112,9 @@ config.json
 # don't include the generated UI
 ui-dist/*
 
+# UI models
+UI/src/app/_models
+!UI/src/app/_models/*.md
+
 # don't include any installers
 release
