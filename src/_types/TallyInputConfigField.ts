@@ -1,8 +1,9 @@
 export type TallyInputConfigField = {
     fieldName: string;
     fieldLabel: string;
+    help?: string;
 } & ({
-    fieldType: 'text' | 'port';
+    fieldType: 'text' | 'port' | 'number' | 'bool';
 } | {
     fieldType: "dropdown" | "multiselect";
     options: {
@@ -12,4 +13,4 @@ export type TallyInputConfigField = {
 } | {
     fieldType: 'info',
     text: string;
-    })
+})

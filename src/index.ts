@@ -39,11 +39,16 @@ import { Device } from './_models/Device';
 import { AddressTallyData, DeviceTallyData, SourceTallyData } from './_models/TallyData';
 import { OutputType } from './_models/OutputType';
 import { TSLClient } from './_models/TSLClient';
-import { TSLTallyData } from './_models/TSLTallyData';
+import { Actions } from './_globals/Actions';
+import { OutputTypeDataFields } from './_models/OutputTypeDataFields';
 
 for (const file of fs.readdirSync(path.join(__dirname, "sources"))) {
 	require(`./sources/${file.replace(".ts", "")}`);
 }
+for (const file of fs.readdirSync(path.join(__dirname, "actions"))) {
+	require(`./actions/${file.replace(".ts", "")}`);
+}
+
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
@@ -487,74 +492,6 @@ var source_types_panasonic = [ // AV-HS410 INPUTS
 	{ id: '23', label: 'XPT 24' },
 ];
 
-var output_types = [ //output actions that Tally Arbiter can perform
-	{ id: '7dcd66b5', label: 'TSL 3.1 UDP', type: 'tsl_31_udp', enabled: true},
-	{ id: '276a8dcc', label: 'TSL 3.1 TCP', type: 'tsl_31_tcp', enabled: true },
-	{ id: 'ffe2b0b6', label: 'Outgoing Webhook', type: 'webhook', enabled: true},
-	{ id: '79e3ce27', label: 'Generic TCP', type: 'tcp', enabled: true},
-	{ id: '4827f903', label: 'RossTalk', type: 'rosstalk', enabled: true},
-	{ id: '6dbb7bf7', label: 'Local Console Output', type: 'console', enabled: true },
-	{ id: '58da987d', label: 'OSC Message', type: 'osc', enabled: true }
-];
-
-var output_types_datafields = [ //data fields for the outgoing actions
-	{ outputTypeId: '7dcd66b5', fields: [ //TSL 3.1 UDP
-			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
-			{ fieldName: 'address', fieldLabel: 'Address', fieldType: 'number' },
-			{ fieldName: 'label', fieldLabel: 'Label', fieldType: 'text' },
-			{ fieldName: 'tally1', fieldLabel: 'Tally 1 (PVW)', fieldType: 'bool' },
-			{ fieldName: 'tally2', fieldLabel: 'Tally 2 (PGM)', fieldType: 'bool' },
-			{ fieldName: 'tally3', fieldLabel: 'Tally 3', fieldType: 'bool' },
-			{ fieldName: 'tally4', fieldLabel: 'Tally 4', fieldType: 'bool' }
-		]
-	},
-	{ outputTypeId: '276a8dcc', fields: [ //TSL 3.1 TCP
-			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
-			{ fieldName: 'address', fieldLabel: 'Address', fieldType: 'number' },
-			{ fieldName: 'label', fieldLabel: 'Label', fieldType: 'text' },
-			{ fieldName: 'tally1', fieldLabel: 'Tally 1 (PVW)', fieldType: 'bool' },
-			{ fieldName: 'tally2', fieldLabel: 'Tally 2 (PGM)', fieldType: 'bool' },
-			{ fieldName: 'tally3', fieldLabel: 'Tally 3', fieldType: 'bool' },
-			{ fieldName: 'tally4', fieldLabel: 'Tally 4', fieldType: 'bool' }
-		]
-	},
-	{ outputTypeId: 'ffe2b0b6', fields: [ //Outgoing Webhook
-			{ fieldName: 'protocol', fieldLabel: 'Protocol', fieldType: 'dropdown', options: [ { id: 'http://', label: 'HTTP' }, { id: 'https://', label: 'HTTPS'} ] },
-			{ fieldName: 'ip', fieldLabel: 'IP Address/URL', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
-			{ fieldName: 'path', fieldLabel: 'Path', fieldType: 'text' },
-			{ fieldName: 'method', fieldLabel: 'Method', fieldType: 'dropdown', options: [ { id: 'GET', label: 'GET' }, { id: 'POST', label: 'POST'} ] },
-			{ fieldName: 'contentType', fieldLabel: 'Content-Type', fieldType: 'dropdown', options: [ { id: 'application/json', label: 'application/json' }, { id: 'application/xml', label: 'application/xml'}, { id: 'application/x-www-form-urlencoded', label: 'x-www-form-urlencoded'}, { id: 'text/plain', label: 'Text/Plain'}, { id: '', label: 'Default'} ] },
-			{ fieldName: 'postdata', fieldLabel: 'POST Data', fieldType: 'text' }
-		]
-	},
-	{ outputTypeId: '79e3ce27', fields: [ //Generic TCP
-			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
-			{ fieldName: 'string', fieldLabel: 'TCP String', fieldType: 'text' },
-			{ fieldName: 'end', fieldLabel: 'End Character', fieldType: 'dropdown', options: [{ id: '', label: 'None' }, { id: '\n', label: 'LF - \\n' }, { id: '\r\n', label: 'CRLF - \\r\\n' }, { id: '\r', label: 'CR - \\r' }, { id: '\x00', label: 'NULL - \\x00' }]}
-		]
-	},
-	{ outputTypeId: '6dbb7bf7', fields: [ //Local Console Output
-			{ fieldName: 'text', fieldLabel: 'Text', fieldType: 'text'}
-		]
-	},
-	{ outputTypeId: '58da987d', fields: [ //OSC
-			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
-			{ fieldName: 'path', fieldLabel: 'Path', fieldType: 'text' },
-			{ fieldName: 'args', fieldLabel: 'Arguments', fieldType: 'text', help: 'Separate multiple argments with a space. Strings must be encapsulated by double quotes.'}
-		]
-	},
-	{ outputTypeId: '4827f903', fields: [ // RossTalk
-			{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-			{ fieldName: 'string', fieldLabel: 'Command', fieldType: 'text' }
-		]
-	}
-];
-
 var bus_options: BusOption[] = [ // the busses available to monitor in Tally Arbiter
 	{ id: 'e393251c', label: 'Preview', type: 'preview', color: '#3fe481', priority: 50},
 	{ id: '334e4eda', label: 'Program', type: 'program', color: '#e43f5a', priority: 200},
@@ -693,7 +630,7 @@ function initialSetup() {
 
 	appSettings.get('/source_types_datafields', function (req, res) {
 		//gets all Tally Source Types Data Fields
-		res.send(getSOurceTypeDataFields());
+		res.send(getSourceTypeDataFields());
 	});
 
 	appSettings.get('/source_types_busoptions', function (req, res) {
@@ -703,12 +640,12 @@ function initialSetup() {
 
 	appSettings.get('/output_types', function (req, res) {
 		//gets all Tally Output Types
-		res.send(output_types);
+		res.send(getOutputTypes());
 	});
 
 	appSettings.get('/output_types_datafields', function (req, res) {
 		//gets all Tally Output Types Data Fields
-		res.send(output_types_datafields);
+		res.send(getOutputTypeDataFields());
 	});
 
 	appSettings.get('/bus_options', function (req, res) {
@@ -1124,7 +1061,7 @@ function initialSetup() {
 		socket.on('settings', function () {
 			socket.join('settings');
 			socket.join('messaging');
-			socket.emit('initialdata', getSourceTypes(), getSOurceTypeDataFields(), source_types_busoptions, output_types, output_types_datafields, bus_options, getSources(), devices, device_sources, device_actions, currentDeviceTallyData, tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
+			socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), source_types_busoptions, getOutputTypes(), getOutputTypeDataFields(), bus_options, getSources(), devices, device_sources, device_actions, currentDeviceTallyData, tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
 			socket.emit('listener_clients', listener_clients);
 			socket.emit('logs', Logs);
 			socket.emit('PortsInUse', PortsInUse);
@@ -1652,11 +1589,18 @@ function getSources(): any {
 	});
 }
 
-function getSOurceTypeDataFields(): any {
+function getSourceTypeDataFields(): any {
 	return Object.entries(TallyInputs).map(([id, data]) => ({
 		sourceTypeId: id,
 		fields: data.configFields,
 	} as SourceTypeDataFields));
+}
+
+function getOutputTypeDataFields(): any {
+	return Object.entries(Actions).map(([id, data]) => ({
+		outputTypeId: id,
+		fields: data.configFields,
+	} as OutputTypeDataFields));
 }
 
 function getSourceTypes(): any {
@@ -1667,6 +1611,15 @@ function getSourceTypes(): any {
 		label: data.label,
 		type: null,
 	} as SourceType));
+}
+
+function getOutputTypes(): any {
+	return Object.entries(Actions).map(([id, data]) => ({
+		enabled: true,
+		id: id,
+		label: data.label,
+		type: null,
+	} as OutputType));
 }
 
 function EnableTestMode(value) {
@@ -4349,7 +4302,7 @@ function RenameDevice(deviceId, name) {
 }
 
 function RunAction(deviceId, busId, active) {
-	let actionObj = null;
+	let actionObj: DeviceAction = null;
 
 	let deviceObj = GetDeviceByDeviceId(deviceId);
 
@@ -4361,36 +4314,10 @@ function RunAction(deviceId, busId, active) {
 					logger(`Running Actions for Device: ${deviceObj.name}`, 'info');
 					actionObj = filteredActions[i];
 
-					let outputType = output_types.find( ({ id }) => id === actionObj.outputTypeId);
+					logger(`Running action: ${deviceObj.name}:${GetBusByBusId(filteredActions[i].busId).label}:${(active ? 'On' : 'Off')}  ${filteredActions[i].id}`, 'info');
 
-					logger(`Running action: ${deviceObj.name}:${GetBusByBusId(filteredActions[i].busId).label}:${(active ? 'On' : 'Off')}  ${outputType.label}  ${filteredActions[i].id}`, 'info');
-
-					switch(outputType.type) {
-						case 'tsl_31_udp':
-							RunAction_TSL_31_UDP(actionObj.data);
-							break;
-						case 'tsl_31_tcp':
-							RunAction_TSL_31_TCP(actionObj.data);
-							break;
-						case 'webhook':
-							RunAction_Webhook(actionObj.data);
-							break;
-						case 'tcp':
-							RunAction_TCP(actionObj.data);
-							break;
-						case 'rosstalk':
-							RunAction_RossTalk(actionObj.data);
-							break;
-						case 'console':
-							logger(actionObj.data, 'console_action');
-							break;
-						case 'osc':
-							RunAction_OSC(actionObj.data);
-							break;
-						default:
-							logger(`Device Action: ${filteredActions[i].id}  Error: Unsupported Output Type: ${outputType.type}`, 'error');
-							break;
-					}
+					const action = new Actions[actionObj.outputTypeId].cls(actionObj);
+					action.run();
 				}
 			}
 		}
@@ -4475,50 +4402,6 @@ function RunAction_TSL_31_TCP(data) {
 	}
 	catch (error) {
 		logger(`An error occured sending the TCP 3.1 TCP Message: ${error}`, 'error');
-	}
-}
-
-function RunAction_Webhook(data) {
-	try {
-		let path = data.path ? (data.path.startsWith('/') ? data.path : '/' + data.path) : '';
-		data.protocol = data.protocol || 'http://';
-
-		data.port = data.port ? (data.port === '' ? '80' : data.port) : '80'; //explicitly set the port to 80 if they did not specify
-
-		let options = {
-			method: data.method,
-			url: data.protocol + data.ip + ':' + data.port + path
-		} as any;
-
-		options.headers = options.headers || {};
-
-		data.contentType = data.contentType || '';
-		if (data.contentType !== '') {
-			options.headers['Content-Type'] = data.contentType;
-		}
-		
-		if (data.method === 'POST') {
-			if (data.postdata !== '') {
-				options.data = data.postdata;
-			}
-		}
-
-		logger('Outgoing Webhook Options:', 'info-quiet');
-		logger(JSON.stringify(options), 'info-quiet')
-		axios(options)
-		.then(function (response) {
-			logger('Outgoing Webhook triggered.', 'info');
-			if (response.data) {
-				logger('Response received:','info');
-				logger(JSON.stringify(response.data),'info');
-			}
-		})
-		.catch(function (error) {
-			logger(`An error occured triggering the Outgoing Webhook: ${error}`, 'error');
-		});
-	}
-	catch (error) {
-		logger(`An error occured sending the Outgoing Webhook: ${error}`, 'error');
 	}
 }
 
@@ -5472,9 +5355,8 @@ function TallyArbiter_Add_Device_Action(obj) {
 	device_actions.push(deviceActionObj);
 
 	let deviceName = GetDeviceByDeviceId(deviceActionObj.deviceId).name;
-	let outputTypeName = GetOutputTypeByOutputTypeId(deviceActionObj.outputTypeId).label;
 
-	logger(`Device Action Added: ${deviceName} - ${outputTypeName}`, 'info');
+	logger(`Device Action Added: ${deviceName}`, 'info');
 
 	return {result: 'device-action-added-successfully', deviceId: deviceId};
 }
@@ -5493,9 +5375,8 @@ function TallyArbiter_Edit_Device_Action(obj) {
 	}
 
 	let deviceName = GetDeviceByDeviceId(deviceActionObj.deviceId).name;
-	let outputTypeName = GetOutputTypeByOutputTypeId(deviceActionObj.outputTypeId).label;
 
-	logger(`Device Action Edited: ${deviceName} - ${outputTypeName}`, 'info');
+	logger(`Device Action Edited: ${deviceName}`, 'info');
 
 	return {result: 'device-action-edited-successfully', deviceId: deviceId};
 }
@@ -5515,9 +5396,8 @@ function TallyArbiter_Delete_Device_Action(obj) {
 	}
 
 	let deviceName = GetDeviceByDeviceId(deviceId).name;
-	let outputTypeName = GetOutputTypeByOutputTypeId(outputTypeId).label;
 
-	logger(`Device Action Deleted: ${deviceName} - ${outputTypeName}`, 'info');
+	logger(`Device Action Deleted: ${deviceName}`, 'info');
 
 	return {result: 'device-action-deleted-successfully', deviceId: deviceId};
 }
@@ -5747,11 +5627,6 @@ function GetDeviceByDeviceId(deviceId: string): Device {
 	}
 
 	return device;
-}
-
-function GetOutputTypeByOutputTypeId(outputTypeId): OutputType {
-	//gets the Output Type object by id
-	return output_types.find( ({ id }) => id === outputTypeId);
 }
 
 function GetDeviceSourcesBySourceId(sourceId): DeviceSource[] {
