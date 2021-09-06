@@ -42,12 +42,14 @@ import { TSLClient } from './_models/TSLClient';
 import { Actions } from './_globals/Actions';
 import { OutputTypeDataFields } from './_models/OutputTypeDataFields';
 
-for (const file of fs.readdirSync(path.join(__dirname, "sources"))) {
-	require(`./sources/${file.replace(".ts", "")}`);
+function loadClassesFromFolder(folder: string): void {
+	for (const file of fs.readdirSync(path.join(__dirname, folder)).filter((f) => !f.startsWith("_"))) {
+		require(`./${folder}/${file.replace(".ts", "")}`);
+	}
 }
-for (const file of fs.readdirSync(path.join(__dirname, "actions"))) {
-	require(`./actions/${file.replace(".ts", "")}`);
-}
+
+loadClassesFromFolder("actions");
+loadClassesFromFolder("sources");
 
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
