@@ -610,7 +610,7 @@ function initialSetup() {
 
 	//about the author, this program, etc.
 	app.get('/', function (req, res) {
-		res.sendFile('ui-dist/index.html', { root: __dirname });
+		res.sendFile('index.html', { root: path.join(__dirname, '..', 'ui-dist') });
 	});
 
 	//gets the version of the software
@@ -777,7 +777,7 @@ function initialSetup() {
 	});
 
 	//serve up any files in the ui-dist folder
-	app.use(express.static(path.join(__dirname, 'ui-dist')));
+	app.use(express.static(path.join(__dirname, '..', 'ui-dist')));
 
 	app.use(function (req, res) {
 		res.status(404).send({error: true, url: req.originalUrl + ' not found.'});
