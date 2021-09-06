@@ -8,6 +8,6 @@ import { Action } from "./_Action";
 ])
 export class ConsoleOutput extends Action {
     public run(): void {
-        logger(this.action.data, 'console_action');
+        logger(this.action.data.text, 'console_action');
     }
 }

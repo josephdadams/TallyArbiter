@@ -14,10 +14,10 @@ import express from 'express';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import bodyParser from 'body-parser';
 import axios from 'axios';
+import osc from "osc";
 import http from 'http';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
-import osc from 'osc';
 import xml2js from 'xml2js';
 import { jspack } from "jspack";
 import os from 'os'; // For getting available Network interfaces on host device
@@ -49,9 +49,6 @@ function loadClassesFromFolder(folder: string): void {
 		require(`./${folder}/${file.replace(".ts", "")}`);
 	}
 }
-
-loadClassesFromFolder("actions");
-loadClassesFromFolder("sources");
 
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
@@ -90,7 +87,6 @@ var password_settings = '12345';
 const socketupdates_Settings  = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients', 'tsl_clients', 'cloud_destinations', 'cloud_keys', 'cloud_clients', 'PortsInUse', 'vmix_clients'];
 const socketupdates_Producer  = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients'];
 const socketupdates_Companion = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
-const oscPort 		= 5958;
 const vmixEmulatorPort = '8099'; // Default 8099 
 var oscUDP			= null;
 var logFilePath = getLogFilePath();
@@ -126,11 +122,6 @@ const SourceClients: Record<string, TallyInput> = {};
 
 PortsInUse.push({ 
     port: vmixEmulatorPort, //VMix
-    sourceId: 'reserved',
-});
-
-PortsInUse.push({ 
-    port: oscPort.toString(), //OSC Broadcast
     sourceId: 'reserved',
 });
 
@@ -520,6 +511,8 @@ function uuidv4() //unique UUID generator for IDs
 }
 
 function startUp() {
+	loadClassesFromFolder("actions");
+	loadClassesFromFolder("sources");
 	loadConfig();
 	initialSetup();
 	DeleteInactiveListenerClients();
@@ -1532,25 +1525,6 @@ function initialSetup() {
 
 	logger('Socket.IO Setup Complete.', 'info-quiet');
 
-	logger('Starting OSC Setup.', 'info-quiet');
-
-	oscUDP = new osc.UDPPort({
-		localAddress: '0.0.0.0',
-		localPort: oscPort,
-		broadcast: true,
-		metadata: true
-	});
-
-	oscUDP.on('error', function (error) {
-		logger(`An OSC error occurred: ${error.message}`, 'info-quiet');
-	});
-
-	oscUDP.open();
-
-	oscUDP.on('ready', function () {
-		logger(`OSC Sending Port Ready. Broadcasting on Port: ${oscPort}`, 'info-quiet');
-	});
-
 	logger('Starting VMix Emulation Service.', 'info-quiet');
 
 	startVMixEmulator();
@@ -1681,6 +1655,7 @@ function UpdateDeviceState(deviceId: string) {
 	const device = GetDeviceByDeviceId(deviceId);
 	if (!device) return;
 
+	const previousBusses = [...currentDeviceTallyData[device.id] || []];
 	currentDeviceTallyData[device.id] = [];
 
 	const deviceSources = device_sources.filter((d) => d.deviceId == deviceId);
@@ -1689,11 +1664,25 @@ function UpdateDeviceState(deviceId: string) {
 			// bus is linked, which means all sources must be in this bus
 			if (deviceSources.findIndex((s) => !currentSourceTallyData?.[s.id]?.includes(bus.type)) === -1) {
 				currentDeviceTallyData[device.id].push(bus.id);
+				if (!previousBusses.includes(bus.id)) {
+					RunAction(deviceId, bus.id, true);
+				}
+			} else {
+				if (previousBusses.includes(bus.id)) {
+					RunAction(deviceId, bus.id, false);
+				}
 			}
 		} else {
 			// bus is unlinked
 			if (deviceSources.findIndex((s) => currentSourceTallyData?.[s.id]?.includes(bus.type)) !== -1) {
 				currentDeviceTallyData[device.id].push(bus.id);
+				if (!previousBusses.includes(bus.id)) {
+					RunAction(deviceId, bus.id, true);
+				}
+			} else {
+				if (previousBusses.includes(bus.id)) {
+					RunAction(deviceId, bus.id, false);
+				}
 			}
 		}
 	}
@@ -4330,170 +4319,6 @@ function RunAction(deviceId, busId, active) {
 		//the device is disabled, so don't run any actions against it
 		logger(`Device: ${deviceObj.name} is not enabled, so no actions will be run.`, 'info');
 	}
-}
-
-function RunAction_TSL_31_UDP(data) {
-	try {
-		let bufUMD = Buffer.alloc(18, 0); //ignores spec and pad with 0 for better aligning on Decimator etc
-		bufUMD[0] = 0x80 + parseInt(data.address);
-		bufUMD.write(data.label, 2);
-
-		let bufTally = 0x30;
-
-		if (data.tally1) {
-			bufTally |= 1;
-		}
-		if (data.tally2) {
-			bufTally |= 2;
-		}
-		if (data.tally3) {
-			bufTally |= 4;
-		}
-		if (data.tally4) {
-			bufTally |= 8;
-		}
-		bufUMD[1] = bufTally;
-
-		let client = dgram.createSocket('udp4');
-		client.on('message',function(msg,info){
-		});
-
-		client.send(bufUMD, data.port, data.ip, function(error) {
-			if (!error) {
-				logger(`TSL 3.1 UDP Data sent.`, 'info');
-			}
-			client.close();
-		});
-	}
-	catch (error) {
-		logger(`An error occured sending the TCP 3.1 UDP Message: ${error}`, 'error');
-	}
-}
-
-function RunAction_TSL_31_TCP(data) {
-	try {
-		let bufUMD = Buffer.alloc(18, 0); //ignore spec and pad with 0 for better aligning on Decimator, etc.
-		bufUMD[0] = 0x80 + parseInt(data.address); //Address + 0x80
-		bufUMD.write(data.label, 2);
-
-		let bufTally = 0x30;
-
-		if (data.tally1) {
-			bufTally |= 1;
-		}
-		if (data.tally2) {
-			bufTally |= 2;
-		}
-		if (data.tally3) {
-			bufTally |= 4;
-		}
-		if (data.tally4) {
-			bufTally |= 8;
-		}
-		bufUMD[1] = bufTally;
-
-		let client = new net.Socket();
-		client.connect(data.port, data.ip, () =>  {
-			client.write(bufUMD);
-		});
-
-		client.on('data', function(data) {
-			client.destroy(); // kill client after server's response
-		});
-
-		client.on('close', () =>  {
-		});
-	}
-	catch (error) {
-		logger(`An error occured sending the TCP 3.1 TCP Message: ${error}`, 'error');
-	}
-}
-
-function RunAction_TCP(data) {
-	try {
-		let tcpClient = new net.Socket();
-		tcpClient.connect(data.port, data.ip);
-
-		tcpClient.on('connect', () =>  {
-            let sendBuf = Buffer.from(unescape(data.string) + data.end, 'latin1');
-            // @ts-ignore
-			if (sendBuf !== '') {
-				tcpClient.write(sendBuf);
-				tcpClient.end();
-				tcpClient.destroy(); // kill client after sending data
-				logger(`Generic TCP sent: ${data.ip}:${data.port} : ${data.string}`, 'info');
-			}
-		});
-
-		tcpClient.on('error', function(error) {
-			logger(`An error occured sending the Generic TCP: ${error}`, 'error');
-		});
-	}
-	catch (error) {
-		logger(`An error occured sending the Generic TCP: ${error}`, 'error');
-	}
-}
-
-function RunAction_RossTalk(data) {
-	try {
-		let tcpClient = new net.Socket();
-		data.port = '7788';
-		tcpClient.connect(data.port, data.ip);
-
-		tcpClient.on('connect', () =>  {
-            let sendBuf = Buffer.from(unescape(data.string) + '\r\n', 'latin1');
-            // @ts-ignore
-			if (sendBuf !== '') {
-				tcpClient.write(data.string + '\r\n');
-				tcpClient.end();
-				tcpClient.destroy(); // kill client after sending data
-				logger(`RossTalk sent: ${data.ip}:${data.port} : ${data.string}`, 'info');
-			}
-		});
-
-		tcpClient.on('error', function(error) {
-			logger(`An error occured sending RossTalk: ${error}`, 'error');
-		});
-	}
-	catch (error) {
-		logger(`An error occured sending RossTalk: ${error}`, 'error');
-	}
-}
-
-function RunAction_OSC(data) {
-	let args = [];
-
-	if (data.args !== '') {
-		let args = data.args.split(' ');
-		let arg;
-
-		for (let i = 0; i < args.length; i++) {
-			if (isNaN(args[i])) {
-				arg = {
-					type: 's',
-					value: args[i].replace(/"/g, '').replace(/'/g, '')
-				};
-				args.push(arg);
-			}
-			else if (args[i].indexOf('.') > -1) {
-				arg = {
-					type: 'f',
-					value: parseFloat(args[i])
-				};
-				args.push(arg);
-			}
-			else {
-				arg = {
-					type: 'i',
-					value: parseInt(args[i])
-				};
-				args.push(arg);
-			}
-		}
-	}
-
-	logger(`Sending OSC Message: ${data.ip}:${data.port} ${data.path} ${data.args}`, 'info');
-	oscUDP.send({address: data.path, args: args}, data.ip, data.port);
 }
 
 function TallyArbiter_Manage(obj) {
