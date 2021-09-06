@@ -1,4 +1,4 @@
-export interface SourceTallyData {
+export interface TSLTallyData {
     address: string;
     label: string;
     sourceId: string;

@@ -2,14 +2,14 @@ import EventEmitter from "events";
 import { BehaviorSubject } from "rxjs";
 import { logger } from "..";
 import { Source } from "../_models/Source";
-import { TallyData } from "../_types/TallyData";
+import { AddressTallyData } from "../_models/TallyData";
 
 const RECONNECT_INTERVAL = 5000; // in ms
 const MAX_FAILED_RECONNECTS = 5;
 
 export class TallyInput extends EventEmitter {
     public connected = new BehaviorSubject<boolean>(false);
-    public tally = new BehaviorSubject<TallyData>({});
+    public tally = new BehaviorSubject<AddressTallyData>({});
     private tallyData = {};
     public addresses = new BehaviorSubject<Address[]>([]);
     protected source: Source;

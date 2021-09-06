@@ -11,9 +11,6 @@ import { SocketService } from 'src/app/_services/socket.service';
 })
 export class TallyComponent {
   public currentDeviceIdx?: number;
-  public mode_preview?: boolean;
-  public mode_program?: boolean;
-  public programPriority = true;
   public currentBus?: BusOption;
   
   public COLORS = {
@@ -32,6 +29,7 @@ export class TallyComponent {
         if (params.deviceId) {
           this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id == params.deviceId);
           this.socketService.socket.emit('device_listen', this.socketService.devices[this.currentDeviceIdx!].id, 'web');
+          console.log("--->", this.socketService.devices[this.currentDeviceIdx!].id)
         }
       });
     });
@@ -41,21 +39,19 @@ export class TallyComponent {
         document.body.classList.remove('flash');
       }, 500);
     });
-    this.route.queryParams.subscribe((queryParams) => {
-      this.programPriority = queryParams.programPriority == "false";
-    });
-    this.socketService.deviceStateChanged.subscribe(({device, states}) => {
+    this.socketService.deviceStateChanged.subscribe(({ device, tallyData }) => {
+      console.log(device, tallyData);
       if (this.currentDeviceIdx === undefined || device.id !== this.socketService.devices[this.currentDeviceIdx].id) {
         return;
       }
-      const hightestPriorityBus = states.map((s) => this.socketService.busOptions.find((b) => b.id == s.busId)).reduce((a: any, b: any) => a?.priority > b?.priority ? a : b, {});
+      const hightestPriorityBus = tallyData.busses.map((bus) => this.socketService.busOptions.find((b) => b.id == bus)).reduce((a: any, b: any) => a?.priority > b?.priority ? a : b, {}) as BusOption;
       if (!hightestPriorityBus || Object.entries(hightestPriorityBus).length == 0) {
         this.currentBus = undefined;
         return;
       }
-      if (hightestPriorityBus.id == "program") {
+      if (hightestPriorityBus.type == "program") {
         window.navigator.vibrate(400);
-      } else if (hightestPriorityBus.id == "preview") {
+      } else if (hightestPriorityBus.type == "preview") {
         window.navigator.vibrate([100, 30, 100, 30, 100]);
       }
       this.currentBus = hightestPriorityBus;

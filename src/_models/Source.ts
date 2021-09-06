@@ -5,7 +5,7 @@ export interface Source {
     id: string;
     reconnect: boolean;
     sourceTypeId: string;
-    data?: Record<string, any>;
+    data: Record<string, any>;
 
     // Volatile
 	cloudClientId?: any;

@@ -64,7 +64,7 @@
             </thead>
             <tbody>
                 <tr *ngFor="let device of socketService.devices; index as index" [class.text-muted]="!device.enabled">
-                    <td *ngFor="let bus of socketService.busOptions" [style.background-color]="deviceBusColors[device.id]?.[bus.id] ? bus.color : '#FFFFFF'"></td>
+                    <td *ngFor="let bus of socketService.busOptions" [style.background-color]="deviceBusColors[device.id]?.includes(bus.id) ? bus.color : '#FFFFFF'"></td>
                     <td>
                         <small><b>{{ index + 1 }}</b></small> {{ device.name }}
                     </td>
