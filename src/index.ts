@@ -1752,8 +1752,9 @@ function UpdateDeviceState(deviceId: string) {
 	console.log(currentTallyData);
 
 	const deviceSources = device_sources.filter((d) => d.deviceId == deviceId);
-	// for (const bus of )
-	console.log(currentTallyData)
+	for (const bus of bus_options) {
+		// update device state
+	}
 }
 
 function startVMixEmulator() {
@@ -2036,10 +2037,10 @@ function initializeSource(source: Source): void {
 		UpdateSockets('sources');
 		UpdateCloud('sources');
 	});
-	sourceClient.tally.subscribe((tallyData) => {
-		console.log(tallyData);
-		for (const [sourceAddress, busses] of Object.entries(tallyData)) {
-			tallyData[device_sources.find((s) => s.address == sourceAddress).id] = busses;
+	sourceClient.tally.subscribe((tallyDataWithAddresses) => {
+		const tallyData = {};
+		for (const [sourceAddress, busses] of Object.entries(tallyDataWithAddresses)) {
+			tallyData[device_sources.find((s) => s.sourceId == source.id && s.address == sourceAddress).id] = busses;
 		}
 		processTallyData(source.id, tallyData);
 	});
@@ -4336,6 +4337,11 @@ function processTallyData(sourceId: string, tallyData: TallyData) // Processes t
 
 	io.to('settings').emit('tally_data', sourceId, tallyData);
 	
+	currentTallyData = {
+		...currentTallyData,
+		...tallyData,
+	};
+
 	for (const device of devices) {
 		UpdateDeviceState(device.id);
 	}
