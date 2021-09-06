@@ -1581,7 +1581,7 @@ function getSourceTypeDataFields(): SourceTypeDataFields[] {
 	} as SourceTypeDataFields));
 }
 
-function getOutputTypeDataFields(): any {
+function getOutputTypeDataFields(): OutputTypeDataFields[] {
 	return Object.entries(Actions).map(([id, data]) => ({
 		outputTypeId: id,
 		fields: data.configFields,
@@ -1598,7 +1598,7 @@ function getSourceTypes(): SourceType[] {
 	} as SourceType));
 }
 
-function getOutputTypes(): any {
+function getOutputTypes(): OutputType[] {
 	return Object.entries(Actions).map(([id, data]) => ({
 		enabled: true,
 		id: id,
