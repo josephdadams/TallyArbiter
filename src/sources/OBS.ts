@@ -51,6 +51,7 @@ export class OBSSource extends TallyInput {
                 for (const source of data.sources) {
                     this.addBusToAddress(source.name, "preview");
                 }
+                this.sendTallyData();
             }
         });
         
@@ -61,38 +62,43 @@ export class OBSSource extends TallyInput {
                 for (const source of data.sources) {
                     this.addBusToAddress(source.name, "program");
                 }
+                this.sendTallyData();
             }
         });
 
         this.obsClient.on('SourceCreated', (data) => {
             logger(`Source: ${source.name}  New source created`, 'info-quiet');
-            //this.addAddress(data.sourceName, data.sourceName);
+            this.addAddress(data.sourceName, data.sourceName);
         });
 
         this.obsClient.on('SourceDestroyed', (data) => {
             logger(`Source: ${source.name} Deleted source: ${data.sourceName}`, 'info-quiet');
-            //this.removeAddress(data.sourceName);
+            this.removeAddress(data.sourceName);
         });
 
         this.obsClient.on('SourceRenamed', (data) => {
             logger(`Source: ${source.name}  Source renamed`, 'info-quiet');
-            //this.renameAddress(data.previousName, data.newName, data.newName);
+            this.renameAddress(data.previousName, data.newName, data.newName);
         });
 
         this.obsClient.on('StreamStarted', () => {
-            //this.setBussesForAddress("{{STREAMING}}", ["program"]);
+            this.setBussesForAddress("{{STREAMING}}", ["program"]);
+            this.sendTallyData();
         });
 
         this.obsClient.on('StreamStopped', () => {
-            //this.setBussesForAddress("{{STREAMING}}", []);
+            this.setBussesForAddress("{{STREAMING}}", []);
+            this.sendTallyData();
         });
 
         this.obsClient.on('RecordingStarted', () => {
-            //this.setBussesForAddress("{{RECORDING}}", ["program"]);
+            this.setBussesForAddress("{{RECORDING}}", ["program"]);
+            this.sendTallyData();
         });
 
         this.obsClient.on('RecordingStopped', () => {
-            //this.setBussesForAddress("{{RECORDING}}", []);
+            this.setBussesForAddress("{{RECORDING}}", []);
+            this.sendTallyData();
         });
 
         
