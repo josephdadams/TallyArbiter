@@ -6202,7 +6202,8 @@ function getLogFilePath() {
 
 	const logFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/logs");
 
-	findRemoveSync(logFolder, {age: {seconds: 604800}, extensions: '.talog', limit: 100});
+	//TODO: fix findRemoveSync for Webpack
+	//findRemoveSync(logFolder, {age: {seconds: 604800}, extensions: '.talog', limit: 100});
 
 	if (!fs.existsSync(logFolder)) {
 		fs.mkdirSync(logFolder, { recursive: true });
@@ -6217,7 +6218,8 @@ function getTallyDataPath() {
 
 	const TallyDataFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/TallyData");
 
-	findRemoveSync(TallyDataFolder, {age: {seconds: 604800}, extensions: '.tadata', limit: 100});
+	//TODO: fix findRemoveSync for Webpack
+	//findRemoveSync(TallyDataFolder, {age: {seconds: 604800}, extensions: '.tadata', limit: 100});
 
 	if (!fs.existsSync(TallyDataFolder)) {
 		fs.mkdirSync(TallyDataFolder, { recursive: true });
