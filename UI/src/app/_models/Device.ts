@@ -7,14 +7,12 @@
 /*    +-----------------------------------------------------------------------+    */
 
 /* do not edit */ export interface Device {
-/* do not edit */ 	linkedBusses: any;
+/* do not edit */ 	linkedBusses: string[];
 /* do not edit */ 	cloudClientId: any;
 /* do not edit */     name: string;
 /* do not edit */     description: string;
 /* do not edit */     enabled: boolean;
 /* do not edit */     id: string;
-/* do not edit */     linkedPreview: boolean;
-/* do not edit */     linkedProgram: boolean;
 /* do not edit */     tslAddress: string;
 /* do not edit */     cloudConnection: boolean;
 /* do not edit */     // volatile

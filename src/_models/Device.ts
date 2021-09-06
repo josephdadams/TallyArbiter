@@ -1,12 +1,10 @@
 export interface Device {
-	linkedBusses: any;
+	linkedBusses: string[];
 	cloudClientId: any;
     name: string;
     description: string;
     enabled: boolean;
     id: string;
-    linkedPreview: boolean;
-    linkedProgram: boolean;
     tslAddress: string;
     cloudConnection: boolean;
     // volatile

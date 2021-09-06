@@ -466,7 +466,19 @@
             <label for="deviceTSLAddress" class="form-label">TSL Address</label>
             <input type="number" [min]="0" [max]="126" [step]="1" class="form-control" id="deviceTSLAddress" [(ngModel)]="currentDevice.tslAddress" />
         </div>
+        <div class="mb-3">
+            <b>Linked Busses:</b><br>
+            <small>
+                By default busses are unlinked. That means the device will be (for example) in PVW if it is in PVW in <b>any</b> Device Source. All busses you select here will only be in that bus if it is in PVW across <b>all</b> Device Sources.
+            </small>
+            <div>
+                <select class="form-select" [(ngModel)]="currentDevice.linkedBusses" multiple="multiple">
+                    <option *ngFor="let bus of socketService.busOptions" [value]="bus.id">{{bus.label}}</option>
+                </select>
+            </div>
+        </div>
         <ng-container *ngIf="editingDevice">
+            <b>Device Enabled:</b>
             <div class="mb-3 form-check">
                 <input type="checkbox" class="form-check-input" id="enabled" [(ngModel)]="currentDevice.enabled" />
                 <label class="form-check-label" for="enabled">Enabled</label>
@@ -489,25 +501,6 @@
     </div>
     <div class="modal-body">
         <div *ngIf="!editingDeviceSource">
-            <b>Device Source Linking - Preview Bus:</b>
-            <div class="form-check">
-                <input type="radio" class="form-check-input" id="rdoDeviceSourcesPVWUnlinked" name="deviceSourcePVWLinking" [(ngModel)]="currentDevice.linkedPreview" [value]="false" (ngModelChange)="updateDeviceSourceLink('preview', $event)">
-                <label class="form-check-label" for="rdoDeviceSourcesPVWUnlinked">Unlinked: The device can be in PVW if it is in PVW in <b>any</b> Device Source (default)</label>
-            </div>
-            <div class="form-check">
-                <input type="radio" class="form-check-input" id="rdoDeviceSourcesPVWLinked" name="deviceSourcePVWLinking" [(ngModel)]="currentDevice.linkedPreview" [value]="true" (ngModelChange)="updateDeviceSourceLink('preview', $event)">
-                <label class="form-check-label" for="rdoDeviceSourcesPVWLinked">Linked: The device is only considered to be in PVW if it is in PVW across <b>all</b> Device Sources.</label>
-            </div>
-            <br />
-            <b>Device Source Linking - Program Bus:</b>
-            <div class="form-check">
-                <input type="radio" class="form-check-input" id="rdoDeviceSourcesPGMUnlinked" name="deviceSourcePGMLinking" [(ngModel)]="currentDevice.linkedProgram" [value]="false" (ngModelChange)="updateDeviceSourceLink('program', $event)">
-                <label class="form-check-label" for="rdoDeviceSourcesPGMUnlinked">Unlinked: The device can be in PGM if it is in PGM in <b>any</b> Device Source (default)</label>
-            </div>
-            <div class="form-check">
-                <input type="radio" class="form-check-input" id="rdoDeviceSourcesPGMLinked" name="deviceSourcePGMLinking" [(ngModel)]="currentDevice.linkedProgram" [value]="true" (ngModelChange)="updateDeviceSourceLink('program', $event)">
-                <label class="form-check-label" for="rdoDeviceSourcesPGMLinked">Linked: The device is only considered to be in PGM if it is in PGM across <b>all</b> Device Sources.</label>
-            </div>
             <table class="table table-hover">
                 <thead>
                     <tr>
