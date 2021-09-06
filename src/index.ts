@@ -26,6 +26,11 @@ import { CloudClient } from "./_models/CloudClient";
 import { DeviceState } from "./_models/DeviceState";
 import { FlashListenerClientResponse } from "./_models/FlashListenerClientResponse";
 import { MessageListenerClientResponse } from "./_models/MessageListenerClientResponse";
+import { ErrorReport } from './_models/ErrorReport';
+import { ErrorReportsListElement } from "./_models/ErrorReportsListElement";
+import { NetworkInterface } from "./_models/NetworkInterface";
+import { ConfigSecuritySection } from "./_models/ConfigSecuritySection";
+import { ManageResponse } from './_models/ManageResponse';
 import { LogItem } from "./_models/LogItem";
 import { Port } from "./_models/Port";
 import { TallyInput } from './sources/_Source';
@@ -41,8 +46,8 @@ import { Device } from './_models/Device';
 import { AddressTallyData, DeviceTallyData, SourceTallyData } from './_models/TallyData';
 import { OutputType } from './_models/OutputType';
 import { TSLClient } from './_models/TSLClient';
-import { Actions } from './_globals/Actions';
 import { OutputTypeDataFields } from './_models/OutputTypeDataFields';
+import { Actions } from './_globals/Actions';
 
 function loadClassesFromFolder(folder: string): void {
 	for (const file of fs.readdirSync(path.join(__dirname, folder)).filter((f) => !f.startsWith("_"))) {
@@ -1586,14 +1591,14 @@ function initialSetup() {
 	});
 }
 
-function getSources(): any {
+function getSources(): Source[] {
 	return sources.map((s) => {
 		s.connected = SourceClients[s.id]?.connected?.value || false;
 		return s;
 	});
 }
 
-function getSourceTypeDataFields(): any {
+function getSourceTypeDataFields(): SourceTypeDataFields[] {
 	return Object.entries(TallyInputs).map(([id, data]) => ({
 		sourceTypeId: id,
 		fields: data.configFields,
@@ -1607,7 +1612,7 @@ function getOutputTypeDataFields(): any {
 	} as OutputTypeDataFields));
 }
 
-function getSourceTypes(): any {
+function getSourceTypes(): SourceType[] {
 	return Object.entries(TallyInputs).map(([id, data]) => ({
 		enabled: true,
 		help: data.help,
@@ -1993,7 +1998,7 @@ function initializeSource(source: Source): void {
 
 function SaveConfig() {
 	try {
-		let securityObj: any = {};
+		let securityObj: ConfigSecuritySection = {} as ConfigSecuritySection;
 		securityObj.username_settings = username_settings;
 		securityObj.password_settings = password_settings;
 		securityObj.username_producer = username_producer;
@@ -4496,7 +4501,7 @@ function RunAction_OSC(data) {
 	oscUDP.send({address: data.path, args: args}, data.ip, data.port);
 }
 
-function TallyArbiter_Manage(obj) {
+function TallyArbiter_Manage(obj): ManageResponse {
     let result;
 	switch(obj.type) {
 		case 'source':
@@ -6087,7 +6092,7 @@ function getTallyDataPath() {
 	return path.join(TallyDataFolder, logName);
 }
 
-function getErrorReportsList() {
+function getErrorReportsList(): ErrorReportsListElement[] {
 	try {
 		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
 		const ErrorReportsFiles = fs.readdirSync(ErrorReportsFolder);
@@ -6103,7 +6108,7 @@ function getErrorReportsList() {
 	}
 }
 
-function getReadedErrorReports() {
+function getReadedErrorReports(): string[] {
 	try {
 		const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
 		return JSON.parse(fs.readFileSync(readedErrorReportsFilePath, 'utf8'));
@@ -6112,7 +6117,7 @@ function getReadedErrorReports() {
 	}
 }
 
-function markErrorReportAsReaded(errorReportId) {
+function markErrorReportAsReaded(errorReportId): boolean {
 	try {
 		const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
 		let readedErrorReportsList = getReadedErrorReports();
@@ -6124,13 +6129,13 @@ function markErrorReportAsReaded(errorReportId) {
 	}
 }
 
-function getUnreadedErrorReportsList() {
+function getUnreadedErrorReportsList(): ErrorReportsListElement[] {
 	let errorReports = getErrorReportsList();
 	let readedErrorReports = getReadedErrorReports();
 	return errorReports.filter((report) => { return !readedErrorReports.includes(report.id); });
 }
 
-function getErrorReport(reportId) {
+function getErrorReport(reportId): ErrorReport | false {
 	try {
 		if(!reportId.match(/^[a-zA-Z0-9]+$/i)) return false;
 		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
@@ -6141,7 +6146,7 @@ function getErrorReport(reportId) {
 	}
 }
 
-function getErrorReportPath(id) {
+function getErrorReportPath(id): string {
 
 	const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
 
@@ -6169,7 +6174,7 @@ function generateErrorReport(error) {
 	io.emit("server_error", id);
 }
 
-function getNetworkInterfaces() { // Get all network interfaces on host device
+function getNetworkInterfaces(): NetworkInterface[] { // Get all network interfaces on host device
 	var interfaces = []
 	const networkInterfaces = os.networkInterfaces()
 
