@@ -5092,13 +5092,13 @@ function UpdateSockets(dataType) {
 	switch(dataType) {
 		case 'sources':
 			if (emitSettings) {
-				io.to('settings').emit('sources', sources);
+				io.to('settings').emit('sources', getSources());
 			}
 			if (emitProducer) {
-				io.to('producer').emit('sources', sources);
+				io.to('producer').emit('sources', getSources());
 			}
 			if (emitCompanion) {
-				io.to('companion').emit('sources', sources);
+				io.to('companion').emit('sources', getSources());
 			}
 			break;
 		case 'devices':
