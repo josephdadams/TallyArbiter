@@ -4329,7 +4329,7 @@ function RunAction(deviceId, busId, active) {
 }
 
 function TallyArbiter_Manage(obj): ManageResponse {
-    let result;
+    let result: ManageResponse;
 	switch(obj.type) {
 		case 'source':
 			if (obj.action === 'add') {
@@ -4954,7 +4954,7 @@ function UpdateVMixClients() {
 	}
 }
 
-function TallyArbiter_Add_Source(obj) {
+function TallyArbiter_Add_Source(obj): ManageResponse {
 	let sourceObj = obj.source as Source;
 	sourceObj.id = uuidv4();
 	sources.push(sourceObj);
@@ -4968,7 +4968,7 @@ function TallyArbiter_Add_Source(obj) {
 	return {result: 'source-added-successfully'};
 }
 
-function TallyArbiter_Edit_Source(obj) {
+function TallyArbiter_Edit_Source(obj): ManageResponse {
 	let sourceObj = obj.source;
 	let sourceTypeId = null;
 	let connected = false;
@@ -5000,7 +5000,7 @@ function TallyArbiter_Edit_Source(obj) {
 	return {result: 'source-edited-successfully'};
 }
 
-function TallyArbiter_Delete_Source(obj) {
+function TallyArbiter_Delete_Source(obj): ManageResponse {
 	let sourceId = obj.sourceId;
 	let sourceName = null;
 
@@ -5043,7 +5043,7 @@ function TallyArbiter_Delete_Source(obj) {
 	return {result: 'source-deleted-successfully'};
 }
 
-function TallyArbiter_Add_Device(obj) {
+function TallyArbiter_Add_Device(obj): ManageResponse {
 	let deviceObj = obj.device;
 	deviceObj.id = uuidv4();
 	devices.push(deviceObj);
@@ -5059,7 +5059,7 @@ function TallyArbiter_Add_Device(obj) {
 	return {result: 'device-added-successfully'};
 }
 
-function TallyArbiter_Edit_Device(obj) {
+function TallyArbiter_Edit_Device(obj): ManageResponse {
 	let deviceObj = obj.device;
 	for (let i = 0; i < devices.length; i++) {
 		if (devices[i].id === deviceObj.id) {
@@ -5080,7 +5080,7 @@ function TallyArbiter_Edit_Device(obj) {
 	return {result: 'device-edited-successfully'};
 }
 
-function TallyArbiter_Delete_Device(obj) {
+function TallyArbiter_Delete_Device(obj): ManageResponse {
 	let deviceId = obj.deviceId;
 	let deviceName = GetDeviceByDeviceId(deviceId).name;
 
@@ -5112,7 +5112,7 @@ function TallyArbiter_Delete_Device(obj) {
 	return {result: 'device-deleted-successfully'};
 }
 
-function TallyArbiter_Add_Device_Source(obj) {
+function TallyArbiter_Add_Device_Source(obj): ManageResponse {
 	let deviceSourceObj = obj.device_source;
 	let deviceId = deviceSourceObj.deviceId;
 	deviceSourceObj.id = uuidv4();
@@ -5128,7 +5128,7 @@ function TallyArbiter_Add_Device_Source(obj) {
 	return {result: 'device-source-added-successfully', deviceId: deviceId};
 }
 
-function TallyArbiter_Edit_Device_Source(obj) {
+function TallyArbiter_Edit_Device_Source(obj): ManageResponse {
 	let deviceSourceObj = obj.device_source;
 	let deviceId = null;
 	let oldAddress = null;
@@ -5155,7 +5155,7 @@ function TallyArbiter_Edit_Device_Source(obj) {
 	return {result: 'device-source-edited-successfully', deviceId: deviceId};
 }
 
-function TallyArbiter_Delete_Device_Source(obj) {
+function TallyArbiter_Delete_Device_Source(obj): ManageResponse {
 	let deviceSourceId = obj.device_source.id;
 	let deviceId = null;
 	let sourceId = null;
@@ -5184,7 +5184,7 @@ function TallyArbiter_Delete_Device_Source(obj) {
 	return {result: 'device-source-deleted-successfully', deviceId: deviceId};
 }
 
-function TallyArbiter_Add_Device_Action(obj) {
+function TallyArbiter_Add_Device_Action(obj): ManageResponse {
 	let deviceActionObj = obj.device_action;
 	let deviceId = deviceActionObj.deviceId;
 	deviceActionObj.id = uuidv4();
@@ -5197,7 +5197,7 @@ function TallyArbiter_Add_Device_Action(obj) {
 	return {result: 'device-action-added-successfully', deviceId: deviceId};
 }
 
-function TallyArbiter_Edit_Device_Action(obj) {
+function TallyArbiter_Edit_Device_Action(obj): ManageResponse {
 	let deviceActionObj = obj.device_action;
 	let deviceId = null;
 	for (let i = 0; i < device_actions.length; i++) {
@@ -5217,7 +5217,7 @@ function TallyArbiter_Edit_Device_Action(obj) {
 	return {result: 'device-action-edited-successfully', deviceId: deviceId};
 }
 
-function TallyArbiter_Delete_Device_Action(obj) {
+function TallyArbiter_Delete_Device_Action(obj): ManageResponse {
 	let deviceActionId = obj.device_action.id;
 	let deviceId = null;
 	let outputTypeId = null;
@@ -5238,7 +5238,7 @@ function TallyArbiter_Delete_Device_Action(obj) {
 	return {result: 'device-action-deleted-successfully', deviceId: deviceId};
 }
 
-function TallyArbiter_Add_TSL_Client(obj) {
+function TallyArbiter_Add_TSL_Client(obj): ManageResponse {
 	let tslClientObj = obj.tslClient;
 	tslClientObj.id = uuidv4();
 	tsl_clients.push(tslClientObj);
@@ -5250,7 +5250,7 @@ function TallyArbiter_Add_TSL_Client(obj) {
 	return {result: 'tsl-client-added-successfully'};
 }
 
-function TallyArbiter_Edit_TSL_Client(obj) {
+function TallyArbiter_Edit_TSL_Client(obj): ManageResponse {
 	let tslClientObj = obj.tslClient;
 
 	for (let i = 0; i < tsl_clients.length; i++) {
@@ -5270,7 +5270,7 @@ function TallyArbiter_Edit_TSL_Client(obj) {
 	return {result: 'tsl-client-edited-successfully'};
 }
 
-function TallyArbiter_Delete_TSL_Client(obj) {
+function TallyArbiter_Delete_TSL_Client(obj): ManageResponse {
 	let tslClientObj = GetTSLClientById(obj.tslClientId);
 	let tslClientId = obj.tslClientId;
 
@@ -5287,7 +5287,7 @@ function TallyArbiter_Delete_TSL_Client(obj) {
 	return {result: 'tsl-client-deleted-successfully'};
 }
 
-function TallyArbiter_Add_Bus_Option(obj) {
+function TallyArbiter_Add_Bus_Option(obj): ManageResponse {
 	let busOptionObj = obj.busOption;
 	busOptionObj.id = uuidv4();
 	bus_options.push(busOptionObj);
@@ -5297,7 +5297,7 @@ function TallyArbiter_Add_Bus_Option(obj) {
 	return {result: 'bus-option-added-successfully'};
 }
 
-function TallyArbiter_Edit_Bus_Option(obj) {
+function TallyArbiter_Edit_Bus_Option(obj): ManageResponse {
 	let busOptionObj = obj.busOption;
 
 	for (let i = 0; i < bus_options.length; i++) {
@@ -5314,7 +5314,7 @@ function TallyArbiter_Edit_Bus_Option(obj) {
 	return {result: 'bus-option-edited-successfully'};
 }
 
-function TallyArbiter_Delete_Bus_Option(obj) {
+function TallyArbiter_Delete_Bus_Option(obj): ManageResponse {
 	let busOptionObj = GetBusByBusId(obj.busOptionId);
 	let busOptionId = obj.busOptionId;
 
@@ -5330,7 +5330,7 @@ function TallyArbiter_Delete_Bus_Option(obj) {
 	return {result: 'bus-option-deleted-successfully'};
 }
 
-function TallyArbiter_Add_Cloud_Destination(obj) {
+function TallyArbiter_Add_Cloud_Destination(obj): ManageResponse {
 	let cloudObj = obj.cloudDestination;
 	cloudObj.id = uuidv4();
 	cloud_destinations.push(cloudObj);
@@ -5342,7 +5342,7 @@ function TallyArbiter_Add_Cloud_Destination(obj) {
 	return {result: 'cloud-destination-added-successfully'};
 }
 
-function TallyArbiter_Edit_Cloud_Destination(obj) {
+function TallyArbiter_Edit_Cloud_Destination(obj): ManageResponse {
 	let cloudObj = obj.cloudDestination;
 
 	for (let i = 0; i < cloud_destinations.length; i++) {
@@ -5372,7 +5372,7 @@ function TallyArbiter_Edit_Cloud_Destination(obj) {
 	return {result: 'cloud-destination-edited-successfully'};
 }
 
-function TallyArbiter_Delete_Cloud_Destination(obj) {
+function TallyArbiter_Delete_Cloud_Destination(obj): ManageResponse {
 	let cloudObj = GetCloudDestinationById(obj.cloudId);
 	let cloudId = obj.cloudId;
 
@@ -5389,7 +5389,7 @@ function TallyArbiter_Delete_Cloud_Destination(obj) {
 	return {result: 'cloud-destination-deleted-successfully'};
 }
 
-function TallyArbiter_Add_Cloud_Key(obj) {
+function TallyArbiter_Add_Cloud_Key(obj): ManageResponse {
 	cloud_keys.push(obj.key);
 
 	logger(`Cloud Key Added: ${obj.key}`, 'info');
@@ -5397,7 +5397,7 @@ function TallyArbiter_Add_Cloud_Key(obj) {
 	return {result: 'cloud-key-added-successfully'};
 }
 
-function TallyArbiter_Delete_Cloud_Key(obj) {
+function TallyArbiter_Delete_Cloud_Key(obj): ManageResponse {
 	for (let i = 0; i < cloud_keys.length; i++) {
 		if (cloud_keys[i] === obj.key) {
 			cloud_keys.splice(i, 1);
@@ -5412,7 +5412,7 @@ function TallyArbiter_Delete_Cloud_Key(obj) {
 	return {result: 'cloud-key-deleted-successfully'};
 }
 
-function TallyArbiter_Remove_Cloud_Client(obj) {
+function TallyArbiter_Remove_Cloud_Client(obj): ManageResponse {
 	let ipAddress = null;
 	let key = null;
 	for (let i = 0; i < cloud_clients.length; i++) {
