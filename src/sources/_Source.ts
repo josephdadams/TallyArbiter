@@ -10,6 +10,7 @@ const MAX_FAILED_RECONNECTS = 5;
 export class TallyInput extends EventEmitter {
     public connected = new BehaviorSubject<boolean>(false);
     public tally = new BehaviorSubject<TallyData>({});
+    private tallyData = {};
     public addresses = new BehaviorSubject<Address[]>([]);
     protected source: Source;
     private tryReconnecting = false;
@@ -65,38 +66,34 @@ export class TallyInput extends EventEmitter {
     }
 
     protected addBusToAddress(address: string, bus: string) {
-        const tally = this.tally.value;
-        if (!Array.isArray(tally[address])) {
-            tally[address] = [];
+        if (!Array.isArray(this.tallyData[address])) {
+            this.tallyData[address] = [];
         }
-        if (!tally[address].includes(bus)) {
-            tally[address].push(bus);
+        if (!this.tallyData[address].includes(bus)) {
+            this.tallyData[address].push(bus);
         }
-        this.tally.next(tally);
     }
 
     protected removeBusFromAddress(address: string, bus: string) {
-        const tally = this.tally.value;
-        if (!Array.isArray(tally[address])) {
-            tally[address] = [];
+        if (!Array.isArray(this.tallyData[address])) {
+            this.tallyData[address] = [];
         } else  {
-            tally[address] = tally[address].filter((b) => b !== bus);
+            this.tallyData[address] = this.tallyData[address].filter((b) => b !== bus);
         }
-        this.tally.next(tally);
     }
 
     protected removeBusFromAllAddresses(bus: string) {
-        const tally = this.tally.value;
-        for (const address of Object.keys(tally)) {
-            tally[address] = tally[address].filter((b) => b !== bus);
+        for (const address of Object.keys(this.tallyData)) {
+            this.tallyData[address] = this.tallyData[address].filter((b) => b !== bus);
         }
-        this.tally.next(tally);
     }
 
     protected setBussesForAddress(address: string, busses: string[]) {
-        const tally = this.tally.value;
-        tally[address] = busses || [];
-        this.tally.next(tally);
+        this.tallyData[address] = busses || [];
+    }
+
+    protected sendTallyData() {
+        this.tally.next(this.tallyData);
     }
 }
 
