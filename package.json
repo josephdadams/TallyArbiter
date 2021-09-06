@@ -72,7 +72,8 @@
     "scripts": {
         "start": "ts-node-dev src/index.ts",
         "prepare": "cd UI && npm i && npm run build",
-        "build": "webpack",
+        "build": "tsc",
+        "prepack": "npm run build",
         "prepublishOnly": "npm run build",
         "desktop": "npm run build && electron .",
         "build-desktop": "npm run build && electron-builder"
@@ -81,18 +82,11 @@
         "@types/find-package-json": "^1.2.2",
         "@types/find-remove": "^2.0.1",
         "@types/node": "^16.7.10",
-        "@types/webpack-env": "^1.16.2",
         "@types/xml2js": "^0.4.9",
-        "bufferutil": "^4.0.3",
         "electron": "^12.1.0",
         "electron-builder": "^22.11.7",
         "redundancyjs": "^0.1.0",
-        "terser-webpack-plugin": "^5.2.3",
-        "ts-loader": "^9.2.5",
         "ts-node-dev": "^1.1.6",
-        "typescript": "^4.3.4",
-        "utf-8-validate": "^5.0.5",
-        "webpack": "^5.52.0",
-        "webpack-cli": "^4.8.0"
+        "typescript": "^4.3.4"
     }
 }

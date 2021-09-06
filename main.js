@@ -43,7 +43,7 @@ function createWindow() {
         return false;
     });
     // start the server
-    server = require("./dist/bundle");
+    server = require("./dist/index");
 }
 
 function createTrayIcon() {
