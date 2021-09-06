@@ -1762,6 +1762,7 @@ function UpdateDeviceState(deviceId: string) {
 		}
 	}
 	UpdateSockets("currentTallyData");
+	UpdateListenerClients(deviceId);
 }
 
 function startVMixEmulator() {
@@ -5887,7 +5888,9 @@ function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetime
 	let message = `Listener Client Connected: ${clientObj.ipAddress.replace('::ffff:', '')} (${clientObj.listenerType}) at ${new Date()}`;
 	SendMessage('server', null, message);
 
-	UpdateListenerClients();
+	for (const device of devices) {
+		UpdateListenerClients(device.id);
+	}
 
 	UpdateSockets('listener_clients');
 	UpdateCloud('listener_clients');
@@ -5895,13 +5898,12 @@ function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetime
 	return clientObj.id;
 }
 
-function UpdateListenerClients() {
-	for (let i = 0; i < listener_clients.length; i++) {
-		if (!listener_clients[i].inactive) {
-			let device = GetDeviceByDeviceId(listener_clients[i].deviceId);
-			logger(`Sending device states to Listener Client: ${listener_clients[i].id} - ${device.name}`, 'info-quiet');
-			io.to(listener_clients[i].socketId).emit('currentTallyData', currentDeviceTallyData);
-		}
+function UpdateListenerClients(deviceId: string) {
+	const device = GetDeviceByDeviceId(deviceId);
+	for (const listenerClient of listener_clients.filter((l) => l.deviceId == deviceId && !l.inactive)) {
+		logger(`Sending device states to Listener Client: ${listenerClient.id} - ${device.name}`, 'info-quiet');
+		io.to(listenerClient.socketId).emit('currentTallyData', currentDeviceTallyData);
+		
 	}
 }
 

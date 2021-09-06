@@ -29,7 +29,6 @@ export class TallyComponent {
         if (params.deviceId) {
           this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id == params.deviceId);
           this.socketService.socket.emit('device_listen', this.socketService.devices[this.currentDeviceIdx!].id, 'web');
-          console.log("--->", this.socketService.devices[this.currentDeviceIdx!].id)
         }
       });
     });
