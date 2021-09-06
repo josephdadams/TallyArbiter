@@ -11,4 +11,4 @@ On Windows as well Linux the autoupdater is available. It will prompt you automa
 
 If you're running MacOS, there's unfortunately no way around manually [downloading the latest release](https://github.com/josephdadams/TallyArbiter/releases). This is due to Apple requiring apps to be signed in order for the autoupdater to work. For that, we'd need an Apple Developer Account which is about $100 a year which  (as an open-source project) cannot afford. Maybe you want to sponsor us? 😉
 
-**Be sure to back up or save your [config file](#configuration)!**
+**Be sure to back up or save your [config file](../usage/control-interface.md#configuration)!**
