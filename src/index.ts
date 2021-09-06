@@ -25,6 +25,7 @@ import findRemoveSync from 'find-remove';
 import { CloudClient } from "./_models/CloudClient";
 import { DeviceState } from "./_models/DeviceState";
 import { FlashListenerClientResponse } from "./_models/FlashListenerClientResponse";
+import { MessageListenerClientResponse } from "./_models/MessageListenerClientResponse";
 import { LogItem } from "./_models/LogItem";
 import { Port } from "./_models/Port";
 import { TallyInput } from './sources/_Source';
@@ -6013,7 +6014,7 @@ function FlashListenerClient(listenerClientId): FlashListenerClientResponse | vo
 	}
 }
 
-function MessageListenerClient(listenerClientId, type, socketid, message): any | void {
+function MessageListenerClient(listenerClientId, type, socketid, message): MessageListenerClientResponse | void {
 	let listenerClientObj = listener_clients.find( ({ id }) => id === listenerClientId);
 
 	if (listenerClientObj) {
