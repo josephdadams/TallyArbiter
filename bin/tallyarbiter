@@ -1,4 +1,4 @@
 #!/usr/bin/env node
 
 require = require('esm')(module);
-require('../index.js');
+require('../dist/bundle.js');

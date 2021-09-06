@@ -15,5 +15,6 @@
     },
     "exclude": [
         "./UI/",
+        "./node_modules/"
     ]
 }
