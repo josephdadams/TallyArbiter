@@ -4703,22 +4703,27 @@ function TallyArbiter_Delete_Cloud_Key(obj): ManageResponse {
 function TallyArbiter_Remove_Cloud_Client(obj): ManageResponse {
 	let ipAddress = null;
 	let key = null;
+	let clientRemoved = false;
 	for (let i = 0; i < cloud_clients.length; i++) {
 		if (cloud_clients[i].id === obj.id) {
 			//disconnect the cloud client
 			ipAddress = cloud_clients[i].ipAddress;
 			key = cloud_clients[i].key;
-			if ((io.sockets as any).connected[cloud_clients[i].socketId]) {
+			if ((io.sockets as any).connected && (io.sockets as any).connected.includes(cloud_clients[i].socketId)) {
 				(io.sockets as any).connected[cloud_clients[i].socketId].disconnect(true);
+				clientRemoved = true;
 			}
 			cloud_clients.splice(i, 1);
 			break;
 		}
 	}
 
-	logger(`Cloud Client Removed: ${obj.id}  ${ipAddress}  ${key}`, 'info');
-
-	return {result: 'cloud-client-removed-successfully'};
+	if(clientRemoved){
+		logger(`Cloud Client Removed: ${obj.id}  ${ipAddress}  ${key}`, 'info');
+		return {result: 'cloud-client-removed-successfully'};
+	} else {
+		return {result: 'cloud-client-not-removed', error: 'Cloud client not found.' };
+	}
 }
 
 function GetSourceBySourceId(sourceId: string): Source {
@@ -4983,7 +4988,7 @@ function FlashListenerClient(listenerClientId): FlashListenerClientResponse | vo
 	if (listenerClientObj) {
 		if (listenerClientObj.cloudConnection) {
 			let cloudClientSocketId = GetCloudClientById(listenerClientObj.cloudClientId).socketId;
-			if ((io.sockets as any).connected[cloudClientSocketId]) {
+			if ((io.sockets as any).connected && (io.sockets as any).connected.includes(cloudClientSocketId)) {
 				(io.sockets as any).connected[cloudClientSocketId].emit('flash', listenerClientId);
 			}
 		}
@@ -5017,7 +5022,7 @@ function MessageListenerClient(listenerClientId: { relayGroupId?: string; gpoGro
 	if (listenerClientObj) {
 		if (listenerClientObj.cloudConnection) {
 			let cloudClientSocketId = GetCloudClientById(listenerClientObj.cloudClientId).socketId;
-			if ((io.sockets as any).connected[cloudClientSocketId]) {
+			if ((io.sockets as any).connected && (io.sockets as any).connected.includes(cloudClientSocketId)) {
 				(io.sockets as any).connected[cloudClientSocketId].emit('messaging_client', listenerClientId, type, socketid, message);
 			}
 		}
@@ -5062,7 +5067,7 @@ function AddCloudClient(socketId, key, ipAddress, datetimeConnected) {
 function DeleteCloudClients(key) {
 	for (let i = cloud_clients.length - 1; i >= 0; i--) {
 		if (cloud_clients[i].key === key) {
-			if ((io.sockets as any).connected[cloud_clients[i].socketId]) {
+			if ((io.sockets as any).connected && (io.sockets as any).connected.includes(cloud_clients[i].socketId)) {
 				(io.sockets as any).connected[cloud_clients[i].socketId].disconnect(true);
 				cloud_clients.splice(i, 1);
 			}
