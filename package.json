@@ -84,7 +84,7 @@
     "devDependencies": {
         "@types/find-package-json": "^1.2.2",
         "@types/find-remove": "^2.0.1",
-        "@types/node": "^16.7.10",
+        "@types/node": "^16.7.13",
         "@types/xml2js": "^0.4.9",
         "electron": "^12.1.0",
         "electron-builder": "^22.11.7",

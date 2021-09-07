@@ -5,4 +5,6 @@ export interface CloudDestination {
     key: string;
     port: string;
     status: "connected" | "disconnected" | "invalid_key" | "error";
+
+    error?: boolean;
 }
