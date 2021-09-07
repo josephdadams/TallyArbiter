@@ -538,10 +538,10 @@
             </div>
             <div class="mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!]">
                 <label for="deviceSource" class="form-label">Address
-          ({{socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id] && socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0 ? 'select or ' : ''}}enter
+          ({{socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0 ? 'select or ' : ''}}enter
           manually):</label>
                 <div class="row">
-                    <div class="col" *ngIf="socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id] && socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0">
+                    <div class="col" *ngIf="socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0">
                         <select class="form-select" [(ngModel)]="currentDeviceSource.address">
               <option *ngFor="let address of socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id]"
                 [value]="address.address">{{address.label}}</option>

@@ -48,7 +48,6 @@ export class SocketService {
   public testModeOn = false;
   public tslclients_1secupdate?: boolean;
   public deviceSources: DeviceSource[] = [];
-  public sourceTallyData: Record<string, TSLTallyData[]> = {};
   public addresses: Addresses = {};
   public deviceActions: DeviceAction[] = [];
   public outputTypes: OutputType[] = [];
@@ -136,9 +135,6 @@ export class SocketService {
       }
       this.logs.push(log);
       this.newLogsSubject.next();
-    });
-    this.socket.on("source_tallydata", (sourceId: string, data: TSLTallyData[]) => {
-      this.sourceTallyData[sourceId] = data;
     });
     this.socket.on('tally_data', (sourceId: string, tallyObj: TSLTallyData) => {
       if (this.tallyData.length > 5000) {
