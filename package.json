@@ -73,7 +73,6 @@
     "scripts": {
         "start": "ts-node-dev src/index.ts",
         "prepare": "cd UI && npm i && npm run build",
-        "postinstall": "redundancyjs",
         "redundancyjs": "redundancyjs",
         "build": "tsc",
         "prepack": "npm run build",
