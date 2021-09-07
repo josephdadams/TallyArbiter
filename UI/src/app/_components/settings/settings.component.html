@@ -538,12 +538,12 @@
             </div>
             <div class="mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!]">
                 <label for="deviceSource" class="form-label">Address
-          ({{socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id] && socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0 ? 'select or ' : ''}}enter
+          ({{socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id] && socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0 ? 'select or ' : ''}}enter
           manually):</label>
                 <div class="row">
-                    <div class="col" *ngIf="socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id] && socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0">
+                    <div class="col" *ngIf="socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id] && socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0">
                         <select class="form-select" [(ngModel)]="currentDeviceSource.address">
-              <option *ngFor="let address of socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id]"
+              <option *ngFor="let address of socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id]"
                 [value]="address.address">{{address.label}}</option>
             </select>
                     </div>
@@ -555,14 +555,16 @@
             <div class="mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!] && getSourceBusOptionsBySourceTypeId(socketService.sources[currentDeviceSource.sourceIdx!].sourceTypeId).length > 0">
                 <label for="bus" class="form-label">Bus:</label>
                 <select class="form-select" [(ngModel)]="currentDeviceSource.bus">
-          <option
-            *ngFor="let bus of getSourceBusOptionsBySourceTypeId(socketService.sources[currentDeviceSource.sourceIdx!].sourceTypeId)[0].busses"
-            [value]="bus.bus">{{bus.name}}</option>
-        </select>
+                <option
+                    *ngFor="let bus of getSourceBusOptionsBySourceTypeId(socketService.sources[currentDeviceSource.sourceIdx!].sourceTypeId)"
+                    [value]="bus.bus">{{bus.name}}</option>
+            </select>
             </div>
-            <div class="mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!]">
-                <label for="deviceSourceRename" class="form-label">Allow Device Renaming</label>
-                <input type="checkbox" placholder="Rename" [(ngModel)]="currentDeviceSource.rename">
+            <div class="form-check mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!]">
+                <input class="form-check-input" type="checkbox" id="deviceSourceRename" [(ngModel)]="currentDeviceSource.rename">
+                <label class="form-check-label" for="deviceSourceRename">
+                    Allow Device Renaming
+                </label>
             </div>
             <div class="d-flex justify-content-end">
                 <button class="btn btn-outline-dark" (click)="saveDeviceSource()"><i class="fas fa-save"></i> {{currentDeviceSource.id !== undefined ? 'Save Changes' : 'Add Device Source'}}</button>
