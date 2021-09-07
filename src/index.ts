@@ -482,47 +482,6 @@ function initialSetup() {
 			socket.emit('sources', getSources());
 		});
 
-		socket.on('source_tallydata', function(sourceId: string) { //gets all Source Tally Data
-			let source = GetSourceBySourceId(sourceId);
-			let sourceType = GetSourceTypeBySourceTypeId(source.sourceTypeId);
-			let result: false | any[] = false;
-			
-			//Note: results from all except OBS and Tricaster commented out as either no device currently in warehouse to test with and/or
-			//the data structure of these objects seems to differ, perhaps a common structure for tally data objects would be good in the future
-			//so it can be dealt with in the same manner elsewhere.
-
-			switch(sourceType.type) {
-				case 'atem': //Blackmagic ATEM
-					//result = tallydata_ATEM;
-					break;
-				case 'videohub': //Blackmagic VideoHub
-					result = tallydata_VideoHub;
-					break;
-				case 'obs': //OBS
-					result = tallydata_OBS;
-					break;
-				case 'vmix': //VMix
-					result = tallydata_VMix;
-					break;
-				case 'panasonic': //panasonic
-					result = tallydata_Panasonic;
-					break;
-				case 'tricaster': //Tricaster
-					result = tallydata_TC;
-					break;
-				case 'awlivecore': //Analog Way Livecore
-					//result = tallydata_AWLivecore;
-					break;
-			}
-			if (result !== false) {
-				result = result.filter(tally => tally.sourceId == sourceId);
-				socket.emit('source_tallydata', sourceId, result);
-			}
-			else {
-				socket.emit('source_tallydata', sourceId, new Array());
-			}
-		});
-
 		socket.on('devices', () =>  { // sends the configured Devices to the socket
 			socket.emit('devices', devices);
 		});
@@ -4486,126 +4445,36 @@ function UpdateCloud(dataType: 'sources' | 'devices' | 'device_sources' | 'curre
 	}
 }
 
-function UpdateSockets(dataType: 'sources' | 'devices' | 'device_sources' | 'currentTallyData' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse" | "addresses") {
-	let emitSettings = false;
-	let emitProducer =  false;
-	let emitCompanion =  false;
+type SocketUpdateDataType = 'sources' | 'devices' | 'device_sources' | 'currentTallyData' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse" | "addresses";
 
+function UpdateSockets(dataType: SocketUpdateDataType) {
+	const data: Record<SocketUpdateDataType, () => any> = {
+		PortsInUse: () => PortsInUse,
+		addresses: () => addresses.value,
+		sources: () => getSources(),
+		devices: () => devices,
+		device_sources: () => device_sources,
+		currentTallyData: () => currentDeviceTallyData, 
+		listener_clients: () => listener_clients, 
+		vmix_clients: () => vmix_client_data, 
+		tsl_clients: () => tsl_clients, 
+		cloud_destinations: () => cloud_destinations, 
+		cloud_clients: () => cloud_clients,
+	}
+	const emitTo = (to: string) => {
+		io.to(to).emit(dataType, data[dataType]());
+	}
+	
 	if (socketupdates_Settings.includes(dataType)) {
-		emitSettings = true;
+		emitTo("settings");
 	}
 
 	if (socketupdates_Producer.includes(dataType)) {
-		emitProducer = true;
+		emitTo('producer');
 	}
 
 	if (socketupdates_Companion.includes(dataType)) {
-		emitCompanion = true;
-	}
-
-	switch(dataType) {
-		case 'sources':
-			if (emitSettings) {
-				io.to('settings').emit('sources', getSources());
-			}
-			if (emitProducer) {
-				io.to('producer').emit('sources', getSources());
-			}
-			if (emitCompanion) {
-				io.to('companion').emit('sources', getSources());
-			}
-			break;
-		case 'devices':
-			if (emitSettings) {
-				io.to('settings').emit('devices', devices);
-			}
-			if (emitProducer) {
-				io.to('producer').emit('devices', devices);
-			}
-			if (emitCompanion) {
-				io.to('companion').emit('devices', devices);
-			}
-			break;
-		case 'device_sources':
-			if (emitSettings) {
-				io.to('settings').emit('device_sources', device_sources);
-			}
-			if (emitProducer) {
-				io.to('producer').emit('device_sources', device_sources);
-			}
-			if (emitCompanion) {
-				io.to('companion').emit('device_sources', device_sources);
-			}
-			break;
-		case 'currentTallyData':
-			if (emitSettings) {
-				io.to('settings').emit('currentTallyData', currentDeviceTallyData);
-			}
-			if (emitProducer) {
-				io.to('producer').emit('currentTallyData', currentDeviceTallyData);
-			}
-			if (emitCompanion) {
-				io.to('companion').emit('currentTallyData', currentDeviceTallyData);
-			}
-			break;
-		case 'listener_clients':
-			if (emitSettings) {
-				io.to('settings').emit('listener_clients', listener_clients);
-			}
-			if (emitProducer) {
-				io.to('producer').emit('listener_clients', listener_clients);
-			}
-			if (emitCompanion) {
-				io.to('companion').emit('listener_clients', listener_clients);
-			}
-			break;
-		case 'vmix_clients':
-			if (emitSettings) {
-				io.to('settings').emit('vmix_clients', vmix_client_data);
-			}
-			break;
-		case 'addresses':
-			if (emitSettings) {
-				io.to('settings').emit('addresses', addresses.value);
-			}
-			if (emitProducer) {
-				io.to('producer').emit('addresses', addresses.value);
-			}
-			if (emitCompanion) {
-				io.to('companion').emit('addresses', addresses.value);
-			}
-			break;
-		case 'tsl_clients':
-			if (emitSettings) {
-				io.to('settings').emit('tsl_clients', tsl_clients);
-			}
-			if (emitProducer) {
-				io.to('producer').emit('tsl_clients', tsl_clients);
-			}
-			if (emitCompanion) {
-				io.to('companion').emit('tsl_clients', tsl_clients);
-			}
-			break;
-		case 'cloud_destinations':
-			if (emitSettings) {
-				io.to('settings').emit('cloud_destinations', cloud_destinations);
-			}
-			if (emitCompanion) {
-				io.to('companion').emit('cloud_destinations', cloud_destinations);
-			}
-			break;
-		case 'cloud_clients':
-			if (emitSettings) {
-				io.to('settings').emit('cloud_clients', cloud_clients);
-			}
-			break;
-		case 'PortsInUse':
-			if (emitSettings) {
-				io.to('settings').emit('tsl_clients', tsl_clients);
-			}
-			break;
-		default:
-			break;
+		emitTo('companion');
 	}
 }
 
