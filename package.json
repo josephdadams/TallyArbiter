@@ -74,7 +74,7 @@
     "scripts": {
         "start": "ts-node-dev src/index.ts",
         "prepare": "cd UI && npm i && npm run build",
-        "redundancyjs": "npx -y redundancyjs",
+        "redundancyjs": "npx --no-install --quiet redundancyjs",
         "build": "tsc",
         "prepack": "npm run build",
         "prepublishOnly": "npm run build",
