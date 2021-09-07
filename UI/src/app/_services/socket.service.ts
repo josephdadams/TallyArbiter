@@ -8,7 +8,6 @@ import { Message } from '../_models/Message';
 import { Device } from '../_models/Device';
 import { DeviceAction } from '../_models/DeviceAction';
 import { DeviceSource } from '../_models/DeviceSource';
-import { DeviceState } from '../_models/DeviceState';
 import { ListenerClient } from '../_models/ListenerClient';
 import { VmixClient } from '../_models/VmixClient';
 import { LogItem } from '../_models/LogItem';
@@ -18,12 +17,12 @@ import { Port } from '../_models/Port';
 import { Source } from '../_models/Source';
 import { TSLTallyData } from '../_models/TSLTallyData';
 import { SourceType } from '../_models/SourceType';
-import { SourceTypeBusOptions } from '../_models/SourceTypeBusOptions';
 import { SourceTypeDataFields } from '../_models/SourceTypeDataFields';
 import { TSLClient } from '../_models/TSLClient';
 import { ErrorReport } from '../_models/ErrorReport';
 import { ErrorReportsListElement } from '../_models/ErrorReportsListElement';
 import { DeviceTallyData } from "../_models/TallyData";
+import { Addresses } from '../_models/Addresses';
 
 @Injectable({
   providedIn: 'root'
@@ -50,7 +49,7 @@ export class SocketService {
   public tslclients_1secupdate?: boolean;
   public deviceSources: DeviceSource[] = [];
   public sourceTallyData: Record<string, TSLTallyData[]> = {};
-  public sourceTypesBusOptions: SourceTypeBusOptions[] = [];
+  public addresses: Addresses = {};
   public deviceActions: DeviceAction[] = [];
   public outputTypes: OutputType[] = [];
   public outputTypeDataFields: OutputTypeDataFields[] = [];
@@ -172,11 +171,15 @@ export class SocketService {
     this.socket.on('cloud_clients', (clients: CloudClient[]) => {
       this.cloudClients = clients;
     });
-    this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], sourceTypesBusOptions: SourceTypeBusOptions[], outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], currentTallyData: DeviceTallyData, tslClients: TSLClient[], cloudDestinations: CloudDestination[], cloudKeys: string[], cloudClients: CloudClient[]) => {
+    this.socket.on('addresses', (addresses: Addresses) => {
+      console.log("new addresses", addresses);
+      this.addresses = addresses;
+    });
+    this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], addresses: Addresses, outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], currentTallyData: DeviceTallyData, tslClients: TSLClient[], cloudDestinations: CloudDestination[], cloudKeys: string[], cloudClients: CloudClient[]) => {
       this.initialDataLoaded = true;
       this.sourceTypes = sourceTypes.filter((s: SourceType) => s.enabled);
       this.sourceTypeDataFields = sourceTypesDataFields;
-      this.sourceTypesBusOptions = sourceTypesBusOptions;
+      this.addresses = addresses;
       this.outputTypes = outputTypes;
       this.outputTypeDataFields = outputTypesDataFields;
       this.busOptions = busOptions;

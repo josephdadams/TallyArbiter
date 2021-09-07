@@ -16,6 +16,7 @@ import { TSLClient } from 'src/app/_models/TSLClient';
 import { SocketService } from 'src/app/_services/socket.service';
 import Swal from 'sweetalert2';
 import { BusOption } from 'src/app/_models/BusOption';
+import { SourceTypeBus } from 'src/app/_models/SourceTypeBus';
 
 const globalSwalOptions = {
 	confirmButtonColor: "#2a70c7",
@@ -332,8 +333,8 @@ export class SettingsComponent {
 		return this.socketService.outputTypeDataFields.find((t) => t.outputTypeId == outputType.id)?.fields || [];
 	}
 
-	public getSourceBusOptionsBySourceTypeId(sourceTypeId: string) {
-		return this.socketService.sourceTypesBusOptions.filter((obj) => obj.sourceTypeId === sourceTypeId);
+	public getSourceBusOptionsBySourceTypeId(sourceTypeId: string): SourceTypeBus[] {
+		return this.socketService.sourceTypes.find((obj) => obj.id === sourceTypeId)?.busses as SourceTypeBus[];
 	}
 
 	public toggleTestMode() {

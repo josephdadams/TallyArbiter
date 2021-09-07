@@ -1,5 +1,6 @@
 import { BehaviorSubject } from "rxjs";
 import { logger } from "..";
+import { Address } from "../_models/Address";
 import { Source } from "../_models/Source";
 import { AddressTallyData } from "../_models/TallyData";
 
@@ -93,9 +94,4 @@ export class TallyInput {
     protected sendTallyData() {
         this.tally.next(this.tallyData);
     }
-}
-
-export type Address = {
-    label: string;
-    address: string;
 }

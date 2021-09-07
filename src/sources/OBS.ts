@@ -19,14 +19,6 @@ export class OBSSource extends TallyInput {
             logger(`Source: ${source.name} Connected to OBS @ ${this.source.data.ip}:${this.source.data.port}`, 'info');
             this.addAddress('{{STREAMING}}', '{{STREAMING}}');
             this.addAddress('{{STREAMING}}', '{{RECORDING}}');
-            //Retrieve all the current sources and add them
-            this.obsClient.send('GetSourcesList').then((data) => {
-                if (!Array.isArray(data.sources)) return;
-                for (const source of data.sources) {
-                    this.addAddress(source.name, source.name);
-                }
-            }).catch(() => undefined);
-            this.connected.next(true);
         });
 
         this.obsClient.on('ConnectionClosed', () => {
@@ -36,6 +28,12 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('AuthenticationSuccess', () => {
             logger(`Source: ${source.name}  OBS Authenticated.`, 'info-quiet');
+            this.obsClient.send('GetSourcesList').then((data) => {
+                if (!Array.isArray(data.sources)) return;
+                for (const source of data.sources) {
+                    this.addAddress(source.name, source.name);
+                }
+            });
             this.connected.next(true);
         });
 
