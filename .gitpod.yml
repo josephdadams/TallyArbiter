@@ -1,5 +1,5 @@
 tasks:
-  - init: npm i -g npm; cd UI; npm i --ignore-scripts; npm run build; cd ..; npm i --ignore-scripts
+  - init: npm i -g npm redundancyjs; cd UI; npm i --ignore-scripts; npm run build; cd ..; npm i --ignore-scripts
     command: npm start
 ports:
   - port: 4455
