@@ -22,8 +22,9 @@ import xml2js from 'xml2js';
 import { jspack } from "jspack";
 import os from 'os'; // For getting available Network interfaces on host device
 import findRemoveSync from 'find-remove';
+
+//TypeScript models
 import { CloudClient } from "./_models/CloudClient";
-import { DeviceState } from "./_models/DeviceState";
 import { FlashListenerClientResponse } from "./_models/FlashListenerClientResponse";
 import { MessageListenerClientResponse } from "./_models/MessageListenerClientResponse";
 import { ErrorReport } from './_models/ErrorReport';
@@ -35,13 +36,10 @@ import { Config } from './_models/Config';
 import { ManageResponse } from './_models/ManageResponse';
 import { LogItem } from "./_models/LogItem";
 import { Port } from "./_models/Port";
-import { TallyInput } from './sources/_Source';
 import { Source } from './_models/Source';
 import { SourceType } from './_models/SourceType';
 import { SourceTypeDataFields } from './_models/SourceTypeDataFields';
 import { BusOption } from './_models/BusOption';
-import { TallyInputs } from './_globals/TallyInputs';
-import { PortsInUse } from './_globals/PortsInUse';
 import { DeviceSource } from './_models/DeviceSource';
 import { DeviceAction } from './_models/DeviceAction';
 import { Device } from './_models/Device';
@@ -49,20 +47,27 @@ import { AddressTallyData, DeviceTallyData, SourceTallyData } from './_models/Ta
 import { OutputType } from './_models/OutputType';
 import { TSLClient } from './_models/TSLClient';
 import { OutputTypeDataFields } from './_models/OutputTypeDataFields';
-import { Actions } from './_globals/Actions';
-import { ListenerClient } from './_models/ListenerClient';
 import { ListenerClientConnect } from './_models/ListenerClientConnect';
 import { Manage } from './_models/Manage';
-import { BehaviorSubject } from 'rxjs';
 import { Addresses } from './_models/Addresses';
-import { Address } from './_models/Address';
+import { CloudListenerSocketData } from './_models/CloudListenerSocketData';
+import { CloudDestination } from './_models/CloudDestination';
+import { CloudDestinationSocket } from './_models/CloudDestinationSocket';
+import { ListenerClient } from './_models/ListenerClient';
+
+//TypeScript globals
+import { TallyInputs } from './_globals/TallyInputs';
+import { PortsInUse } from './_globals/PortsInUse';
+import { Actions } from './_globals/Actions';
+
+import { BehaviorSubject } from 'rxjs';
+import { TallyInput } from './sources/_Source';
 
 function loadClassesFromFolder(folder: string): void {
 	for (const file of fs.readdirSync(path.join(__dirname, folder)).filter((f) => !f.startsWith("_"))) {
 		require(`./${folder}/${file.replace(".ts", "")}`);
 	}
 }
-
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
@@ -87,44 +92,49 @@ var uiDistPath = path.join(__dirname, 'ui-dist');
 if (!fs.existsSync(uiDistPath)) {
     uiDistPath = path.join(__dirname, '..', 'ui-dist');
 }
-const listenPort 	= process.env.PORT || 4455;
-const app 			= express();
-const httpServer	= new http.Server(app);
-const io 			= new socketio.Server(httpServer, { allowEIO3: true });
-const appProducer: Router	= require('express').Router();
-const appSettings: Router	= require('express').Router();
-var username_producer = 'producer';
-var password_producer = '12345';
-var username_settings = 'admin';
-var password_settings = '12345';
-const socketupdates_Settings  = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients', 'tsl_clients', 'cloud_destinations', 'cloud_keys', 'cloud_clients', 'PortsInUse', 'vmix_clients', "addresses"];
-const socketupdates_Producer  = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients'];
-const socketupdates_Companion = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
-const vmixEmulatorPort = '8099'; // Default 8099 
-var oscUDP			= null;
-var logFilePath = getLogFilePath();
-var logFile = fs.openSync(logFilePath, 'w'); // Setup Log file
+
+const listenPort: number = parseInt(process.env.PORT) || 4455;
+const app = express();
+const appProducer: Router = require('express').Router();
+const appSettings: Router = require('express').Router();
+const httpServer = new http.Server(app);
+
+const io = new socketio.Server(httpServer, { allowEIO3: true });
+const socketupdates_Settings: string[]  = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients', 'tsl_clients', 'cloud_destinations', 'cloud_keys', 'cloud_clients', 'PortsInUse', 'vmix_clients', "addresses"];
+const socketupdates_Producer: string[]  = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients'];
+const socketupdates_Companion: string[] = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
+
+var username_producer: string = 'producer';
+var password_producer: string = '12345';
+var username_settings: string = 'admin';
+var password_settings: string = '12345';
+
+var logFilePath 	  = getLogFilePath();
+var logFile 		  = fs.openSync(logFilePath, 'w'); // Setup Log file
+var Logs: LogItem[]   = []; //array of actions, information, and errors
 var tallyDataFilePath = getTallyDataPath();
-var tallyDataFile = fs.openSync(tallyDataFilePath, 'w'); // Setup TallyData File
+var tallyDataFile 	  = fs.openSync(tallyDataFilePath, 'w'); // Setup TallyData File
+const config_file 	  = getConfigFilePath(); //local storage JSON file
+
+const vmixEmulatorPort: string = '8099'; // Default 8099 
+var oscUDP			= null;
 var vmix_emulator	= null; //TCP server for VMix Emulator
 var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
-const config_file 	= getConfigFilePath(); //local storage JSON file
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var vmix_client_data = []; //array of connected Vmix clients
-var Logs 			= []; //array of actions, information, and errors
 var tallydata_RossCarbonite = []; //array of Ross Carbonite sources and current tally data by bus
 var tallydata_VMix 	= []; //array of VMix sources and current tally data
 var tallydata_TC 	= []; //array of Tricaster sources and current tally data
 var tallydata_AWLivecore 	= []; //array of Analog Way sources and current tally data
 var tallydata_Panasonic 	= []; //array of Panasonic AV-HS410 sources and current tally data
-var tsl_clients		= []; //array of TSL 3.1 clients that Tally Arbiter will send tally data to
-var tsl_clients_sockets = []; //array of actual socket connections
-var tsl_clients_1secupdate = false;
-var tsl_clients_interval = null;
-var cloud_destinations	= []; //array of Tally Arbiter Cloud Destinations (host, port, key)
-var cloud_destinations_sockets = []; //array of actual socket connections
-var cloud_keys 			= []; //array of Tally Arbiter Cloud Sources (key only)
-var cloud_clients		= []; //array of Tally Arbiter Cloud Clients that have connected with a key
+
+var tsl_clients: TSLClient[]							 = []; //array of TSL 3.1 clients that Tally Arbiter will send tally data to
+var tsl_clients_1secupdate 								 = false;
+var tsl_clients_interval: NodeJS.Timer | null			 = null;
+var cloud_destinations: CloudDestination[]				 = []; //array of Tally Arbiter Cloud Destinations (host, port, key)
+var cloud_destinations_sockets: CloudDestinationSocket[] = []; //array of actual socket connections
+var cloud_keys: string[] 								 = []; //array of Tally Arbiter Cloud Sources (key only)
+var cloud_clients: CloudClient[]						 = []; //array of Tally Arbiter Cloud Clients that have connected with a key
 
 var TestMode = false; //if the system is in test mode or not
 const SourceClients: Record<string, TallyInput> = {};
@@ -193,15 +203,15 @@ var bus_options: BusOption[] = [ // the busses available to monitor in Tally Arb
 	{ id: '12c8d689', label: 'Aux 2', type: 'aux', color: '#0000FF', priority: 100}
 ]
 
-var sources: Source[] 			= []; // the configured tally sources
-var devices: Device[] 			= []; // the configured tally devices
-var device_sources: DeviceSource[]		= []; // the configured tally device-source mappings
-var device_actions: DeviceAction[]		= []; // the configured device output actions
+var sources: Source[]						= []; // the configured tally sources
+var devices: Device[] 						= []; // the configured tally devices
+var device_sources: DeviceSource[]			= []; // the configured tally device-source mappings
+var device_actions: DeviceAction[]			= []; // the configured device output actions
 var currentDeviceTallyData: DeviceTallyData = {}; // tally data (=bus array) per device id (linked busses taken into account)
 var currentSourceTallyData: SourceTallyData = {}; // tally data (=bus array) per device source id
-var source_connections	= []; // array of source connections/servers as they are established
+var source_connections						= []; // array of source connections/servers as they are established
 
-function uuidv4() //unique UUID generator for IDs
+function uuidv4(): string //unique UUID generator for IDs
 {
 	return 'xxxxxxxx'.replace(/[xy]/g, function(c) {
 		let r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -226,7 +236,7 @@ function startUp() {
 
 //based on https://stackoverflow.com/a/37096512
 //used in login function for displaying rate limits
-function secondsToHms(d: number | string) {
+function secondsToHms(d: number | string): string {
     d = Number(d);
     var h = Math.floor(d / 3600);
     var m = Math.floor(d % 3600 / 60);
@@ -1059,7 +1069,7 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('cloud_listeners', function(key: string, data) {
+		socket.on('cloud_listeners', function(key: string, data: CloudListenerSocketData[]) {
 			let cloudClientId = GetCloudClientBySocketId(socket.id).id;
 
 			//loop through the received array and if an item in the array isn't already in the listener_clients array, add it, and attach the cloud ID as a property
@@ -3849,7 +3859,7 @@ function StartTSLClientConnection(tslClientId) {
 							UpdateSockets('tsl_clients');
 						}
 					});
-					tsl_clients[i].socket.connect(parseInt(tsl_clients[i].port), tsl_clients[i].ip);
+					tsl_clients[i].socket.connect(parseInt(tsl_clients[i].port as string), tsl_clients[i].ip);
 					break;
 				default:
 					break;
@@ -3955,7 +3965,7 @@ function SendTSLClientData(deviceId) {
 				switch(tsl_clients[i].transport) {
 					case 'udp':
 						try {
-							tsl_clients[i].socket.send(bufUMD, parseInt(tsl_clients[i].port), tsl_clients[i].ip);
+							tsl_clients[i].socket.send(bufUMD, parseInt(tsl_clients[i].port as string), tsl_clients[i].ip);
 						}
 						catch(error) {
 							logger(`An error occurred sending TSL data for ${device.name} to ${tsl_clients[i].ip}:${tsl_clients[i].port}  ${error}`, 'error');
@@ -4751,30 +4761,30 @@ function GetDeviceSourcesByDeviceId(deviceId): DeviceSource[] {
 	return device_sources.filter(obj => obj.deviceId === deviceId);
 }
 
-function GetTSLClientById(tslClientId): TSLClient {
+function GetTSLClientById(tslClientId: string): TSLClient {
 	//gets the TSL Client by the Id
 	return tsl_clients.find( ({ id }) => id === tslClientId);
 }
 
-function GetCloudDestinationById(cloudId) {
+function GetCloudDestinationById(cloudId: string): CloudDestination {
 	//gets the Cloud Destination by the Id
 	return cloud_destinations.find( ({ id }) => id === cloudId);
 }
 
-function GetCloudClientById(cloudClientId) {
+function GetCloudClientById(cloudClientId: string): CloudClient {
 	//gets the Cloud Client by the Id
 	return cloud_clients.find( ({ id }) => id === cloudClientId);
 }
 
-function GetCloudClientBySocketId(socket) {
+function GetCloudClientBySocketId(socket: string): CloudClient {
 	//gets the Cloud Client by the Socket Id
 	return cloud_clients.find( ({ socketId }) => socketId === socket);
 }
 
 
-function GetSmartTallyStatus(tallynumber) {
+function GetSmartTallyStatus(tallynumber: number | string): string {
 	//returns unselected, selected, or onair based on the tallynumber (index+1) passed
-	let i = tallynumber - 1;
+	let i = parseInt(tallynumber as string) - 1;
 
 	let mode_preview = false;
 	let mode_program = false;
@@ -4811,8 +4821,8 @@ function GetSmartTallyStatus(tallynumber) {
 	return return_val;
 }
 
-function AddListenerClient(socketId, deviceId, listenerType, ipAddress, datetimeConnected, canBeReassigned = true, canBeFlashed = true, supportsChat = false) {
-    let clientObj = {
+function AddListenerClient(socketId: string, deviceId: string, listenerType: string, ipAddress: string, datetimeConnected: number, canBeReassigned = true, canBeFlashed = true, supportsChat = false): string {
+    let clientObj: ListenerClient = {
         id: uuidv4(),
         socketId: socketId,
         deviceId: deviceId,

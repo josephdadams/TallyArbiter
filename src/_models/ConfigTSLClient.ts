@@ -1,6 +1,6 @@
 export interface ConfigTSLClient {
     id: string;
     ip: string;
-    port: number;
+    port: number | string;
     transport: string;
 }
