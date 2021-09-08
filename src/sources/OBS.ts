@@ -32,11 +32,11 @@ export class OBSSource extends TallyInput {
             let previewScenePromise = this.obsClient.send('GetPreviewScene');
             let programScenePromise = this.obsClient.send('GetCurrentScene');
             let streamingAndRecordingStatusPromise = this.obsClient.send('GetStreamingStatus');
+            let replayBufferStatusPromise = this.obsClient.send('GetReplayBufferStatus');
             Promise.all([
-                previewScenePromise, programScenePromise, streamingAndRecordingStatusPromise
+                previewScenePromise, programScenePromise, streamingAndRecordingStatusPromise, replayBufferStatusPromise
             ]).then((data) => {
-                let [previewScene, programScene, streamingAndRecordingStatus]: any = data;
-                console.log(previewScene, programScene, streamingAndRecordingStatus);
+                let [previewScene, programScene, streamingAndRecordingStatus, replayBufferStatus]: any = data;
 
                 this.processSceneChange(previewScene.sources, 'preview');
                 this.processSceneChange(programScene.sources, 'program');
@@ -44,6 +44,7 @@ export class OBSSource extends TallyInput {
                 this.addAddress('{{STREAMING}}', '{{STREAMING}}');
                 this.addAddress('{{RECORDING}}', '{{RECORDING}}');
                 this.addAddress('{{VIRTUALCAM}}', '{{VIRTUALCAM}}');
+                this.addAddress('{{REPLAY}}', '{{REPLAY}}');
                 if(streamingAndRecordingStatus.streaming) this.setBussesForAddress("{{STREAMING}}", ["program"]);
                 if(streamingAndRecordingStatus.recording) {
                     if(streamingAndRecordingStatus.recordingPaused) {
@@ -53,6 +54,7 @@ export class OBSSource extends TallyInput {
                     }
                 }
                 if(streamingAndRecordingStatus.virtualcam) this.setBussesForAddress("{{VIRTUALCAM}}", ["program"]);
+                if(replayBufferStatus.isReplayBufferActive) this.setBussesForAddress("{{REPLAY}}", ["program"]);
 
                 this.sendTallyData();
                 this.connected.next(true);
@@ -143,6 +145,16 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('VirtualCamStopped', () => {
             this.setBussesForAddress("{{VIRTUALCAM}}", []);
+            this.sendTallyData();
+        });
+
+        this.obsClient.on('ReplayStarted', () => {
+            this.setBussesForAddress("{{REPLAY}}", ["program"]);
+            this.sendTallyData();
+        });
+
+        this.obsClient.on('ReplayStopped', () => {
+            this.setBussesForAddress("{{REPLAY}}", []);
             this.sendTallyData();
         });
 
