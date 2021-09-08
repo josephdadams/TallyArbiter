@@ -15,14 +15,7 @@ export class OBSSource extends TallyInput {
         super(source);
         this.obsClient = new ObsWebSocket();
 
-        this.obsClient.on('ConnectionOpened', () => {
-            logger(`Source: ${source.name} Connected to OBS @ ${this.source.data.ip}:${this.source.data.port}`, 'info');
-            this.addAddress('{{STREAMING}}', '{{STREAMING}}');
-            this.addAddress('{{STREAMING}}', '{{RECORDING}}');
-        });
-
         this.obsClient.on('ConnectionClosed', () => {
-            logger(`Source: ${source.name} OBS Connection closed.`, 'info');
             this.connected.next(false);
         });
 
@@ -34,6 +27,8 @@ export class OBSSource extends TallyInput {
                     this.addAddress(source.name, source.name);
                 }
             });
+            this.addAddress('{{STREAMING}}', '{{STREAMING}}');
+            this.addAddress('{{STREAMING}}', '{{RECORDING}}');
             this.connected.next(true);
         });
 

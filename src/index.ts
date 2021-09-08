@@ -1606,10 +1606,16 @@ function initializeSource(source: Source): void {
 		console.log(source)
 		throw Error(`No class found for Source ${source.name} (${source.sourceTypeId})`);
 	}
+	logger(`Source: ${source.name} Creating ${TallyInputs[source.sourceTypeId].label} connection.`, 'info-quiet');
 	const sourceClient = new TallyInputs[source.sourceTypeId].cls(source) as TallyInput;
-	sourceClient.connected.subscribe(() => {
+	sourceClient.connected.subscribe((connected) => {
 		UpdateSockets('sources');
 		UpdateCloud('sources');
+		if (connected) {
+            logger(`Source: ${source.name} ${TallyInputs[source.sourceTypeId].label} Connection Opened.`, 'info');
+		} else {
+			logger(`Source: ${source.name} Closed ${TallyInputs[source.sourceTypeId].label} connection.`, 'info-quiet');
+		}
 	});
 	sourceClient.tally.subscribe((tallyDataWithAddresses: AddressTallyData) => {
 		const tallyData: SourceTallyData = {};
@@ -1849,7 +1855,9 @@ function TallyArbiter_Manage(obj: Manage): ManageResponse {
 }
 
 function StopConnection(sourceId: string) {
-	SourceClients[sourceId]?.exit();
+	const source = sources.find((s) => s.id == sourceId);
+	logger(`Source: ${source.name} Closing ${TallyInputs[source.sourceTypeId].label} connection.`, 'info-quiet');
+	SourceClients[sourceId].exit();
 }
 
 function StartTSLClientConnection(tslClientId) {

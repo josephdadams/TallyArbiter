@@ -52,9 +52,6 @@ export class PanasonicAVHS410Source extends TallyInput {
         var STX = String.fromCharCode(0x02)
         var ETX = String.fromCharCode(0x03)
 
-
-        logger(`Source: ${source.name}  Creating Panasonic AV-HS410 connection.`, 'info-quiet');
-
         // Post an array of inputs to the dropdowns
         this.addPanasonicSource();
 
@@ -63,7 +60,6 @@ export class PanasonicAVHS410Source extends TallyInput {
         this.multi = dgram.createSocket({ type: 'udp4', reuseAddr: true })
 
         this.client.connect(port, ip, () => {
-            logger(`Source: ${source.name}  AV-HS410 Connection Opened.`, 'info');
             this.connected.next(true);
         });
 
@@ -76,7 +72,6 @@ export class PanasonicAVHS410Source extends TallyInput {
         });
 
         this.client.on('close', () => {
-            logger(`Source: ${source.name}  Panasonic AV-HS410 Connection closed.`, 'info')
             this.connected.next(false);
         });
 
@@ -204,7 +199,6 @@ export class PanasonicAVHS410Source extends TallyInput {
             delete this.multi;
         }
 
-        logger(`Source: ${this.source.name}. Closing Panasonic AV-HS410 Connection.`, 'info-quiet');
         this.client.write('QUIT\r\n');
     }
 }

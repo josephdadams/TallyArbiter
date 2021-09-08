@@ -48,7 +48,6 @@ export class TallyInput {
 
     public exit(): void {
         this.tryReconnecting = false;
-        logger(`Source: ${this.source.name}  Connection closed.`, 'info-quiet');
     }
     public reconnect(): void { }
     

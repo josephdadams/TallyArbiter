@@ -37,17 +37,14 @@ export class ATEMSource extends TallyInput {
 
 
         let atemIP = source.data.ip;
-        logger(`Source: ${source.name}  Creating ATEM Connection.`, 'info-quiet');
         this.atemClient = new Atem();
 
         this.atemClient.on('connected', () => {
             this.connected.next(true);
-            logger(`Source: ${source.name} ATEM connection opened.`, 'info');
         });
 
         this.atemClient.on('disconnected', () => {
             this.connected.next(false);
-            logger(`Source: ${source.name} ATEM connection closed.`, 'info');
         });
 
         this.atemClient.on('stateChanged', (state, path) => {
@@ -173,6 +170,5 @@ export class ATEMSource extends TallyInput {
 
     public exit(): void {
         this.atemClient.disconnect();
-        super.exit();
     }
 }

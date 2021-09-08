@@ -9,7 +9,6 @@ export class RolandSmartTallySource extends TallyInput {
     private interval: NodeJS.Timer;
     constructor(source: Source) {
         super(source);
-        logger(`Source: ${source.name}  Opening Roland Smart Tally connection.`, 'info-quiet');
         this.connected.next(true);
         this.interval = setInterval(() => this.checkRolandStatus(), 500);
     }
@@ -51,7 +50,6 @@ export class RolandSmartTallySource extends TallyInput {
 
     public exit(): void {
         clearInterval(this.interval);
-        logger(`Source: ${this.source.name}  Roland Smart Tally connection closed`, 'info');
         this.connected.next(false);
     }
 }
