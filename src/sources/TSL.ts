@@ -25,9 +25,14 @@ export class TSL3UDPSource extends TallyInput {
         this.server = new TSLUMD(port);
 
         this.server.on('message', (tally) => {
-            // TODO: Parse tally and call
-            // this.setBussesForAddress();
-            // or any other of those methods
+            const busses = [];
+            if (tally.tally1) {
+                busses.push("preview");
+            }
+            if (tally.tally2) {
+                busses.push("program");
+            }
+            this.setBussesForAddress(tally.address, busses);
             
             this.sendTallyData();
         });
@@ -57,10 +62,14 @@ export class TSL3TCPSource extends TallyInput {
         this.server = net.createServer((socket) => {
             socket.on('data', (data) => {
                 parser.extract('tsl', (result) => {
-                    result.label = Buffer.from(result.label).toString();
-                    // TODO: Parse tally and call
-                    // this.setBussesForAddress();
-                    // or any other of those methods
+                    const busses = [];
+                    if (result.tally1) {
+                        busses.push("preview");
+                    }
+                    if (result.tally2) {
+                        busses.push("program");
+                    }
+                    this.setBussesForAddress(result.address, busses);
                     
                     this.sendTallyData();
                 });
@@ -154,19 +163,15 @@ class TSL5Base extends TallyInput {
                     inProgram = 1;
                     break;
             }
-
-            let newTallyObj: any = {};
-            newTallyObj.tally1 = inPreview;
-            newTallyObj.preview = inPreview;
-            newTallyObj.tally2 = inProgram;
-            newTallyObj.program = inProgram;
-            newTallyObj.address = tallyobj.INDEX[0];
-            newTallyObj.label = tallyobj.TEXT.join('').trim();
-
             
-            // TODO: Parse tally and call
-            // this.setBussesForAddress();
-            // or any other of those methods
+            const busses = [];
+            if (inPreview) {
+                busses.push("preview");
+            }
+            if (inProgram) {
+                busses.push("program");
+            }
+            this.setBussesForAddress(tallyobj.INDEX[0], busses);
             
             this.sendTallyData();
         }
