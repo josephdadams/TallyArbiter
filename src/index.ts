@@ -174,7 +174,7 @@ var bus_options: BusOption[] = [ // the busses available to monitor in Tally Arb
 
 var sources: Source[]						= []; // the configured tally sources
 var devices: Device[] 						= []; // the configured tally devices
-var device_sources: DeviceSource[]			= []; // the configured tally device-source mappings
+export var device_sources: DeviceSource[]	= []; // the configured tally device-source mappings
 var device_actions: DeviceAction[]			= []; // the configured device output actions
 var currentDeviceTallyData: DeviceTallyData = {}; // tally data (=bus array) per device id (linked busses taken into account)
 var currentSourceTallyData: SourceTallyData = {}; // tally data (=bus array) per device source id
@@ -1686,110 +1686,6 @@ function getConfigRedacted(): Config {
 	config["cloud_destinations"] = [];
 	config["cloud_keys"] = [];
 	return config;
-}
-
-function SetUpRolandSmartTally(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-
-	try {
-		let sourceConnectionObj = {
-            sourceId,
-            server: null,
-        };
-		source_connections.push(sourceConnectionObj);
-
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				logger(`Source: ${source.name}  Opening Roland Smart Tally connection.`, 'info-quiet');
-				for (let j = 0; j < sources.length; j++) {
-					if (sources[j].id === sourceId) {
-						sources[j].connected = true;
-						break;
-					}
-				}
-				source_connections[i].server = setInterval(checkRolandStatus, 500, sourceId);
-				break;
-			}
-		}
-
-		UpdateSockets('sources');
-		UpdateCloud('sources');
-	}
-	catch (error) {
-		logger(`Source: ${source.name}. Roland Smart Tally Error: ${error}`, 'error');
-	}
-}
-
-function checkRolandStatus(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-	let ip = source.data.ip;
-
-	for (let j = 0; j < device_sources.length; j++) {
-		if (device_sources[j].sourceId === sourceId) {
-			let address = device_sources[j].address;
-			axios.get(`http://${ip}/tally/${address}/status`)
-			.then(function (response) {
-				let tallyObj: any = {};
-				tallyObj.address = address;
-				tallyObj.label = address;
-				tallyObj.tally4 = 0;
-				tallyObj.tally3 = 0;
-				tallyObj.tally2 = 0;
-				tallyObj.tally1 = 0;
-				tallyObj.preview = 0;
-				tallyObj.program = 0;
-
-				switch(response.data)
-				{
-					case "onair":
-						tallyObj.tally2 = 1;
-						tallyObj.program = 1;
-						tallyObj.tally1 = 0;
-						tallyObj.preview = 0;
-						break;
-					case "selected":
-						tallyObj.tally2 = 0;
-						tallyObj.program = 0;
-						tallyObj.tally1 = 1;
-						tallyObj.preview = 1;
-						break;
-					case "unselected":
-					default:
-						tallyObj.tally2 = 0;
-						tallyObj.program = 0;
-						tallyObj.tally1 = 0;
-						tallyObj.preview = 1;
-						break;
-				}
-				processSourceTallyData(sourceId, tallyObj);
-			})
-			.catch(function (error) {
-				logger(`Source: ${source.name}  Roland Smart Tally Error: ${error}`, 'error');
-			});
-		}
-	}
-}
-
-function StopRolandSmartTally(sourceId) {
-	let source = GetSourceBySourceId(sourceId);
-
-	for (let i = 0; i < source_connections.length; i++) {
-		if (source_connections[i].sourceId === sourceId) {
-			clearInterval(source_connections[i].server);
-			logger(`Source: ${source.name}  Roland Smart Tally connection closed`, 'info');
-			break;
-		}
-	}
-
-	for (let j = 0; j < sources.length; j++) {
-		if (sources[j].id === sourceId) {
-			sources[j].connected = false;
-			break;
-		}
-	}
-
-	UpdateSockets('sources');
-	UpdateCloud('sources');
 }
 
 function SetUpRolandVR(sourceId) {
