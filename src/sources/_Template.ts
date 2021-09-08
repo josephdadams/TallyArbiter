@@ -12,5 +12,6 @@ export class EditMeSource extends TallyInput {
 
 
     public exit(): void {
+        super.exit();
     }
 }

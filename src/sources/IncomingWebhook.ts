@@ -3,7 +3,7 @@ import { Source } from '../_models/Source';
 import { TallyInput } from './_Source';
 
 @RegisterTallyInput("cf51e3c9", "Incoming Webhook", "", [{ fieldName: 'path', fieldLabel: 'Webhook path', fieldType: 'text' }])
-export class EditMeSource extends TallyInput {
+export class IncomingWebhookSource extends TallyInput {
     private client: any;
     constructor(source: Source) {
         super(source);
@@ -12,5 +12,6 @@ export class EditMeSource extends TallyInput {
 
 
     public exit(): void {
+        super.exit();
     }
 }

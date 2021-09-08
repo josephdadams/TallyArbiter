@@ -9,7 +9,7 @@ import net from "net";
     { fieldName: 'destinations_pvw', fieldLabel: 'Destinations to monitor as PVW', fieldType: 'text' },
     { fieldName: 'destinations_pgm', fieldLabel: 'Destinations to monitor as PGM', fieldType: 'text' }
 ])
-export class EditMeSource extends TallyInput {
+export class BlackmagicVideoHubSource extends TallyInput {
     private client: net.Socket;
     private receiveBuffer: string;
     private command: any;
@@ -199,6 +199,7 @@ export class EditMeSource extends TallyInput {
 
 
     public exit(): void {
+        super.exit();
         this.client.end();
     }
 }

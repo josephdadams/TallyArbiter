@@ -36,6 +36,7 @@ export class TSL3UDPSource extends TallyInput {
     }
 
     public exit(): void {
+        super.exit();
         this.server.close();
         UsePort(this.source.data.port, this.source.id);
         this.connected.next(false);
@@ -75,6 +76,7 @@ export class TSL3TCPSource extends TallyInput {
     }
 
     public exit(): void {
+        super.exit();
         this.server.close(() => { });
         FreePort(this.source.data.port, this.source.id);
         this.connected.next(false);
@@ -190,6 +192,7 @@ export class TSL5UDPSource extends TSL5Base {
     }
 
     public exit(): void {
+        super.exit();
         this.server.close();
         UsePort(this.source.data.port, this.source.id);
         this.connected.next(false);
@@ -219,6 +222,7 @@ export class TSL5TCPSource extends TSL5Base {
     }
 
     public exit(): void {
+        super.exit();
         this.server.close(() =>  {});
         FreePort(this.source.data.port, this.source.id);
         this.connected.next(false);

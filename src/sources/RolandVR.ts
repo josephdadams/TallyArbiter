@@ -5,7 +5,7 @@ import { TallyInput } from './_Source';
 import net from "net";
 
 @RegisterTallyInput("1190d7be", "Roland VR", "Uses Port 8023", [{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }])
-export class EditMeSource extends TallyInput {
+export class RolandVRSource extends TallyInput {
     private client: any;
     constructor(source: Source) {
         super(source);
@@ -52,6 +52,7 @@ export class EditMeSource extends TallyInput {
 
 
     public exit(): void {
+        super.exit();
         this.client.end();
         this.client.destroy();
     }

@@ -64,6 +64,7 @@ export class OSCSource extends TallyInput {
 
 
     public exit(): void {
+        super.exit();
         this.server.close();
         FreePort(this.source.data.port, this.source.id);
         this.connected.next(false);

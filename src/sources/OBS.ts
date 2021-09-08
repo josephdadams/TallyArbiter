@@ -114,7 +114,7 @@ export class OBSSource extends TallyInput {
 
 
     public exit(): void {
-        this.obsClient.disconnect();
         super.exit();
+        this.obsClient.disconnect();
     }
 }
