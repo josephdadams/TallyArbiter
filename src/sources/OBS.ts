@@ -29,16 +29,33 @@ export class OBSSource extends TallyInput {
                 }
             });
             this.saveSceneList();
-            this.obsClient.send('GetPreviewScene').then((data) => {
-                this.processSceneChange(data.sources, 'preview');
-                this.obsClient.send('GetCurrentScene').then((data) => {
-                    this.processSceneChange(data.sources, 'program');
-                    this.sendTallyData();
+            let previewScenePromise = this.obsClient.send('GetPreviewScene');
+            let programScenePromise = this.obsClient.send('GetCurrentScene');
+            let streamingAndRecordingStatusPromise = this.obsClient.send('GetStreamingStatus');
+            Promise.all([
+                previewScenePromise, programScenePromise, streamingAndRecordingStatusPromise
+            ]).then((data) => {
+                let [previewScene, programScene, streamingAndRecordingStatus]: any = data;
+                console.log(previewScene, programScene, streamingAndRecordingStatus);
 
-                    this.addAddress('{{STREAMING}}', '{{STREAMING}}');
-                    this.addAddress('{{STREAMING}}', '{{RECORDING}}');
-                    this.connected.next(true);
-                });
+                this.processSceneChange(previewScene.sources, 'preview');
+                this.processSceneChange(programScene.sources, 'program');
+                
+                this.addAddress('{{STREAMING}}', '{{STREAMING}}');
+                this.addAddress('{{RECORDING}}', '{{RECORDING}}');
+                if(streamingAndRecordingStatus.streaming) this.setBussesForAddress("{{STREAMING}}", ["program"]);
+                if(streamingAndRecordingStatus.recording) {
+                    if(streamingAndRecordingStatus.recordingPaused) {
+                        this.setBussesForAddress("{{RECORDING}}", ["preview"]);
+                    } else {
+                        this.setBussesForAddress("{{RECORDING}}", ["program"]);
+                    }
+                }
+
+                this.sendTallyData();
+                this.connected.next(true);
+            }).catch((error) => {
+                console.error(error);
             });
         });
 
@@ -98,6 +115,16 @@ export class OBSSource extends TallyInput {
         });
 
         this.obsClient.on('RecordingStarted', () => {
+            this.setBussesForAddress("{{RECORDING}}", ["program"]);
+            this.sendTallyData();
+        });
+
+        this.obsClient.on('RecordingPaused', () => {
+            this.setBussesForAddress("{{RECORDING}}", ["preview"]);
+            this.sendTallyData();
+        });
+
+        this.obsClient.on('RecordingResumed', () => {
             this.setBussesForAddress("{{RECORDING}}", ["program"]);
             this.sendTallyData();
         });
