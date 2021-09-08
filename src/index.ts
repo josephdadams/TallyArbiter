@@ -11,7 +11,6 @@ import util from 'util';
 import express, { Router } from 'express';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import bodyParser from 'body-parser';
-import osc from "osc";
 import http from 'http';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
@@ -116,10 +115,8 @@ var vmix_emulator	= null; //TCP server for VMix Emulator
 var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var vmix_client_data = []; //array of connected Vmix clients
-var tallydata_RossCarbonite = []; //array of Ross Carbonite sources and current tally data by bus
-var tallydata_VMix 	= []; //array of VMix sources and current tally data
-var tallydata_AWLivecore 	= []; //array of Analog Way sources and current tally data
-var tallydata_Panasonic 	= []; //array of Panasonic AV-HS410 sources and current tally data
+
+var externalAddress = "http://0.0.0.0:4455/#/tally";
 
 var tsl_clients: TSLClient[]							 = []; //array of TSL 3.1 clients that Tally Arbiter will send tally data to
 var tsl_clients_1secupdate 								 = false;
@@ -444,6 +441,10 @@ function initialSetup() {
 
 		socket.on('version', () =>  {
 			socket.emit('version', version);
+		});
+
+		socket.on('externalAddress', () => {
+			socket.emit('externalAddress', externalAddress);
 		});
 
 		socket.on('interfaces', () =>  {
@@ -1502,6 +1503,10 @@ function loadConfig() { // loads the JSON data from the config file to memory
 			logger(`${bus_options.length} Busses configured.`, 'info');
 		}
 
+		if (configJson.externalAddress) {
+			externalAddress = configJson.externalAddress;
+		}
+
 		if (configJson.sources) {
 			for (let i = 0; i < configJson.sources.length; i++) {
 				configJson.sources[i].connected = false;
@@ -1656,6 +1661,7 @@ function SaveConfig() {
 		}
 
 		let configJson: Config = {
+			externalAddress: externalAddress,
 			security: securityObj,
 			sources: sources,
 			devices: devices,

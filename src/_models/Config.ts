@@ -8,6 +8,7 @@ import { DeviceSource } from "./DeviceSource";
 import { Source } from "./Source";
 
 export interface Config {
+    externalAddress: string;
     security: ConfigSecuritySection;
     sources: Source[];
     devices: Device[];
