@@ -70,7 +70,7 @@ jobs:
     - name: Install dependencies and build
       run: |
         npm i
-        cd UI; npm run build
+        npm run build; cd UI; npm run build
 
     - name: Build an image from Dockerfile
       run: |
