@@ -3,7 +3,7 @@
   "version": "2.0.14",
   "scripts": {
     "prestart": "node git.version.js",
-    "prebuild": "node git.version.js; cd .. && npm run redundancyjs",
+    "prebuild": "node git.version.js && cd .. && npm run redundancyjs",
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
