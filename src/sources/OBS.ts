@@ -29,9 +29,17 @@ export class OBSSource extends TallyInput {
                 }
             });
             this.saveSceneList();
-            this.addAddress('{{STREAMING}}', '{{STREAMING}}');
-            this.addAddress('{{STREAMING}}', '{{RECORDING}}');
-            this.connected.next(true);
+            this.obsClient.send('GetPreviewScene').then((data) => {
+                this.processSceneChange(data.sources, 'preview');
+                this.obsClient.send('GetCurrentScene').then((data) => {
+                    this.processSceneChange(data.sources, 'program');
+                    this.sendTallyData();
+
+                    this.addAddress('{{STREAMING}}', '{{STREAMING}}');
+                    this.addAddress('{{STREAMING}}', '{{RECORDING}}');
+                    this.connected.next(true);
+                });
+            });
         });
 
         this.obsClient.on('AuthenticationFailure', () => {
