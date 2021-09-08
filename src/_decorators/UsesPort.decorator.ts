@@ -11,3 +11,14 @@ export function UsesPort(port: string): (cls: TallyInputType) => void {
         return cls;
     };
 }
+
+export function UsePort(port: string, sourceId: string) {
+    PortsInUse.push({
+        port,
+        sourceId,
+    });
+}
+
+export function FreePort(port: string, sourceId: string) {
+    PortsInUse.splice(PortsInUse.findIndex((p) => p.port == port && p.sourceId == sourceId), 1);
+}

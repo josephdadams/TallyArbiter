@@ -2,12 +2,12 @@ import { logger } from "..";
 import { RegisterAction } from "../_decorators/RegisterAction";
 import { Action } from "./_Action";
 import osc from 'osc';
-import { UsesPort } from "../_decorators/UsesPort.decorator";
+import { UsePort } from "../_decorators/UsesPort.decorator";
 
 logger('Starting OSC Setup.', 'info-quiet');
 
 const oscPort = 5958;
-UsesPort(oscPort.toString())
+UsePort(oscPort.toString(), "58da987d")
 const oscUDP = new osc.UDPPort({
     localAddress: '0.0.0.0',
     localPort: oscPort,
