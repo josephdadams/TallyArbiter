@@ -18,7 +18,6 @@ import osc from "osc";
 import http from 'http';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
-import xml2js from 'xml2js';
 import os from 'os'; // For getting available Network interfaces on host device
 import findRemoveSync from 'find-remove';
 
@@ -115,15 +114,13 @@ var tallyDataFilePath = getTallyDataPath();
 var tallyDataFile 	  = fs.openSync(tallyDataFilePath, 'w'); // Setup TallyData File
 const config_file 	  = getConfigFilePath(); //local storage JSON file
 
-const vmixEmulatorPort: string = '8099'; // Default 8099 
-var oscUDP			= null;
+const vmixEmulatorPort: string = '8099'; // Default 8099
 var vmix_emulator	= null; //TCP server for VMix Emulator
 var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var vmix_client_data = []; //array of connected Vmix clients
 var tallydata_RossCarbonite = []; //array of Ross Carbonite sources and current tally data by bus
 var tallydata_VMix 	= []; //array of VMix sources and current tally data
-var tallydata_TC 	= []; //array of Tricaster sources and current tally data
 var tallydata_AWLivecore 	= []; //array of Analog Way sources and current tally data
 var tallydata_Panasonic 	= []; //array of Panasonic AV-HS410 sources and current tally data
 
@@ -2801,192 +2798,6 @@ function StopOSCServer(sourceId) {
 
 	UpdateSockets('sources');
 	UpdateCloud('sources');
-}
-
-function SetUpTricasterServer(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-	let ip = source.data.ip;
-	let port = 5951;
-
-	try
-	{
-		let sourceConnectionObj = {
-            sourceId,
-            server: null,
-        };
-		source_connections.push(sourceConnectionObj);
-
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				logger(`Source: ${source.name}  Creating Tricaster Connection.`, 'info-quiet');
-				source_connections[i].server = new net.Socket();
-				source_connections[i].server.connect({port: port, host: ip}, () =>  {
-					let tallyCmd = '<register name="NTK_states"/>';
-					source_connections[i].server.write(tallyCmd + '\n');
-					logger(`Source: ${source.name}  Tricaster Connection opened. Listening for data.`, 'info');
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = true;
-							break;
-						}
-					}
-					UpdateSockets('sources');
-					UpdateCloud('sources');
-				});
-
-				source_connections[i].server.on('data', function(data) {
-					try {
-						data = '<data>' + data.toString() + '</data>';
-
-						let parseString = xml2js.parseString;
-
-						parseString(data, function (error, result) {
-							if (error) {
-								//the Tricaster will send a lot of data that will not parse correctly when it first connects
-								//console.log('error:' + error);
-							}
-							else {
-								let shortcut_states = Object.entries(result['data']['shortcut_states']);
-
-								for (const [name, value] of shortcut_states) {
-									let shortcut_state = value['shortcut_state'];
-									for (let j = 0; j < shortcut_state.length; j++) {
-										switch(shortcut_state[j]['$'].name) {
-											case 'program_tally':
-											case 'preview_tally':
-												let tallyValue = shortcut_state[j]['$'].value;
-												let addresses = tallyValue.split('|');
-												processTricasterTally(sourceId, addresses, shortcut_state[j]['$'].name);
-												break;
-											default:
-												break;
-										}
-									}
-								}
-							}
-						});
-					}
-					catch(error) {
-
-					}
-				});
-
-				source_connections[i].server.on('close', () =>  {
-
-					logger(`Source: ${source.name}  Tricaster Connection Stopped.`, 'info');
-					for (let j = 0; j < sources.length; j++) {
-						if (sources[j].id === sourceId) {
-							sources[j].connected = false;
-							break;
-						}
-					}
-
-					UpdateSockets('sources');
-					UpdateCloud('sources');
-				});
-
-				source_connections[i].server.on('error', function(error) {
-					logger(`Source: ${source.name}  Tricaster Connection Error occurred: ${error}`, 'error');
-				});
-				break;
-			}
-		}
-	}
-	catch (error) {
-		logger(`Source: ${source.name}  Tricaster Error occurred: ${error}`, 'error');
-	}
-}
-
-function processTricasterTally(sourceId, sourceArray, tallyType) {
-	for (let i = 0; i < sourceArray.length; i++) {
-		let tricasterSourceFound = false;
-		for (let j = 0; j < tallydata_TC.length; j++) {
-			if (tallydata_TC[j].sourceId === sourceId) {
-				if (tallydata_TC[j].address === sourceArray[i]) {
-					tricasterSourceFound = true;
-					break;
-				}
-			}
-		}
-
-		if (!tricasterSourceFound) {
-			//the source is not in the Tricaster array, we don't know anything about it, so add it to the array
-			let tricasterTallyObj: any = {};
-			tricasterTallyObj.sourceId = sourceId;
-			tricasterTallyObj.label = sourceArray[i];
-			tricasterTallyObj.address = sourceArray[i];
-			tricasterTallyObj.tally4 = 0;
-			tricasterTallyObj.tally3 = 0;
-			tricasterTallyObj.tally2 = 0; // PGM
-			tricasterTallyObj.tally1 = 0; // PVW
-			tricasterTallyObj.preview = 0;
-			tricasterTallyObj.program = 0;
-			tallydata_TC.push(tricasterTallyObj);
-		}
-	}
-
-	for (let i = 0; i < tallydata_TC.length; i++) {
-		let tricasterSourceFound = false;
-		for (let j = 0; j < sourceArray.length; j++) {
-			if (tallydata_TC[i].sourceId === sourceId) {
-				if (tallydata_TC[i].address === sourceArray[j]) {
-					tricasterSourceFound = true;
-					//update the tally state because Tricaster is saying this source is in the current bus
-					switch(tallyType) {
-						case 'preview_tally':
-							tallydata_TC[i].tally1 = 1;
-							tallydata_TC[i].preview = 1;
-							break;
-						case 'program_tally':
-							tallydata_TC[i].tally2 = 1;
-							tallydata_TC[i].program = 1;
-							break;
-						default:
-							break;
-					}
-					processSourceTallyData(sourceId, tallydata_TC[i]);
-					break;
-				}
-			}
-		}
-
-		if (!tricasterSourceFound) {
-			//it is no longer in the bus, mark it as such
-			switch(tallyType) {
-				case 'preview_tally':
-					tallydata_TC[i].tally1 = 0;
-					tallydata_TC[i].preview = 0;
-					break;
-				case 'program_tally':
-					tallydata_TC[i].tally2 = 0;
-					tallydata_TC[i].program = 0;
-					break;
-				default:
-					break;
-			}
-			processSourceTallyData(sourceId, tallydata_TC[i]);
-		}
-	}
-}
-
-function StopTricasterServer(sourceId) {
-	let source = sources.find( ({ id }) => id === sourceId);
-
-	try
-	{
-		for (let i = 0; i < source_connections.length; i++) {
-			if (source_connections[i].sourceId === sourceId) {
-				let tallyCmd = '<unregister name="NTK_states"/>';
-				source_connections[i].server.write(tallyCmd + '\n');
-				source_connections[i].server.end();
-				source_connections[i].server.destroy();
-				break;
-			}
-		}
-	}
-	catch (error) {
-		logger(`Source: ${source.name}  Tricaster Connection Error occurred: ${error}`, 'error');
-	}
 }
 
 function SetUpAWLivecoreServer(sourceId) {
