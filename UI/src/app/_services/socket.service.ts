@@ -264,6 +264,10 @@ export class SocketService {
           this.closeModals.next();
           this.socket.emit('cloud_clients');
           break;
+        case 'cloud-client-not-removed':
+          alert(response.error);
+          this.closeModals.next();
+          break;
         case 'error':
           alert('Unexpected Error Occurred: ' + response.error);
           break;

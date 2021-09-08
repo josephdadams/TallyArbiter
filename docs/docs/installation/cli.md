@@ -20,7 +20,7 @@ Then, start it by typing `tallyarbiter`.
 ## Upgrading
 To install the latest version, just run the same command from above (`npm i -g tallyarbiter`) again.
 
-**Be sure to back up or save your [config file](#configuration)!**
+**Be sure to back up or save your [config file](../usage/control-interface.md#configuration)!**
 
 
 ## Running as a service

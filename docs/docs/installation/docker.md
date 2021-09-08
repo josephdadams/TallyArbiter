@@ -26,4 +26,4 @@ services:
         image: tallyarbiter
 ```
 
-**Be sure to mount your [config file](#configuration) using Docker volumes!**
+**Be sure to back up or save your [config file](../usage/control-interface.md#configuration)!**

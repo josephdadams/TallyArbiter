@@ -1,7 +1,9 @@
 {
   "name": "tallyarbiter-ui",
-  "version": "2.0.4",
+  "version": "2.0.14",
   "scripts": {
+    "prestart": "node git.version.js",
+    "prebuild": "node git.version.js",
     "ng": "ng",
     "start": "ng serve",
     "prebuild": "cd .. && npm run redundancyjs",
