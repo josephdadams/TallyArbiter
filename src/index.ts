@@ -1759,7 +1759,11 @@ function getConfig(): Config {
 }
 
 function getConfigRedacted(): Config {
-	let config: Config = JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
+	let config: Config = {} as Config;
+	try {
+		config = JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
+	} catch (e) {
+	}
 	config["security"] = {
 		username_settings: "admin",
 		password_settings: "12345",
@@ -3416,6 +3420,7 @@ function getErrorReportPath(id: string): string {
 
 function generateErrorReport(error: Error) {
 	logger(`Caught exception: ${error}`, 'error');
+	console.trace(error);
 	let id = uuidv4();
 	let stacktrace = "No stacktrace captured.";
 	if(error !== undefined){
