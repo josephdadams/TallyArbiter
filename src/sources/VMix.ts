@@ -80,6 +80,7 @@ export class VMixSource extends TallyInput {
     }
 
     public exit(): void {
+        super.exit();
         this.client.write('QUIT\r\n');
     }
 }

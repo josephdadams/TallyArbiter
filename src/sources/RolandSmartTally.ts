@@ -49,6 +49,7 @@ export class RolandSmartTallySource extends TallyInput {
     }
 
     public exit(): void {
+        super.exit();
         clearInterval(this.interval);
         this.connected.next(false);
     }

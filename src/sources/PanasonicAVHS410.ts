@@ -187,6 +187,7 @@ export class PanasonicAVHS410Source extends TallyInput {
 
 
     public exit(): void {
+        super.exit();
         // Close TCP Keep Alive Requests
         if (this.keepAliveInterval) {
             clearInterval(this.keepAliveInterval);

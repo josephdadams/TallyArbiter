@@ -30,7 +30,7 @@ import { TallyInput } from './_Source';
     },
 ])
 @UsesPort("9910")
-export class ATEMSource extends TallyInput {
+export class BlackmagicATEMSource extends TallyInput {
     private atemClient: Atem;
     constructor(source: Source) {
         super(source);
@@ -169,6 +169,7 @@ export class ATEMSource extends TallyInput {
     }
 
     public exit(): void {
+        super.exit();
         this.atemClient.disconnect();
     }
 }

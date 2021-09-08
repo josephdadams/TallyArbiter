@@ -485,6 +485,7 @@ export class RossCarboniteSource extends TallyInput {
 
 
     public exit(): void {
+        super.exit();
         const transport = this.source.data.transport_type;
         if (transport === 'udp') {
             this.server.server.close();

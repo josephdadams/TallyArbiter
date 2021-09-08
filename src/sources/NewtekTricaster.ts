@@ -146,6 +146,7 @@ export class NewtekTricasterSource extends TallyInput {
 
 
     public exit(): void {
+        super.exit();
         let tallyCmd = '<unregister name="NTK_states"/>';
         this.client.write(tallyCmd + '\n');
         this.client.end();

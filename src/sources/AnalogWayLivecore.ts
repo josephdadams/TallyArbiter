@@ -162,6 +162,7 @@ export class AWLivecoreSource extends TallyInput {
 
 
     public exit(): void {
+        super.exit();
         clearInterval(this.heartbeat_interval);
         this.client.end();
         this.client.destroy();
