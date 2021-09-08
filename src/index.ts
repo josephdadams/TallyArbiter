@@ -3,7 +3,7 @@
 //Protocol, Network, Socket, Server libraries/variables
 import net from 'net';
 import dgram from 'dgram';
-import fs from 'fs';
+import fs from 'fs-extra';
 import findPackageJson from "find-package-json";
 import path from 'path';
 import clc from 'cli-color';
@@ -1158,6 +1158,14 @@ function initialSetup() {
 			socket.emit('error_report', getErrorReport(errorReportId));
 		});
 
+		socket.on('mark_error_reports_as_read', function() {
+			markErrorReportsAsReaded();
+		});
+
+		socket.on('delete_every_error_report', function() {
+			deleteEveryErrorReport();
+		});
+
 		socket.on('disconnect', () =>  { // emitted when any socket.io client disconnects from the server
 			DeactivateListenerClient(socket.id);
 			CheckCloudClients(socket.id);
@@ -1290,6 +1298,25 @@ function EnableTestMode(value) {
 
 function TestTallies() {
 	// ToDo
+}
+
+function markErrorReportsAsReaded() {
+	try {
+		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
+		const ErrorReportsFiles = fs.readdirSync(ErrorReportsFolder).map((file) => { return file.replace(/\.[^/.]+$/, "") });
+		const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
+		fs.writeFileSync(readedErrorReportsFilePath, JSON.stringify(ErrorReportsFiles));
+		return true;
+	} catch(e) {
+		return false;
+	}
+}
+
+function deleteEveryErrorReport() {
+	const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
+	fs.emptyDirSync(ErrorReportsFolder);
+	const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
+	fs.writeFileSync(readedErrorReportsFilePath, "");
 }
 
 
