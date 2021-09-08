@@ -11,6 +11,7 @@ import { TallyInput } from './_Source';
 ])
 export class OBSSource extends TallyInput {
     private obsClient: ObsWebSocket;
+    private scenes: ObsWebSocket.Scene[] = [];
     constructor(source: Source) {
         super(source);
         this.obsClient = new ObsWebSocket();
@@ -21,12 +22,13 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('AuthenticationSuccess', () => {
             logger(`Source: ${source.name}  OBS Authenticated.`, 'info-quiet');
-            this.obsClient.send('GetSourcesList').then((data) => {
+            this.obsClient.send('GetSourcesList').then((data: any) => {
                 if (!Array.isArray(data.sources)) return;
                 for (const source of data.sources) {
                     this.addAddress(source.name, source.name);
                 }
             });
+            this.saveSceneList();
             this.addAddress('{{STREAMING}}', '{{STREAMING}}');
             this.addAddress('{{STREAMING}}', '{{RECORDING}}');
             this.connected.next(true);
@@ -41,9 +43,7 @@ export class OBSSource extends TallyInput {
             logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
             if (data?.sources) {
                 this.removeBusFromAllAddresses("preview");
-                for (const source of data.sources) {
-                    this.addBusToAddress(source.name, "preview");
-                }
+                this.processSceneChange(data?.sources, "preview");
                 this.sendTallyData();
             }
         });
@@ -52,9 +52,7 @@ export class OBSSource extends TallyInput {
             logger(`Source: ${source.name}  Program Scene Changed.`, 'info-quiet');
             if (data?.sources) {
                 this.removeBusFromAllAddresses("program");
-                for (const source of data.sources) {
-                    this.addBusToAddress(source.name, "program");
-                }
+                this.processSceneChange(data?.sources, "program");
                 this.sendTallyData();
             }
         });
@@ -62,16 +60,23 @@ export class OBSSource extends TallyInput {
         this.obsClient.on('SourceCreated', (data) => {
             logger(`Source: ${source.name}  New source created`, 'info-quiet');
             this.addAddress(data.sourceName, data.sourceName);
+            this.saveSceneList();
         });
 
         this.obsClient.on('SourceDestroyed', (data) => {
             logger(`Source: ${source.name} Deleted source: ${data.sourceName}`, 'info-quiet');
             this.removeAddress(data.sourceName);
+            this.saveSceneList();
         });
 
         this.obsClient.on('SourceRenamed', (data) => {
             logger(`Source: ${source.name}  Source renamed`, 'info-quiet');
             this.renameAddress(data.previousName, data.newName, data.newName);
+            this.saveSceneList();
+        });
+
+        this.obsClient.on('SceneCollectionChanged', (data) => {
+            this.saveSceneList();
         });
 
         this.obsClient.on('StreamStarted', () => {
@@ -96,6 +101,26 @@ export class OBSSource extends TallyInput {
 
         
         this.connect();
+    }
+
+    private saveSceneList() {
+        this.obsClient.send('GetSceneList').then((data) => {
+            this.scenes = data.scenes;
+        });
+    }
+
+    private processSceneChange(sources: ObsWebSocket.SceneItem[], bus: string) {
+        if (sources) {
+            for (const source of sources) {
+                this.addBusToAddress(source.name, bus);
+                if(source.type === "scene"){
+                    let nested_scene = this.scenes.find(scene => scene.name === source.name);
+                    if(nested_scene) {
+                        this.processSceneChange(nested_scene.sources, bus);
+                    }
+                }
+            }
+        }
     }
 
     private connect() {
