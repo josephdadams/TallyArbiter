@@ -23,13 +23,13 @@ export class NewtekTricasterSource extends TallyInput {
             this.connected.next(true);
         });
 
-        this.client.on('data', function (data) {
+        this.client.on('data', (data) => {
             try {
                 data = '<data>' + data.toString() + '</data>';
 
                 let parseString = xml2js.parseString;
 
-                parseString(data, function (error, result) {
+                parseString(data, (error, result) => {
                     if (error) {
                         //the Tricaster will send a lot of data that will not parse correctly when it first connects
                         //console.log('error:' + error);
@@ -71,7 +71,7 @@ export class NewtekTricasterSource extends TallyInput {
     }
 
     
-    public processTricasterTally(sourceId, sourceArray, tallyType) {
+    public processTricasterTally(sourceId, sourceArray, tallyType?) {
         for (let i = 0; i < sourceArray.length; i++) {
             let tricasterSourceFound = false;
             for (let j = 0; j < this.tallydata_TC.length; j++) {
@@ -144,6 +144,7 @@ export class NewtekTricasterSource extends TallyInput {
                 }
             }
         }
+        this.sendTallyData();
     }
 
 
