@@ -43,6 +43,7 @@ export class OBSSource extends TallyInput {
                 
                 this.addAddress('{{STREAMING}}', '{{STREAMING}}');
                 this.addAddress('{{RECORDING}}', '{{RECORDING}}');
+                this.addAddress('{{VIRTUALCAM}}', '{{VIRTUALCAM}}');
                 if(streamingAndRecordingStatus.streaming) this.setBussesForAddress("{{STREAMING}}", ["program"]);
                 if(streamingAndRecordingStatus.recording) {
                     if(streamingAndRecordingStatus.recordingPaused) {
@@ -51,6 +52,7 @@ export class OBSSource extends TallyInput {
                         this.setBussesForAddress("{{RECORDING}}", ["program"]);
                     }
                 }
+                if(streamingAndRecordingStatus.virtualcam) this.setBussesForAddress("{{VIRTUALCAM}}", ["program"]);
 
                 this.sendTallyData();
                 this.connected.next(true);
@@ -131,6 +133,16 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('RecordingStopped', () => {
             this.setBussesForAddress("{{RECORDING}}", []);
+            this.sendTallyData();
+        });
+
+        this.obsClient.on('VirtualCamStarted', () => {
+            this.setBussesForAddress("{{VIRTUALCAM}}", ["program"]);
+            this.sendTallyData();
+        });
+
+        this.obsClient.on('VirtualCamStopped', () => {
+            this.setBussesForAddress("{{VIRTUALCAM}}", []);
             this.sendTallyData();
         });
 
