@@ -152,6 +152,7 @@ const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 //Rate limiter configurations
 const maxWrongAttemptsByIPperDay = 100;
 const maxConsecutiveFailsByUsernameAndIP = 10;
+const maxPageRequestPerMinute = 100;
 const limiterSlowBruteByIP = new RateLimiterMemory({
   keyPrefix: 'login_fail_ip_per_day',
   points: maxWrongAttemptsByIPperDay,
@@ -163,6 +164,12 @@ const limiterConsecutiveFailsByUsernameAndIP = new RateLimiterMemory({
   points: maxConsecutiveFailsByUsernameAndIP,
   duration: 60 * 60 * 24, // Store number for 1 day since first fail
   blockDuration: 60 * 60 * 2, // Block for 2 hours
+});
+const limiterServeUI = new RateLimiterMemory({
+	keyPrefix: 'UI_serve',
+	points: maxPageRequestPerMinute,
+	duration: 60, // Store number for 1 minute
+	blockDuration: 60 * 10, // Block for 10 minutes
 });
 
 //Tally Arbiter variables
@@ -301,7 +308,11 @@ function initialSetup() {
 
 	//about the author, this program, etc.
 	app.get('/', function (req, res) {
-		res.sendFile('index.html', { root: uiDistPath });
+		limiterServeUI.consume(req.ip).then((data) => {
+			res.sendFile('index.html', { root: uiDistPath });
+		}).catch((data) => {
+			res.status(429).send('Too Many Requests');
+		});
 	});
 
 	//gets the version of the software
