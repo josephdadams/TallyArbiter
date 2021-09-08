@@ -26,4 +26,4 @@ If you downloaded the source code manually, just replace the files in the folder
 
 Now run `npm install` to make sure all packages are up to date.
 
-**Be sure to back up or save your [config file](#configuration)!**
+**Be sure to back up or save your [config file](../usage/control-interface.md#configuration)!**

@@ -23,6 +23,7 @@ Once a device is assigned to a source(s), if a matching condition is met, an act
 
 The following Device Actions are implemented:
 * TSL 3.1 UDP/TCP
+* TSL 5.0 UDP/TCP
 * Outgoing Webhook
 * Generic TCP
 * Local Console Output/Logging (useful for testing)

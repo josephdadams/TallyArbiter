@@ -1,7 +1,7 @@
 <div class="d-flex justify-content-center mt-5 pt-5" *ngIf="loading">
     <div class="spinner spinner-border"></div>
 </div>
-<button (click)="this.locationBackService.goBack()" id="backBtn" title="Go back"><i class="fas fa-arrow-left"></i> Back</button>
+<button (click)="locationBackService.goBack()" id="backBtn" title="Go back"><i class="fas fa-arrow-left"></i> Back</button>
 <div id="page" *ngIf="validReport">
     <div id="text">
         <h1>:(</h1>
@@ -9,7 +9,7 @@
             the developers.</h2>
     </div>
     <div style="text-align: center">
-        <a id="bugReportButton" class="btn btn-lg btn-custom" [attr.href]="bugReportUrl" target="_blank" role="button">Open a bug report on Github</a>
+        <button id="bugReportButton" class="btn btn-lg btn-custom" [disabled]="!bugReportUrlLoaded" (click)="bugReportButtonClick()" role="button">Open a bug report on Github</button>
     </div>
     <div class="col">
         <h3>Stacktrace:</h3>
