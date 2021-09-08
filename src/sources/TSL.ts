@@ -22,7 +22,6 @@ export class TSL3UDPSource extends TallyInput {
         let port = source.data.port;
 
         UsePort(port, this.source.id);
-        logger(`Source: ${source.name}  Creating TSL 3.1 UDP Connection.`, 'info-quiet');
         this.server = new TSLUMD(port);
 
         this.server.on('message', (tally) => {
@@ -33,15 +32,12 @@ export class TSL3UDPSource extends TallyInput {
             this.sendTallyData();
         });
 
-        logger(`Source: ${source.name}  TSL 3.1 Server started. Listening for data on UDP Port: ${port}`, 'info');
         this.connected.next(true);
     }
 
     public exit(): void {
-        logger(`Source: ${this.source.name}  Closing TSL 3.1 UDP Connection.`, 'info-quiet');
         this.server.close();
         UsePort(this.source.data.port, this.source.id);
-        logger(`Source: ${this.source.name}  TSL 3.1 UDP Server Stopped. Connection Closed.`, 'info');
         this.connected.next(false);
     }
 }
@@ -57,7 +53,6 @@ export class TSL3TCPSource extends TallyInput {
         parser.packet('tsl', 'b8{x1, b7 => address},b8{x2, b2 => brightness, b1 => tally4, b1 => tally3, b1 => tally2, b1 => tally1 }, b8[16] => label');
 
         UsePort(port, this.source.id);
-        logger(`Source: ${source.name}  Creating TSL 3.1 TCP Connection.`, 'info-quiet');
         this.server = net.createServer((socket) => {
             socket.on('data', (data) => {
                 parser.extract('tsl', (result) => {
@@ -72,11 +67,9 @@ export class TSL3TCPSource extends TallyInput {
             });
 
             socket.on('close', () => {
-                logger(`Source: ${source.name}  TSL 3.1 Server connection closed.`, 'info');
                 this.connected.next(false);
             });
         }).listen(port, () => {
-            logger(`Source: ${source.name}  TSL 3.1 Server started. Listening for data on TCP Port: ${port}`, 'info');
             this.connected.next(true);
         });
     }
@@ -84,7 +77,6 @@ export class TSL3TCPSource extends TallyInput {
     public exit(): void {
         this.server.close(() => { });
         FreePort(this.source.data.port, this.source.id);
-        logger(`Source: ${this.source.name}  TSL 3.1 TCP Server Stopped.`, 'info');
         this.connected.next(false);
     }
 }
@@ -187,7 +179,6 @@ export class TSL5UDPSource extends TSL5Base {
         let port = source.data.port;
 
         UsePort(port, this.source.id);
-        logger(`Source: ${source.name}  Creating TSL 5.0 UDP Connection.`, 'info-quiet');
         this.server = dgram.createSocket('udp4');
         this.server.bind(port);
 
@@ -195,15 +186,12 @@ export class TSL5UDPSource extends TSL5Base {
             this.processTSL5Tally(message);
         });
 
-        logger(`Source: ${source.name}  TSL 5.0 Server started. Listening for data on UDP Port: ${port}`, 'info');
         this.connected.next(true);
     }
 
     public exit(): void {
-        logger(`Source: ${this.source.name}  Closing TSL 5 UDP Connection.`, 'info-quiet');
         this.server.close();
         UsePort(this.source.data.port, this.source.id);
-        logger(`Source: ${this.source.name}  TSL 5 UDP Server Stopped. Connection Closed.`, 'info');
         this.connected.next(false);
     }
 }
@@ -217,18 +205,15 @@ export class TSL5TCPSource extends TSL5Base {
         let port = source.data.port;
 
         UsePort(port, this.source.id);
-        logger(`Source: ${source.name}  Creating TSL 5.0 TCP Connection.`, 'info-quiet');
         this.server = net.createServer((socket) => {
             socket.on('data', (data) => {
                 this.processTSL5Tally(data);
             });
 
             socket.on('close', () => {
-                logger(`Source: ${source.name}  TSL 5.0 Server connection closed.`, 'info');
                 this.connected.next(false);
             });
         }).listen(port, () => {
-            logger(`Source: ${source.name}  TSL 5.0 Server started. Listening for data on TCP Port: ${port}`, 'info');
             this.connected.next(true);
         });
     }
@@ -236,7 +221,6 @@ export class TSL5TCPSource extends TSL5Base {
     public exit(): void {
         this.server.close(() =>  {});
         FreePort(this.source.data.port, this.source.id);
-        logger(`Source: ${this.source.name}  TSL 5.0 TCP Server Stopped.`, 'info');
         this.connected.next(false);
     }
 }

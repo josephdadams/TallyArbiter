@@ -44,10 +44,8 @@ export class AWLivecoreSource extends TallyInput {
         let ip = source.data.ip;
         let port = source.data.port;
 
-        logger(`Source: ${source.name}  Creating AW Livecore connection.`, 'info-quiet');
         this.client = new net.Socket();
         this.client.connect(port, ip, () => {
-            logger(`Source: ${source.name}  AW Livecore Connection Opened.`, 'info');
             this.client.write('?\n');
             this.connected.next(true);
 
@@ -117,7 +115,6 @@ export class AWLivecoreSource extends TallyInput {
         });
 
         this.client.on('close', () => {
-            logger(`Source: ${source.name}  AW Livecore Connection closed.`, 'info');
             this.connected.next(false);
         });
     }
@@ -165,7 +162,6 @@ export class AWLivecoreSource extends TallyInput {
 
 
     public exit(): void {
-        logger(`Source: ${this.source.name}  Closing AW Livecore connection.`, 'info-quiet');
         clearInterval(this.heartbeat_interval);
         this.client.end();
         this.client.destroy();

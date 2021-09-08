@@ -12,11 +12,8 @@ export class VMixSource extends TallyInput {
         let ip = source.data.ip;
         let port = 8099;
 
-
-        logger(`Source: ${source.name}  Creating VMix connection.`, 'info-quiet');
         this.client = new net.Socket();
         this.client.connect(port, ip, () => {
-            logger(`Source: ${source.name}  VMix Connection Opened.`, 'info');
 
             this.client.write('SUBSCRIBE TALLY\r\n');
             this.client.write('SUBSCRIBE ACTS\r\n');
@@ -78,13 +75,11 @@ export class VMixSource extends TallyInput {
         });
 
         this.client.on('close', () => {
-            logger(`Source: ${source.name}  VMix Connection closed.`, 'info');
             this.connected.next(false);
         });
     }
 
     public exit(): void {
-        logger(`Source: ${this.source.name}  Closing VMix connection.`, 'info-quiet');
         this.client.write('QUIT\r\n');
     }
 }

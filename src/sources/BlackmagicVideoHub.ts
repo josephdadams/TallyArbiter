@@ -25,9 +25,6 @@ export class EditMeSource extends TallyInput {
         let ip = source.data.ip;
         let port = 9990;
 
-
-        logger(`Source: ${source.name}  Creating VideoHub connection.`, 'info-quiet');
-
         this.client = new net.Socket();
 
         this.receiveBuffer = '';
@@ -39,7 +36,6 @@ export class EditMeSource extends TallyInput {
         });
 
         this.client.on('connect', () => {
-            logger(`Source: ${source.name}  VideoHub connected.`, 'info-quiet');
             this.connected.next(true);
         });
 
@@ -74,7 +70,6 @@ export class EditMeSource extends TallyInput {
         });
 
         this.client.on('close', () => {
-            logger(`Source: ${source.name}  VideoHub Connection closed.`, 'info');
             this.connected.next(false);
         });
 
@@ -205,6 +200,5 @@ export class EditMeSource extends TallyInput {
 
     public exit(): void {
         this.client.end();
-        logger(`Source: ${this.source.name}  VideoHub connection closed.`, 'info');
     }
 }

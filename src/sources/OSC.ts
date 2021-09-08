@@ -15,7 +15,6 @@ export class OSCSource extends TallyInput {
         super(source);
 
         UsePort(source.data.port, source.id);
-        logger(`Source: ${source.name}  Creating new OSC connection.`, 'info-quiet');
         this.server = new osc.UDPPort({
             localAddress: '0.0.0.0',
             localPort: source.data.port,
@@ -57,7 +56,6 @@ export class OSCSource extends TallyInput {
         });
 
         this.server.on('ready', () => {
-            logger(`Source: ${source.name}  OSC port ${source.data.port} ready.`, 'info-quiet');
             this.connected.next(true);
         });
 
@@ -68,7 +66,6 @@ export class OSCSource extends TallyInput {
     public exit(): void {
         this.server.close();
         FreePort(this.source.data.port, this.source.id);
-        logger(`Source: ${this.source.name}  OSC connection closed.`, 'info');
         this.connected.next(false);
     }
 }

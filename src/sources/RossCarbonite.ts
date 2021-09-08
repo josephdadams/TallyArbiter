@@ -339,14 +339,12 @@ export class RossCarboniteSource extends TallyInput {
 
         if (transport === 'udp') {
             UsePort(port, this.source.id);
-            logger(`Source: ${source.name}  Creating Ross Carbonite UDP Connection.`, 'info-quiet');
             this.server = new TSLUMD(port);
 
             this.server.on('message', (tally) => {
                 this.processRossCarboniteTally(tally);
             });
 
-            logger(`Source: ${source.name}  Ross Carbonite Server started. Listening for data on UDP Port: ${port}`, 'info');
             this.connected.next(true);
         }
         else {
@@ -354,7 +352,6 @@ export class RossCarboniteSource extends TallyInput {
             parser.packet('tsl', 'b8{x1, b7 => address},b8{x2, b2 => brightness, b1 => tally4, b1 => tally3, b1 => tally2, b1 => tally1 }, b8[16] => label');
 
             UsePort(port, this.source.id);
-            logger(`Source: ${source.name}  Creating Ross Carbonite TCP Connection.`, 'info-quiet');
             this.server = net.createServer((socket) => {
                 socket.on('data', (data) => {
                     parser.extract('tsl', (result) => {
@@ -365,11 +362,9 @@ export class RossCarboniteSource extends TallyInput {
                 });
 
                 socket.on('close', () => {
-                    logger(`Source: ${source.name}  Ross Carbonite TCP Server connection closed.`, 'info');
                     this.connected.next(false);
                 });
             }).listen(port, () => {
-                logger(`Source: ${source.name}  Ross Carbonite Server started. Listening for data on TCP Port: ${port}`, 'info');
                 this.connected.next(true);
             });
         }
@@ -492,16 +487,11 @@ export class RossCarboniteSource extends TallyInput {
     public exit(): void {
         const transport = this.source.data.transport_type;
         if (transport === 'udp') {
-            logger(`Source: ${this.source.name}  Closing Ross Carbonite UDP Connection.`, 'info-quiet');
             this.server.server.close();
-            FreePort(this.source.data.port, this.source.id);
-            logger(`Source: ${this.source.name}  Ross Carbonite UDP Server Stopped. Connection Closed.`, 'info');
-            this.connected.next(false);
         } else {
             this.server.close(() => { });
-            FreePort(this.source.data.port, this.source.id);
-            logger(`Source: ${this.source.name}  Ross Carbonite TCP Server Stopped.`, 'info');
-            this.connected.next(false);
         }
+        FreePort(this.source.data.port, this.source.id);
+        this.connected.next(false);
     }
 }

@@ -12,12 +12,10 @@ export class EditMeSource extends TallyInput {
         let ip = source.data.ip;
         let port = 8023;
 
-        logger(`Source: ${source.name}  Creating Roland VR Connection.`, 'info-quiet');
         this.client = new net.Socket();
         this.client.connect({ port: port, host: ip }, () => {
             let tallyCmd = '\u0002CPG:1;';
             this.client.write(tallyCmd + '\n');
-            logger(`Source: ${source.name}  Roland VR Connection opened. Listening for data.`, 'info');
             this.connected.next(true);
         });
 
@@ -39,7 +37,6 @@ export class EditMeSource extends TallyInput {
         });
 
         this.client.on('close', () => {
-            logger(`Source: ${source.name}  Roland VR Connection Stopped.`, 'info');
             this.connected.next(false);
         });
 
