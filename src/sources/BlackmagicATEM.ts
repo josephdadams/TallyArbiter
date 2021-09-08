@@ -75,95 +75,25 @@ export class BlackmagicATEMSource extends TallyInput {
         this.atemClient.connect(atemIP);
     }
 
-    private processATEMTally(allPrograms, allPreviews) {
-    
+    private processATEMTally(allPrograms: number[], allPreviews: number[]): void {
+        this.removeBusFromAllAddresses("preview");
+        this.removeBusFromAllAddresses("program");
         let cutBusMode = this.source.data.cut_bus_mode;
     
-        //loop through the array of program inputs;
-        //if that program input is also in the preview array, build a TSL-type object that has it in pvw+pgm
-        //if only pgm, build an object of only pgm
-    
         if (cutBusMode === 'on') {
-            for (let i = 0; i < allPrograms.length; i++) {
-                let tallyObj: any = {};
-                tallyObj.address = allPrograms[i];
-                tallyObj.brightness = 1;
-                tallyObj.tally1 = 0;
-                tallyObj.preview = 0;
-                tallyObj.tally2 = 1;
-                tallyObj.program = 1;
-                tallyObj.tally3 = 0;
-                tallyObj.tally4 = 0;
-                tallyObj.label = `Source ${allPrograms[i]}`;
-                this.tally.next(tallyObj);
-            }
-        } else {
-            for (let i = 0; i < allPrograms.length; i++) {
-                let includePreview = false;
-                if (allPreviews.includes(allPrograms[i])) {
-                    includePreview = true;
-                }
-        
-                let tallyObj: any = {};
-                tallyObj.address = allPrograms[i];
-                tallyObj.brightness = 1;
-                tallyObj.tally1 = (includePreview ? 1 : 0);
-                tallyObj.preview = (includePreview ? 1 : 0);
-                tallyObj.tally2 = 1;
-                tallyObj.program = 1;
-                tallyObj.tally3 = 0;
-                tallyObj.tally4 = 0;
-                tallyObj.label = `Source ${allPrograms[i]}`;
-                this.tally.next(tallyObj);
-            }
-        }
-    
-        //now loop through the array of pvw inputs
-        //if that input is not in the program array, build a TSL object of only pvw
-    
-        if (cutBusMode === 'on') {
-            for (let i = 0; i < allPreviews.length; i++) {
-                let onlyPreview = true;
-        
-                if (allPrograms.includes(allPreviews[i])) {
-                    onlyPreview = false;
-                }
-        
-                if (onlyPreview) {
-                    let tallyObj: any = {};
-                    tallyObj.address = allPreviews[i];
-                    tallyObj.brightness = 1;
-                    tallyObj.tally1 = 0;
-                    tallyObj.preview = 0;
-                    tallyObj.tally2 = 0;
-                    tallyObj.program = 0;
-                    tallyObj.tally3 = 0;
-                    tallyObj.tally4 = 0;
-                    tallyObj.label = `Source ${allPreviews[i]}`;
-                    this.tally.next(tallyObj);
+            for (const address of allPreviews) {
+                if (allPrograms.includes(address)) {
+                    this.addBusToAddress(address.toString(), "program");
+                } else {
+                    this.addBusToAddress(address.toString(), "preview");
                 }
             }
         } else {
-            for (let i = 0; i < allPreviews.length; i++) {
-                let onlyPreview = true;
-        
-                if (allPrograms.includes(allPreviews[i])) {
-                    onlyPreview = false;
-                }
-        
-                if (onlyPreview) {
-                    let tallyObj: any = {};
-                    tallyObj.address = allPreviews[i];
-                    tallyObj.brightness = 1;
-                    tallyObj.tally1 = 1;
-                    tallyObj.preview = 1;
-                    tallyObj.tally2 = 0;
-                    tallyObj.program = 0;
-                    tallyObj.tally3 = 0;
-                    tallyObj.tally4 = 0;
-                    tallyObj.label = `Source ${allPreviews[i]}`;
-                    this.tally.next(tallyObj);
-                }
+            for (const address of allPrograms) {
+                this.addBusToAddress(address.toString(), "program");
+            }
+            for (const address of allPreviews) {
+                this.addBusToAddress(address.toString(), "preview");
             }
         }
     }
