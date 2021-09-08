@@ -50,6 +50,7 @@ export class VMixSource extends TallyInput {
                     }
                     this.setBussesForAddress(address.toString(), busses);
                 }
+                this.sendTallyData();
             }
             else {
                 //we received some other command, so lets process it
@@ -58,13 +59,16 @@ export class VMixSource extends TallyInput {
                     if (data.indexOf('ACTS OK Recording 1') > -1) {
                         this.setBussesForAddress("{{RECORDING}}", ["program"]);
                     }
+                    this.sendTallyData();
                 }
 
                 if (data[0].indexOf('ACTS OK Streaming ') > -1) {
                     this.setBussesForAddress("{{STREAMING}}", []);
                     if (data.indexOf('ACTS OK Streaming 1') > -1) {
                         this.setBussesForAddress("{{STREAMING}}", ["program"]);
+                        this.sendTallyData();
                     }
+                    this.sendTallyData();
                 }
             }
         });

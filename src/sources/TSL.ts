@@ -29,6 +29,8 @@ export class TSL3UDPSource extends TallyInput {
             // TODO: Parse tally and call
             // this.setBussesForAddress();
             // or any other of those methods
+            
+            this.sendTallyData();
         });
 
         logger(`Source: ${source.name}  TSL 3.1 Server started. Listening for data on UDP Port: ${port}`, 'info');
@@ -63,6 +65,8 @@ export class TSL3TCPSource extends TallyInput {
                     // TODO: Parse tally and call
                     // this.setBussesForAddress();
                     // or any other of those methods
+                    
+                    this.sendTallyData();
                 });
                 parser.parse(data);
             });
@@ -169,6 +173,8 @@ class TSL5Base extends TallyInput {
             // TODO: Parse tally and call
             // this.setBussesForAddress();
             // or any other of those methods
+            
+            this.sendTallyData();
         }
     }
 }

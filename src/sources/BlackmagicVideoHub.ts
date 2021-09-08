@@ -199,6 +199,7 @@ export class EditMeSource extends TallyInput {
             if (inProgram) busses.push("program");
             this.setBussesForAddress(recheck_sources[i].toString(), busses);
         }
+        this.sendTallyData();
     }
 
 
