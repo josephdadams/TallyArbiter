@@ -57,6 +57,90 @@ import { Actions } from './_globals/Actions';
 import { BehaviorSubject } from 'rxjs';
 import { TallyInput } from './sources/_Source';
 
+//Setup logger
+const winston = require('winston');
+const { combine, printf } = winston.format;
+
+var logFilePath = getLogFilePath();
+var Logs = []; //Used for loading logs in settings page
+
+var tallyDataFilePath = getTallyDataPath();
+var tallyDataFile = fs.openSync(tallyDataFilePath, 'w'); // Setup TallyData File
+
+const serverLoggerLevels = {
+	levels: {
+	    critical: 0,
+	    error: 2,
+	    warning: 3,
+		console_action: 4,
+		info: 5,
+	    'info-quiet': 6,
+	    debug: 7
+	},
+	colors: {
+		critical: 'red',
+	    error: 'red',
+	    warning: 'yellow',
+		console_action: 'green',
+		info: 'white',
+	    'info-quiet': 'white',
+	    debug: 'blue'
+	}
+};
+winston.addColors(serverLoggerLevels.colors);
+let serverLoggerFormat = printf(({ timestamp, level, message }) => {
+	if(level === "info-quiet"){
+		level = "info";
+	}
+	if(level === "[37minfo-quiet[39m"){
+		level = "[37minfo[39m";
+	}
+
+    return `[${timestamp}] ${level}: ${message}`;
+});
+var serverLoggerOptions = {
+    console: {
+        level: 'debug',
+        format: combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), winston.format.colorize(), serverLoggerFormat)
+    },
+    file: {
+        filename: logFilePath,
+		maxsize: 3e+7, //3MB
+		maxFiles: 3,
+        level: 'debug',
+        format: combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), serverLoggerFormat)
+    },
+}
+winston.loggers.add('server', {
+	levels: serverLoggerLevels.levels,
+	transports: [
+	  new winston.transports.Console(serverLoggerOptions.console),
+	  new winston.transports.File(serverLoggerOptions.file)
+	]
+});
+
+let tallyLoggerFormat = printf((info) => {
+    return `[${info.timestamp}] ${info.message}`;
+});
+winston.loggers.add('tally', {
+	format: combine(
+		winston.format.timestamp({
+		  format: 'YYYY-MM-DD HH:mm:ss'
+		}),
+        tallyLoggerFormat
+	),
+	transports: [
+	  new winston.transports.File({
+		  filename: tallyDataFilePath,
+		  maxsize: 3e+7, //3MB
+		  maxFiles: 3,
+		})
+	]
+});
+
+const serverLogger = winston.loggers.get('server');
+const tallyLogger = winston.loggers.get('tally');
+
 function loadClassesFromFolder(folder: string): void {
 	for (const file of fs.readdirSync(path.join(__dirname, folder)).filter((f) => !f.startsWith("_"))) {
 		require(`./${folder}/${file.replace(".ts", "")}`);
@@ -103,11 +187,6 @@ var password_producer: string = '12345';
 var username_settings: string = 'admin';
 var password_settings: string = '12345';
 
-var logFilePath 	  = getLogFilePath();
-var logFile 		  = fs.openSync(logFilePath, 'w'); // Setup Log file
-var Logs: LogItem[]   = []; //array of actions, information, and errors
-var tallyDataFilePath = getTallyDataPath();
-var tallyDataFile 	  = fs.openSync(tallyDataFilePath, 'w'); // Setup TallyData File
 const config_file 	  = getConfigFilePath(); //local storage JSON file
 
 const vmixEmulatorPort: string = '8099'; // Default 8099
@@ -1397,7 +1476,7 @@ function startVMixEmulator() {
 		}
 		function onConnError(err) {
 			if (err.message === 'This socket has been ended by the other party') {
-				logger(`VMix Emulator Connection ${host} taking longer to respond than normal`, 'debug');
+				logger(`VMix Emulator Connection ${host} taking longer to respond than normal`, 'info-quiet');
 				//removeVmixListener(host);
 			} else {
 				logger(`VMix Emulator Connection ${host} error: ${err.message}`, 'error');
@@ -1443,53 +1522,18 @@ function removeVmixListener(host) {
 	logger(`VMix Emulator Connection ${host} unsubscribed to tally`, 'info');
 }
 
-export function logger(log: string, type: string) { //logs the item to the console, to the log array, and sends the log item to the settings page
+export function logger(log, type: "info-quiet" | "info" | "error" | "console_action" = "info-quiet"): void { //logs the item to the console, to the log array, and sends the log item to the settings page
+	serverLogger.log({
+		level: type,
+		message: log
+	});
 
-	let dtNow = new Date().toISOString();
-
-	if (type === undefined) {
-		type = 'info-quiet';
-	}
-
-	switch(type) {
-		case 'info':
-		case 'info-quiet':
-			console.log(`[${dtNow}]     ${log}`);
-			break;
-		case 'error':
-			console.log(`[${dtNow}]     ${clc.red.bold(log)}`);
-			break;
-		case 'console_action':
-			console.log(`[${dtNow}]     ${clc.green.bold(log)}`);
-			break;
-		default:
-			console.log(`[${dtNow}]     ${util.inspect(log, {depth: null})}`);
-			break;
-	}
-
-    const logObj: LogItem = {
-        datetime: dtNow.toString(),
-        log: log,
-        type: type as LogItem["type"],
-    };
+	const logObj: LogItem = {} as LogItem;
+	logObj.datetime = new Date().toISOString();
+	logObj.log = log;
+	logObj.type = type;
 	Logs.push(logObj);
-
-	writeLogFile(log);
-
 	io.to('settings').emit('log_item', logObj);
-}
-
-function writeLogFile(log) {
-	try {
-		var humanFriendlyDtNow = new Date().toLocaleString();
-
-		var logString = '[' + humanFriendlyDtNow + '] ' + log;
-
-		fs.appendFileSync(logFile, logString + '\n');
-	}
-	catch (error) {
-		logger(`Error saving logs to file: ${error}`, 'error');
-	}
 }
 
 function writeTallyDataFile(log) {
@@ -3377,10 +3421,14 @@ function generateErrorReport(error: Error) {
 	if(error !== undefined){
 		stacktrace = error.stack;
 	}
+	let logs = ""
+	try {
+		logs = fs.readFileSync(logFilePath, 'utf8');
+	} catch(e) {}
 	var errorReport = {
 		"datetime": new Date(),
 		"stacktrace": stacktrace,
-		"logs": fs.readFileSync(logFilePath, 'utf8'),
+		"logs": logs,
 		"config": getConfigRedacted()
 	};
 	fs.writeFileSync(getErrorReportPath(id), JSON.stringify(errorReport));
@@ -3418,7 +3466,6 @@ export function getNetworkInterfaces(): NetworkInterface[] { // Get all network 
 startUp();
 
 export {
-    Logs as logs,
     logFilePath,
     tallyDataFilePath,
     getConfigFilePath,
