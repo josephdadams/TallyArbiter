@@ -1620,7 +1620,10 @@ function initializeSource(source: Source): void {
 	sourceClient.tally.subscribe((tallyDataWithAddresses: AddressTallyData) => {
 		const tallyData: SourceTallyData = {};
 		for (const [sourceAddress, busses] of Object.entries(tallyDataWithAddresses)) {
-			tallyData[device_sources.find((s) => s.sourceId == source.id && s.address == sourceAddress).id] = busses;
+			let device_source = device_sources.find((s) => s.sourceId == source.id && s.address == sourceAddress);
+			if(device_source) {
+				tallyData[device_source.id] = busses;
+			}
 		}
 		processSourceTallyData(source.id, tallyData);
 	});
