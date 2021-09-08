@@ -96,6 +96,7 @@ export class BlackmagicATEMSource extends TallyInput {
                 this.addBusToAddress(address.toString(), "preview");
             }
         }
+        this.sendTallyData();
     }
 
     public exit(): void {
