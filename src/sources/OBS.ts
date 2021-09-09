@@ -12,6 +12,8 @@ import { TallyInput } from './_Source';
 export class OBSSource extends TallyInput {
     private obsClient: ObsWebSocket;
     private scenes: ObsWebSocket.Scene[] = [];
+    private isTransitionFinished = true;
+    private currentTransitionFromScene: ObsWebSocket.Scene = undefined;
     constructor(source: Source) {
         super(source);
         this.obsClient = new ObsWebSocket();
@@ -69,21 +71,44 @@ export class OBSSource extends TallyInput {
         });
 
         this.obsClient.on('PreviewSceneChanged', (data) => {
-            logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
-            if (data?.sources) {
-                this.removeBusFromAllAddresses("preview");
-                this.processSceneChange(data?.sources, "preview");
-                this.sendTallyData();
+            if(this.isTransitionFinished){
+                //We need to execute this only when the transition is finished
+                //since preview scene changes during a transition end are processed in 'TransitionEnd' event
+                logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
+                if (data?.sources) {
+                    this.removeBusFromAllAddresses("preview");
+                    this.processSceneChange(data?.sources, "preview");
+                    this.sendTallyData();
+                }
             }
         });
-        
-        this.obsClient.on('SwitchScenes', (data) => {
-            logger(`Source: ${source.name}  Program Scene Changed.`, 'info-quiet');
-            if (data?.sources) {
-                this.removeBusFromAllAddresses("program");
-                this.processSceneChange(data?.sources, "program");
+
+        this.obsClient.on('TransitionBegin', (data) => {
+            this.isTransitionFinished = false;
+            let toScene = this.scenes.find(scene => scene.name === data["to-scene"]);
+            if(toScene && data["type"] !== "cut_transition") { //Don't add the transition scene to program bus if it's a cut transition
+                this.processSceneChange(toScene.sources, "program");
                 this.sendTallyData();
             }
+
+            //Save transition "from-scene" for later use ('TransitionEnd')
+            this.currentTransitionFromScene = this.scenes.find(scene => scene.name === data["from-scene"]);
+        });
+
+        this.obsClient.on('TransitionEnd', (data) => {
+            let scene = this.scenes.find(scene => scene.name === data["to-scene"]);
+            if (scene?.sources) {
+                this.removeBusFromAllAddresses("program");
+                this.processSceneChange(scene?.sources, "program");
+                logger(`Source: ${source.name}  Program Scene Changed.`, 'info-quiet');
+
+                this.removeBusFromAllAddresses("preview");
+                this.processSceneChange(this.currentTransitionFromScene?.sources, "preview"); //'TransitionEnd' has no "from-scene", so use currentTransitionFromScene
+                logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
+
+                this.sendTallyData();
+            }
+            this.isTransitionFinished = true;
         });
 
         this.obsClient.on('SourceCreated', (data) => {
