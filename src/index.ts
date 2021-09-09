@@ -2379,8 +2379,7 @@ function UpdateListenerClients(deviceId: string) {
 	const device = GetDeviceByDeviceId(deviceId);
 	for (const listenerClient of listener_clients.filter((l) => l.deviceId == deviceId && !l.inactive)) {
 		logger(`Sending device states to Listener Client: ${listenerClient.id} - ${device.name}`, 'info-quiet');
-		io.to(listenerClient.socketId).emit('currentTallyData', currentDeviceTallyData);
-		
+		io.to(`device-${deviceId}`).emit('deviceTallyData', currentDeviceTallyData[deviceId]);
 	}
 }
 
