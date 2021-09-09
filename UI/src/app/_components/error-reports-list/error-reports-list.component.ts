@@ -11,7 +11,7 @@ import { LocationBackService } from 'src/app/_services/locationBack.service';
   styleUrls: ['./error-reports-list.component.scss']
 })
 export class ErrorReportsListComponent implements OnInit {
-  public unreaded_error_reports: any = [];
+  public unread_error_reports: any = [];
   public errorReportsLoaded: boolean = false;
 
   constructor(
@@ -21,21 +21,21 @@ export class ErrorReportsListComponent implements OnInit {
     public locationBackService: LocationBackService
   ) {
     console.log(this.socketService.errorReports);
-    this.socketService.socket.on('unreaded_error_reports', (list) => {
+    this.socketService.socket.on('unread_error_reports', (list) => {
       console.log(list);
       list.forEach((report: ErrorReportsListElement) => {
-        this.unreaded_error_reports.push(report.id);
+        this.unread_error_reports.push(report.id);
       });
       this.errorReportsLoaded = true;
     });
-    this.socketService.socket.emit('get_unreaded_error_reports');
+    this.socketService.socket.emit('get_unread_error_reports');
   }
 
   public selectErrorReport(id: any) {
     this.router.navigate(["/", "errors", id.target.value]);
   }
 
-  public markErrorReportsAsReaded() {
+  public markErrorReportsAsRead() {
     this.socketService.socket.emit('mark_error_reports_as_read');
   }
 
