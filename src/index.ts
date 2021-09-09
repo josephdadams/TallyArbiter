@@ -6,8 +6,6 @@ import dgram from 'dgram';
 import fs from 'fs-extra';
 import findPackageJson from "find-package-json";
 import path from 'path';
-import clc from 'cli-color';
-import util from 'util';
 import express, { Router } from 'express';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import bodyParser from 'body-parser';
@@ -16,8 +14,11 @@ import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
 import os from 'os'; // For getting available Network interfaces on host device
 import findRemoveSync from 'find-remove';
+import { BehaviorSubject } from 'rxjs';
+import winston from "winston";
 
 //TypeScript models
+import { TallyInput } from './sources/_Source';
 import { CloudClient } from "./_models/CloudClient";
 import { FlashListenerClientResponse } from "./_models/FlashListenerClientResponse";
 import { MessageListenerClientResponse } from "./_models/MessageListenerClientResponse";
@@ -54,11 +55,7 @@ import { TallyInputs } from './_globals/TallyInputs';
 import { PortsInUse } from './_globals/PortsInUse';
 import { Actions } from './_globals/Actions';
 
-import { BehaviorSubject } from 'rxjs';
-import { TallyInput } from './sources/_Source';
-
 //Setup logger
-const winston = require('winston');
 const { combine, printf } = winston.format;
 
 var logFilePath = getLogFilePath();
@@ -180,8 +177,6 @@ if (!fs.existsSync(uiDistPath)) {
 
 const listenPort: number = parseInt(process.env.PORT) || 4455;
 const app = express();
-const appProducer: Router = require('express').Router();
-const appSettings: Router = require('express').Router();
 const httpServer = new http.Server(app);
 
 const io = new socketio.Server(httpServer, { allowEIO3: true });
@@ -258,11 +253,10 @@ export var device_sources: DeviceSource[]	= []; // the configured tally device-s
 var device_actions: DeviceAction[]			= []; // the configured device output actions
 var currentDeviceTallyData: DeviceTallyData = {}; // tally data (=bus array) per device id (linked busses taken into account)
 var currentSourceTallyData: SourceTallyData = {}; // tally data (=bus array) per device source id
-var source_connections						= []; // array of source connections/servers as they are established
 
 function uuidv4(): string //unique UUID generator for IDs
 {
-	return 'xxxxxxxx'.replace(/[xy]/g, function(c) {
+	return 'xxxxxxxx'.replace(/[xy]/g, (c) => {
 		let r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
 		return v.toString(16);
 	});
@@ -276,7 +270,7 @@ function startUp() {
 	DeleteInactiveListenerClients();
 	DeleteInactiveVmixListenerClients();
 
-	process.on('uncaughtException', function (err: Error) {
+	process.on('uncaughtException', (err: Error) => {
 		if (!process.versions.hasOwnProperty('electron')) {
 			generateErrorReport(err);
 		}
@@ -301,13 +295,13 @@ function secondsToHms(d: number | string): string {
 
 //sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
 function initialSetup() {
-	logger('Setting up the REST API.', 'info-quiet');
+	logger('Setting up the Main HTTP Server.', 'info-quiet');
 
 	app.disable('x-powered-by');
 	app.use(bodyParser.json({ type: 'application/json' }));
 
 	//about the author, this program, etc.
-	app.get('/', function (req, res) {
+	app.get('/', (req, res) => {
 		limiterServeUI.consume(req.ip).then((data) => {
 			res.sendFile('index.html', { root: uiDistPath });
 		}).catch((data) => {
@@ -315,187 +309,21 @@ function initialSetup() {
 		});
 	});
 
-	//gets the version of the software
-	app.get('/version', function (req, res) {
-		res.send(version);
-	});
-
-	//roland smart tally emulation
-	app.get('/tally/:tallynumber/status', function(req, res) {
-		//the tally number is the device index number shown in the web GUI
-		let tallynumber = req.params.tallynumber;
-
-		let status = 'unselected';
-
-		if (tallynumber) {
-			if (parseInt(tallynumber) > 0) {
-				status = GetSmartTallyStatus(tallynumber);
-			}
-		}
-
-		res.send(status);
-	});
-
-	appProducer.use((req, res, next) => {
-
-		// -----------------------------------------------------------------------
-		// authentication middleware
-
-		// parse login and password from headers
-		const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
-		const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
-
-		// Verify login and password are set and correct
-		if (!login || !password || login !== username_producer || password !== password_producer) {
-			res.set('WWW-Authenticate', 'Basic realm=\'401\''); // change this
-			res.status(401).send('Authentication required to access this area.'); // custom message
-			return;
-		}
-
-		// -----------------------------------------------------------------------
-		// Access granted...
-		next();
-	});
-
-	app.use('/producer', appProducer);
-
-	appSettings.use((req, res, next) => {
-
-		// -----------------------------------------------------------------------
-		// authentication middleware
-
-		// parse login and password from headers
-		const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
-		const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
-
-		// Verify login and password are set and correct
-		if (!login || !password || login !== username_settings || password !== password_settings) {
-			res.set('WWW-Authenticate', 'Basic realm=\'401\''); // change this
-			res.status(401).send('Authentication required to access this area.'); // custom message
-			return;
-		}
-
-		// -----------------------------------------------------------------------
-		// Access granted...
-		next();
-	});
-
-	app.use('/settings', appSettings);
-
-	appSettings.get('/source_types', function (req, res) {
-		//gets all Tally Source Types
-		res.send(getSourceTypes());
-	});
-
-	appSettings.get('/source_types_datafields', function (req, res) {
-		//gets all Tally Source Types Data Fields
-		res.send(getSourceTypeDataFields());
-	});
-
-	appSettings.get('/source_types_busoptions', function (req, res) {
-		//gets all Tally Source Types Bus Options
-		res.send(Object.entries(addresses.value).map(([deviceSourceId, addresses]) =>({
-			sourceTypeId: device_sources.find((d) => d.id == deviceSourceId).sourceId,
-			busses: addresses.map((a) => ({bus: a.address, name: a.label})),
-		})));
-	});
-
-	appSettings.get('/output_types', function (req, res) {
-		//gets all Tally Output Types
-		res.send(getOutputTypes());
-	});
-
-	appSettings.get('/output_types_datafields', function (req, res) {
-		//gets all Tally Output Types Data Fields
-		res.send(getOutputTypeDataFields());
-	});
-
-	appSettings.get('/bus_options', function (req, res) {
-		//gets all Tally Bus Options
-		res.send(bus_options);
-	});
-
-	appSettings.get('/sources', function (req, res) {
-		//gets all Tally Sources
-		res.send(sources);
-	});
-
-	appSettings.get('/devices', function (req, res) {
-		//gets all Tally Devices
-		res.send(devices);
-	});
-
-	appSettings.get('/device_sources', function (req, res) {
-		//gets all Tally Device Sources
-		res.send(device_sources);
-	});
-
-	appSettings.get('/device_actions', function (req, res) {
-		//gets all Tally Device Actions
-		res.send(device_actions);
-	});
-
-	appSettings.get('/currentTallyData', function (req, res) {
-		//gets all Tally Device States
-		// ToDo
-		res.send(null);
-	});
-
-	appSettings.get('/tsl_clients', function (req, res) {
-		//gets all TSL Clients
-		res.send(tsl_clients);
-	});
-
-	appSettings.get('/cloud_destinations', function (req, res) {
-		//gets all Cloud Destinations
-		res.send(cloud_destinations);
-	});
-
-	appSettings.get('/cloud_keys', function (req, res) {
-		//gets all Cloud Keys
-		res.send(cloud_keys);
-	});
-
-	appSettings.get('/cloud_clients', function (req, res) {
-		//gets all Cloud Clients
-		res.send(cloud_clients);
-	});
-
-	appSettings.get('/listener_clients', function (req, res) {
-		//gets all Listener Clients
-		res.send(listener_clients);
-	});
-
-	appSettings.get('/flash/:clientid', function (req, res) {
-		//sends a flash command to the listener
-		let clientId = req.params.clientid;
-		let result = FlashListenerClient(clientId);
-		res.send(result);
-	});
-
-	appSettings.post('/manage', function (req, res) {
-		//adds the item based on the type defined in the object
-		let obj = req.body;
-
-		let result = TallyArbiter_Manage(obj);
-		res.send(result);
-	});
-
 	//serve up any files in the ui-dist folder
 	app.use(express.static(uiDistPath));
 
-	app.use(function (req, res) {
+	app.use((req, res) => {
 		res.status(404).send({error: true, url: req.originalUrl + ' not found.'});
 	});
 
-	logger('REST API Setup Complete.', 'info-quiet');
+	logger('Main HTTP Server Complete.', 'info-quiet');
 
 	logger('Starting socket.IO Setup.', 'info-quiet');
 
-	io.sockets.on('connection', function(socket) {
+	io.sockets.on('connection', (socket) => {
 		const ipAddr = socket.handshake.address;
 
-		socket.on('login', function (type: "settings" | "producer", username: string, password: string) {
+		socket.on('login', (type: "settings" | "producer", username: string, password: string) => {
 			if((type === "producer" && username == username_producer && password == password_producer)
 			|| (type === "settings" && username == username_settings && password == password_settings)) {
 				//login successfull
@@ -617,173 +445,11 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('device_listen', function(deviceId: string, listenerType: string) { // emitted by a socket (tally page) that has selected a Device to listen for state information
-			let device = GetDeviceByDeviceId(deviceId);
-			if ((deviceId === 'null') || (device.id === 'unassigned')) {
-				if (devices.length > 0) {
-					deviceId = devices[0].id;
-				}
-				else {
-					deviceId = 'unassigned';
-				}
-			}
-
-			socket.join('device-' + deviceId);
-			if (listenerType === 'web') {
-				socket.join('messaging');
-			}
-			let deviceName = GetDeviceByDeviceId(deviceId).name;
-			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
-
-			let ipAddress = socket.handshake.address;
-			let datetimeConnected = new Date().getTime();
-
-			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true);
+		socket.on('currentTallyData', (deviceId: string) => {
 			socket.emit('currentTallyData', currentDeviceTallyData);
 		});
 
-		socket.on('device_listen_blink', function(obj: { deviceId: string }) { // emitted by the Python blink(1) client that has selected a Device to listen for state information
-			let deviceId = obj.deviceId;
-			let device = GetDeviceByDeviceId(deviceId);
-			let oldDeviceId = null;
-
-			if ((deviceId === 'null') || (device.id === 'unassigned')) {
-				if (devices.length > 0) {
-					deviceId = devices[0].id;
-				}
-				else {
-					deviceId = 'unassigned';
-				}
-
-				oldDeviceId = deviceId;
-			}
-
-			let listenerType = 'blink(1)';
-
-			socket.join('device-' + deviceId);
-			let deviceName = GetDeviceByDeviceId(deviceId).name;
-			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
-
-			let ipAddress = socket.handshake.address;
-			let datetimeConnected = new Date().getTime();
-
-			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true);
-			socket.emit('devices', devices);
-			socket.emit('currentTallyData', currentDeviceTallyData);
-			if (oldDeviceId !== null) {
-				ReassignListenerClient(clientId, oldDeviceId, deviceId);
-			}
-		});
-
-		socket.on('device_listen_relay', function(relayGroupId: string, deviceId: string) { // emitted by the Relay Controller accessory program that has selected a Device to listen for state information
-			let device = GetDeviceByDeviceId(deviceId);
-			if (device.id === 'unassigned') {
-				if (devices.length > 0) {
-					deviceId = devices[0].id;
-				}
-				else {
-					deviceId = 'unassigned';
-				}
-			}
-
-			let listenerType = 'relay';
-
-			socket.join('device-' + deviceId);
-			let deviceName = GetDeviceByDeviceId(deviceId).name;
-			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
-
-			let ipAddress = socket.handshake.address;
-			let datetimeConnected = new Date().getTime();
-
-			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true);
-			//add relayGroupId to client
-			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].id === clientId) {
-					listener_clients[i].relayGroupId = relayGroupId;
-					break;
-				}
-			}
-			socket.emit('listener_relay_assignment', relayGroupId, deviceId);
-		});
-
-		socket.on('device_listen_gpo', function(obj: { gpoGroupId: string, deviceId: string }) { // emitted by the Python GPO Controller client that has selected a Device to listen for state information
-			let gpoGroupId = obj.gpoGroupId;
-			let deviceId = obj.deviceId;
-			let device = GetDeviceByDeviceId(deviceId);
-			if ((deviceId === 'null') || (device.id === 'unassigned')) {
-				if (devices.length > 0) {
-					deviceId = devices[0].id;
-				}
-				else {
-					deviceId = 'unassigned';
-				}
-			}
-
-			let listenerType = 'gpo';
-
-			socket.join('device-' + deviceId);
-			let deviceName = GetDeviceByDeviceId(deviceId).name;
-			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
-
-			let ipAddress = socket.handshake.address;
-			let datetimeConnected = new Date().getTime();
-
-			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true);
-			//add gpoGroupId to client
-			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].id === clientId) {
-					listener_clients[i].gpoGroupId = gpoGroupId;
-					break;
-				}
-			}
-			socket.emit('listener_relay_assignment', gpoGroupId, deviceId);
-		});
-
-		socket.on('device_listen_m5', function(obj: { deviceId: string, listenerType?: string }) { // emitted by the M5 Arduino clients (Atom, Stick C, Stick C Plus, etc.) that has selected a Device to listen for state information
-			let deviceId = obj.deviceId;
-			let device = GetDeviceByDeviceId(deviceId);
-			let listenerType = 'm5';
-			
-			if (devices.length > 0) {
-				socket.emit('devices', devices);
-			}
-
-			if ((deviceId === 'null') || (device.id === 'unassigned')) {
-				if (devices.length > 0) {
-					deviceId = devices[0].id;
-					socket.emit('deviceId', deviceId);
-				}
-				else {
-					deviceId = 'unassigned';
-				}
-			}
-			
-			if (devices.length > 0) {
-				socket.emit('currentTallyData', currentDeviceTallyData);
-			}
-			
-			if (obj.listenerType) {
-				listenerType = obj.listenerType;
-			}
-
-			socket.join('device-' + deviceId);
-			if (listenerType === 'm5-stickc') {
-				socket.join('messaging');
-			}
-			let deviceName = GetDeviceByDeviceId(deviceId).name;
-			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName} DeviceID: ${deviceId}`, 'info');
-
-			let ipAddress = socket.handshake.address;
-			let datetimeConnected = new Date().getTime();
-
-			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, true, true);
-		});
-
-		socket.on('currentTallyData', function(deviceId: string) {
-			socket.emit('currentTallyData', currentDeviceTallyData);
-		});
-
-		socket.on('settings', function () {
+		socket.on('settings', () => {
 			socket.join('settings');
 			socket.join('messaging');
 			socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), addresses.value, getOutputTypes(), getOutputTypeDataFields(), bus_options, getSources(), devices, device_sources, device_actions, currentDeviceTallyData, tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
@@ -793,7 +459,7 @@ function initialSetup() {
 			socket.emit('tslclients_1secupdate', tsl_clients_1secupdate);
 		});
 
-		socket.on('producer', function () {
+		socket.on('producer', () => {
 			socket.join('producer');
 			socket.join('messaging');
 			socket.emit('sources', getSources());
@@ -803,7 +469,7 @@ function initialSetup() {
 			socket.emit('currentTallyData', currentDeviceTallyData);
 		});
 
-		socket.on('companion', function () {
+		socket.on('companion', () => {
 			socket.join('companion');
 			socket.emit('sources', getSources());
 			socket.emit('devices', devices);
@@ -815,22 +481,22 @@ function initialSetup() {
 			socket.emit('cloud_destinations', cloud_destinations);
 		});
 
-		socket.on('flash', function(clientId) {
+		socket.on('flash', (clientId) => {
 			FlashListenerClient(clientId);
 		});
 
-		socket.on('messaging_client', function(clientId: {
+		socket.on('messaging_client', (clientId: {
 			relayGroupId?: string;
 			gpoGroupId?: string;
-		}, type: string, socketid: string, message: string) {
+		}, type: string, socketid: string, message: string) => {
 			MessageListenerClient(clientId, type, socketid, message);
 		});
 
-		socket.on('reassign', function(clientId: string, oldDeviceId: string, deviceId: string) {
+		socket.on('reassign', (clientId: string, oldDeviceId: string, deviceId: string) => {
 			ReassignListenerClient(clientId, oldDeviceId, deviceId);
 		});
 
-		socket.on('listener_reassign', function(oldDeviceId: string, deviceId: string) {
+		socket.on('listener_reassign', (oldDeviceId: string, deviceId: string) => {
 			socket.leave('device-' + oldDeviceId);
 			socket.join('device-' + deviceId);
 
@@ -851,7 +517,7 @@ function initialSetup() {
 			socket.emit('currentTallyData', currentDeviceTallyData);
 		});
 
-		socket.on('listener_reassign_relay', function(relayGroupId, oldDeviceId, deviceId) {
+		socket.on('listener_reassign_relay', (relayGroupId, oldDeviceId, deviceId) => {
 			let canRemove = true;
 			for (let i = 0; i < listener_clients.length; i++) {
 				if (listener_clients[i].socketId === socket.id) {
@@ -884,7 +550,7 @@ function initialSetup() {
 			UpdateCloud('listener_clients');
 		});
 
-		socket.on('listener_reassign_gpo', function(gpoGroupId, oldDeviceId, deviceId) {
+		socket.on('listener_reassign_gpo', (gpoGroupId, oldDeviceId, deviceId) => {
 			let canRemove = true;
 			for (let i = 0; i < listener_clients.length; i++) {
 				if (listener_clients[i].socketId === socket.id) {
@@ -917,7 +583,7 @@ function initialSetup() {
 			UpdateCloud('listener_clients');
 		});
 
-		socket.on('listener_reassign_object', function(reassignObj) {
+		socket.on('listener_reassign_object', (reassignObj) => {
 			socket.leave('device-' + reassignObj.oldDeviceId);
 			socket.join('device-' + reassignObj.newDeviceId);
 
@@ -938,7 +604,7 @@ function initialSetup() {
 			socket.emit('currentTallyData', currentDeviceTallyData);
 		});
 
-		socket.on('listener_delete', function(clientId) { // emitted by the Settings page when an inactive client is being removed manually
+		socket.on('listener_delete', (clientId) => { // emitted by the Settings page when an inactive client is being removed manually
 			for (let i = listener_clients.length - 1; i >= 0; i--) {
 				if (listener_clients[i].id === clientId) {
 					logger(`Inactive Client removed: ${listener_clients[i].id}`, 'info');
@@ -950,15 +616,15 @@ function initialSetup() {
 			UpdateCloud('listener_clients');
 		});
 
-		socket.on('cloud_destination_reconnect', function(cloudDestinationId) {
+		socket.on('cloud_destination_reconnect', (cloudDestinationId) => {
 			StartCloudDestination(cloudDestinationId);
 		});
 
-		socket.on('cloud_destination_disconnect', function(cloudDestinationId) {
+		socket.on('cloud_destination_disconnect', (cloudDestinationId) => {
 			StopCloudDestination(cloudDestinationId);
 		});
 
-		socket.on('cloud_client', function(key) {
+		socket.on('cloud_client', (key) => {
 			let ipAddress = socket.handshake.address;
 
 			if (cloud_keys.includes(key)) {
@@ -973,7 +639,7 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('cloud_sources', function(key, data) {
+		socket.on('cloud_sources', (key, data) => {
 			let cloudClientId = GetCloudClientBySocketId(socket.id).id;
 
 			//loop through the received array and if an item in the array isn't already in the sources array, add it, and attach the cloud ID as a property
@@ -1026,7 +692,7 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('cloud_devices', function(key, data) {
+		socket.on('cloud_devices', (key, data) => {
 			let cloudClientId = GetCloudClientBySocketId(socket.id).id;
 
 			//loop through the received array and if an item in the array isn't already in the devices array, add it, and attach the cloud ID as a property
@@ -1080,7 +746,7 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('cloud_device_sources', function(key, data) {
+		socket.on('cloud_device_sources', (key, data) => {
 			let cloudClientId = GetCloudClientBySocketId(socket.id).id;
 
 			//loop through the received array and if an item in the array isn't already in the device sources array, add it, and attach the cloud ID as a property
@@ -1126,7 +792,7 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('cloud_listeners', function(key: string, data: CloudListenerSocketData[]) {
+		socket.on('cloud_listeners', (key: string, data: CloudListenerSocketData[]) => {
 			let cloudClientId = GetCloudClientBySocketId(socket.id).id;
 
 			//loop through the received array and if an item in the array isn't already in the listener_clients array, add it, and attach the cloud ID as a property
@@ -1182,7 +848,7 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('cloud_data', function(key: string, sourceId: string, tallyObj: SourceTallyData) {
+		socket.on('cloud_data', (key: string, sourceId: string, tallyObj: SourceTallyData) => {
 			if (cloud_keys.includes(key)) {
 				processSourceTallyData(sourceId, tallyObj);
 			}
@@ -1192,12 +858,12 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('manage', function(arbiterObj: Manage) {
+		socket.on('manage', (arbiterObj: Manage) => {
 			const response = TallyArbiter_Manage(arbiterObj);
 			io.to('settings').emit('manage_response', response);
 		});
 
-		socket.on('reconnect_source', function(sourceId: string) {
+		socket.on('reconnect_source', (sourceId: string) => {
 			SourceClients[sourceId]?.reconnect();
 		});
 
@@ -1221,17 +887,17 @@ function initialSetup() {
 			socket.emit('cloud_clients', cloud_clients);
 		});
 
-		socket.on('testmode', function(value: boolean) {
+		socket.on('testmode', (value: boolean) => {
 			EnableTestMode(value);
 		});
 
-		socket.on('tslclients_1secupdate', function(value: boolean) {
+		socket.on('tslclients_1secupdate', (value: boolean) => {
 			tsl_clients_1secupdate = value;
 			SaveConfig();
 			TSLClients_1SecUpdate(value);
 		})
 
-		socket.on('messaging', function(type: string, message: string) {
+		socket.on('messaging', (type: string, message: string) => {
 			SendMessage(type, socket.id, message);
 		});
 
@@ -1243,16 +909,16 @@ function initialSetup() {
 			socket.emit('unreaded_error_reports', getUnreadedErrorReportsList());
 		});
 
-		socket.on('get_error_report', function(errorReportId: string) {
+		socket.on('get_error_report', (errorReportId: string) => {
 			markErrorReportAsReaded(errorReportId);
 			socket.emit('error_report', getErrorReport(errorReportId));
 		});
 
-		socket.on('mark_error_reports_as_read', function() {
+		socket.on('mark_error_reports_as_read', () => {
 			markErrorReportsAsReaded();
 		});
 
-		socket.on('delete_every_error_report', function() {
+		socket.on('delete_every_error_report', () => {
 			deleteEveryErrorReport();
 		});
 
@@ -1294,7 +960,7 @@ function initialSetup() {
 
 	logger('Starting HTTP Server.', 'info-quiet');
 
-	httpServer.listen(listenPort, function () { // start up http server
+	httpServer.listen(listenPort, () => { // start up http server
 		logger(`Tally Arbiter running on port ${listenPort}`, 'info');
 	});
 }
@@ -1802,22 +1468,6 @@ function processSourceTallyData(sourceId: string, tallyData: SourceTallyData)
 	}
 }
 
-function RenameDevice(deviceId, name) {
-	//renames the Device with the new name that originated in the source type
-
-	for (let i = 0; i < devices.length; i++) {
-		if (devices[i].id === deviceId) {
-			if (name) {
-				devices[i].name = name;
-			}
-			break;
-		}
-	}
-
-	UpdateSockets('devices');
-	SendTSLClientData(deviceId);
-}
-
 function RunAction(deviceId, busId, active) {
 	let actionObj: DeviceAction = null;
 
@@ -1962,7 +1612,7 @@ function StartTSLClientConnection(tslClientId) {
 				case 'udp':
 					logger(`TSL Client: ${tslClientId}  Initiating TSL Client UDP Socket.`, 'info-quiet');
 					tsl_clients[i].socket = dgram.createSocket('udp4');
-					tsl_clients[i].socket.on('error', function(error) {
+					tsl_clients[i].socket.on('error', (error) => {
 						logger(`An error occurred with the connection to ${tsl_clients[i].ip}:${tsl_clients[i].port}  ${error}`, 'error');
 						tsl_clients[i].error = true;
 						if (error.toString().indexOf('ECONNREFUSED') > -1) {
@@ -1989,7 +1639,7 @@ function StartTSLClientConnection(tslClientId) {
 				case 'tcp':
 					logger(`TSL Client: ${tslClientId}  Initiating TSL Client TCP Socket.`, 'info-quiet');
 					tsl_clients[i].socket = new net.Socket();
-					tsl_clients[i].socket.on('error', function(error) {
+					tsl_clients[i].socket.on('error', (error) => {
 						logger(`An error occurred with the connection to ${tsl_clients[i].ip}:${tsl_clients[i].port}  ${error}`, 'error');
 						tsl_clients[i].error = true;
 						if (error.toString().indexOf('ECONNREFUSED') > -1) {
@@ -2003,7 +1653,7 @@ function StartTSLClientConnection(tslClientId) {
 						tsl_clients[i].connected = true;
 						UpdateSockets('tsl_clients');
 					});
-					tsl_clients[i].socket.on('close', function () {
+					tsl_clients[i].socket.on('close', () => {
 						if (tsl_clients[i]) {
 							logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
 							tsl_clients[i].error = false;
@@ -2190,21 +1840,21 @@ function StartCloudDestination(cloudDestinationId) {
 				cloud_destinations_sockets[i].socket.emit('cloud_listeners', cloud_destinations_sockets[i].key, listener_clients);
 			});
 
-			cloud_destinations_sockets[i].socket.on('invalidkey', function () {
+			cloud_destinations_sockets[i].socket.on('invalidkey', () => {
 				cloud_destinations_sockets[i].error = true;
 				logger(`An error occurred with the connection to ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port} : The specified key could not be found on the host: ${cloud_destinations_sockets[i].key}`, 'error');
 				SetCloudDestinationStatus(cloud_destinations_sockets[i].id, 'invalid-key');
 			});
 
-			cloud_destinations_sockets[i].socket.on('flash', function (listenerClientId) {
+			cloud_destinations_sockets[i].socket.on('flash', (listenerClientId) => {
 				FlashListenerClient(listenerClientId);
 			});
 
-			cloud_destinations_sockets[i].socket.on('messaging_client', function (listenerClientId, type, socketid, message) {
+			cloud_destinations_sockets[i].socket.on('messaging_client', (listenerClientId, type, socketid, message) => {
 				MessageListenerClient(listenerClientId, type, socketid, message);
 			});
 
-			cloud_destinations_sockets[i].socket.on('error', function(error) {
+			cloud_destinations_sockets[i].socket.on('error', (error) => {
 				logger(`An error occurred with the connection to ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port}  ${error}`, 'error');
 				cloud_destinations[i].error = true;
 				SetCloudDestinationStatus(cloud_destinations_sockets[i].id, 'error');
@@ -2883,11 +2533,6 @@ function GetSourceBySourceId(sourceId: string): Source {
 	return sources.find( ({ id }) => id === sourceId);
 }
 
-function GetSourceTypeBySourceTypeId(sourceTypeId: string): SourceType {
-	//gets the Source Type object by id
-	return getSourceTypes().find( ({ id }) => id === sourceTypeId);
-}
-
 function GetBusByBusId(busId: string): BusOption {
 	//gets the Bus object by id
 	return bus_options.find( ({ id }) => id === busId);
@@ -2910,14 +2555,6 @@ function GetDeviceByDeviceId(deviceId: string): Device {
 	return device;
 }
 
-function GetDeviceSourcesBySourceId(sourceId): DeviceSource[] {
-	return device_sources.filter(obj => obj.sourceId === sourceId);
-}
-
-function GetDeviceSourcesByDeviceId(deviceId): DeviceSource[] {
-	return device_sources.filter(obj => obj.deviceId === deviceId);
-}
-
 function GetTSLClientById(tslClientId: string): TSLClient {
 	//gets the TSL Client by the Id
 	return tsl_clients.find( ({ id }) => id === tslClientId);
@@ -2936,46 +2573,6 @@ function GetCloudClientById(cloudClientId: string): CloudClient {
 function GetCloudClientBySocketId(socket: string): CloudClient {
 	//gets the Cloud Client by the Socket Id
 	return cloud_clients.find( ({ socketId }) => socketId === socket);
-}
-
-
-function GetSmartTallyStatus(tallynumber: number | string): string {
-	//returns unselected, selected, or onair based on the tallynumber (index+1) passed
-	let i = parseInt(tallynumber as string) - 1;
-
-	let mode_preview = false;
-	let mode_program = false;
-
-	// ToDo
-	/* for (let j = 0; j < currentTallyData.length; j++) {
-		if ((currentTallyData[j].deviceId === devices[i].id) && (GetBusByBusId(currentTallyData[j].busId).type === 'preview')) {
-			if (currentTallyData[j].sources.length > 0) {
-				mode_preview = true;
-			}
-			else {
-				mode_preview = false;
-			}
-		}
-		else if ((currentTallyData[j].deviceId === devices[i].id) && (GetBusByBusId(currentTallyData[j].busId).type === 'program')) {
-			if (currentTallyData[j].sources.length > 0) {
-				mode_program = true;
-			}
-			else {
-				mode_program = false;
-			}
-		}
-	}*/
-
-	let return_val = 'unselected';
-
-	if (mode_program) {
-		return_val = 'onair';
-	}
-	else if (mode_preview) {
-		return_val = 'selected';
-	}
-
-	return return_val;
 }
 
 function AddListenerClient(socketId: string, deviceId: string, listenerType: string, ipAddress: string, datetimeConnected: number, canBeReassigned = true, canBeFlashed = true, supportsChat = false): string {
@@ -3300,25 +2897,6 @@ function CheckListenerClients() { //checks all listener clients and if a client 
 			ReassignListenerClient(listener_clients[i].id, listener_clients[i].deviceId, newDeviceId);
 		}
 	}
-}
-
-function AddPort(port, sourceId) { //Adds the port to the list of reserved or in-use ports
-    const portObj: Port = {
-        port,
-        sourceId,
-    };
-	PortsInUse.push(portObj);
-	UpdateSockets('PortsInUse');
-}
-
-function DeletePort(port) { //Deletes the port from the list of reserved or in-use ports
-	for (let i = 0; i < PortsInUse.length; i++) {
-		if (PortsInUse[i].port === port.toString()) {
-			PortsInUse.splice(i, 1);
-			break;
-		}
-	}
-	UpdateSockets('PortsInUse');
 }
 
 function SendMessage(type: string, socketid: string | null, message: string) {
