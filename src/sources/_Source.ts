@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import { BehaviorSubject } from "rxjs";
 import { logger } from "..";
 import { Address } from "../_models/Address";
@@ -7,7 +8,7 @@ import { AddressTallyData } from "../_models/TallyData";
 const RECONNECT_INTERVAL = 5000; // in ms
 const MAX_FAILED_RECONNECTS = 5;
 
-export class TallyInput {
+export class TallyInput extends EventEmitter {
     public connected = new BehaviorSubject<boolean>(false);
     public tally = new BehaviorSubject<AddressTallyData>({});
     private tallyData = {};
@@ -18,6 +19,7 @@ export class TallyInput {
     reconnectTimeout: NodeJS.Timeout;
 
     constructor(source: Source) {
+        super();
         this.source = source;
         logger(`Source: ${this.source.name} Creating connection.`, 'info-quiet');
         this.connected.subscribe((connected) => {
@@ -60,6 +62,7 @@ export class TallyInput {
     }
     
     protected renameAddress(address: string, newAddress: string, newLabel: string) {
+        this.emit("renameAddress", address, newAddress);
         this.addresses.next(this.addresses.value.filter((a) => a.address !== address).concat({ address: newAddress, label: newLabel }));
     }
 

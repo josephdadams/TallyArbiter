@@ -1193,6 +1193,13 @@ function initializeSource(source: Source): void {
 			[source.id]: sourceAddresses,
 		});
 	});
+	sourceClient.on("renameAddress", (address: string, newAddress: string) => {
+		for (const deviceSource of device_sources.filter((d) => d.rename && d.sourceId == source.id && d.address == address)) {
+			deviceSource.address = newAddress;
+		}
+		UpdateSockets("device_sources");
+		SaveConfig();
+	});
 	SourceClients[source.id] = sourceClient;
 }
 
