@@ -6,16 +6,14 @@ import dgram from 'dgram';
 import fs from 'fs-extra';
 import findPackageJson from "find-package-json";
 import path from 'path';
-import express, { Router } from 'express';
+import express from 'express';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import bodyParser from 'body-parser';
 import http from 'http';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
-import os from 'os'; // For getting available Network interfaces on host device
 import findRemoveSync from 'find-remove';
 import { BehaviorSubject } from 'rxjs';
-import winston from "winston";
 
 //TypeScript models
 import { TallyInput } from './sources/_Source';
@@ -24,13 +22,11 @@ import { FlashListenerClientResponse } from "./_models/FlashListenerClientRespon
 import { MessageListenerClientResponse } from "./_models/MessageListenerClientResponse";
 import { ErrorReport } from './_models/ErrorReport';
 import { ErrorReportsListElement } from "./_models/ErrorReportsListElement";
-import { NetworkInterface } from "./_models/NetworkInterface";
 import { ConfigSecuritySection } from "./_models/ConfigSecuritySection";
 import { ConfigTSLClient } from "./_models/ConfigTSLClient";
 import { Config } from './_models/Config';
 import { ManageResponse } from './_models/ManageResponse';
 import { LogItem } from "./_models/LogItem";
-import { Port } from "./_models/Port";
 import { Source } from './_models/Source';
 import { SourceType } from './_models/SourceType';
 import { SourceTypeDataFields } from './_models/SourceTypeDataFields';
@@ -55,94 +51,15 @@ import { TallyInputs } from './_globals/TallyInputs';
 import { PortsInUse } from './_globals/PortsInUse';
 import { Actions } from './_globals/Actions';
 
-//Setup logger
-const { combine, printf } = winston.format;
-
-var logFilePath = getLogFilePath();
-var Logs = []; //Used for loading logs in settings page
-
-var tallyDataFilePath = getTallyDataPath();
-var tallyDataFile = fs.openSync(tallyDataFilePath, 'w'); // Setup TallyData File
-
-const serverLoggerLevels = {
-	levels: {
-	    critical: 0,
-	    error: 2,
-	    warning: 3,
-		console_action: 4,
-		info: 5,
-	    'info-quiet': 6,
-	    debug: 7
-	},
-	colors: {
-		critical: 'red',
-	    error: 'red',
-	    warning: 'yellow',
-		console_action: 'green',
-		info: 'white',
-	    'info-quiet': 'white',
-	    debug: 'blue'
-	}
-};
-winston.addColors(serverLoggerLevels.colors);
-let serverLoggerFormat = printf(({ timestamp, level, message }) => {
-	if(level === "info-quiet"){
-		level = "info";
-	}
-	if(level === "[37minfo-quiet[39m"){
-		level = "[37minfo[39m";
-	}
-
-    return `[${timestamp}] ${level}: ${message}`;
-});
-var serverLoggerOptions = {
-    console: {
-        level: 'debug',
-        format: combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), winston.format.colorize(), serverLoggerFormat)
-    },
-    file: {
-        filename: logFilePath,
-		maxsize: 3e+7, //3MB
-		maxFiles: 3,
-        level: 'debug',
-        format: combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), serverLoggerFormat)
-    },
-}
-winston.loggers.add('server', {
-	levels: serverLoggerLevels.levels,
-	transports: [
-	  new winston.transports.Console(serverLoggerOptions.console),
-	  new winston.transports.File(serverLoggerOptions.file)
-	]
-});
-
-let tallyLoggerFormat = printf((info) => {
-    return `[${info.timestamp}] ${info.message}`;
-});
-winston.loggers.add('tally', {
-	format: combine(
-		winston.format.timestamp({
-		  format: 'YYYY-MM-DD HH:mm:ss'
-		}),
-        tallyLoggerFormat
-	),
-	transports: [
-	  new winston.transports.File({
-		  filename: tallyDataFilePath,
-		  maxsize: 3e+7, //3MB
-		  maxFiles: 3,
-		})
-	]
-});
-
-const serverLogger = winston.loggers.get('server');
-const tallyLogger = winston.loggers.get('tally');
-
-function loadClassesFromFolder(folder: string): void {
-	for (const file of fs.readdirSync(path.join(__dirname, folder)).filter((f) => !f.startsWith("_"))) {
-		require(`./${folder}/${file.replace(".ts", "")}`);
-	}
-}
+// Helpers
+import { uuidv4 } from './_helpers/uuid';
+import { logFilePath, Logs, serverLogger, tallyDataFile } from './_helpers/logger';
+import { getNetworkInterfaces } from './_helpers/networkInterfaces';
+import { loadClassesFromFolder } from './_helpers/fileLoder';
+import { UsePort } from './_decorators/UsesPort.decorator';
+import { secondsToHms } from './_helpers/time';
+import { ConfigDefaults, currentConfig, getConfigRedacted, readConfig, SaveConfig } from './_helpers/config';
+import { generateErrorReport, getErrorReport, getErrorReportsList, getUnreadErrorReportsList, markErrorReportAsRead } from './_helpers/errorReports';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
@@ -184,23 +101,13 @@ const socketupdates_Settings: string[]  = ['sources', 'devices', 'device_sources
 const socketupdates_Producer: string[]  = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients'];
 const socketupdates_Companion: string[] = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
 
-var username_producer: string = 'producer';
-var password_producer: string = '12345';
-var username_settings: string = 'admin';
-var password_settings: string = '12345';
-
-const config_file 	  = getConfigFilePath(); //local storage JSON file
-
 const vmixEmulatorPort: string = '8099'; // Default 8099
 var vmix_emulator	= null; //TCP server for VMix Emulator
 var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 var vmix_client_data = []; //array of connected Vmix clients
 
-var externalAddress = "http://0.0.0.0:4455/#/tally";
-
-var tsl_clients: TSLClient[]							 = []; //array of TSL 3.1 clients that Tally Arbiter will send tally data to
-var tsl_clients_1secupdate 								 = false;
+export var tsl_clients: TSLClient[]							 = []; //array of TSL 3.1 clients that Tally Arbiter will send tally data to
 var tsl_clients_interval: NodeJS.Timer | null			 = null;
 var cloud_destinations: CloudDestination[]				 = []; //array of Tally Arbiter Cloud Destinations (host, port, key)
 var cloud_destinations_sockets: CloudDestinationSocket[] = []; //array of actual socket connections
@@ -210,42 +117,19 @@ var cloud_clients: CloudClient[]						 = []; //array of Tally Arbiter Cloud Clie
 var TestMode = false; //if the system is in test mode or not
 const SourceClients: Record<string, TallyInput> = {};
 
-PortsInUse.push({ 
-    port: vmixEmulatorPort, //VMix
-    sourceId: 'reserved',
-});
-
-PortsInUse.push({ 
-    port: '60020', //Panasonic AV-HS410
-    sourceId: 'reserved',
-});
-
-PortsInUse.push({ 
-    port: listenPort.toString(), //Tally Arbiter
-    sourceId: 'reserved',
-});
-
-PortsInUse.push({ 
-    port: "80", //Default HTTP Port
-    sourceId: 'reserved',
-});
-
-PortsInUse.push({ 
-    port: "443",
-    sourceId: 'reserved',
-});
+UsePort(vmixEmulatorPort, "reserved");
+UsePort(listenPort.toString(), "reserved");
+UsePort("80", "reserved");
+UsePort("443", "reserved");
 
 const addresses = new BehaviorSubject<Addresses>({});
 addresses.subscribe(() => {
 	UpdateSockets("addresses");
 });
 
-var bus_options: BusOption[] = [ // the busses available to monitor in Tally Arbiter
-	{ id: 'e393251c', label: 'Preview', type: 'preview', color: '#3fe481', priority: 50},
-	{ id: '334e4eda', label: 'Program', type: 'program', color: '#e43f5a', priority: 200},
-	{ id: '12c8d699', label: 'Aux 1', type: 'aux', color: '#0000FF', priority: 100},
-	{ id: '12c8d689', label: 'Aux 2', type: 'aux', color: '#0000FF', priority: 100}
-]
+PortsInUse.subscribe(() => {
+	UpdateSockets('PortsInUse');
+})
 
 var sources: Source[]						= []; // the configured tally sources
 var devices: Device[] 						= []; // the configured tally devices
@@ -254,13 +138,6 @@ var device_actions: DeviceAction[]			= []; // the configured device output actio
 var currentDeviceTallyData: DeviceTallyData = {}; // tally data (=bus array) per device id (linked busses taken into account)
 var currentSourceTallyData: SourceTallyData = {}; // tally data (=bus array) per device source id
 
-function uuidv4(): string //unique UUID generator for IDs
-{
-	return 'xxxxxxxx'.replace(/[xy]/g, (c) => {
-		let r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-		return v.toString(16);
-	});
-}
 
 function startUp() {
 	loadClassesFromFolder("actions");
@@ -272,26 +149,11 @@ function startUp() {
 
 	process.on('uncaughtException', (err: Error) => {
 		if (!process.versions.hasOwnProperty('electron')) {
-			generateErrorReport(err);
+			generateAndSendErrorReport(err);
 		}
 	});
 }
 
-//based on https://stackoverflow.com/a/37096512
-//used in login function for displaying rate limits
-function secondsToHms(d: number | string): string {
-    d = Number(d);
-    var h = Math.floor(d / 3600);
-    var m = Math.floor(d % 3600 / 60);
-    var s = Math.floor(d % 3600 % 60);
-
-    var hDisplay = h > 0 ? h + (h == 1 ? " hour, " : " hours, ") : "";
-    var mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " minutes, ") : "";
-    var sDisplay = s > 0 ? s + (s == 1 ? " second" : " seconds") : "";
-	let hmsString = hDisplay + mDisplay + sDisplay;
-	if(hmsString.endsWith(", ")) hmsString = hmsString.slice(0, -2);
-    return hmsString;
-}
 
 //sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
 function initialSetup() {
@@ -324,8 +186,8 @@ function initialSetup() {
 		const ipAddr = socket.handshake.address;
 
 		socket.on('login', (type: "settings" | "producer", username: string, password: string) => {
-			if((type === "producer" && username == username_producer && password == password_producer)
-			|| (type === "settings" && username == username_settings && password == password_settings)) {
+			if((type === "producer" && username == currentConfig.security.username_producer && password == currentConfig.security.password_producer)
+			|| (type === "settings" && username == currentConfig.security.username_settings && password == currentConfig.security.password_settings)) {
 				//login successfull
 				socket.emit('login_result', true); //old response, for compatibility with old UI clients
 				socket.emit('login_response', { loginOk: true, message: "" });
@@ -362,7 +224,7 @@ function initialSetup() {
 		});
 
 		socket.on('externalAddress', () => {
-			socket.emit('externalAddress', externalAddress);
+			socket.emit('externalAddress', currentConfig.externalAddress);
 		});
 
 		socket.on('interfaces', () =>  {
@@ -386,7 +248,7 @@ function initialSetup() {
 		});
 
 		socket.on('bus_options', () =>  { // sends the Bus Options (preview, program) to the socket
-			socket.emit('bus_options', bus_options);
+			socket.emit('bus_options', currentConfig.bus_options);
 		});
 
 		socket.on('listenerclient_connect', function(obj: ListenerClientConnect) {
@@ -435,7 +297,7 @@ function initialSetup() {
 				socket.leave('messaging');
 			}
 
-			socket.emit('bus_options', bus_options);
+			socket.emit('bus_options', currentConfig.bus_options);
 			socket.emit('devices', devices);
 			socket.emit('currentTallyData', currentDeviceTallyData);
 
@@ -452,11 +314,11 @@ function initialSetup() {
 		socket.on('settings', () => {
 			socket.join('settings');
 			socket.join('messaging');
-			socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), addresses.value, getOutputTypes(), getOutputTypeDataFields(), bus_options, getSources(), devices, device_sources, device_actions, currentDeviceTallyData, tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
+			socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), addresses.value, getOutputTypes(), getOutputTypeDataFields(), currentConfig.bus_options, getSources(), devices, device_sources, device_actions, currentDeviceTallyData, tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
 			socket.emit('listener_clients', listener_clients);
 			socket.emit('logs', Logs);
-			socket.emit('PortsInUse', PortsInUse);
-			socket.emit('tslclients_1secupdate', tsl_clients_1secupdate);
+			socket.emit('PortsInUse', PortsInUse.value);
+			socket.emit('tslclients_1secupdate', currentConfig.tsl_clients_1secupdate);
 		});
 
 		socket.on('producer', () => {
@@ -464,7 +326,7 @@ function initialSetup() {
 			socket.join('messaging');
 			socket.emit('sources', getSources());
 			socket.emit('devices', devices);
-			socket.emit('bus_options', bus_options);
+			socket.emit('bus_options', currentConfig.bus_options);
 			socket.emit('listener_clients', listener_clients);
 			socket.emit('currentTallyData', currentDeviceTallyData);
 		});
@@ -473,7 +335,7 @@ function initialSetup() {
 			socket.join('companion');
 			socket.emit('sources', getSources());
 			socket.emit('devices', devices);
-			socket.emit('bus_options', bus_options);
+			socket.emit('bus_options', currentConfig.bus_options);
 			socket.emit('device_sources', device_sources);
 			socket.emit('currentTallyData', currentDeviceTallyData);
 			socket.emit('listener_clients', listener_clients);
@@ -892,7 +754,7 @@ function initialSetup() {
 		});
 
 		socket.on('tslclients_1secupdate', (value: boolean) => {
-			tsl_clients_1secupdate = value;
+			currentConfig.tsl_clients_1secupdate = value;
 			SaveConfig();
 			TSLClients_1SecUpdate(value);
 		})
@@ -905,17 +767,17 @@ function initialSetup() {
 			socket.emit('error_reports', getErrorReportsList());
 		});
 
-		socket.on('get_unreaded_error_reports', () =>  {
-			socket.emit('unreaded_error_reports', getUnreadedErrorReportsList());
+		socket.on('get_unread_error_reports', () =>  {
+			socket.emit('unread_error_reports', getUnreadErrorReportsList());
 		});
 
 		socket.on('get_error_report', (errorReportId: string) => {
-			markErrorReportAsReaded(errorReportId);
+			markErrorReportAsRead(errorReportId);
 			socket.emit('error_report', getErrorReport(errorReportId));
 		});
 
 		socket.on('mark_error_reports_as_read', () => {
-			markErrorReportsAsReaded();
+			markErrorReportsAsRead();
 		});
 
 		socket.on('delete_every_error_report', () => {
@@ -1056,12 +918,12 @@ function TestTallies() {
 	// ToDo
 }
 
-function markErrorReportsAsReaded() {
+function markErrorReportsAsRead() {
 	try {
 		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
 		const ErrorReportsFiles = fs.readdirSync(ErrorReportsFolder).map((file) => { return file.replace(/\.[^/.]+$/, "") });
-		const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
-		fs.writeFileSync(readedErrorReportsFilePath, JSON.stringify(ErrorReportsFiles));
+		const readErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readErrorReports.json");
+		fs.writeFileSync(readErrorReportsFilePath, JSON.stringify(ErrorReportsFiles));
 		return true;
 	} catch(e) {
 		return false;
@@ -1071,8 +933,8 @@ function markErrorReportsAsReaded() {
 function deleteEveryErrorReport() {
 	const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
 	fs.emptyDirSync(ErrorReportsFolder);
-	const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
-	fs.writeFileSync(readedErrorReportsFilePath, "");
+	const readErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readErrorReports.json");
+	fs.writeFileSync(readErrorReportsFilePath, "");
 }
 
 
@@ -1084,7 +946,7 @@ function UpdateDeviceState(deviceId: string) {
 	currentDeviceTallyData[device.id] = [];
 
 	const deviceSources = device_sources.filter((d) => d.deviceId == deviceId);
-	for (const bus of bus_options) {
+	for (const bus of currentConfig.bus_options) {
 		if (device.linkedBusses.includes(bus.id)) {
 			// bus is linked, which means all sources must be in this bus
 			if (deviceSources.findIndex((s) => !currentSourceTallyData?.[s.id]?.includes(bus.type)) === -1) {
@@ -1227,95 +1089,40 @@ function loadConfig() { // loads the JSON data from the config file to memory
 	logger('Loading the stored Tally Arbiter configuration file.', 'info-quiet');
 
 	try {
-		let rawdata = fs.readFileSync(config_file).toString();
-		let configJson = JSON.parse(rawdata);
+		readConfig();
 
-		if (configJson.security) {
-			if (configJson.security.username_settings) {
-				username_settings = configJson.security.username_settings;
-			}
-			if (configJson.security.password_settings) {
-				password_settings = configJson.security.password_settings;
-			}
-			if (configJson.security.username_producer) {
-				username_producer = configJson.security.username_producer;
-			}
-			if (configJson.security.password_producer) {
-				password_producer = configJson.security.password_producer;
-			}
-		}
+		sources = currentConfig.sources;
+		logger('Tally Arbiter Sources loaded.', 'info');
+		logger(`${sources.length} Sources configured.`, 'info');
 
-		if (configJson.bus_options) {
-			bus_options = configJson.bus_options;
-			logger('Tally Arbiter Bus Options loaded.', 'info');
-			logger(`${bus_options.length} Busses configured.`, 'info');
-		}
 
-		if (configJson.externalAddress) {
-			externalAddress = configJson.externalAddress;
-		}
+		devices = currentConfig.devices;
+		logger('Tally Arbiter Devices loaded.', 'info');
+		logger(`${devices.length} Devices configured.`, 'info');
+	
+		device_sources = currentConfig.device_sources;
+		logger('Tally Arbiter Device Sources loaded.', 'info');
+		logger(`${device_sources.length} Device Sources configured.`, 'info');
 
-		if (configJson.sources) {
-			for (let i = 0; i < configJson.sources.length; i++) {
-				configJson.sources[i].connected = false;
-			}
-			sources = configJson.sources;
-			logger('Tally Arbiter Sources loaded.', 'info');
-			logger(`${sources.length} Sources configured.`, 'info');
-		}
-		else {
-			sources = [];
-			logger('Tally Arbiter Sources could not be loaded.', 'error');
-		}
+		device_actions = currentConfig.device_actions;
+		logger('Tally Arbiter Device Actions loaded.', 'info');
+		logger(`${device_actions.length} Device Sources configured.`, 'info');
 
-		if (configJson.devices) {
-			devices = configJson.devices;
-			logger('Tally Arbiter Devices loaded.', 'info');
-			logger(`${devices.length} Devices configured.`, 'info');
-		}
-		else {
-			devices = [];
-			logger('Tally Arbiter Devices could not be loaded.', 'error');
-		}
+		tsl_clients = currentConfig.tsl_clients.map((t) => ({...t, connected: false}));
+		logger('Tally Arbiter TSL Clients loaded.', 'info');
+		logger(`${device_actions.length} Device Sources configured.`, 'info');
 
-		if (configJson.device_sources) {
-			device_sources = configJson.device_sources;
-			logger('Tally Arbiter Device Sources loaded.', 'info');
-		}
-		else {
-			device_sources = [];
-			logger('Tally Arbiter Device Sources could not be loaded.', 'error');
-		}
-
-		if (configJson.device_actions) {
-			device_actions = configJson.device_actions;
-			logger('Tally Arbiter Device Actions loaded.', 'info');
-		}
-		else {
-			device_actions = [];
-			logger('Tally Arbiter Device Actions could not be loaded.', 'error');
-		}
-
-		if (configJson.tsl_clients) {
-			tsl_clients = configJson.tsl_clients;
-			logger('Tally Arbiter TSL Clients loaded.', 'info');
-		}
-		else {
-			tsl_clients = [];
-			logger('Tally Arbiter TSL Clients could not be loaded.', 'error');
-		}
-
-		if (configJson.tsl_clients_1secupdate) {
-			tsl_clients_1secupdate = true;
+		if (currentConfig.tsl_clients_1secupdate) {
+			currentConfig.tsl_clients_1secupdate = true;
 			TSLClients_1SecUpdate(true);
 		}
 		else {
-			tsl_clients_1secupdate = false;
+			currentConfig.tsl_clients_1secupdate = false;
 			TSLClients_1SecUpdate(false);
 		}
 
-		if (configJson.cloud_destinations) {
-			cloud_destinations = configJson.cloud_destinations;
+		if (currentConfig.cloud_destinations) {
+			cloud_destinations = currentConfig.cloud_destinations;
 			logger('Tally Arbiter Cloud Destinations loaded.', 'info');
 		}
 		else {
@@ -1323,8 +1130,8 @@ function loadConfig() { // loads the JSON data from the config file to memory
 			logger('Tally Arbiter Cloud Destinations could not be loaded.', 'error');
 		}
 
-		if (configJson.cloud_keys) {
-			cloud_keys = configJson.cloud_keys;
+		if (currentConfig.cloud_keys) {
+			cloud_keys = currentConfig.cloud_keys;
 			logger('Tally Arbiter Cloud Keys loaded.', 'info');
 		}
 		else {
@@ -1387,69 +1194,6 @@ function initializeSource(source: Source): void {
 		});
 	});
 	SourceClients[source.id] = sourceClient;
-}
-
-function SaveConfig() {
-	try {
-		let securityObj: ConfigSecuritySection = {} as ConfigSecuritySection;
-		securityObj.username_settings = username_settings;
-		securityObj.password_settings = password_settings;
-		securityObj.username_producer = username_producer;
-		securityObj.password_producer = password_producer;
-
-		let tsl_clients_clean: ConfigTSLClient[] = [];
-
-		for (let i = 0; i < tsl_clients.length; i++) {
-            let tslClientObj: ConfigTSLClient = {} as ConfigTSLClient;
-			tslClientObj.id = tsl_clients[i].id;
-			tslClientObj.ip = tsl_clients[i].ip;
-			tslClientObj.port = tsl_clients[i].port;
-			tslClientObj.transport = tsl_clients[i].transport;
-			tsl_clients_clean.push(tslClientObj);
-		}
-
-		let configJson: Config = {
-			externalAddress: externalAddress,
-			security: securityObj,
-			sources: sources,
-			devices: devices,
-			device_sources: device_sources,
-			device_actions: device_actions,
-			tsl_clients: tsl_clients_clean,
-			tsl_clients_1secupdate: tsl_clients_1secupdate,
-			cloud_destinations: cloud_destinations,
-			cloud_keys: cloud_keys,
-			bus_options: bus_options
-		};
-
-		fs.writeFileSync(config_file, JSON.stringify(configJson, null, 1), 'utf8');
-
-		logger('Config file saved to disk.', 'info-quiet');
-	}
-	catch (error) {
-		logger(`Error saving configuration to file: ${error}`, 'error');
-	}
-}
-
-function getConfig(): Config {
-	return JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
-}
-
-function getConfigRedacted(): Config {
-	let config: Config = {} as Config;
-	try {
-		config = JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
-	} catch (e) {
-	}
-	config["security"] = {
-		username_settings: "admin",
-		password_settings: "12345",
-		username_producer: "producer",
-		password_producer: "12345"
-	};
-	config["cloud_destinations"] = [];
-	config["cloud_keys"] = [];
-	return config;
 }
 
 function processSourceTallyData(sourceId: string, tallyData: SourceTallyData)
@@ -1563,7 +1307,7 @@ function TallyArbiter_Manage(obj: Manage): ManageResponse {
 			else if (obj.action === 'delete') {
 				result = TallyArbiter_Delete_Bus_Option(obj);
 			}
-			io.emit('bus_options', bus_options); //emit the new bus options array to everyone
+			io.emit('bus_options', currentConfig.bus_options); //emit the new bus options array to everyone
 			break;
 		case 'cloud_destination':
 			if (obj.action === 'add') {
@@ -1949,7 +1693,7 @@ type SocketUpdateDataType = 'sources' | 'devices' | 'device_sources' | 'currentT
 
 function UpdateSockets(dataType: SocketUpdateDataType) {
 	const data: Record<SocketUpdateDataType, () => any> = {
-		PortsInUse: () => PortsInUse,
+		PortsInUse: () => PortsInUse.value,
 		addresses: () => addresses.value,
 		sources: () => getSources(),
 		devices: () => devices,
@@ -1984,13 +1728,13 @@ function UpdateVMixClients() {
 	let busId_preview = null;
 	let busId_program = null;
 
-	for (let i = 0; i < bus_options.length; i++) {
-		switch(bus_options[i].type) {
+	for (let i = 0; i < currentConfig.bus_options.length; i++) {
+		switch(currentConfig.bus_options[i].type) {
 			case 'preview':
-				busId_preview = bus_options[i].id;
+				busId_preview = currentConfig.bus_options[i].id;
 				break;
 			case 'program':
-				busId_program = bus_options[i].id;
+				busId_program = currentConfig.bus_options[i].id;
 				break;
 			default:
 				break;
@@ -2380,7 +2124,7 @@ function TallyArbiter_Delete_TSL_Client(obj: Manage): ManageResponse {
 function TallyArbiter_Add_Bus_Option(obj: Manage): ManageResponse {
 	let busOptionObj = obj.busOption;
 	busOptionObj.id = uuidv4();
-	bus_options.push(busOptionObj);
+	currentConfig.bus_options.push(busOptionObj);
 
 	logger(`Bus Option Added: ${busOptionObj.label}:${busOptionObj.type} (${busOptionObj.color})`, 'info');
 
@@ -2390,11 +2134,11 @@ function TallyArbiter_Add_Bus_Option(obj: Manage): ManageResponse {
 function TallyArbiter_Edit_Bus_Option(obj: Manage): ManageResponse {
 	let busOptionObj = obj.busOption;
 
-	for (let i = 0; i < bus_options.length; i++) {
-		if (bus_options[i].id === busOptionObj.id) {
-			bus_options[i].label = busOptionObj.label;
-			bus_options[i].type = busOptionObj.type;
-			bus_options[i].color = busOptionObj.color;
+	for (let i = 0; i < currentConfig.bus_options.length; i++) {
+		if (currentConfig.bus_options[i].id === busOptionObj.id) {
+			currentConfig.bus_options[i].label = busOptionObj.label;
+			currentConfig.bus_options[i].type = busOptionObj.type;
+			currentConfig.bus_options[i].color = busOptionObj.color;
 			break;
 		}
 	}
@@ -2408,9 +2152,9 @@ function TallyArbiter_Delete_Bus_Option(obj: Manage): ManageResponse {
 	let busOptionObj = GetBusByBusId(obj.busOptionId);
 	let busOptionId = obj.busOptionId;
 
-	for (let i = 0; i < bus_options.length; i++) {
-		if (bus_options[i].id === busOptionId) {
-			bus_options.splice(i, 1);
+	for (let i = 0; i < currentConfig.bus_options.length; i++) {
+		if (currentConfig.bus_options[i].id === busOptionId) {
+			currentConfig.bus_options.splice(i, 1);
 			break;
 		}
 	}
@@ -2535,7 +2279,7 @@ function GetSourceBySourceId(sourceId: string): Source {
 
 function GetBusByBusId(busId: string): BusOption {
 	//gets the Bus object by id
-	return bus_options.find( ({ id }) => id === busId);
+	return currentConfig.bus_options.find( ({ id }) => id === busId);
 }
 
 function GetDeviceByDeviceId(deviceId: string): Device {
@@ -2903,15 +2647,6 @@ function SendMessage(type: string, socketid: string | null, message: string) {
 	io.to('messaging').emit('messaging', type, socketid, message);
 }
 
-function getConfigFilePath(): string {
-	const configFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share"), "TallyArbiter");
-	if (!fs.existsSync(configFolder)) {
-		fs.mkdirSync(configFolder, { recursive: true });
-	}
-	const configName = "config.json";
-	return path.join(configFolder, configName);
-}
-
 function getLogFilePath(): string {
 
 	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
@@ -2942,128 +2677,17 @@ function getTallyDataPath(): string {
 	return path.join(TallyDataFolder, logName);
 }
 
-function getErrorReportsList(): ErrorReportsListElement[] {
-	try {
-		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
-		const ErrorReportsFiles = fs.readdirSync(ErrorReportsFolder);
-		let errorReports = [];
-		ErrorReportsFiles.forEach((file) => {
-			let currentErrorReport = JSON.parse(fs.readFileSync(path.join(ErrorReportsFolder, file), "utf8"));
-			let reportId = file.replace(/\.[^/.]+$/, "");
-			errorReports.push({ id: reportId, datetime: currentErrorReport.datetime });
-		});
-		return errorReports;
-	} catch (e) {
-		return [];
-	}
-}
 
-function getReadedErrorReports(): string[] {
-	try {
-		const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
-		return JSON.parse(fs.readFileSync(readedErrorReportsFilePath, 'utf8'));
-	} catch(e) {
-		return [];
-	}
-}
-
-function markErrorReportAsReaded(errorReportId: string): boolean {
-	try {
-		const readedErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readedErrorReports.json");
-		let readedErrorReportsList = getReadedErrorReports();
-		readedErrorReportsList.push(errorReportId);
-		fs.writeFileSync(readedErrorReportsFilePath, JSON.stringify(readedErrorReportsList));
-		return true;
-	} catch(e) {
-		return false;
-	}
-}
-
-function getUnreadedErrorReportsList(): ErrorReportsListElement[] {
-	let errorReports = getErrorReportsList();
-	let readedErrorReports = getReadedErrorReports();
-	return errorReports.filter((report) => { return !readedErrorReports.includes(report.id); });
-}
-
-function getErrorReport(reportId: string): ErrorReport | false {
-	try {
-		if(!reportId.match(/^[a-zA-Z0-9]+$/i)) return false;
-		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
-		const ErrorReportFile = path.join(ErrorReportsFolder, reportId + ".json");
-		return JSON.parse(fs.readFileSync(ErrorReportFile, "utf8"));
-	} catch (e) {
-		return false;
-	}
-}
-
-function getErrorReportPath(id: string): string {
-
-	const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
-
-	if (!fs.existsSync(ErrorReportsFolder)) {
-		fs.mkdirSync(ErrorReportsFolder, { recursive: true });
-	}
-	var errorReportName = id + ".json"
-	return path.join(ErrorReportsFolder, errorReportName);
-}
-
-function generateErrorReport(error: Error) {
-	logger(`Caught exception: ${error}`, 'error');
-	console.trace(error);
-	let id = uuidv4();
-	let stacktrace = "No stacktrace captured.";
-	if(error !== undefined){
-		stacktrace = error.stack;
-	}
-	let logs = ""
-	try {
-		logs = fs.readFileSync(logFilePath, 'utf8');
-	} catch(e) {}
-	var errorReport = {
-		"datetime": new Date(),
-		"stacktrace": stacktrace,
-		"logs": logs,
-		"config": getConfigRedacted()
-	};
-	fs.writeFileSync(getErrorReportPath(id), JSON.stringify(errorReport));
+function generateAndSendErrorReport(error: Error) {
+	let id = generateErrorReport(error);
 	io.emit("server_error", id);
-}
-
-export function getNetworkInterfaces(): NetworkInterface[] { // Get all network interfaces on host device
-	var interfaces = []
-	const networkInterfaces = os.networkInterfaces()
-
-	for (const networkInterface in networkInterfaces) {
-		let numberOfAddresses = networkInterfaces[networkInterface].length
-		let v4Addresses = []
-		let iface = networkInterface.split(' ')[0]
-
-		for (let i = 0; i < numberOfAddresses; i++) {
-			if (networkInterfaces[networkInterface][i]['family'] === 'IPv4') {
-				v4Addresses.push(networkInterfaces[networkInterface][i].address)
-			}
-		}
-		const numV4s = v4Addresses.length
-		for (let i = 0; i < numV4s; i++) {
-			let aNum = numV4s > 1 ? `:${i}` : ''
-			interfaces.push({
-				label: `${networkInterface}${aNum}`,
-				name: `${iface}${aNum}`,
-				address: v4Addresses[i],
-			})
-		}
-	}
-
-	return interfaces
 }
 
 startUp();
 
 export {
     logFilePath,
-    tallyDataFilePath,
-    getConfigFilePath,
-    getConfig,
     getConfigRedacted,
-    generateErrorReport,
+    generateAndSendErrorReport,
 }
+

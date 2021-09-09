@@ -1,9 +1,11 @@
-import { getNetworkInterfaces, logger } from "..";
+import { logger } from "..";
 import { RegisterTallyInput } from "../_decorators/RegisterTallyInput.decorator";
 import { Source } from '../_models/Source';
 import { TallyInput } from './_Source';
 import net from "net";
 import dgram from "dgram";
+import { getNetworkInterfaces } from "../_helpers/networkInterfaces";
+import { UsesPort } from "../_decorators/UsesPort.decorator";
 
 const sourceTypesPanasonic = [
     { id: '00', label: 'XPT 1' },
@@ -35,6 +37,7 @@ const sourceTypesPanasonic = [
 @RegisterTallyInput("7da3b526", "Panasonic AV-HS410", "Uses port 60020. Make sure to have Multicast enabled on the network", [
     { fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
 ])
+@UsesPort("60020")
 export class PanasonicAVHS410Source extends TallyInput {
     private client: any;
     private multi: dgram.Socket;

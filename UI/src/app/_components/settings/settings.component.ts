@@ -89,12 +89,12 @@ export class SettingsComponent {
 		this.socketService.socket.on('server_error', (id: string) => {
 			this.show_error(id);
 		});
-		this.socketService.socket.on('unreaded_error_reports', (list) => {
+		this.socketService.socket.on('unread_error_reports', (list) => {
 			if(list.length > 0) {
 			this.show_errors_list();
 			}
 		});
-		this.socketService.socket.emit('get_unreaded_error_reports');
+		this.socketService.socket.emit('get_unread_error_reports');
 	}
 
 	@Confirmable("There was an unexpected error. Do you want to view the bug report?", false)

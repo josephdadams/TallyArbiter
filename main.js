@@ -3,7 +3,6 @@ const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');
 const { autoUpdater } = require("electron-updater");
 const { nativeImage } = require('electron/common');
 const path = require("path");
-const fs = require('fs');
 
 let server;
 let mainWindow;
@@ -11,9 +10,9 @@ let trayIcon;
 
 const gotTheLock = app.requestSingleInstanceLock()
 
-function processError(err){
-    if(server !== undefined){
-        server.generateErrorReport(err);
+function processError(err) {
+    if (server !== undefined) {
+        server.generateAndSendErrorReport(err);
     } else {
         dialog.showErrorBox("Unexpected error", "There was an unexpected error, and there was an other error generating the error report. Please open a bug report on the project's Github page or contact one of the developers. Stack Trace: " + err.toString());
     }
@@ -49,10 +48,9 @@ function createWindow() {
 function createTrayIcon() {
     const icon = path.join(process.resourcesPath, "build/icon.png");
     const nativeIcon = nativeImage.createFromPath(icon);
-    trayIcon = new Tray(app.isPackaged ? nativeIcon.resize({width: 32}) : nativeIcon.resize({width: 32}));
+    trayIcon = new Tray(app.isPackaged ? nativeIcon.resize({ width: 32 }) : nativeIcon.resize({ width: 32 }));
     trayIcon.setContextMenu(
-        Menu.buildFromTemplate([
-            {
+        Menu.buildFromTemplate([{
                 label: 'Show',
                 click: () => {
                     mainWindow.show();
@@ -70,10 +68,10 @@ function createTrayIcon() {
                         buttons: ["Yes", "No"],
                     }).then((v) => {
                         if (v.response == 0) {
-                            app.isQuiting =true;
+                            app.isQuiting = true;
                             app.quit();
                         }
-                    });                 
+                    });
                 },
             },
         ]));
@@ -127,7 +125,7 @@ if (!gotTheLock) {
         createWindow();
         createTrayIcon();
         checkForUpdates();
-        app.on('activate', function () {
+        app.on('activate', function() {
             if (BrowserWindow.getAllWindows().length === 0) createWindow();
         });
     }).catch((err) => {
@@ -147,7 +145,7 @@ if (!gotTheLock) {
         }
     });
 
-    app.on('window-all-closed', function () {
+    app.on('window-all-closed', function() {
         if (process.platform !== 'darwin') {
             app.preventDefault() // Prevents the window from closing 
             dialog.showMessageBox(mainWindow, {
