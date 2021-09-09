@@ -10,8 +10,8 @@
                 <option [value]="errorReport.id" *ngFor="let errorReport of socketService.errorReports">{{ errorReport.datetime }} {{ unreaded_error_reports.includes(errorReport.id) ? "(unread)" : "" }}</option>
             </select>
             <div class="text-center" id="buttons_div">
-                <button class="btn btn-success" (click)="markErrorReportsAsReaded()">Mark all as read</button>
-                <button class="btn btn-danger" (click)="deleteEveryErrorReport()" style="margin-left: 10px">Permanently delete every bug report from disk</button>
+                <button class="btn btn-outline-success" (click)="markErrorReportsAsReaded()">Mark all as read</button>
+                <button class="btn btn-outline-danger" (click)="deleteEveryErrorReport()" style="margin-left: 10px">Permanently delete every bug report from disk</button>
             </div>
         </div>
     </div>
