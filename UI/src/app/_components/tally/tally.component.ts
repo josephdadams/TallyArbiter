@@ -28,7 +28,13 @@ export class TallyComponent {
       this.route.params.subscribe((params) => {
         if (params.deviceId) {
           this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id == params.deviceId);
-          this.socketService.socket.emit('device_listen', this.socketService.devices[this.currentDeviceIdx!].id, 'web');
+          this.socketService.socket.emit('listenerclient_connect', {
+            deviceId: this.socketService.devices[this.currentDeviceIdx!].id,
+            listenerType: "web",
+            canBeReassigned: true,
+            canBeFlashed: true,
+            supportsChat: true,
+          });
         }
       });
     });
