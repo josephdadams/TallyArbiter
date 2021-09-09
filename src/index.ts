@@ -278,9 +278,9 @@ function initialSetup() {
 			}
 
 			let listenerType = obj.listenerType ? obj.listenerType : 'client';
-			let canBeReassigned = obj.reassign ? obj.reassign : false;
-			let canBeFlashed = obj.flash ? obj.flash : false;
-			let supportsChat = obj.chat ? obj.chat : false;
+			let canBeReassigned = obj.canBeReassigned ? obj.canBeReassigned : false;
+			let canBeFlashed = obj.canBeFlashed ? obj.canBeFlashed : false;
+			let supportsChat = obj.supportsChat ? obj.supportsChat : false;
 
 			socket.join('device-' + deviceId);
 			let deviceName = GetDeviceByDeviceId(deviceId).name;
