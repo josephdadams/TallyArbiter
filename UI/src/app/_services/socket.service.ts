@@ -23,6 +23,7 @@ import { ErrorReport } from '../_models/ErrorReport';
 import { ErrorReportsListElement } from '../_models/ErrorReportsListElement';
 import { DeviceTallyData } from "../_models/TallyData";
 import { Addresses } from '../_models/Addresses';
+import { DeviceState } from '../_models/DeviceState';
 
 @Injectable({
   providedIn: 'root'
@@ -30,7 +31,7 @@ import { Addresses } from '../_models/Addresses';
 export class SocketService {
   public socket: Socket;
   public devices: Device[] = [];
-  public currentTallyData: DeviceTallyData = {};
+  public device_states: DeviceState[] = [];
   public currentDeviceIdx?: number;
   public mode_preview?: boolean;
   public mode_program?: boolean;
@@ -68,7 +69,7 @@ export class SocketService {
   public scrollTallyDataSubject = new Subject();
   public scrollChatSubject = new Subject();
   public closeModals = new Subject();
-  public deviceStateChanged = new Subject<{device: Device, tallyData: {busses: string[]}}>();
+  public deviceStateChanged = new Subject<DeviceState[]>();
 
 
   constructor() {
@@ -79,7 +80,7 @@ export class SocketService {
     this.socket.on('devices', (devices: Device[]) => {
       this.devices = devices;
       this._resolveDataLoadedPromise();
-      this.setupDeviceStates();
+      this.deviceStateChanged.next(this.device_states);
     });
     this.socket.on('bus_options', (busOptions: BusOption[]) => {
       this.busOptions = busOptions;
@@ -101,9 +102,9 @@ export class SocketService {
         return l;
       })
     });
-    this.socket.on('currentTallyData', (data: DeviceTallyData) => {
-      this.currentTallyData = data;
-      this.setupDeviceStates();
+    this.socket.on('device_states', (device_states: DeviceState[]) => {
+      this.device_states = device_states;
+      this.deviceStateChanged.next(this.device_states);
     });
     this.socket.on("messaging", (type: "server" | "client" | "producer", socketId: string, message: string) => {
       this.messages.push({
@@ -177,7 +178,7 @@ export class SocketService {
       console.log("new addresses", addresses);
       this.addresses = addresses;
     });
-    this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], addresses: Addresses, outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], currentTallyData: DeviceTallyData, tslClients: TSLClient[], cloudDestinations: CloudDestination[], cloudKeys: string[], cloudClients: CloudClient[]) => {
+    this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], addresses: Addresses, outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], device_states: DeviceState[], tslClients: TSLClient[], cloudDestinations: CloudDestination[], cloudKeys: string[], cloudClients: CloudClient[]) => {
       this.initialDataLoaded = true;
       this.sourceTypes = sourceTypes.filter((s: SourceType) => s.enabled);
       this.sourceTypeDataFields = sourceTypesDataFields;
@@ -189,13 +190,14 @@ export class SocketService {
       this.devices = devicesData;
       this.deviceSources = deviceSources;
       this.deviceActions = deviceActions;
-      this.currentTallyData = currentTallyData;
+      this.device_states = device_states;
       this.tslClients = tslClients;
       
       this.cloudDestinations = cloudDestinations;
       this.cloudKeys = cloudKeys;
       this.cloudClients = cloudClients;
-      this.setupDeviceStates();
+      console.log("initial", device_states);
+      this.deviceStateChanged.next(this.device_states);
     });
     this.socket.on('listener_clients', (listenerClients: ListenerClient[]) => {
       this.listenerClients = listenerClients.map((l) => {
@@ -219,7 +221,7 @@ export class SocketService {
           this.socket.emit('devices');
           this.socket.emit('device_sources');
           this.socket.emit('device_actions');
-          this.socket.emit('currentTallyData');
+          this.socket.emit('device_states');
           this.socket.emit('listener_clients');
           break;
         case 'device-source-added-successfully':
@@ -308,12 +310,6 @@ export class SocketService {
 
   public getSourceById(sourceId: string) {
     return this.sources.find(({id}) => id === sourceId);
-  }
-
-  private setupDeviceStates() {
-    for (const device of this.devices) {
-      this.deviceStateChanged.next({ device, tallyData: { busses: this.currentTallyData[device.id] || []}});
-    }
   }
 
   public joinProducers() {

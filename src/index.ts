@@ -20,11 +20,6 @@ import { TallyInput } from './sources/_Source';
 import { CloudClient } from "./_models/CloudClient";
 import { FlashListenerClientResponse } from "./_models/FlashListenerClientResponse";
 import { MessageListenerClientResponse } from "./_models/MessageListenerClientResponse";
-import { ErrorReport } from './_models/ErrorReport';
-import { ErrorReportsListElement } from "./_models/ErrorReportsListElement";
-import { ConfigSecuritySection } from "./_models/ConfigSecuritySection";
-import { ConfigTSLClient } from "./_models/ConfigTSLClient";
-import { Config } from './_models/Config';
 import { ManageResponse } from './_models/ManageResponse';
 import { LogItem } from "./_models/LogItem";
 import { Source } from './_models/Source';
@@ -58,8 +53,9 @@ import { getNetworkInterfaces } from './_helpers/networkInterfaces';
 import { loadClassesFromFolder } from './_helpers/fileLoder';
 import { UsePort } from './_decorators/UsesPort.decorator';
 import { secondsToHms } from './_helpers/time';
-import { ConfigDefaults, currentConfig, getConfigRedacted, readConfig, SaveConfig } from './_helpers/config';
+import { currentConfig, getConfigRedacted, readConfig, SaveConfig } from './_helpers/config';
 import { generateErrorReport, getErrorReport, getErrorReportsList, getUnreadErrorReportsList, markErrorReportAsRead } from './_helpers/errorReports';
+import { DeviceState } from './_models/DeviceState';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
@@ -97,9 +93,9 @@ const app = express();
 const httpServer = new http.Server(app);
 
 const io = new socketio.Server(httpServer, { allowEIO3: true });
-const socketupdates_Settings: string[]  = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients', 'tsl_clients', 'cloud_destinations', 'cloud_keys', 'cloud_clients', 'PortsInUse', 'vmix_clients', "addresses"];
-const socketupdates_Producer: string[]  = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients'];
-const socketupdates_Companion: string[] = ['sources', 'devices', 'device_sources', 'currentTallyData', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
+const socketupdates_Settings: string[]  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations', 'cloud_keys', 'cloud_clients', 'PortsInUse', 'vmix_clients', "addresses"];
+const socketupdates_Producer: string[]  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients'];
+const socketupdates_Companion: string[] = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
 
 const vmixEmulatorPort: string = '8099'; // Default 8099
 var vmix_emulator	= null; //TCP server for VMix Emulator
@@ -299,7 +295,7 @@ function initialSetup() {
 
 			socket.emit('bus_options', currentConfig.bus_options);
 			socket.emit('devices', devices);
-			socket.emit('currentTallyData', currentDeviceTallyData);
+			socket.emit('device_states', getDeviceStates(deviceId));
 
 			if (oldDeviceId !== null) {
 				//sends a reassign command to officially reassign the listener client to the new device ID since the first one was invalid
@@ -307,14 +303,14 @@ function initialSetup() {
 			}
 		});
 
-		socket.on('currentTallyData', (deviceId: string) => {
-			socket.emit('currentTallyData', currentDeviceTallyData);
+		socket.on('device_states', (deviceId: string) => {
+			socket.emit('device_states', getDeviceStates(deviceId));
 		});
 
 		socket.on('settings', () => {
 			socket.join('settings');
 			socket.join('messaging');
-			socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), addresses.value, getOutputTypes(), getOutputTypeDataFields(), currentConfig.bus_options, getSources(), devices, device_sources, device_actions, currentDeviceTallyData, tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
+			socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), addresses.value, getOutputTypes(), getOutputTypeDataFields(), currentConfig.bus_options, getSources(), devices, device_sources, device_actions, getDeviceStates(), tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
 			socket.emit('listener_clients', listener_clients);
 			socket.emit('logs', Logs);
 			socket.emit('PortsInUse', PortsInUse.value);
@@ -328,7 +324,7 @@ function initialSetup() {
 			socket.emit('devices', devices);
 			socket.emit('bus_options', currentConfig.bus_options);
 			socket.emit('listener_clients', listener_clients);
-			socket.emit('currentTallyData', currentDeviceTallyData);
+			socket.emit('device_states', getDeviceStates());
 		});
 
 		socket.on('companion', () => {
@@ -337,7 +333,7 @@ function initialSetup() {
 			socket.emit('devices', devices);
 			socket.emit('bus_options', currentConfig.bus_options);
 			socket.emit('device_sources', device_sources);
-			socket.emit('currentTallyData', currentDeviceTallyData);
+			socket.emit('device_states', getDeviceStates());
 			socket.emit('listener_clients', listener_clients);
 			socket.emit('tsl_clients', tsl_clients);
 			socket.emit('cloud_destinations', cloud_destinations);
@@ -376,7 +372,7 @@ function initialSetup() {
 			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info');
 			UpdateSockets('listener_clients');
 			UpdateCloud('listener_clients');
-			socket.emit('currentTallyData', currentDeviceTallyData);
+			socket.emit('device_states', getDeviceStates());
 		});
 
 		socket.on('listener_reassign_relay', (relayGroupId, oldDeviceId, deviceId) => {
@@ -463,7 +459,7 @@ function initialSetup() {
 			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info');
 			UpdateSockets('listener_clients');
 			UpdateCloud('listener_clients');
-			socket.emit('currentTallyData', currentDeviceTallyData);
+			socket.emit('device_states', getDeviceStates());
 		});
 
 		socket.on('listener_delete', (clientId) => { // emitted by the Settings page when an inactive client is being removed manually
@@ -834,6 +830,20 @@ function getSources(): Source[] {
 	});
 }
 
+function getDeviceStates(deviceId?: string): DeviceState[] {
+	return devices.filter((d) => deviceId ? d.id == deviceId : true).flatMap((d) => currentConfig.bus_options.map((b) => {
+		const deviceSources = device_sources.filter((s) => s.deviceId == d.id);
+		return {
+			busId: b.id,
+			deviceId: d.id,
+			sources: deviceSources.filter(
+				(s) => Object.entries(SourceClients[s.sourceId]?.tally?.value || [])
+				.filter(([address, busses]) => address == s.address)
+					.findIndex(([address, busses]) => busses.includes(b.type)) !== -1).map((s) => s.id),
+		}
+	}));
+}
+
 function getSourceTypeDataFields(): SourceTypeDataFields[] {
 	return Object.entries(TallyInputs).map(([id, data]) => ({
 		sourceTypeId: id,
@@ -947,7 +957,7 @@ function UpdateDeviceState(deviceId: string) {
 
 	const deviceSources = device_sources.filter((d) => d.deviceId == deviceId);
 	for (const bus of currentConfig.bus_options) {
-		if (device.linkedBusses.includes(bus.id)) {
+		if ((device.linkedBusses || []).includes(bus.id)) {
 			// bus is linked, which means all sources must be in this bus
 			if (deviceSources.findIndex((s) => !currentSourceTallyData?.[s.id]?.includes(bus.type)) === -1) {
 				currentDeviceTallyData[device.id].push(bus.id);
@@ -973,7 +983,7 @@ function UpdateDeviceState(deviceId: string) {
 			}
 		}
 	}
-	UpdateSockets("currentTallyData");
+	UpdateSockets("device_states");
 	UpdateListenerClients(deviceId);
 }
 
@@ -1668,7 +1678,7 @@ function SetCloudDestinationStatus(cloudId, status) {
 	UpdateSockets('cloud_destinations');
 }
 
-function UpdateCloud(dataType: 'sources' | 'devices' | 'device_sources' | 'currentTallyData' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse") {
+function UpdateCloud(dataType: 'sources' | 'devices' | 'device_sources' | 'device_states' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse") {
 	for (let i = 0; i < cloud_destinations_sockets.length; i++) {
 		if (cloud_destinations_sockets[i].connected === true) {
 			try {
@@ -1696,7 +1706,7 @@ function UpdateCloud(dataType: 'sources' | 'devices' | 'device_sources' | 'curre
 	}
 }
 
-type SocketUpdateDataType = 'sources' | 'devices' | 'device_sources' | 'currentTallyData' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse" | "addresses";
+type SocketUpdateDataType = 'sources' | 'devices' | 'device_sources' | 'device_states' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse" | "addresses";
 
 function UpdateSockets(dataType: SocketUpdateDataType) {
 	const data: Record<SocketUpdateDataType, () => any> = {
@@ -1705,7 +1715,7 @@ function UpdateSockets(dataType: SocketUpdateDataType) {
 		sources: () => getSources(),
 		devices: () => devices,
 		device_sources: () => device_sources,
-		currentTallyData: () => currentDeviceTallyData, 
+		device_states: () => getDeviceStates(), 
 		listener_clients: () => listener_clients, 
 		vmix_clients: () => vmix_client_data, 
 		tsl_clients: () => tsl_clients, 
@@ -1877,7 +1887,7 @@ function TallyArbiter_Delete_Source(obj: Manage): ManageResponse {
 		}
 	} */
 
-	UpdateSockets('currentTallyData');
+	UpdateSockets('device_states');
 
 	logger(`Source Deleted: ${sourceName}`, 'info');
 
@@ -2386,7 +2396,7 @@ function UpdateListenerClients(deviceId: string) {
 	const device = GetDeviceByDeviceId(deviceId);
 	for (const listenerClient of listener_clients.filter((l) => l.deviceId == deviceId && !l.inactive)) {
 		logger(`Sending device states to Listener Client: ${listenerClient.id} - ${device.name}`, 'info-quiet');
-		io.to(`device-${deviceId}`).emit('deviceTallyData', currentDeviceTallyData[deviceId]);
+		io.to(`device-${deviceId}`).emit('device_states', getDeviceStates(deviceId));
 	}
 }
 
