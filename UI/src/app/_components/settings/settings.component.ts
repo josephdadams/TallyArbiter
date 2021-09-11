@@ -79,8 +79,10 @@ export class SettingsComponent {
 		this.socketService.joinAdmins();
 		this.socketService.closeModals.subscribe(() => this.modalService.dismissAll());
 		this.socketService.scrollTallyDataSubject.subscribe(() => this.scrollToBottom(this.tallyDataContainer));
-		this.socketService.deviceStateChanged.subscribe(({ device, tallyData }) => {
-			this.deviceBusColors[device.id] = tallyData.busses;
+		this.socketService.deviceStateChanged.subscribe((deviceStates) => {
+			for (const device of this.socketService.devices) {
+				this.deviceBusColors[device.id] = deviceStates.filter((d) => d.deviceId == device.id && d.sources.length > 0).map((d) => d.busId);
+			}
 		});
 		this.socketService.newLogsSubject.subscribe(() => {
 			this.filterLogs();

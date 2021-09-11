@@ -44,11 +44,11 @@ export class TallyComponent {
         document.body.classList.remove('flash');
       }, 500);
     });
-    this.socketService.socket.on("deviceTallyData", (busIds: string[]) => {
+    this.socketService.deviceStateChanged.subscribe((deviceStates) => {
       if (this.currentDeviceIdx === undefined) {
         return;
       }
-      const hightestPriorityBus = busIds.map((busId) => this.socketService.busOptions.find((b) => b.id == busId)).reduce((a: any, b: any) => a?.priority > b?.priority ? a : b, {}) as BusOption;
+      const hightestPriorityBus = deviceStates.filter((d) => d.deviceId == this.socketService.devices[this.currentDeviceIdx!].id && d.sources.length > 0).map(({busId}) => this.socketService.busOptions.find((b) => b.id == busId)).reduce((a: any, b: any) => a?.priority > b?.priority ? a : b, {}) as BusOption;
       if (!hightestPriorityBus || Object.entries(hightestPriorityBus).length == 0) {
         this.currentBus = undefined;
         return;
