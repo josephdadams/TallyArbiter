@@ -1,8 +1,6 @@
 /* Tally Arbiter */
 
 //Protocol, Network, Socket, Server libraries/variables
-import net from 'net';
-import dgram from 'dgram';
 import fs from 'fs-extra';
 import findPackageJson from "find-package-json";
 import path from 'path';
@@ -12,7 +10,6 @@ import bodyParser from 'body-parser';
 import http from 'http';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
-import findRemoveSync from 'find-remove';
 import { BehaviorSubject } from 'rxjs';
 
 //TypeScript models
@@ -57,6 +54,8 @@ import { currentConfig, getConfigRedacted, readConfig, SaveConfig } from './_hel
 import { deleteEveryErrorReport, generateErrorReport, getErrorReport, getErrorReportsList, getUnreadErrorReportsList, markErrorReportAsRead, markErrorReportsAsRead } from './_helpers/errorReports';
 import { DeviceState } from './_models/DeviceState';
 import { VMixEmulator } from './_modules/VMix';
+import { TSLListenerProvider } from './_modules/TSL';
+import { ListenerProvider } from './_modules/_ListenerProvider';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
@@ -100,9 +99,9 @@ const socketupdates_Companion: string[] = ['sources', 'devices', 'device_sources
 
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 let vMixEmulator: VMixEmulator;
+let tslListenerProvider: TSLListenerProvider;
+let tsl_clients_interval: NodeJS.Timer | null = null;
 
-export var tsl_clients: TSLClient[]							 = []; //array of TSL 3.1 clients that Tally Arbiter will send tally data to
-var tsl_clients_interval: NodeJS.Timer | null			 = null;
 var cloud_destinations: CloudDestination[]				 = []; //array of Tally Arbiter Cloud Destinations (host, port, key)
 var cloud_destinations_sockets: CloudDestinationSocket[] = []; //array of actual socket connections
 var cloud_keys: string[] 								 = []; //array of Tally Arbiter Cloud Sources (key only)
@@ -125,7 +124,7 @@ PortsInUse.subscribe(() => {
 })
 
 var sources: Source[]						= []; // the configured tally sources
-var devices: Device[] 						= []; // the configured tally devices
+export var devices: Device[] 						= []; // the configured tally devices
 export var device_sources: DeviceSource[]	= []; // the configured tally device-source mappings
 var device_actions: DeviceAction[]			= []; // the configured device output actions
 var currentDeviceTallyData: DeviceTallyData = {}; // tally data (=bus array) per device id (linked busses taken into account)
@@ -306,7 +305,7 @@ function initialSetup() {
 		socket.on('settings', () => {
 			socket.join('settings');
 			socket.join('messaging');
-			socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), addresses.value, getOutputTypes(), getOutputTypeDataFields(), currentConfig.bus_options, getSources(), devices, device_sources, device_actions, getDeviceStates(), tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
+			socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), addresses.value, getOutputTypes(), getOutputTypeDataFields(), currentConfig.bus_options, getSources(), devices, device_sources, device_actions, getDeviceStates(), tslListenerProvider.tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
 			socket.emit('listener_clients', listener_clients);
 			socket.emit('logs', Logs);
 			socket.emit('PortsInUse', PortsInUse.value);
@@ -331,7 +330,7 @@ function initialSetup() {
 			socket.emit('device_sources', device_sources);
 			socket.emit('device_states', getDeviceStates());
 			socket.emit('listener_clients', listener_clients);
-			socket.emit('tsl_clients', tsl_clients);
+			socket.emit('tsl_clients', tslListenerProvider.tsl_clients);
 			socket.emit('cloud_destinations', cloud_destinations);
 		});
 
@@ -726,7 +725,7 @@ function initialSetup() {
 		});
 		
 		socket.on('tsl_clients', () =>  {
-			socket.emit('tsl_clients', tsl_clients);
+			socket.emit('tsl_clients', tslListenerProvider.tsl_clients);
 		});
 		
 		socket.on('cloud_destinations', () =>  {
@@ -787,22 +786,15 @@ function initialSetup() {
 	logger('Starting VMix Emulation Service.', 'info-quiet');
 
 	vMixEmulator = new VMixEmulator();
-	vMixEmulator.on("chatMessage", (type, socketId, message) => SendMessage(type, socketId, message));
-	vMixEmulator.on("updateClients", () => {
-        UpdateSockets('vmix_clients');
-        UpdateCloud('vmix_clients');
-	});
+	tslListenerProvider = new TSLListenerProvider();
 
-	if (tsl_clients.length > 0) {
-		logger(`Initiating ${tsl_clients.length} TSL Client Connections.`, 'info');
-
-		for (let i = 0; i < tsl_clients.length; i++) {
-			logger(`TSL Client: ${tsl_clients[i].ip}:${tsl_clients[i].port} (${tsl_clients[i].transport})`, 'info-quiet');
-			tsl_clients[i].connected = false;
-			StartTSLClientConnection(tsl_clients[i].id);
-		}
-
-		logger(`Finished TSL Client Connections.`, 'info');
+	const providers = [vMixEmulator, tslListenerProvider];
+	for (const provider of providers as ListenerProvider[]) {
+		provider.on("chatMessage", (type, socketId, message) => SendMessage(type, socketId, message));
+		provider.on("updateSockets", (type) => {
+			UpdateSockets(type);
+			UpdateCloud(type);
+		});
 	}
 
 	if (cloud_destinations.length > 0) {
@@ -829,6 +821,26 @@ function getSources(): Source[] {
 		s.connected = SourceClients[s.id]?.connected?.value || false;
 		return s;
 	});
+}
+
+function TSLClients_1SecUpdate(value) {
+	if (this.tsl_clients_interval !== null) {
+		clearInterval(this.tsl_clients_interval);
+	}
+
+	logger(`TSL Clients 1 Second Updates are turned ${(value ? 'on' : 'off')}.`, 'info');
+
+	if (value) {
+		logger('Starting TSL Clients 1 Second Interval.', 'info');
+		this.tsl_clients_interval = setInterval(TSLClients_UpdateAll, 1000);
+	}
+}
+
+function TSLClients_UpdateAll() {
+	//loops through all devices and sends out the state, 1 per second
+	for (const device of devices) {
+		tslListenerProvider.updateListenerClientsForDevice(currentDeviceTallyData, device);
+	}
 }
 
 function getDeviceStates(deviceId?: string): DeviceState[] {
@@ -968,6 +980,7 @@ function UpdateDeviceState(deviceId: string) {
 	UpdateSockets("device_states");
 	UpdateListenerClients(deviceId);
 	vMixEmulator?.updateListenerClients(currentDeviceTallyData);
+	tslListenerProvider?.updateListenerClientsForDevice(currentDeviceTallyData, device);
 }
 
 export function logger(log, type: "info-quiet" | "info" | "error" | "console_action" = "info-quiet"): void { //logs the item to the console, to the log array, and sends the log item to the settings page
@@ -1015,10 +1028,6 @@ function loadConfig() { // loads the JSON data from the config file to memory
 
 		device_actions = currentConfig.device_actions;
 		logger('Tally Arbiter Device Actions loaded.', 'info');
-		logger(`${device_actions.length} Device Sources configured.`, 'info');
-
-		tsl_clients = currentConfig.tsl_clients.map((t) => ({...t, connected: false}));
-		logger('Tally Arbiter TSL Clients loaded.', 'info');
 		logger(`${device_actions.length} Device Sources configured.`, 'info');
 
 		if (currentConfig.tsl_clients_1secupdate) {
@@ -1266,212 +1275,6 @@ function StopConnection(sourceId: string) {
 	SourceClients[sourceId].exit();
 }
 
-function StartTSLClientConnection(tslClientId) {
-	for (let i = 0; i < tsl_clients.length; i++) {
-		if (tsl_clients[i].id === tslClientId) {
-			switch(tsl_clients[i].transport) {
-				case 'udp':
-					logger(`TSL Client: ${tslClientId}  Initiating TSL Client UDP Socket.`, 'info-quiet');
-					tsl_clients[i].socket = dgram.createSocket('udp4');
-					tsl_clients[i].socket.on('error', (error) => {
-						logger(`An error occurred with the connection to ${tsl_clients[i].ip}:${tsl_clients[i].port}  ${error}`, 'error');
-						tsl_clients[i].error = true;
-						if (error.toString().indexOf('ECONNREFUSED') > -1) {
-							tsl_clients[i].connected = false;
-						}
-						UpdateSockets('tsl_clients');
-					});
-					tsl_clients[i].socket.on('connect', () =>  {
-						logger(`TSL Client ${tslClientId} Connection Established: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
-						tsl_clients[i].error = false;
-						tsl_clients[i].connected = true;
-						UpdateSockets('tsl_clients');
-					});
-					tsl_clients[i].socket.on('close', () =>  {
-						if (tsl_clients[i]) {
-							logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
-							tsl_clients[i].error = false;
-							tsl_clients[i].connected = false;
-							UpdateSockets('tsl_clients');
-						}
-					});
-					tsl_clients[i].connected = true;
-					break;
-				case 'tcp':
-					logger(`TSL Client: ${tslClientId}  Initiating TSL Client TCP Socket.`, 'info-quiet');
-					tsl_clients[i].socket = new net.Socket();
-					tsl_clients[i].socket.on('error', (error) => {
-						logger(`An error occurred with the connection to ${tsl_clients[i].ip}:${tsl_clients[i].port}  ${error}`, 'error');
-						tsl_clients[i].error = true;
-						if (error.toString().indexOf('ECONNREFUSED') > -1) {
-							tsl_clients[i].connected = false;
-						}
-						UpdateSockets('tsl_clients');
-					});
-					tsl_clients[i].socket.on('connect', () =>  {
-						logger(`TSL Client ${tslClientId} Connection Established: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
-						tsl_clients[i].error = false;
-						tsl_clients[i].connected = true;
-						UpdateSockets('tsl_clients');
-					});
-					tsl_clients[i].socket.on('close', () => {
-						if (tsl_clients[i]) {
-							logger(`TSL Client ${tslClientId} Connection Closed: ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info-quiet');
-							tsl_clients[i].error = false;
-							tsl_clients[i].connected = false;
-							UpdateSockets('tsl_clients');
-						}
-					});
-					tsl_clients[i].socket.connect(parseInt(tsl_clients[i].port as string), tsl_clients[i].ip);
-					break;
-				default:
-					break;
-			}
-			break;
-		}
-	}
-}
-
-function StopTSLClientConnection(tslClientId) {
-	for (let i = 0; i < tsl_clients.length; i++) {
-		if (tsl_clients[i].id === tslClientId) {
-			switch(tsl_clients[i].transport) {
-				case 'udp':
-					logger(`TSL Client: ${tslClientId}  Closing TSL Client UDP Socket.`, 'info-quiet');
-					tsl_clients[i].socket.close();
-					break;
-				case 'tcp':
-					logger(`TSL Client: ${tslClientId}  Closing TSL Client TCP Socket.`, 'info-quiet');
-					tsl_clients[i].socket.end();
-					break;
-				default:
-					break;
-			}
-			break;
-		}
-	}
-}
-
-function SendTSLClientData(deviceId) {
-	let device = GetDeviceByDeviceId(deviceId);
-
-	let filtered_currentTallyData = currentDeviceTallyData as any;
-
-	let tslAddress = (device.tslAddress) ? parseInt(device.tslAddress) : -1;
-
-	let mode_preview = false;
-	let mode_program = false;
-
-	if (tslAddress !== -1) {
-		let bufUMD = Buffer.alloc(18, 0); //ignores spec and pad with 0 for better aligning on Decimator etc
-		bufUMD[0] = 0x80 + tslAddress;
-		bufUMD.write(device.name, 2);
-
-		for (let i = 0; i < filtered_currentTallyData.length; i++) {
-			if (GetBusByBusId(filtered_currentTallyData[i].busId).type === 'preview') {
-				if (filtered_currentTallyData[i].sources.length > 0) {
-					mode_preview = true;
-				}
-				else {
-					mode_preview = false;
-				}
-			}
-			else if (GetBusByBusId(filtered_currentTallyData[i].busId).type === 'program') {
-				if (filtered_currentTallyData[i].sources.length > 0) {
-					mode_program = true;
-				}
-				else {
-					mode_program = false;
-				}
-			}
-			//could add support for other states here like tally3, tally4, whatever the TSL protocol supports
-		}
-
-		let data: any = {};
-
-		if (mode_preview) {
-			data.tally1 = 1;
-		}
-		else {
-			data.tally1 = 0;
-		}
-
-		if (mode_program) {
-			data.tally2 = 1;
-		}
-		else {
-			data.tally2 = 0;
-		}
-
-		data.tally3 = 0;
-		data.tally4 = 0;
-
-		let bufTally = 0x30;
-
-		if (data.tally1) {
-			bufTally |= 1;
-		}
-		if (data.tally2) {
-			bufTally |= 2;
-		}
-		if (data.tally3) {
-			bufTally |= 4;
-		}
-		if (data.tally4) {
-			bufTally |= 8;
-		}
-		bufUMD[1] = bufTally;
-
-		for (let i = 0; i < tsl_clients.length; i++) {
-			if (tsl_clients[i].connected === true) {
-				logger(`Sending TSL data for ${device.name} to ${tsl_clients[i].ip}:${tsl_clients[i].port}`, 'info');
-				switch(tsl_clients[i].transport) {
-					case 'udp':
-						try {
-							tsl_clients[i].socket.send(bufUMD, parseInt(tsl_clients[i].port as string), tsl_clients[i].ip);
-						}
-						catch(error) {
-							logger(`An error occurred sending TSL data for ${device.name} to ${tsl_clients[i].ip}:${tsl_clients[i].port}  ${error}`, 'error');
-							tsl_clients[i].error = true;
-						}
-						break;
-					case 'tcp':
-						try {
-							tsl_clients[i].socket.write(bufUMD);
-						}
-						catch(error) {
-							logger(`An error occurred sending TSL data for ${device.name} to ${tsl_clients[i].ip}:${tsl_clients[i].port}  ${error}`, 'error');
-							tsl_clients[i].error = true;
-						}
-						break;
-					default:
-						break;
-				}
-			}
-		}
-	}
-}
-
-function TSLClients_1SecUpdate(value) {
-	if (tsl_clients_interval !== null) {
-		clearInterval(tsl_clients_interval);
-	}
-
-	logger(`TSL Clients 1 Second Updates are turned ${ (value ? 'on' : 'off')}.`, 'info');
-
-	if (value) {
-		logger('Starting TSL Clients 1 Second Interval.', 'info');
-		tsl_clients_interval = setInterval(TSLClients_UpdateAll, 1000);
-	}
-}
-
-function TSLClients_UpdateAll() {
-	//loops through all devices and sends out the state, 1 per second
-	for (let i = 0; i < devices.length; i++) {
-		SendTSLClientData(devices[i].id);
-	}
-}
-
 function StartCloudDestination(cloudDestinationId) {
 	let cloud_destination = GetCloudDestinationById(cloudDestinationId);
 
@@ -1618,7 +1421,7 @@ function UpdateSockets(dataType: SocketUpdateDataType) {
 		device_states: () => getDeviceStates(), 
 		listener_clients: () => listener_clients, 
 		vmix_clients: () => vMixEmulator.vmix_client_data, 
-		tsl_clients: () => tsl_clients, 
+		tsl_clients: () => tslListenerProvider.tsl_clients, 
 		cloud_destinations: () => cloud_destinations, 
 		cloud_clients: () => cloud_clients,
 	}
@@ -1735,7 +1538,7 @@ function TallyArbiter_Add_Device(obj: Manage): ManageResponse {
 
 	UpdateDeviceState(deviceObj.id);
 
-	SendTSLClientData(deviceObj.id);
+	tslListenerProvider.updateListenerClientsForDevice(currentDeviceTallyData, deviceObj);
 
 	logger(`Device Added: ${deviceObj.name}`, 'info');
 
@@ -1753,8 +1556,7 @@ function TallyArbiter_Edit_Device(obj: Manage): ManageResponse {
 			devices[i].linkedBusses = deviceObj.linkedBusses;
 		}
 	}
-
-	SendTSLClientData(deviceObj.id);
+	tslListenerProvider.updateListenerClientsForDevice(currentDeviceTallyData, deviceObj);
 
 	UpdateCloud('devices');
 
@@ -1924,11 +1726,11 @@ function TallyArbiter_Delete_Device_Action(obj: Manage): ManageResponse {
 function TallyArbiter_Add_TSL_Client(obj: Manage): ManageResponse {
 	let tslClientObj = obj.tslClient;
 	tslClientObj.id = uuidv4();
-	tsl_clients.push(tslClientObj);
+	currentConfig.tsl_clients.push(tslClientObj);
 
 	logger(`TSL Client Added: ${tslClientObj.ip}:${tslClientObj.port} (${tslClientObj.transport})`, 'info');
 
-	StartTSLClientConnection(tslClientObj.id);
+	tslListenerProvider.startTSLClientConnection(tslClientObj);
 
 	return {result: 'tsl-client-added-successfully'};
 }
@@ -1936,14 +1738,14 @@ function TallyArbiter_Add_TSL_Client(obj: Manage): ManageResponse {
 function TallyArbiter_Edit_TSL_Client(obj: Manage): ManageResponse {
 	let tslClientObj = obj.tslClient;
 
-	for (let i = 0; i < tsl_clients.length; i++) {
-		if (tsl_clients[i].id === tslClientObj.id) {
+	for (let i = 0; i < currentConfig.tsl_clients.length; i++) {
+		if (currentConfig.tsl_clients[i].id === tslClientObj.id) {
 			//something was changed so we need to stop and restart the connection
-			StopTSLClientConnection(tslClientObj.id);
-			tsl_clients[i].ip = tslClientObj.ip;
-			tsl_clients[i].port = tslClientObj.port;
-			tsl_clients[i].transport = tslClientObj.transport;
-			setTimeout(StartTSLClientConnection, 5000, tsl_clients[i].id); //opens the port again after 5 seconds to give the old port time to close
+			tslListenerProvider.stopTSLClientConnection(tslClientObj.id);
+			currentConfig.tsl_clients[i].ip = tslClientObj.ip;
+			currentConfig.tsl_clients[i].port = tslClientObj.port;
+			currentConfig.tsl_clients[i].transport = tslClientObj.transport;
+			setTimeout(() => tslListenerProvider.startTSLClientConnection(currentConfig.tsl_clients[i]), 5000); //opens the port again after 5 seconds to give the old port time to close
 			break;
 		}
 	}
@@ -1957,10 +1759,10 @@ function TallyArbiter_Delete_TSL_Client(obj: Manage): ManageResponse {
 	let tslClientObj = GetTSLClientById(obj.tslClientId);
 	let tslClientId = obj.tslClientId;
 
-	for (let i = 0; i < tsl_clients.length; i++) {
-		if (tsl_clients[i].id === tslClientId) {
-			StopTSLClientConnection(tslClientId);
-			tsl_clients.splice(i, 1);
+	for (let i = 0; i < currentConfig.tsl_clients.length; i++) {
+		if (currentConfig.tsl_clients[i].id === tslClientId) {
+			tslListenerProvider.stopTSLClientConnection(tslClientId);
+			currentConfig.tsl_clients.splice(i, 1);
 			break;
 		}
 	}
@@ -2126,7 +1928,7 @@ function GetSourceBySourceId(sourceId: string): Source {
 	return sources.find( ({ id }) => id === sourceId);
 }
 
-function GetBusByBusId(busId: string): BusOption {
+export function GetBusByBusId(busId: string): BusOption {
 	//gets the Bus object by id
 	return currentConfig.bus_options.find( ({ id }) => id === busId);
 }
@@ -2150,7 +1952,7 @@ function GetDeviceByDeviceId(deviceId: string): Device {
 
 function GetTSLClientById(tslClientId: string): TSLClient {
 	//gets the TSL Client by the Id
-	return tsl_clients.find( ({ id }) => id === tslClientId);
+	return tslListenerProvider.tsl_clients.find( ({ id }) => id === tslClientId);
 }
 
 function GetCloudDestinationById(cloudId: string): CloudDestination {
@@ -2457,37 +2259,6 @@ function CheckListenerClients() { //checks all listener clients and if a client 
 function SendMessage(type: string, socketid: string | null, message: string) {
 	io.to('messaging').emit('messaging', type, socketid, message);
 }
-
-function getLogFilePath(): string {
-
-	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
-
-	const logFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/logs");
-
-	findRemoveSync(logFolder, {age: {seconds: 604800}, extensions: '.talog', limit: 100});
-
-	if (!fs.existsSync(logFolder)) {
-		fs.mkdirSync(logFolder, { recursive: true });
-	}
-	var logName = today + ".talog"
-	return path.join(logFolder, logName);
-}
-
-function getTallyDataPath(): string {
-
-	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, "-");
-
-	const TallyDataFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/TallyData");
-
-	findRemoveSync(TallyDataFolder, {age: {seconds: 604800}, extensions: '.tadata', limit: 100});
-
-	if (!fs.existsSync(TallyDataFolder)) {
-		fs.mkdirSync(TallyDataFolder, { recursive: true });
-	}
-	var logName = today + ".tadata"
-	return path.join(TallyDataFolder, logName);
-}
-
 
 function generateAndSendErrorReport(error: Error) {
 	let id = generateErrorReport(error);

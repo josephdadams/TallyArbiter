@@ -88,7 +88,7 @@ export class VMixEmulator extends ListenerProvider {
         });
         console.log(this.vmix_client_data);
         console.log(this.vmix_client_data.length);
-        this.emit("updateClients");
+        this.emit("updateSockets", "vmix_clients");
         logger(`VMix Emulator Connection ${host} subscribed to tally`, 'info');
     }
 
@@ -122,7 +122,7 @@ export class VMixEmulator extends ListenerProvider {
         }
 
         console.log(this.vmix_client_data);
-        this.emit("updateClients");
+        this.emit("updateSockets", "vmix_clients");
     }
 
     private deleteInactiveListenerClients() {
@@ -139,7 +139,7 @@ export class VMixEmulator extends ListenerProvider {
         }
     
         if (changesMade) {
-            this.emit("updateClients");
+            this.emit("updateSockets", "vmix_clients");
         }
     
         setTimeout(() => this.deleteInactiveListenerClients(), 5 * 60 * 1000); // runs every 5 minutes
