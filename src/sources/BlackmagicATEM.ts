@@ -40,6 +40,9 @@ export class BlackmagicATEMSource extends TallyInput {
 
         this.atemClient.on('connected', () => {
             this.connected.next(true);
+            const pgmList = [], prvList = [];
+            this.processATEMState(this.atemClient.state, pgmList, prvList);
+            this.processATEMTally(pgmList, prvList);
         });
 
         this.atemClient.on('disconnected', () => {
@@ -53,16 +56,7 @@ export class BlackmagicATEMSource extends TallyInput {
                     //console.log(state.info.capabilities);
                 }
                 else if ((path[h].indexOf('video.mixEffects') > -1) || (path[h].indexOf('video.ME') > -1) || (path[h].indexOf('video.downstreamKeyers') > -1)) {
-                    const addUniqueInput = (n, list) => {
-                        const s = n.toString();
-                        if (!list.includes(s)) list.push(s);
-                    }
-                    for (let i = 0; i < state.video.mixEffects.length; i++) {
-                        if (source.data.me_onair.includes((i + 1).toString())) {
-                            listVisibleInputs("program", state, i).forEach(n => addUniqueInput(n, pgmList));
-                            listVisibleInputs("preview", state, i).forEach(n => addUniqueInput(n, prvList));
-                        }
-                    }
+                    this.processATEMState(state, pgmList, prvList);
                 }
             }
             this.processATEMTally(pgmList, prvList);
@@ -72,6 +66,20 @@ export class BlackmagicATEMSource extends TallyInput {
         this.atemClient.on('error', console.error);
 
         this.atemClient.connect(atemIP);
+    }
+
+    private processATEMState(state, pgmList: any[], prvList: any[]) {
+        const addUniqueInput = (n, list) => {
+            const s = n.toString();
+            if (!list.includes(s))
+                list.push(s);
+        };
+        for (let i = 0; i < state.video.mixEffects.length; i++) {
+            if (this.source.data.me_onair.includes((i + 1).toString())) {
+                listVisibleInputs("program", state, i).forEach(n => addUniqueInput(n, pgmList));
+                listVisibleInputs("preview", state, i).forEach(n => addUniqueInput(n, prvList));
+            }
+        }
     }
 
     private processATEMTally(allPrograms: number[], allPreviews: number[]): void {
