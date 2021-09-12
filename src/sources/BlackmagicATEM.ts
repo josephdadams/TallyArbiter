@@ -1,8 +1,7 @@
 
 import { Atem, listVisibleInputs } from 'atem-connection';
-import { logger } from '..';
+import { RecordingStatus, StreamingStatus } from 'atem-connection/dist/enums';
 import { RegisterTallyInput } from "../_decorators/RegisterTallyInput.decorator";
-import { UsesPort } from '../_decorators/UsesPort.decorator';
 import { Source } from '../_models/Source';
 import { TallyInput } from './_Source';
 
@@ -31,6 +30,9 @@ import { TallyInput } from './_Source';
 ])
 export class BlackmagicATEMSource extends TallyInput {
     private atemClient: Atem;
+    private pgmList = new Set<number | string>();
+    private prvList = new Set<number | string>();
+
     constructor(source: Source) {
         super(source);
 
@@ -40,28 +42,31 @@ export class BlackmagicATEMSource extends TallyInput {
 
         this.atemClient.on('connected', () => {
             this.connected.next(true);
-            const pgmList = new Set<number>();
-            const prvList = new Set<number>();
-            this.processATEMState(this.atemClient.state, pgmList, prvList);
-            this.processATEMTally(pgmList, prvList);
+            this.processATEMState(this.atemClient.state);
+            this.processATEMTally();
+            if (this.atemClient.state.recording) {
+                this.addAddress("{{RECORDING}}", "{{RECORDING}}");
+            }
+            if (this.atemClient.state.streaming) {
+                this.addAddress("{{STREAMING}}", "{{STREAMING}}");
+            }
         });
 
         this.atemClient.on('disconnected', () => {
             this.connected.next(false);
         });
 
-        this.atemClient.on('stateChanged', (state, path) => {
-            const pgmList = new Set<number>();
-            const prvList = new Set<number>();
-            for (let h = 0; h < path.length; h++) {
-                if (path[h] === 'info.capabilities') {
-                    //console.log(state.info.capabilities);
-                }
-                else if ((path[h].indexOf('video.mixEffects') > -1) || (path[h].indexOf('video.ME') > -1) || (path[h].indexOf('video.downstreamKeyers') > -1)) {
-                    this.processATEMState(state, pgmList, prvList);
+        this.atemClient.on('stateChanged', (state, paths) => {
+            for (const path of paths) {
+                if ((path.indexOf('video.mixEffects') > -1) || (path.indexOf('video.ME') > -1) || (path.indexOf('video.downstreamKeyers') > -1)) {
+                    this.processATEMState(state);
+                } else if (path == "streaming.status") {
+                    this.processATEMState(state);
+                } else if (path == "recording.status") {
+                    this.processATEMState(state);
                 }
             }
-            this.processATEMTally(pgmList, prvList);
+            this.processATEMTally();
         });
 
         // this.atemClient.on('info', console.log);
@@ -70,33 +75,56 @@ export class BlackmagicATEMSource extends TallyInput {
         this.atemClient.connect(atemIP);
     }
 
-    private processATEMState(state, pgmList: Set<number>, prvList: Set<number>) {
+    private processATEMState(state) {
+        this.pgmList = new Set();
+        this.prvList = new Set();
         for (let i = 0; i < state.video.mixEffects.length; i++) {
             if (this.source.data.me_onair.includes((i + 1).toString())) {
-                listVisibleInputs("program", state, i).forEach(n => pgmList.add(n));
-                listVisibleInputs("preview", state, i).forEach(n => prvList.add(n));
+                listVisibleInputs("program", state, i).forEach(n => this.pgmList.add(n));
+                listVisibleInputs("preview", state, i).forEach(n => this.prvList.add(n));
             }
+        }
+        switch (this.atemClient.state.streaming?.status?.state) {
+            case StreamingStatus.Connecting:
+            case StreamingStatus.Stopping:
+                this.prvList.add("{{STREAMING}}");
+                break;
+                case StreamingStatus.Streaming:
+                this.pgmList.add("{{STREAMING}}");
+                break;
+            default:
+                break;
+        }
+        switch (this.atemClient.state.recording?.status?.state) {
+            case RecordingStatus.Stopping:
+                this.prvList.add("{{RECORDING}}");
+                break;
+            case RecordingStatus.Stopping:
+                this.pgmList.add("{{RECORDING}}");
+                break;
+            default:
+                break;
         }
     }
 
-    private processATEMTally(allPrograms: Set<number>, allPreviews: Set<number>): void {
+    private processATEMTally(): void {
         this.removeBusFromAllAddresses("preview");
         this.removeBusFromAllAddresses("program");
         let cutBusMode = this.source.data.cut_bus_mode;
     
         if (cutBusMode === 'on') {
-            for (const address of allPreviews) {
-                if (allPrograms.has(address)) {
+            for (const address of this.prvList) {
+                if (this.pgmList.has(address)) {
                     this.addBusToAddress(address.toString(), "program");
                 } else {
                     this.addBusToAddress(address.toString(), "preview");
                 }
             }
         } else {
-            for (const address of allPrograms) {
+            for (const address of this.pgmList) {
                 this.addBusToAddress(address.toString(), "program");
             }
-            for (const address of allPreviews) {
+            for (const address of this.prvList) {
                 this.addBusToAddress(address.toString(), "preview");
             }
         }
