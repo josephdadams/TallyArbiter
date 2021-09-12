@@ -1756,9 +1756,7 @@ function TallyArbiter_Delete_Source(obj: Manage): ManageResponse {
 	for (let i = 0; i < sources.length; i++) {
 		if (sources[i].id === sourceId) {
 			sourceName = sources[i].name;
-			if (sources[i].connected === true) {
-				StopConnection(sourceId);
-			}
+			StopConnection(sourceId);
 			if (sourceId !== 'TEST') {
 				sources.splice(i, 1);
 			}
@@ -1786,7 +1784,6 @@ function TallyArbiter_Delete_Source(obj: Manage): ManageResponse {
 	} */
 
 	UpdateSockets('device_states');
-	UpdateSockets('PortsInUse');
 
 	logger(`Source Deleted: ${sourceName}`, 'info');
 
