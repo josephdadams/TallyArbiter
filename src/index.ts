@@ -967,6 +967,7 @@ function UpdateDeviceState(deviceId: string) {
 	}
 	UpdateSockets("device_states");
 	UpdateListenerClients(deviceId);
+	vMixEmulator?.updateListenerClients(currentDeviceTallyData);
 }
 
 export function logger(log, type: "info-quiet" | "info" | "error" | "console_action" = "info-quiet"): void { //logs the item to the console, to the log array, and sends the log item to the settings page
@@ -1634,72 +1635,6 @@ function UpdateSockets(dataType: SocketUpdateDataType) {
 
 	if (socketupdates_Companion.includes(dataType)) {
 		emitTo('companion');
-	}
-}
-
-function UpdateVMixClients() {
-	let vmixTallyString = 'TALLY OK ';
-
-	let busId_preview = null;
-	let busId_program = null;
-
-	for (let i = 0; i < currentConfig.bus_options.length; i++) {
-		switch(currentConfig.bus_options[i].type) {
-			case 'preview':
-				busId_preview = currentConfig.bus_options[i].id;
-				break;
-			case 'program':
-				busId_program = currentConfig.bus_options[i].id;
-				break;
-			default:
-				break;
-		}
-	}
-
-	for (let i = 0; i < devices.length; i++) {
-		let deviceId = devices[i].id;
-
-		let inPreview = false;
-		let inProgram = false;
-
-		// ToDo
-		/*for (let i = 0; i < currentTallyData.length; i++) {
-			if (currentTallyData[i].deviceId === deviceId) {
-				if (currentTallyData[i].busId === busId_preview) {
-					if (currentTallyData[i].sources.length > 0) {
-						inPreview = true;
-					}
-					else {
-						inPreview = false;
-					}
-				}
-
-				if (currentTallyData[i].busId === busId_program) {
-					if (currentTallyData[i].sources.length > 0) {
-						inProgram = true;
-					}
-					else {
-						inProgram = false;
-					}
-				}
-			}
-		} */
-
-		if (inProgram) {
-			vmixTallyString += '1';
-		}
-		else if (inPreview) {
-			vmixTallyString += '2';
-		}
-		else {
-			vmixTallyString += '0';
-		}
-	}
-
-	vmixTallyString += '\r\n';
-
-	for (let i = 0; i < vMixEmulator.vmix_clients.length; i++) {
-		vMixEmulator.vmix_clients[i].write(vmixTallyString);
 	}
 }
 
