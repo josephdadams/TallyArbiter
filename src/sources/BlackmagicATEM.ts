@@ -47,12 +47,12 @@ export class BlackmagicATEMSource extends TallyInput {
         });
 
         this.atemClient.on('stateChanged', (state, path) => {
+            const pgmList = [], prvList = [];
             for (let h = 0; h < path.length; h++) {
                 if (path[h] === 'info.capabilities') {
                     //console.log(state.info.capabilities);
                 }
                 else if ((path[h].indexOf('video.mixEffects') > -1) || (path[h].indexOf('video.ME') > -1) || (path[h].indexOf('video.downstreamKeyers') > -1)) {
-                    const pgmList = [], prvList = [];
                     const addUniqueInput = (n, list) => {
                         const s = n.toString();
                         if (!list.includes(s)) list.push(s);
@@ -63,9 +63,9 @@ export class BlackmagicATEMSource extends TallyInput {
                             listVisibleInputs("preview", state, i).forEach(n => addUniqueInput(n, prvList));
                         }
                     }
-                    this.processATEMTally(pgmList, prvList);
                 }
             }
+            this.processATEMTally(pgmList, prvList);
         });
 
         // this.atemClient.on('info', console.log);
