@@ -1094,6 +1094,7 @@ function initializeSource(source: Source): void {
 				tallyData[device_source.id] = busses;
 			}
 		}
+		SendCloudSourceTallyData(source.id, tallyData);
 		processSourceTallyData(source.id, tallyData);
 	});
 	sourceClient.addresses.subscribe((sourceAddresses) => {
@@ -1547,7 +1548,7 @@ function StopCloudDestination(cloudDestinationId) {
 	}
 }
 
-function SendCloudData(sourceId, tallyObj) {
+function SendCloudSourceTallyData(sourceId: string, tallyObj: SourceTallyData) {
 	if (cloud_destinations.length > 0) {
 		//logger(`Sending data to Cloud Destinations.`, 'info-quiet');
 	}
