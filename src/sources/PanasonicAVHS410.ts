@@ -34,10 +34,12 @@ const sourceTypesPanasonic = [
     { id: '23', label: 'XPT 24' },
 ];
 
+const PanasonicAVHS410Port = 60020;
+
 @RegisterTallyInput("7da3b526", "Panasonic AV-HS410", "Uses port 60020. Make sure to have Multicast enabled on the network", [
     { fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
 ])
-@UsesPort("60020")
+@UsesPort(PanasonicAVHS410Port)
 export class PanasonicAVHS410Source extends TallyInput {
     private client: any;
     private multi: dgram.Socket;
@@ -45,7 +47,6 @@ export class PanasonicAVHS410Source extends TallyInput {
     constructor(source: Source) {
         super(source);
         let ip = source.data.ip;
-        let port = 60020;
 
         var receivebuffer = ''
         let multicastAddress = '224.0.0.200'
@@ -62,7 +63,7 @@ export class PanasonicAVHS410Source extends TallyInput {
         this.client = new net.Socket()
         this.multi = dgram.createSocket({ type: 'udp4', reuseAddr: true })
 
-        this.client.connect(port, ip, () => {
+        this.client.connect(PanasonicAVHS410Port, ip, () => {
             this.connected.next(true);
         });
 

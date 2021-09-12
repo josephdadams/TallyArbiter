@@ -1,4 +1,4 @@
 export interface Port {
-    port: string;
+    port: number;
     sourceId: string;
 }

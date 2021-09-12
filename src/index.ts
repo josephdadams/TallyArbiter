@@ -111,9 +111,9 @@ var cloud_clients: CloudClient[]						 = []; //array of Tally Arbiter Cloud Clie
 var TestMode = false; //if the system is in test mode or not
 const SourceClients: Record<string, TallyInput> = {};
 
-UsePort(listenPort.toString(), "reserved");
-UsePort("80", "reserved");
-UsePort("443", "reserved");
+UsePort(listenPort, "reserved");
+UsePort(80, "reserved");
+UsePort(443, "reserved");
 
 const addresses = new BehaviorSubject<Addresses>({});
 addresses.subscribe(() => {
@@ -840,7 +840,7 @@ function getDeviceStates(deviceId?: string): DeviceState[] {
 			sources: deviceSources.filter(
 				(s) => Object.entries(SourceClients[s.sourceId]?.tally?.value || [])
 				.filter(([address, busses]) => address == s.address)
-					.findIndex(([address, busses]) => busses.includes(b.type)) !== -1).map((s) => s.id),
+					.findIndex(([address, busses]: [string, string[]]) => busses.includes(b.type)) !== -1).map((s) => s.id),
 		}
 	}));
 }

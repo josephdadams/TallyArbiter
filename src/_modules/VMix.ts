@@ -9,10 +9,11 @@ export class ListenerProvider extends EventEmitter {
     
 }
 
-@UsesPort("8099")
+const VMixPort = 8099;
+
+@UsesPort(VMixPort)
 export class VMixEmulator extends ListenerProvider {
     private server: net.Server;
-    private readonly port: string = '8099';
     public vmix_clients = []; // Clients currently connected to the VMix Emulator
     public vmix_client_data = []; // array of connected Vmix clients
 
@@ -21,8 +22,8 @@ export class VMixEmulator extends ListenerProvider {
 
         this.server.on('connection', (socket) => this.handleConnection(socket));
 
-        this.server.listen(parseInt(this.port), () => {
-            logger(`Finished VMix Emulation Setup. Listening for VMix Tally Connections on TCP Port ` + this.port + `.`, 'info-quiet');
+        this.server.listen(VMixPort, () => {
+            logger(`Finished VMix Emulation Setup. Listening for VMix Tally Connections on TCP Port ${VMixPort}.`, 'info-quiet');
         });
         this.deleteInactiveListenerClients();
     }
