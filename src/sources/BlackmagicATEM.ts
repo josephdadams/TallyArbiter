@@ -40,7 +40,8 @@ export class BlackmagicATEMSource extends TallyInput {
 
         this.atemClient.on('connected', () => {
             this.connected.next(true);
-            const pgmList = [], prvList = [];
+            const pgmList = new Set<number>();
+            const prvList = new Set<number>();
             this.processATEMState(this.atemClient.state, pgmList, prvList);
             this.processATEMTally(pgmList, prvList);
         });
@@ -50,7 +51,8 @@ export class BlackmagicATEMSource extends TallyInput {
         });
 
         this.atemClient.on('stateChanged', (state, path) => {
-            const pgmList = [], prvList = [];
+            const pgmList = new Set<number>();
+            const prvList = new Set<number>();
             for (let h = 0; h < path.length; h++) {
                 if (path[h] === 'info.capabilities') {
                     //console.log(state.info.capabilities);
@@ -68,28 +70,23 @@ export class BlackmagicATEMSource extends TallyInput {
         this.atemClient.connect(atemIP);
     }
 
-    private processATEMState(state, pgmList: any[], prvList: any[]) {
-        const addUniqueInput = (n, list) => {
-            const s = n.toString();
-            if (!list.includes(s))
-                list.push(s);
-        };
+    private processATEMState(state, pgmList: Set<number>, prvList: Set<number>) {
         for (let i = 0; i < state.video.mixEffects.length; i++) {
             if (this.source.data.me_onair.includes((i + 1).toString())) {
-                listVisibleInputs("program", state, i).forEach(n => addUniqueInput(n, pgmList));
-                listVisibleInputs("preview", state, i).forEach(n => addUniqueInput(n, prvList));
+                listVisibleInputs("program", state, i).forEach(n => pgmList.add(n));
+                listVisibleInputs("preview", state, i).forEach(n => prvList.add(n));
             }
         }
     }
 
-    private processATEMTally(allPrograms: number[], allPreviews: number[]): void {
+    private processATEMTally(allPrograms: Set<number>, allPreviews: Set<number>): void {
         this.removeBusFromAllAddresses("preview");
         this.removeBusFromAllAddresses("program");
         let cutBusMode = this.source.data.cut_bus_mode;
     
         if (cutBusMode === 'on') {
             for (const address of allPreviews) {
-                if (allPrograms.includes(address)) {
+                if (allPrograms.has(address)) {
                     this.addBusToAddress(address.toString(), "program");
                 } else {
                     this.addBusToAddress(address.toString(), "preview");
