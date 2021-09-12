@@ -1,5 +1,5 @@
 import path from "path";
-import fs from "fs";
+import fs from "fs-extra";
 import { ErrorReportsListElement } from "../_models/ErrorReportsListElement";
 import { ErrorReport } from "../_models/ErrorReport";
 import { logger, logFilePath, getConfigRedacted } from "..";
@@ -91,4 +91,24 @@ export function generateErrorReport(error: Error) {
 	};
 	fs.writeFileSync(getErrorReportPath(id), JSON.stringify(errorReport));
 	return id;
+}
+
+
+export function markErrorReportsAsRead() {
+	try {
+		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
+		const ErrorReportsFiles = fs.readdirSync(ErrorReportsFolder).map((file) => { return file.replace(/\.[^/.]+$/, "") });
+		const readErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readErrorReports.json");
+		fs.writeFileSync(readErrorReportsFilePath, JSON.stringify(ErrorReportsFiles));
+		return true;
+	} catch(e) {
+		return false;
+	}
+}
+
+export function deleteEveryErrorReport() {
+	const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
+	fs.emptyDirSync(ErrorReportsFolder);
+	const readErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readErrorReports.json");
+	fs.writeFileSync(readErrorReportsFilePath, "");
 }

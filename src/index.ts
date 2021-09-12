@@ -54,8 +54,9 @@ import { loadClassesFromFolder } from './_helpers/fileLoder';
 import { UsePort } from './_decorators/UsesPort.decorator';
 import { secondsToHms } from './_helpers/time';
 import { currentConfig, getConfigRedacted, readConfig, SaveConfig } from './_helpers/config';
-import { generateErrorReport, getErrorReport, getErrorReportsList, getUnreadErrorReportsList, markErrorReportAsRead } from './_helpers/errorReports';
+import { deleteEveryErrorReport, generateErrorReport, getErrorReport, getErrorReportsList, getUnreadErrorReportsList, markErrorReportAsRead, markErrorReportsAsRead } from './_helpers/errorReports';
 import { DeviceState } from './_models/DeviceState';
+import { VMixEmulator } from './_modules/vMix';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
@@ -97,11 +98,8 @@ const socketupdates_Settings: string[]  = ['sources', 'devices', 'device_sources
 const socketupdates_Producer: string[]  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients'];
 const socketupdates_Companion: string[] = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
 
-const vmixEmulatorPort: string = '8099'; // Default 8099
-var vmix_emulator	= null; //TCP server for VMix Emulator
-var vmix_clients 	= []; //Clients currently connected to the VMix Emulator
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
-var vmix_client_data = []; //array of connected Vmix clients
+let vMixEmulator: VMixEmulator;
 
 export var tsl_clients: TSLClient[]							 = []; //array of TSL 3.1 clients that Tally Arbiter will send tally data to
 var tsl_clients_interval: NodeJS.Timer | null			 = null;
@@ -113,7 +111,6 @@ var cloud_clients: CloudClient[]						 = []; //array of Tally Arbiter Cloud Clie
 var TestMode = false; //if the system is in test mode or not
 const SourceClients: Record<string, TallyInput> = {};
 
-UsePort(vmixEmulatorPort, "reserved");
 UsePort(listenPort.toString(), "reserved");
 UsePort("80", "reserved");
 UsePort("443", "reserved");
@@ -141,7 +138,6 @@ function startUp() {
 	loadConfig();
 	initialSetup();
 	DeleteInactiveListenerClients();
-	DeleteInactiveVmixListenerClients();
 
 	process.on('uncaughtException', (err: Error) => {
 		if (!process.versions.hasOwnProperty('electron')) {
@@ -790,7 +786,12 @@ function initialSetup() {
 
 	logger('Starting VMix Emulation Service.', 'info-quiet');
 
-	startVMixEmulator();
+	vMixEmulator = new VMixEmulator();
+	vMixEmulator.on("chatMessage", (type, socketId, message) => SendMessage(type, socketId, message));
+	vMixEmulator.on("updateClients", () => {
+        UpdateSockets('vmix_clients');
+        UpdateCloud('vmix_clients');
+	});
 
 	if (tsl_clients.length > 0) {
 		logger(`Initiating ${tsl_clients.length} TSL Client Connections.`, 'info');
@@ -928,25 +929,6 @@ function TestTallies() {
 	// ToDo
 }
 
-function markErrorReportsAsRead() {
-	try {
-		const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
-		const ErrorReportsFiles = fs.readdirSync(ErrorReportsFolder).map((file) => { return file.replace(/\.[^/.]+$/, "") });
-		const readErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readErrorReports.json");
-		fs.writeFileSync(readErrorReportsFilePath, JSON.stringify(ErrorReportsFiles));
-		return true;
-	} catch(e) {
-		return false;
-	}
-}
-
-function deleteEveryErrorReport() {
-	const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
-	fs.emptyDirSync(ErrorReportsFolder);
-	const readErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readErrorReports.json");
-	fs.writeFileSync(readErrorReportsFilePath, "");
-}
-
 
 function UpdateDeviceState(deviceId: string) {
 	const device = GetDeviceByDeviceId(deviceId);
@@ -985,90 +967,6 @@ function UpdateDeviceState(deviceId: string) {
 	}
 	UpdateSockets("device_states");
 	UpdateListenerClients(deviceId);
-}
-
-function startVMixEmulator() {
-	vmix_emulator = net.createServer();
-
-	vmix_emulator.on('connection', handleConnection);
-
-	vmix_emulator.listen(parseInt(vmixEmulatorPort), () =>  {
-		logger(`Finished VMix Emulation Setup. Listening for VMix Tally Connections on TCP Port ` + vmixEmulatorPort + `.`, 'info-quiet');
-	});
-
-	function handleConnection(conn) {
-		let host = conn.remoteAddress + ':' + conn.remotePort;
-		logger(`New VMix Emulator Connection from ${host}`, 'info');
-		conn.write(`VERSION OK ${version}\r\n`);
-		conn.on('data', onConnData);
-		conn.once('close', onConnClose);
-		conn.on('error', onConnError);
-
-		function onConnData(d) {
-			d = d.toString().split(/\r?\n/);
-
-			if (d[0] === 'SUBSCRIBE TALLY') {
-				addVmixListener(conn, host);
-				conn.write('SUBSCRIBE OK TALLY\r\n');
-			}
-			else if (d[0] === 'UNSUBSCRIBE TALLY') {
-				conn.write('UNSUBSCRIBE OK TALLY\r\n');
-				removeVmixListener(host);
-			}
-			else if (d[0] === 'QUIT') {
-				conn.destroy();
-			}
-		}
-		function onConnClose() {
-			removeVmixListener(host);
-			logger(`VMix Emulator Connection from ${host} closed`, 'info');
-		}
-		function onConnError(err) {
-			if (err.message === 'This socket has been ended by the other party') {
-				logger(`VMix Emulator Connection ${host} taking longer to respond than normal`, 'info-quiet');
-				//removeVmixListener(host);
-			} else {
-				logger(`VMix Emulator Connection ${host} error: ${err.message}`, 'error');
-			}
-		}
-	}
-}
-
-function addVmixListener(conn, host) {
-	let socketId = 'vmix-' + uuidv4();
-	//listenerClientId = AddListenerClient(socketId, null, 'vmix', host, new Date().getTime(), false, false);
-	conn.listenerClientId = uuidv4();
-	conn.host = host;
-	conn.socketId = socketId;
-	vmix_clients.push(conn);
-
-	//Push to global var
-    vmix_client_data.push({
-        host,
-        socketID: socketId,
-        inactive: false,
-    });
-	console.log(vmix_client_data);
-	console.log(vmix_client_data.length);
-	UpdateSockets('vmix_clients');
-	logger(`VMix Emulator Connection ${host} subscribed to tally`, 'info');
-}
-
-function removeVmixListener(host) {
-	let socketId = null;
-
-	for (let i = 0; i < vmix_client_data.length; i++) {
-		if (vmix_client_data[i].host === host) {
-			socketId = vmix_client_data[i].socketId;
-			vmix_client_data.splice(i, 1);
-		}
-	}
-
-	if (socketId !== null) {
-		DeactivateVmixListenerClient(socketId);
-	}
-
-	logger(`VMix Emulator Connection ${host} unsubscribed to tally`, 'info');
 }
 
 export function logger(log, type: "info-quiet" | "info" | "error" | "console_action" = "info-quiet"): void { //logs the item to the console, to the log array, and sends the log item to the settings page
@@ -1717,7 +1615,7 @@ function UpdateSockets(dataType: SocketUpdateDataType) {
 		device_sources: () => device_sources,
 		device_states: () => getDeviceStates(), 
 		listener_clients: () => listener_clients, 
-		vmix_clients: () => vmix_client_data, 
+		vmix_clients: () => vMixEmulator.vmix_client_data, 
 		tsl_clients: () => tsl_clients, 
 		cloud_destinations: () => cloud_destinations, 
 		cloud_clients: () => cloud_clients,
@@ -1800,8 +1698,8 @@ function UpdateVMixClients() {
 
 	vmixTallyString += '\r\n';
 
-	for (let i = 0; i < vmix_clients.length; i++) {
-		vmix_clients[i].write(vmixTallyString);
+	for (let i = 0; i < vMixEmulator.vmix_clients.length; i++) {
+		vMixEmulator.vmix_clients[i].write(vmixTallyString);
 	}
 }
 
@@ -2433,22 +2331,6 @@ function DeactivateListenerClient(socketId) {
 	UpdateCloud('listener_clients');
 }
 
-function DeactivateVmixListenerClient(socketId) {
-	for (let i = 0; i < vmix_client_data.length; i++) {
-		if (vmix_client_data[i].socketId === socketId) {
-			vmix_client_data[i].inactive = true;
-			vmix_client_data[i].datetime_inactive = new Date().getTime();
-			let message = `Listener Client Disconnected: ${vmix_client_data[i].host.replace('::ffff:', '')} at ${new Date()}`;
-			SendMessage('server', null, message);
-		}
-	}
-
-	console.log(vmix_client_data);
-
-	UpdateSockets('vmix_clients');
-	UpdateCloud('vmix_clients');
-}
-
 function DeleteInactiveListenerClients() {
 	let changesMade = false;
 	for (let i = listener_clients.length - 1; i >= 0; i--) {
@@ -2468,27 +2350,6 @@ function DeleteInactiveListenerClients() {
 	}
 
 	setTimeout(DeleteInactiveListenerClients, 5 * 1000); // runs every 5 minutes
-}
-
-function DeleteInactiveVmixListenerClients() {
-	let changesMade = false;
-	for (let i = vmix_client_data.length - 1; i >= 0; i--) {
-		if (vmix_client_data[i].inactive === true) {
-			let dtNow = new Date().getTime();
-			if ((dtNow - vmix_client_data[i].datetime_inactive) > (1000 * 60 * 60)) { //1 hour
-				logger(`Inactive Client removed: ${vmix_client_data[i].id}`, 'info');
-				vmix_client_data.splice(i, 1);
-				changesMade = true;
-			}
-		}
-	}
-
-	if (changesMade) {
-		UpdateSockets('vmix_clients');
-		UpdateCloud('vmix_clients');
-	}
-
-	setTimeout(DeleteInactiveVmixListenerClients, 5 * 1000); // runs every 5 minutes
 }
 
 function FlashListenerClient(listenerClientId): FlashListenerClientResponse | void {
