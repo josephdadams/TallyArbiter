@@ -43,8 +43,6 @@ export class TSL3UDPSource extends TallyInput {
     public exit(): void {
         super.exit();
         this.server.server.close();
-        console.log(this.source.id);
-        console.log(this.source.data.port);
         FreePort(this.source.data.port, this.source.id);
         this.connected.next(false);
     }
