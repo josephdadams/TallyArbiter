@@ -99,7 +99,7 @@ const socketupdates_Companion: string[] = ['sources', 'devices', 'device_sources
 
 var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
 let vMixEmulator: VMixEmulator;
-let tslListenerProvider: TSLListenerProvider;
+export let tslListenerProvider: TSLListenerProvider;
 let tsl_clients_interval: NodeJS.Timer | null = null;
 
 var cloud_destinations: CloudDestination[]				 = []; //array of Tally Arbiter Cloud Destinations (host, port, key)
@@ -824,7 +824,7 @@ function getSources(): Source[] {
 }
 
 function TSLClients_1SecUpdate(value) {
-	if (this.tsl_clients_interval !== null) {
+	if (tsl_clients_interval !== null) {
 		clearInterval(this.tsl_clients_interval);
 	}
 
@@ -832,7 +832,7 @@ function TSLClients_1SecUpdate(value) {
 
 	if (value) {
 		logger('Starting TSL Clients 1 Second Interval.', 'info');
-		this.tsl_clients_interval = setInterval(TSLClients_UpdateAll, 1000);
+		tsl_clients_interval = setInterval(TSLClients_UpdateAll, 1000);
 	}
 }
 
