@@ -1,9 +1,10 @@
 import 'reflect-metadata';
 import { TallyInputType } from "../_types/TallyInputType";
 import { PortsInUse } from "../_globals/PortsInUse";
+import { ListenerProviderType } from '../_types/ListenerProviderType';
 
-export function UsesPort(port: string): (cls: TallyInputType) => void {
-    return (cls: TallyInputType) => {
+export function UsesPort(port: string): (cls: TallyInputType | ListenerProviderType) => void {
+    return (cls: TallyInputType | ListenerProviderType) => {
         PortsInUse.next(PortsInUse.value.concat({
             port,
             sourceId: Reflect.getMetadata("sourceId", cls) || "reserved",
