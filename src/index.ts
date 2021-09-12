@@ -56,7 +56,7 @@ import { secondsToHms } from './_helpers/time';
 import { currentConfig, getConfigRedacted, readConfig, SaveConfig } from './_helpers/config';
 import { deleteEveryErrorReport, generateErrorReport, getErrorReport, getErrorReportsList, getUnreadErrorReportsList, markErrorReportAsRead, markErrorReportsAsRead } from './_helpers/errorReports';
 import { DeviceState } from './_models/DeviceState';
-import { VMixEmulator } from './_modules/vMix';
+import { VMixEmulator } from './_modules/VMix';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
