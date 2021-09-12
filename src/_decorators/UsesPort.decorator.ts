@@ -21,5 +21,6 @@ export function UsePort(port: string, sourceId: "reserved" | string) {
 }
 
 export function FreePort(port: string, sourceId: string) {
-    PortsInUse.next(PortsInUse.value.splice(PortsInUse.value.findIndex((p) => p.port == port && p.sourceId == sourceId), 1));
+    //PortsInUse.next(PortsInUse.value.splice(PortsInUse.value.findIndex((p) => p.port == port && p.sourceId == sourceId), 1));
+    PortsInUse.value.splice(PortsInUse.value.findIndex((p) => p.port == port && p.sourceId == sourceId), 1);
 }

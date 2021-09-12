@@ -1786,6 +1786,7 @@ function TallyArbiter_Delete_Source(obj: Manage): ManageResponse {
 	} */
 
 	UpdateSockets('device_states');
+	UpdateSockets('PortsInUse');
 
 	logger(`Source Deleted: ${sourceName}`, 'info');
 
