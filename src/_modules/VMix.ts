@@ -1,13 +1,11 @@
 import net from "net";
 import { version } from "os";
-import { EventEmitter } from "stream";
 import { logger } from "..";
 import { UsesPort } from "../_decorators/UsesPort.decorator";
+import { currentConfig } from "../_helpers/config";
 import { uuidv4 } from "../_helpers/uuid";
-
-export class ListenerProvider extends EventEmitter {
-    
-}
+import { DeviceTallyData } from "../_models/TallyData";
+import { ListenerProvider } from "./_ListenerProvider";
 
 const VMixPort = 8099;
 
@@ -44,6 +42,7 @@ export class VMixEmulator extends ListenerProvider {
     }
 
     private onConnData(socket: net.Socket, d: Buffer) {
+        console.log(d);
         const parts = d.toString().split(/\r?\n/);
 
         if (parts[0] === 'SUBSCRIBE TALLY') {
@@ -144,5 +143,43 @@ export class VMixEmulator extends ListenerProvider {
         }
     
         setTimeout(() => this.deleteInactiveListenerClients(), 5 * 60 * 1000); // runs every 5 minutes
+    }
+
+    public updateListenerClients(currentTallyData: DeviceTallyData): void {
+            let vmixTallyString = 'TALLY OK ';
+        
+            let busId_preview = null;
+            let busId_program = null;
+        
+            for (let i = 0; i < currentConfig.bus_options.length; i++) {
+                switch(currentConfig.bus_options[i].type) {
+                    case 'preview':
+                        busId_preview = currentConfig.bus_options[i].id;
+                        break;
+                    case 'program':
+                        busId_program = currentConfig.bus_options[i].id;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        
+            for (const [deviceId, busIds] of Object.entries(currentTallyData)) {
+                if (busIds.includes(busId_program)) {
+                    vmixTallyString += '1';
+                }
+                else if (busIds.includes(busId_preview)) {
+                    vmixTallyString += '2';
+                }
+                else {
+                    vmixTallyString += '0';
+                }
+            }
+        
+            vmixTallyString += '\r\n';
+        
+            for (let i = 0; i < this.vmix_clients.length; i++) {
+                this.vmix_clients[i].write(vmixTallyString);
+            }
     }
 }
