@@ -1,4 +1,4 @@
-import { logger, tsl_clients } from "..";
+import { logger, tslListenerProvider } from "..";
 import { Config } from "../_models/Config";
 import { ConfigTSLClient } from "../_models/ConfigTSLClient";
 import fs from "fs";
@@ -46,12 +46,12 @@ export function SaveConfig() {
 	try {
 		let tsl_clients_clean: ConfigTSLClient[] = [];
 
-		for (let i = 0; i < tsl_clients.length; i++) {
+		for (let i = 0; i < tslListenerProvider.tsl_clients.length; i++) {
             let tslClientObj: ConfigTSLClient = {} as ConfigTSLClient;
-			tslClientObj.id = tsl_clients[i].id;
-			tslClientObj.ip = tsl_clients[i].ip;
-			tslClientObj.port = tsl_clients[i].port;
-			tslClientObj.transport = tsl_clients[i].transport;
+			tslClientObj.id = tslListenerProvider.tsl_clients[i].id;
+			tslClientObj.ip = tslListenerProvider.tsl_clients[i].ip;
+			tslClientObj.port = tslListenerProvider.tsl_clients[i].port;
+			tslClientObj.transport = tslListenerProvider.tsl_clients[i].transport;
 			tsl_clients_clean.push(tslClientObj);
 		}
 
