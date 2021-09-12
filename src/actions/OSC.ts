@@ -7,7 +7,7 @@ import { UsePort } from "../_decorators/UsesPort.decorator";
 logger('Starting OSC Setup.', 'info-quiet');
 
 const oscPort = 5958;
-UsePort(oscPort.toString(), "58da987d")
+UsePort(oscPort, "58da987d")
 const oscUDP = new osc.UDPPort({
     localAddress: '0.0.0.0',
     localPort: oscPort,

@@ -29,7 +29,6 @@ import { TallyInput } from './_Source';
         ],
     },
 ])
-@UsesPort("9910")
 export class BlackmagicATEMSource extends TallyInput {
     private atemClient: Atem;
     constructor(source: Source) {
