@@ -938,6 +938,7 @@ function ToggleTestMode(enabled: boolean) {
 				sources.splice(i, 1);
 				UpdateSockets('sources');
 				UpdateCloud('sources');
+				SaveConfig();
 				
 				break;
 			}

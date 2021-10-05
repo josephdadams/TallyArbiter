@@ -93,6 +93,14 @@ export class TallyInput extends EventEmitter {
         this.tallyData[address] = busses || [];
     }
 
+    protected clearTallies() {
+        for(let i = 0; i < this.addresses.value.length; i++) {
+            let currentAddress = this.addresses.value[i].address;
+            this.setBussesForAddress(currentAddress, []);
+            this.sendTallyData();
+        }
+    }
+
     protected sendTallyData() {
         this.tally.next(this.tallyData);
     }
