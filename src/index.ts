@@ -56,6 +56,7 @@ import { DeviceState } from './_models/DeviceState';
 import { VMixEmulator } from './_modules/VMix';
 import { TSLListenerProvider } from './_modules/TSL';
 import { ListenerProvider } from './_modules/_ListenerProvider';
+import { InternalTestModeSource } from './sources/InternalTestMode';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
@@ -741,7 +742,7 @@ function initialSetup() {
 		});
 
 		socket.on('testmode', (value: boolean) => {
-			EnableTestMode(value);
+			ToggleTestMode(value);
 		});
 
 		socket.on('tslclients_1secupdate', (value: boolean) => {
@@ -891,33 +892,41 @@ function getOutputTypes(): OutputType[] {
 	} as OutputType));
 }
 
-function EnableTestMode(value) {
-	TestMode = value;
+function ToggleTestMode(enabled: boolean) {
+	TestMode = enabled;
 	if (TestMode) {
 		//first check that there's not already a "test mode" source
-		let found = false;
-		for (let i = 0; i < sources.length; i++) {
-			if (sources[i].sourceTypeId === 'TESTMODE') {
-				//already in test mode
-				found = true;
-				break;
-			}
-		}
-
-		if (!found) {
+		if (!sources.find((s) => s.sourceTypeId === 'TESTMODE')) {
+			const testModeSource = {
+				id: 'TEST',
+				name: 'TEST MODE',
+				sourceTypeId: 'TESTMODE',
+				enabled: true,
+				reconnect: false,
+				connected: true,
+				data: {
+					addressesNumber: devices.length,
+				},
+			};
 			//turn on test mode
-            sources.push({
-                id: 'TEST',
-                name: 'TEST MODE',
-                sourceTypeId: 'TESTMODE',
-                enabled: true,
-                reconnect: false,
-                connected: true,
-				data: {},
-            });
+            sources.push(testModeSource);
+			const testMode = initializeSource(testModeSource) as InternalTestModeSource;
+
+			for (let i = 0; i < devices.length; i++) {
+				device_sources.push({
+					deviceId: devices[i].id,
+					address: testMode.getAddressForIdx(i),
+					id: uuidv4(),
+					sourceId: testModeSource.id,
+					bus: "",
+					rename: false,
+				});
+			}
+
 			UpdateSockets('sources');
 			UpdateCloud('sources');
-			TestTallies();
+			UpdateSockets('device_sources');
+			UpdateCloud('device_sources');
 			SendMessage('server', null, 'Test Mode Enabled.');
 		}
 	}
@@ -925,22 +934,19 @@ function EnableTestMode(value) {
 		//turn off test mode
 		for (let i = 0; i < sources.length; i++) {
 			if (sources[i].id === 'TEST') {
+				StopConnection("TEST");
 				sources.splice(i, 1);
 				UpdateSockets('sources');
 				UpdateCloud('sources');
+				
 				break;
 			}
 		}
 		SendMessage('server', null, 'Test Mode Disabled.');
 	}
 
-	io.to('settings').emit('testmode', value);
+	io.to('settings').emit('testmode', enabled);
 }
-
-function TestTallies() {
-	// ToDo
-}
-
 
 function UpdateDeviceState(deviceId: string) {
 	const device = GetDeviceByDeviceId(deviceId);
@@ -1078,7 +1084,7 @@ function loadConfig() { // loads the JSON data from the config file to memory
 	logger('Source Setup Complete.', 'info-quiet');
 }
 
-function initializeSource(source: Source): void {
+function initializeSource(source: Source): TallyInput {
 	if (!TallyInputs[source.sourceTypeId]?.cls) {
 		console.log(TallyInputs);
 		console.log(source)
@@ -1120,6 +1126,7 @@ function initializeSource(source: Source): void {
 		SaveConfig();
 	});
 	SourceClients[source.id] = sourceClient;
+	return sourceClient;
 }
 
 function processSourceTallyData(sourceId: string, tallyData: SourceTallyData)
@@ -1495,9 +1502,11 @@ function TallyArbiter_Delete_Source(obj: Manage): ManageResponse {
 	for (let i = 0; i < sources.length; i++) {
 		if (sources[i].id === sourceId) {
 			sourceName = sources[i].name;
-			StopConnection(sourceId);
 			if (sourceId !== 'TEST') {
+				StopConnection(sourceId);
 				sources.splice(i, 1);
+			} else {
+				ToggleTestMode(false);
 			}
 			break;
 		}
