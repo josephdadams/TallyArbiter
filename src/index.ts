@@ -932,6 +932,7 @@ function ToggleTestMode(enabled: boolean) {
 	}
 	else {
 		//turn off test mode
+		removeTestDeviceSource();
 		for (let i = 0; i < sources.length; i++) {
 			if (sources[i].id === 'TEST') {
 				StopConnection("TEST");
@@ -947,6 +948,23 @@ function ToggleTestMode(enabled: boolean) {
 	}
 
 	io.to('settings').emit('testmode', enabled);
+}
+
+function removeTestDeviceSource() {
+	for (let i = 0; i < device_sources.length; i++) {
+		if(device_sources[i].sourceId === 'TEST') {
+			device_sources.splice(i, 1);
+			UpdateSockets('device_sources');
+			UpdateCloud('device_sources');
+		}
+	}
+	for (let i = 0; i < device_sources.length; i++) {
+		if(device_sources[i].sourceId === 'TEST') {
+			device_sources.splice(i, 1);
+			UpdateSockets('device_sources');
+			UpdateCloud('device_sources');
+		}
+	}
 }
 
 function UpdateDeviceState(deviceId: string) {
