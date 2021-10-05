@@ -7,7 +7,7 @@ import { TallyInput } from './_Source';
 @RegisterTallyInput("4eb73542", "OBS", "The OBS Websocket plugin must be installed on the source.", [
     { fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
     { fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
-    { fieldName: 'password', fieldLabel: 'Password', fieldType: 'text' }
+    { fieldName: 'password', fieldLabel: 'Password', fieldType: 'text', optional: true }
 ])
 export class OBSSource extends TallyInput {
     private obsClient: ObsWebSocket;

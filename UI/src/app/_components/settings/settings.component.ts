@@ -375,8 +375,17 @@ export class SettingsComponent {
 	}
 
 	public saveCurrentSource() {
+		if (this.currentSource.name === null || this.currentSource.name=== undefined || this.currentSource.name.toString().trim().length === 0) {
+			Swal.fire({
+				icon: "error",
+				text: "The Source needs a name!",
+				title: "Error",
+				...globalSwalOptions,
+			});
+		return;
+	}
 		for (const field of this.getOptionFields(this.socketService.sourceTypes[this.currentSourceSelectedTypeIdx!])) {
-			if (field.fieldName != 'info') {
+			if (field.fieldName != 'info' && !field.optional) {
 				if (this.currentSource.data[field.fieldName] === null || this.currentSource.data[field.fieldName] === undefined || this.currentSource.data[field.fieldName].toString().trim().length === 0) {
 					Swal.fire({
 					icon: "error",
