@@ -19,6 +19,8 @@ export class InternalTestModeSource extends TallyInput {
 
     testModeInterval: NodeJS.Timeout;
 
+    currentInterval: number;
+
     constructor(source: Source) {
         super(source);
 
@@ -41,7 +43,16 @@ export class InternalTestModeSource extends TallyInput {
 
         this.testModeInterval = setInterval(() => this.testModeIntervalFunction(), this.source.data.interval);
         
+        this.currentInterval = this.source.data.interval;
+        
         this.connected.next(true);
+    }
+
+    private checkIntervalValue() {
+        if(this.currentInterval != this.source.data.interval) {
+            clearInterval(this.testModeInterval);
+            this.testModeInterval = setInterval(() => this.testModeIntervalFunction(), this.source.data.interval);
+        }
     }
 
     private testModeIntervalFunction() {
@@ -72,6 +83,8 @@ export class InternalTestModeSource extends TallyInput {
             }
             this.currentAddressIterations = 0;
         }
+
+        this.checkIntervalValue();
     }
 
     private setBussesForAddressFromIterationsNumber(addressNumber: number) {
@@ -87,5 +100,6 @@ export class InternalTestModeSource extends TallyInput {
     public exit(): void {
         super.exit();
         clearInterval(this.testModeInterval);
+        this.clearTallies();
     }
 }
