@@ -9,9 +9,6 @@
                         <button class="btn btn-outline-success me-2" (click)="addSource(sourceModal)">
                     <i class="fas fa-plus"></i> Add 
                   </button>
-                        <button class="btn btn-outline-dark" (click)="toggleTestMode()">
-                    <i class="fas fa-vial"></i> Turn {{ socketService.testModeOn ? "Off" : "On" }} Test Mode
-                  </button>
                     </h2>
                     <span class="text-muted mt-3" *ngIf="socketService.sources.length == 0">No sources configured.</span>
                     <table class="table table-hover" *ngIf="socketService.sources.length > 0">
@@ -51,40 +48,7 @@
                 </div>
                 <hr class="my-5" />
                 <div class="row">
-                    <h2>
-                        Devices
-                        <button class="btn btn-outline-success" (click)="addDevice(deviceModal)"><i class="fas fa-plus"></i> Add </button>
-                    </h2>
-                    <span class="text-muted mt-3" *ngIf="socketService.devices.length == 0">No devices configured.</span>
-                    <table class="table table-hover" *ngIf="socketService.devices.length > 0">
-                        <thead>
-                            <tr>
-                                <th *ngFor="let bus of socketService.busOptions">{{bus.label}}</th>
-                                <th>Name</th>
-                                <th></th>
-                                <th>Description</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let device of socketService.devices; index as index" [class.text-muted]="!device.enabled">
-                                <td *ngFor="let bus of socketService.busOptions" [style.background-color]="deviceBusColors[device.id]?.includes(bus.id) ? bus.color : '#FFFFFF'"></td>
-                                <td>
-                                    <small><b>{{ index + 1 }}</b></small> {{ device.name }}
-                                </td>
-                                <td><i class="fas fa-cloud text-muted" *ngIf="device.cloudConnection"></i></td>
-                                <td>{{ device.description }}</td>
-                                <td>
-                                    <button class="btn btn-outline-dark me-2" (click)="editDevice(device, deviceModal)">
-                          <i class="fas fa-pen"></i> Edit
-                        </button>
-                                    <button class="btn btn-outline-dark me-2" (click)="editDeviceSources(device, deviceSourcesModal)"><i class="fas fa-link"></i> Edit Sources ({{getDeviceSourcesByDeviceId(device.id).length}})</button>
-                                    <button class="btn btn-outline-dark me-2" (click)="editDeviceActions(device, deviceActionsModal)"><i class="fas fa-play"></i> Edit Actions ({{getDeviceActionsByDeviceId(device.id).length}})</button>
-                                    <button class="btn btn-outline-danger" (click)="deleteDevice(device)"><i class="fas fa-trash"></i> Delete</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: true}"></ng-container>
                 </div>
             </ng-template>
         </ng-container>
@@ -285,7 +249,11 @@
         <ng-container ngbNavItem>
             <a ngbNavLink>Testing</a>
             <ng-template ngbNavContent>
-
+                <button class="btn btn-outline-dark mb-5" (click)="toggleTestMode()">
+                    <i class="fas fa-vial"></i> Turn {{ socketService.testModeOn ? "Off" : "On" }} Test Mode
+                </button>
+                <i *ngIf="socketService.testModeOn" class="fas fa-vial fa-spin fa-4x text-secondary float-end"></i>
+                <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: false}"></ng-container>
             </ng-template>
         </ng-container>
         <ng-container ngbNavItem>
@@ -364,6 +332,43 @@
 <div *ngIf="!socketService.initialDataLoaded" class="d-flex justify-content-center mt-5 pt-5">
     <div class="spinner spinner-border text-dark"></div>
 </div>
+
+<ng-template #devicesTable let-editMode="editMode">
+    <h2>
+        Devices
+        <button class="btn btn-outline-success" *ngIf="editMode" (click)="addDevice(deviceModal)"><i class="fas fa-plus"></i> Add </button>
+    </h2>
+    <span class="text-muted mt-3" *ngIf="socketService.devices.length == 0">No devices configured.</span>
+    <table class="table table-hover" *ngIf="socketService.devices.length > 0">
+        <thead>
+            <tr>
+                <th *ngFor="let bus of socketService.busOptions">{{bus.label}}</th>
+                <th>Name</th>
+                <th></th>
+                <th>Description</th>
+                <th *ngIf="editMode" ></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let device of socketService.devices; index as index" [class.text-muted]="!device.enabled">
+                <td *ngFor="let bus of socketService.busOptions" [style.background-color]="deviceBusColors[device.id]?.includes(bus.id) ? bus.color : '#FFFFFF'"></td>
+                <td>
+                    <small><b>{{ index + 1 }}</b></small> {{ device.name }}
+                </td>
+                <td><i class="fas fa-cloud text-muted" *ngIf="device.cloudConnection"></i></td>
+                <td>{{ device.description }}</td>
+                <td *ngIf="editMode" >
+                    <button class="btn btn-outline-dark me-2" (click)="editDevice(device, deviceModal)">
+                        <i class="fas fa-pen"></i> Edit
+                    </button>
+                    <button class="btn btn-outline-dark me-2" (click)="editDeviceSources(device, deviceSourcesModal)"><i class="fas fa-link"></i> Edit Sources ({{getDeviceSourcesByDeviceId(device.id).length}})</button>
+                    <button class="btn btn-outline-dark me-2" (click)="editDeviceActions(device, deviceActionsModal)"><i class="fas fa-play"></i> Edit Actions ({{getDeviceActionsByDeviceId(device.id).length}})</button>
+                    <button class="btn btn-outline-danger" (click)="deleteDevice(device)"><i class="fas fa-trash"></i> Delete</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</ng-template>
 
 <ng-template #sourceModal let-modal>
     <div class="modal-header">
