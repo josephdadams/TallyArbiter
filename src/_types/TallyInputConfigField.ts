@@ -2,6 +2,7 @@ export type TallyInputConfigField = {
     fieldName: string;
     fieldLabel: string;
     help?: string;
+    optional?: boolean;
 } & ({
     fieldType: 'text' | 'port' | 'number' | 'bool';
 } | {

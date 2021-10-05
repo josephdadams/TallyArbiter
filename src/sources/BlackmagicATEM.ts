@@ -17,6 +17,7 @@ import { TallyInput } from './_Source';
             { id: '5', label: 'ME 5' },
             { id: '6', label: 'ME 6' },
         ],
+        optional: true,
     },
     {
         fieldName: 'cut_bus_mode',

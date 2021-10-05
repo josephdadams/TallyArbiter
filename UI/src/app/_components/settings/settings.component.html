@@ -401,51 +401,39 @@
         <div *ngIf="currentSourceSelectedTypeIdx !== undefined">
             <p>{{ socketService.sourceTypes[currentSourceSelectedTypeIdx].help }}</p>
             <div class="mb-3">
-                <label for="sourceName" class="form-label">Source Name</label>
+                <label for="sourceName" class="form-label">Source Name<span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="sourceName" [(ngModel)]="currentSource.name" />
             </div>
-            <ng-container *ngFor="
-          let field of getOptionFields(
-            socketService.sourceTypes[currentSourceSelectedTypeIdx]
-          )
-        ">
+            <ng-container *ngFor="let field of getOptionFields(socketService.sourceTypes[currentSourceSelectedTypeIdx])">
                 <ng-container [ngSwitch]="field.fieldType">
                     <div class="mb-3" *ngSwitchCase="'text'">
-                        <label [for]="field.fieldName" class="form-label">{{
-              field.fieldLabel
-            }}</label>
+                        <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}<span class="text-danger" *ngIf="!field.optional">*</span></label>
                         <input type="text" class="form-control" [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]" />
                     </div>
                     <div class="mb-3" *ngSwitchCase="
-              ['port', 'number'].includes(field.fieldType)
-                ? field.fieldType
-                : ''
-            ">
-                        <label [for]="field.fieldName" class="form-label">{{
-              field.fieldLabel
-            }}</label>
+                        ['port', 'number'].includes(field.fieldType)
+                            ? field.fieldType
+                            : ''
+                        ">
+                        <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}<span class="text-danger" *ngIf="!field.optional">*</span></label>
                         <input type="number" class="form-control" [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]" />
                     </div>
                     <div class="mb-3" *ngSwitchCase="'multiselect'">
-                        <label [for]="field.fieldName" class="form-label">{{
-              field.fieldLabel
-            }}</label>
+                        <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}<span class="text-danger" *ngIf="!field.optional">*</span></label>
                         <select class="form-select" multiple [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]">
-              <option *ngFor="let option of field.options" [value]="option.id">
-                {{ option.label }}
-              </option>
-            </select>
+                            <option *ngFor="let option of field.options" [value]="option.id">
+                                {{ option.label }}
+                            </option>
+                        </select>
                         <small class="form-text">Use Ctrl to select multiple items.</small>
                     </div>
                     <div class="mb-3" *ngSwitchCase="'dropdown'">
-                        <label [for]="field.fieldName" class="form-label">{{
-              field.fieldLabel
-            }}</label>
+                        <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}<span class="text-danger" *ngIf="!field.optional">*</span></label>
                         <select class="form-select" [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]">
-              <option *ngFor="let option of field.options" [value]="option.id">
-                {{ option.label }}
-              </option>
-            </select>
+                            <option *ngFor="let option of field.options" [value]="option.id">
+                                {{ option.label }}
+                            </option>
+                        </select>
                     </div>
                     <div class="mb-3" *ngSwitchCase="'info'">
                         <label class="form-label">{{ field.fieldLabel }}</label><br />

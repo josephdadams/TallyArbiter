@@ -4,12 +4,12 @@ import { TallyInput } from './_Source';
 
 @RegisterTallyInput("TESTMODE", "Internal Test Mode", "Used for Test Mode functionality.", [
     { fieldName: 'info', fieldLabel: 'Information', text: 'This source generates preview/program tally data for the purposes of testing equipment. Please note that if you change the number of testing addresses or you update the interval you should restart TallyArbiter to apply these changes.', fieldType: 'info' },
-    { fieldName: 'interval', fieldLabel: 'Bus change interval (in milliseconds (ms)) (default option: 1000).', fieldType: 'number' },
-    { fieldName: 'changeMode', fieldLabel: 'Bus change mode (default option: one device at a time).', fieldType: 'dropdown', options: [
+    { fieldName: 'interval', fieldLabel: 'Bus change interval (in milliseconds (ms)) (default option: 1000).', fieldType: 'number', optional: true, },
+    { fieldName: 'changeMode', fieldLabel: 'Bus change mode (default option: one device at a time).', fieldType: 'dropdown', optional: true, options: [
         { id: 'one-at-a-time', label: 'One device at a time' },
         { id: 'all-at-once', label: 'All devices at once' }
     ] },
-    { fieldName: 'addressesNumber', fieldLabel: 'Test addresses number (default option: 10).', fieldType: 'number' }
+    { fieldName: 'addressesNumber', fieldLabel: 'Test addresses number (default option: 10).', optional: true, fieldType: 'number' }
 ])
 export class InternalTestModeSource extends TallyInput {
     currentAddressNumber = 0;
