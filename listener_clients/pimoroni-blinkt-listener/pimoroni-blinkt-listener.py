@@ -1,18 +1,19 @@
 ## Tally Arbiter Pimoroni Blinkt Listener
 
 # File name: pimoroni-blinkt-listener.py
-# Version: 1.1.0
 # Author: Joseph Adams
 # Email: josephdadams@gmail.com
-# Date created: 2/26/2021
-# Date last modified: 5/5/2021
+# Date created: 02/26/2021
 # Notes: This file is a part of the Tally Arbiter project. For more information, visit tallyarbiter.com
 
 from signal import signal, SIGINT
 from sys import exit
 import sys
 import time
-import blinkt
+try:
+    import blinkt
+except ImportError:
+    blinkt = None
 import socketio
 import json
 
@@ -21,11 +22,17 @@ bus_options = []
 mode_preview = False
 mode_program = False
 
-server = sys.argv[1]
+if len(sys.argv) == 0:
+	server = sys.argv[1]
+else:
+	server = 'localhost'
 
 stored_deviceId = ''
 
-blinkt.set_clear_on_exit(True)
+try:
+	blinkt.set_clear_on_exit(True)
+except:
+	pass
 
 debounce = False #used to keep calls from happing concurrently
 
@@ -51,14 +58,25 @@ else:
 	else:
 		deviceId = 'null'
 
+#close program if ctrl+c is pressed
+def signal_handler(sig, frame):
+	exit(0)
+
+signal(SIGINT, signal_handler)
+
 #SocketIO Connections
 sio = socketio.Client()
 
 @sio.event
 def connect():
 	print('Connected to Tally Arbiter server:', server, port)
-	sio.emit('bus_options')												# get current bus options
-	sio.emit('device_listen_blink', {'deviceId': deviceId})			# start listening for the device
+	sio.emit('listenerclient_connect', {  # start listening for the device
+		'deviceId': deviceId,
+		'listenerType': 'blinkt_test',
+		'canBeReassigned': True,
+		'canBeFlashed': True,
+		'supportsChat': False
+	})
 	repeatNumber = 2
 	while(repeatNumber):
 		repeatNumber = repeatNumber - 1
@@ -173,8 +191,11 @@ def doBlink(r, g, b):
 	global debounce
 	if (debounce != True):
 		debounce = True
-		blinkt.set_all(r, g, b)
-		blinkt.show()
+		if blinkt:
+			blinkt.set_all(r, g, b)
+			blinkt.show()
+		else:
+			print("\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(r, g, b, "Blink"), flush=True, end='\r')
 		debounce = False
 
 while(1):

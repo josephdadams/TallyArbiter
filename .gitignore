@@ -114,3 +114,5 @@ ui-dist/*
 
 # don't include any installers
 release
+
+deviceid.txt
