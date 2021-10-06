@@ -115,4 +115,6 @@ ui-dist/*
 # don't include any installers
 release
 
+#listener clients configs
 deviceid.txt
+config.ini
