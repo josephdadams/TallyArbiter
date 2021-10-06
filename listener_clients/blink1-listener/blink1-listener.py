@@ -203,13 +203,6 @@ def processTallyData():
 			busses_list.sort(key=lambda x: x['priority'])
 		except:
 			return
-		#TODO: make this work with more than one bus
-		'''
-		for current_bus in busses_list:
-			current_color = hex_to_rgb(current_bus['color'])
-			debug('Bus: ' + current_bus['type'] + ' - ' + ";".join(str(n) for n in current_color))
-			doBlink(*current_color)
-		'''
 		current_color = hex_to_rgb(busses_list[0]['color'])
 		debug('Bus: ' + busses_list[0]['type'] + ' - ' + ";".join(str(n) for n in current_color))
 		doBlink(*current_color)
