@@ -56,6 +56,25 @@ def debug(message = None):
 
 debug(args)
 
+class Blink1simulator:
+	def __init__(self):
+		self.r = 0
+		self.g = 0
+		self.b = 0
+		self.set_rgb(0,0,0)
+	
+	def set_rgb(self, r, g, b):
+		self.r = r
+		self.g = g
+		self.b = b
+		print("\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(r, g, b, " blink1 color"))
+	
+	def fade_to_rgb(self, duration, r, g, b):
+		self.set_rgb(r, g, b)
+	
+	def get_rgb(self):
+		return self.r, self.g, self.b
+
 try:
     from blink1.blink1 import Blink1 # pyright: reportMissingImports=false
     try:
@@ -63,11 +82,11 @@ try:
     except:
         print('No blink(1) devices found.')
 except ImportError:
-    b1 = None
     if not args.skip_blink1:
         print("blink1 is not installed. Please install it and try again.")
         print("If you want to try this program simulating blink1 add the flag --skip-blink1")
         exit(1)
+    b1 = Blink1simulator()
 
 device_states = []
 bus_options = []
@@ -212,10 +231,7 @@ def doBlink(r, g, b):
 	global debounce, args
 	if (debounce != True):
 		debounce = True
-		if b1:
-			b1.fade_to_rgb(100, r, g, b)
-		elif args.skip_blink1:
-			print("\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(r, g, b, " blink1 color"))
+		b1.fade_to_rgb(100, r, g, b)
 		debounce = False
 
 while(1):
