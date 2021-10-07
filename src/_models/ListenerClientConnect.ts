@@ -1,5 +1,6 @@
 export interface ListenerClientConnect {
     deviceId: string;
+    internalId: string;
     listenerType: string;
 
     canBeReassigned?: boolean;
