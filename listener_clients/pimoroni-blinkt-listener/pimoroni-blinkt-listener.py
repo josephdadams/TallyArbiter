@@ -57,18 +57,37 @@ def debug(message = None):
 
 debug(args)
 
+class Blinktsimulator:
+	def __init__(self):
+		self.r = 0
+		self.g = 0
+		self.b = 0
+
+	def set_all(self, r, g, b):
+		self.r = r
+		self.g = g
+		self.b = b
+
+	def show(self):
+		print("\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(self.r, self.g, self.b, " Blinkt! color"))
+
+	def set_clear_on_exit(self, set_clear = True):
+		pass
+
+	def set_color(self, r, g, b):
+		self.set_all(r, g, b)
+		self.show()
+
 try:
     import blinkt # pyright: reportMissingImports=false
-    try:
-        blinkt.set_clear_on_exit(True)
-    except:
-        pass
 except ImportError:
-    blinkt = None
     if not args.skip_blinkt:
         print("Blinkt is not installed. Please install it and try again.")
         print("If you want to try this program simulating Blinkt! add the flag --skip-blinkt")
         exit(1)
+    blinkt = Blinktsimulator()
+
+blinkt.set_clear_on_exit(True)
 
 device_states = []
 bus_options = []
@@ -220,11 +239,8 @@ def doBlink(r, g, b):
 	global debounce, args
 	if (debounce != True):
 		debounce = True
-		if blinkt:
-			blinkt.set_all(r, g, b)
-			blinkt.show()
-		elif args.skip_blinkt:
-			print("\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(r, g, b, " Blinkt! color"))
+		blinkt.set_all(r, g, b)
+		blinkt.show()
 		debounce = False
 
 while(1):
