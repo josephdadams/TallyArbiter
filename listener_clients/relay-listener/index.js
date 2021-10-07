@@ -1,35 +1,39 @@
 /* Tally Arbiter Relay Controller */
 
 //General Variables
-const clc = 		require('cli-color');
-const io = 			require('socket.io-client');
-const fs = 			require('fs');
-const path = 		require('path');
-const config_file = './config_relays.json'; //local storage JSON file
-const USBRelay = 	require('@josephdadams/usbrelay');
+const clc = 	 	   require('cli-color');
+const io = 			   require('socket.io-client');
+const fs = 			   require('fs');
+const path = 		   require('path');
+const { v4: uuidv4 } = require('uuid');
+const config_file =    './config_relays.json'; //local storage JSON file
+const USBRelay = 	   require('@josephdadams/usbrelay');
 
 var relay = 		null;
 
+var configJson = {};
 var relay_groups = 	[];
 var server_config =	[];
 
 var socket = 		null;
-
-var Logs = 			[];
 
 var device_states =	[];
 var bus_options =	[];
 
 function startUp() {
 	loadConfig();
-	setStates();
+	setupUSBRelay();
 	openSocket();
 }
 
 function loadConfig() {
+	//if config_relays.json not exists, copy from config_relays.json.example
+	if(config_file == "./config_relays.json" && !fs.existsSync(config_file)) {
+		fs.copyFileSync(config_file + '.example', config_file);
+	}
 	try {
 		let rawdata = fs.readFileSync(config_file);
-		let configJson = JSON.parse(rawdata); 
+		configJson = JSON.parse(rawdata); 
 
 		if (configJson.relay_groups) {
 			relay_groups = configJson.relay_groups;
@@ -47,6 +51,9 @@ function loadConfig() {
 			server_config = [];
 			logger('Tally Arbiter Server Config could not be loaded.', 'error');
 		}
+		if(!configJson.clientUUID) {
+			saveConfig();
+		}
 	}
 	catch (error) {
 		if (error.code === 'ENOENT') {
@@ -61,9 +68,10 @@ function loadConfig() {
 
 function saveConfig() {
 	try {
-		let configJson = {
+		configJson = {
 			server_config: server_config,
-			relay_groups: relay_groups
+			relay_groups: relay_groups,
+			clientUUID: uuidv4()
 		};
 
 		fs.writeFileSync(config_file, JSON.stringify(configJson, null, 1), 'utf8', function(error) {
@@ -78,23 +86,59 @@ function saveConfig() {
 	}
 }
 
-function setStates() {
+class USBRelaysimulator
+{
+	relays = [];
+
+    static get Relays() {
+        return [
+			{
+				vendorId: 1234,
+				productId: 6789,
+				path: 'EXAMPLE_PATH',
+				manufacturer: 'TallyArbiter',
+				product: 'simulated USBRelay',
+				release: 1,
+				interface: -1,
+				usagePage: 1,
+				usage: 1
+			}
+		];
+    }
+        
+    constructor(devicePath) {
+		logger('Error updating relay state: No USB relays have been initialized. Are you sure it is connected?', 'error');
+	}
+    
+    setState(relayNumber, state) {
+		this.relays[relayNumber-1] = state;
+    }
+
+    getState(relayNumber) {
+        let relayIndex = relayNumber-1;
+        if(relayIndex<0 || relayIndex>7){
+            throw new Error('Invalid relayNumber must be between 1 and 8');
+        }
+        return this.relays[relayIndex] || false; //returns false if false or undefined and true if true
+    }
+
+    getSerialNumber() {
+		return 'ABCDEFGHI';
+    }
+}
+
+function setupUSBRelay() {
 	try {
 		relay = new USBRelay();
 	}
 	catch (error) {
-		logger(error, 'error');
-	}
-
-	for (let i = 0; i < relay_groups.length; i++) {
-		for (let j = 0; j < relay_groups[i].relays.length; j++) {
-			relay_groups[i].relays[j].state = false;
-		}
+		if(error.message == 'No USB Relays are connected.')	logger(error, 'error');
+		relay = new USBRelaysimulator();
 	}
 }
 
 function logger(log, type) {
-	//logs the item to the console, to the log array, and sends the array to the settings page
+	//logs the item to the console
 
 	let dtNow = new Date();
 
@@ -105,16 +149,13 @@ function logger(log, type) {
 		case 'error':
 			console.log(clc.black(`[${dtNow}]`) + '     ' + clc.red.bold(log));
 			break;
+		case 'debug':
+			console.log(clc.black(`[${dtNow}]`) + '     ' + clc.green.bold(log));
+			break;
 		default:
 			console.log(clc.black(`[${dtNow}]`) + '     ' + log);
 			break;
 	}
-	
-	let logObj = {};
-	logObj.datetime = dtNow;
-	logObj.log = log;
-	logObj.type = type;
-	Logs.push(logObj);
 }
 
 function openSocket() {
@@ -140,21 +181,14 @@ function openSocket() {
 			logger('Disconnected from Tally Arbiter server.', 'error');
 		});
 
+		socket.on('error', function(error){
+			logger(error, 'error');
+		});
+
 		socket.on('device_states', function(Device_states) {
 			//process the data received and determine if it's in preview or program and adjust the relays accordingly
 			device_states = Device_states;
 			ProcessTallyData();
-		});
-
-		socket.on('listener_relay_assignment', function(relayGroupId, deviceId) {
-			for (let i = 0; i < relay_groups.length; i++) {
-				if (relay_groups[i].id === relayGroupId) {
-					relay_groups[i].deviceId = deviceId;
-					logger(`Relay Group ${relayGroupId} assigned to Device ${deviceId}`, 'info');
-					saveConfig();
-					break;
-				}
-			}
 		});
 
 		socket.on('bus_options', function(Bus_options) {
@@ -167,22 +201,26 @@ function openSocket() {
 			logger(`Flash received for Relay Group: ${relayGroupId}`);
 		});
 
-		socket.on('reassign', function(relayGroupId, oldDeviceId, newDeviceId) {
+		socket.on('reassign', function(oldDeviceId, newDeviceId, relayGroupId) {
 			//reassign the relay to a new device
 			for (let i = 0; i < relay_groups.length; i++) {
 				if (relay_groups[i].id === relayGroupId) {
 					relay_groups[i].deviceId = newDeviceId;
-					logger(`Relay Group ${relayGroupId} reassigned to Device ${newDeviceId}`, 'info');
+					logger(`Device ${oldDeviceId} (relay group ${relayGroupId}) has been reassigned to Device ${newDeviceId}`, 'info');
 					saveConfig();
 				}
 			}
-			socket.emit('listener_reassign_relay', relayGroupId, oldDeviceId, newDeviceId);
 		});
 
-		socket.emit('bus_options');
-
 		for(let i = 0; i < relay_groups.length; i++) {
-			socket.emit('device_listen_relay', relay_groups[i].id, relay_groups[i].deviceId);
+			socket.emit('listenerclient_connect', {
+				'deviceId': relay_groups[i].deviceId,
+				'internalId': relay_groups[i].id,
+				'listenerType': 'relay_' + configJson.clientUUID + '_' + relay_groups[i].id,
+				'canBeReassigned': true,
+				'canBeFlashed': true,
+				'supportsChat': false
+			});
 		}
 	}
 }
@@ -195,69 +233,56 @@ function getBusTypeById(busId) {
 }
 
 function ProcessTallyData() {
-	for (let i = 0; i < device_states.length; i++) {
-		if (getBusTypeById(device_states[i].busId) === 'preview') {
-			if (device_states[i].sources.length > 0) {
-				UpdateRelay(device_states[i].deviceId, 'preview', true);
-			}
-			else {
-				UpdateRelay(device_states[i].deviceId, 'preview', false);
-			}
-		}
-		else if (getBusTypeById(device_states[i].busId) === 'program') {
-			if (device_states[i].sources.length > 0) {
-				UpdateRelay(device_states[i].deviceId, 'program', true);
-			}
-			else {
-				UpdateRelay(device_states[i].deviceId, 'program', false);
-			}
-		}
-	}
-}
-
-function UpdateRelay(deviceId, bus, value) {
-	if (relay !== null) {
-		for (let i = 0; i < relay_groups.length; i++) {
-			if (relay_groups[i].deviceId === deviceId) {
-				for (let j = 0; j < relay_groups[i].relays.length; j++) {
-					if (relay_groups[i].relays[j].busType === bus) {
-						relay.setState(relay_groups[i].relays[j].relayNumber, value);
-						relay_groups[i].relays[j].state = value;
+	if(bus_options.length > 0) {
+		let powered_relays = [];
+		device_states.forEach(function(device_state) {
+			if (device_state.sources.length > 0) {
+				//logger(device_state.deviceId + " " + getBusTypeById(device_state.busId), 'debug');
+				relay_groups.forEach(function(relay_group) {
+					if(device_state.deviceId === relay_group.deviceId) {
+						relay_group.relays.forEach(function(currentRelay) {
+							if(currentRelay.busType === getBusTypeById(device_state.busId)) {
+								logger("Relay " + currentRelay.relayNumber + " is on", 'debug');
+								relay.setState(currentRelay.relayNumber, true);
+								powered_relays.push(currentRelay.relayNumber);
+							}
+						});
 					}
-				}
+				});
 			}
-		}
-	}
-	else {
-		logger('Error updating relay state: No USB relays have been initialized. Are you sure it is connected?', 'error');
+		});
+		relay_groups.forEach(function(relay_group) {
+			relay_group.relays.forEach(function(currentRelay) {
+				if(!powered_relays.includes(currentRelay.relayNumber)) {
+					logger("Relay " + currentRelay.relayNumber + " is off", 'debug');
+					relay.setState(currentRelay.relayNumber, false);
+				}
+			});
+		});
 	}
 }
 
 function FlashRelayGroup(relayGroupId) {
-	if (relay != null) {
-		for (let i = 0; i < relay_groups.length; i++) {
-			if (relay_groups[i].id === relayGroupId) {
-				for (let j = 0; j < relay_groups[i].relays.length; j++) {
-					relay.setState(relay_groups[i].relays[j].relayNumber, true);
+	for (let i = 0; i < relay_groups.length; i++) {
+		if (relay_groups[i].id === relayGroupId) {
+			for (let j = 0; j < relay_groups[i].relays.length; j++) {
+				let oldState = relay.getState(relay_groups[i].relays[j].relayNumber);
+				relay.setState(relay_groups[i].relays[j].relayNumber, true);
+				setTimeout(function () {
+					relay.setState(relay_groups[i].relays[j].relayNumber, false);
 					setTimeout(function () {
-						relay.setState(relay_groups[i].relays[j].relayNumber, false);
+						relay.setState(relay_groups[i].relays[j].relayNumber, true);
 						setTimeout(function () {
-							relay.setState(relay_groups[i].relays[j].relayNumber, true);
+							relay.setState(relay_groups[i].relays[j].relayNumber, false);
 							setTimeout(function () {
-								relay.setState(relay_groups[i].relays[j].relayNumber, false);
-								setTimeout(function () {
-									relay.setState(relay_groups[i].relays[j].relayNumber, relay_groups[i].relays[j].state);
-								}, 500);
-							}, 500)
-						}, 500);
+								relay.setState(relay_groups[i].relays[j].relayNumber, oldState);
+							}, 500);
+						}, 500)
 					}, 500);
-				}
-				break;
+				}, 500);
 			}
+			break;
 		}
-	}
-	else {
-		logger('Error flashing USB relay group: No USB relays have been initialized. Are you sure it is connected?', 'error');
 	}
 }
 

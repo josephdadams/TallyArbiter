@@ -119,3 +119,4 @@ release
 deviceid.txt
 config.ini
 config_gpo.json
+config_relays.json
