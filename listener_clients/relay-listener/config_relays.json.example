@@ -1,0 +1,36 @@
+{
+ "server_config": {
+  "ip": "localhost",
+  "port": 4455
+ },
+ "relay_groups": [
+  {
+   "id": "1",
+   "relays": [
+    {
+     "relayNumber": 1,
+     "busType": "preview"
+    },
+    {
+     "relayNumber": 2,
+     "busType": "program"
+    }
+   ],
+   "deviceId": "a90687c3"
+  },
+  {
+   "id": "2",
+   "relays": [
+    {
+     "relayNumber": 3,
+     "busType": "preview"
+    },
+    {
+     "relayNumber": 4,
+     "busType": "program"
+    }
+   ],
+   "deviceId": "2d92d338"
+  }
+ ]
+}
