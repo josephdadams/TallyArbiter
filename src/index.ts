@@ -247,7 +247,7 @@ function initialSetup() {
 			/*
 			This is the new listener client API, all clients should connect and send a JSON object with these properties:
 			deviceId
-			internalId (string used internally in your software, passed as parameter on flash)
+			internalId (string used internally in your software, passed as parameter on flash and reassign). This is optional. If you don't pass this, it will be assigned to the id used internally by TallyArbiter
 			listenerType (string to be displayed)
 			canBeReassigned (bool)
 			canBeFlashed (bool)
