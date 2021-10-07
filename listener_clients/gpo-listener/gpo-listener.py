@@ -74,8 +74,7 @@ class GPIOsimulator:
 		print('Setting GPIO pin {} to mode {}'.format(pin, mode))
 	
 	def output(self, pin, state):
-		pass
-		#print('Setting GPIO pin {} to state {}'.format(pin, state))
+		print('Setting GPIO pin {} to state {}'.format(pin, state))
 
 try:
 	import RPi.GPIO as GPIO # pyright: reportMissingImports=false
@@ -94,7 +93,7 @@ def setStates():
 		for gpo in gpo_group['gpos']:
 			GPIO.setup(gpo['pinNumber'], GPIO.OUT)
 			GPIO.output(gpo['pinNumber'], False)
-			gpo['state'] = False
+			gpo['lastState'] = False
 	
 	atexit.register(GPO_off)
 
@@ -104,7 +103,7 @@ def GPO_off():
 		for gpo in gpo_group['gpos']:
 			GPIO.setup(gpo['pinNumber'], GPIO.OUT)
 			GPIO.output(gpo['pinNumber'], False)
-			gpo['state'] = False
+			gpo['lastState'] = False
 
 #SocketIO Connections
 sio = socketio.Client()
@@ -112,11 +111,11 @@ sio = socketio.Client()
 @sio.event
 def connect():
 	print('Connected to Tally Arbiter server:', server_config['ip'], server_config['port'])
-	sio.emit('bus_options')
 	setStates()
 	for gpo_group in gpo_groups:
 		sio.emit('listenerclient_connect', {  # start listening for the device
 			'deviceId': gpo_group['deviceId'],
+			'internalId': gpo_group['id'],
 			'listenerType': 'gpo_' + configJson['clientUUID'] + "_" + gpo_group['id'],
 			'canBeReassigned': not args.disable_reassign,
 			'canBeFlashed': not args.disable_flash,
@@ -152,10 +151,11 @@ def on_bus_options(data):
 
 @sio.on('flash')
 def on_flash(gpoGroupId):
+	print('Flash request received for gpo group {}'.format(gpoGroupId))
 	if args.disable_flash:
 		return
 	for gpo_group in gpo_groups:
-		if gpo_group['id'] == gpoGroupId:
+		if str(gpo_group['id']) == str(gpoGroupId):
 			for gpo in gpo_group['gpos']:
 				GPIO.output(gpo['pinNumber'], True)
 				time.sleep(.5)
@@ -165,15 +165,17 @@ def on_flash(gpoGroupId):
 				time.sleep(.5)
 				GPIO.output(gpo['pinNumber'], False)
 				time.sleep(.5)
-				GPIO.output(gpo['pinNumber'], gpo['state'])
+				GPIO.output(gpo['pinNumber'], gpo['lastState'])
+	print()
 
 @sio.on('reassign')
-def on_reassign(oldDeviceId, newDeviceId):
+def on_reassign(oldDeviceId, newDeviceId, gpoGroupId):
 	if args.disable_reassign:
 		return
-	print('Reassigning GPO Group from DeviceID: ' + oldDeviceId + ' to Device ID: ' + newDeviceId)
+	print('Reassigning GPO Group ' + gpoGroupId + ' from DeviceID: ' + oldDeviceId + ' to Device ID: ' + newDeviceId)
+	print()
 	for gpo_group in gpo_groups:
-		if gpo_group['deviceId'] == oldDeviceId:
+		if gpo_group['id'] == gpoGroupId:
 			gpo_group['deviceId'] = newDeviceId
 
 	config_file = open(configFileName, 'w')
@@ -189,37 +191,25 @@ def getBusTypeById(busId):
 			return bus['type']
 
 def processTallyData():
-	for device_state in device_states:
-		if getBusTypeById(device_state['busId']) == 'preview':
+	if len(bus_options) > 0:
+		powered_pins = []
+		for device_state in device_states:
 			if len(device_state['sources']) > 0:
-				print('Updating GPO: {} is in preview'.format(device_state['deviceId']))
-				UpdateGPO(device_state['deviceId'], 'preview', True)
-			else:
-				print('Updating GPO: {} is NOT in preview'.format(device_state['deviceId']))
-				UpdateGPO(device_state['deviceId'], 'preview', False)
-		elif getBusTypeById(device_state['busId']) == 'program':
-			if len(device_state['sources']) > 0:
-				print('Updating GPO: {} is in program'.format(device_state['deviceId']))
-				UpdateGPO(device_state['deviceId'], 'program', True)
-			else:
-				print('Updating GPO: {} is NOT in program'.format(device_state['deviceId']))
-				UpdateGPO(device_state['deviceId'], 'program', False)
-
-def UpdateGPO(deviceId, bus, value):
-	for gpo_group in gpo_groups:
-		if gpo_group['deviceId'] == deviceId:
+				for gpo_group in gpo_groups:
+					if device_state['deviceId'] == gpo_group['deviceId']:
+						for gpo in gpo_group['gpos']:
+							if gpo['busType'] == getBusTypeById(device_state['busId']):
+								print('Turning on pin ' + str(gpo['pinNumber']))
+								GPIO.output(gpo['pinNumber'], True)
+								gpo['lastState'] = True
+								powered_pins.append(gpo['pinNumber'])
+		for gpo_group in gpo_groups:
 			for gpo in gpo_group['gpos']:
-				if gpo['busType'] == bus:
-					if value == True:
-						# turn the pin high
-						print('Taking GPIO Pin {} High'.format(gpo['pinNumber']))
-						GPIO.output(gpo['pinNumber'], True)
-						gpo['state'] = True
-					else:
-						# turn the pin low
-						print('Taking GPIO Pin {} Low'.format(gpo['pinNumber']))
-						GPIO.output(gpo['pinNumber'], False)
-						gpo['state'] = False
+				if gpo['pinNumber'] not in powered_pins:
+					print('Turning off pin ' + str(gpo['pinNumber']))
+					GPIO.output(gpo['pinNumber'], False)
+					gpo['lastState'] = False
+		print()
 
 while(1):
 	try:
