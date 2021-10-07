@@ -7,6 +7,7 @@ export interface ListenerClient {
     datetime_connected: number;
     datetime_inactive?: number;
     deviceId: string;
+    internalId: string;
     id: string;
     inactive: boolean;
     ipAddress: string;

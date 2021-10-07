@@ -247,6 +247,7 @@ function initialSetup() {
 			/*
 			This is the new listener client API, all clients should connect and send a JSON object with these properties:
 			deviceId
+			internalId (string used internally in your software, passed as parameter on flash)
 			listenerType (string to be displayed)
 			canBeReassigned (bool)
 			canBeFlashed (bool)
@@ -280,7 +281,7 @@ function initialSetup() {
 
 			let ipAddress = socket.handshake.address;
 			let datetimeConnected = new Date().getTime();
-			let clientId = AddListenerClient(socket.id, deviceId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed, supportsChat);
+			let clientId = AddListenerClient(socket.id, deviceId, obj.internalId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed, supportsChat);
 			
 			if (supportsChat) {
 				socket.join('messaging');
@@ -659,6 +660,7 @@ function initialSetup() {
 							found = true;
 							listener_clients[j].socketId = data[i].socketId;
 							listener_clients[j].deviceId = data[i].deviceId;
+							listener_clients[j].internalId = data[i].id;
 							listener_clients[j].listenerType = data[i].listenerType;
 							listener_clients[j].ipAddress = data[i].ipAddress;
 							listener_clients[j].datetimeConnected = data[i].datetimeConnected;
@@ -1998,11 +2000,15 @@ function GetCloudClientBySocketId(socket: string): CloudClient {
 	return cloud_clients.find( ({ socketId }) => socketId === socket);
 }
 
-function AddListenerClient(socketId: string, deviceId: string, listenerType: string, ipAddress: string, datetimeConnected: number, canBeReassigned = true, canBeFlashed = true, supportsChat = false): string {
-    let clientObj: ListenerClient = {
-        id: uuidv4(),
+function AddListenerClient(socketId: string, deviceId: string, internalId: string, listenerType: string, ipAddress: string, datetimeConnected: number, canBeReassigned = true, canBeFlashed = true, supportsChat = false): string {
+    let id = uuidv4();
+	if(!internalId) internalId = id;
+	
+	let clientObj: ListenerClient = {
+        id: id,
         socketId: socketId,
         deviceId: deviceId,
+		internalId: internalId,
         listenerType: listenerType,
         ipAddress: ipAddress,
         datetime_connected: datetimeConnected,
@@ -2025,6 +2031,7 @@ function AddListenerClient(socketId: string, deviceId: string, listenerType: str
 						//this is probably the same one
 						found = true;
 						listener_clients[i].socketId = clientObj.socketId;
+						listener_clients[i].internalId = clientObj.internalId;
 						listener_clients[i].inactive = false;
 						listener_clients[i].datetime_connected = clientObj.datetime_connected;
 						listener_clients[i].canBeReassigned = clientObj.canBeReassigned;
@@ -2066,15 +2073,7 @@ function ReassignListenerClient(clientId: string, oldDeviceId: string, deviceId:
 	for (let i = 0; i < listener_clients.length; i++) {
 		if (listener_clients[i].id === clientId) {
 			if (listener_clients[i].canBeReassigned) {
-				if (listener_clients[i].relayGroupId) {
-					io.to(listener_clients[i].socketId).emit('reassign', listener_clients[i].relayGroupId, oldDeviceId, deviceId);
-				}
-				else if (listener_clients[i].gpoGroupId) {
-					io.to(listener_clients[i].socketId).emit('reassign', listener_clients[i].gpoGroupId, oldDeviceId, deviceId);
-				}
-				else {
-					io.to(listener_clients[i].socketId).emit('reassign', oldDeviceId, deviceId);
-				}
+				io.to(listener_clients[i].socketId).emit('reassign', oldDeviceId, deviceId, listener_clients[i].internalId);
 			}
 			break;
 		}
@@ -2128,15 +2127,7 @@ function FlashListenerClient(listenerClientId): FlashListenerClientResponse | vo
 		}
 		else {
 			if (listenerClientObj.canBeFlashed) {
-				if (listenerClientObj.relayGroupId) {
-					io.to(listenerClientObj.socketId).emit('flash', listenerClientObj.relayGroupId);
-				}
-				else if (listenerClientObj.gpoGroupId) {
-					io.to(listenerClientObj.socketId).emit('flash', listenerClientObj.gpoGroupId);
-				}
-				else {
-					io.to(listenerClientObj.socketId).emit('flash');
-				}
+				io.to(listenerClientObj.socketId).emit('flash', listenerClientObj.internalId);
 				return {result: 'flash-sent-successfully', listenerClientId: listenerClientId};
 			}
 			else {
