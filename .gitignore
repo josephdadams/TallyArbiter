@@ -118,3 +118,4 @@ release
 #listener clients configs
 deviceid.txt
 config.ini
+config_gpo.json
