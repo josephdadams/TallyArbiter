@@ -741,6 +741,7 @@ var output_types = [ //output actions that Tally Arbiter can perform
 	{ id: '54ae4a7e', label: 'TSL 5 TCP', type: 'tsl_5_tcp', enabled: true },
 	{ id: 'ffe2b0b6', label: 'Outgoing Webhook', type: 'webhook', enabled: true},
 	{ id: '79e3ce27', label: 'Generic TCP', type: 'tcp', enabled: true},
+	{ id: '79e3ce28', label: 'Generic UDP', type: 'udp', enabled: true},
 	{ id: '4827f903', label: 'RossTalk', type: 'rosstalk', enabled: true},
 	{ id: '6dbb7bf7', label: 'Local Console Output', type: 'console', enabled: true },
 	{ id: '58da987d', label: 'OSC Message', type: 'osc', enabled: true }
@@ -810,6 +811,13 @@ var output_types_datafields = [ //data fields for the outgoing actions
 			{ fieldName: 'end', fieldLabel: 'End Character', fieldType: 'dropdown', options: [{ id: '', label: 'None' }, { id: '\n', label: 'LF - \\n' }, { id: '\r\n', label: 'CRLF - \\r\\n' }, { id: '\r', label: 'CR - \\r' }, { id: '\x00', label: 'NULL - \\x00' }]}
 		]
 	},
+	{ outputTypeId: '79e3ce28', fields: [ //Generic UDP
+		{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
+		{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
+		{ fieldName: 'string', fieldLabel: 'UDP String', fieldType: 'text' },
+		{ fieldName: 'end', fieldLabel: 'End Character', fieldType: 'dropdown', options: [{ id: '', label: 'None' }, { id: '\n', label: 'LF - \\n' }, { id: '\r\n', label: 'CRLF - \\r\\n' }, { id: '\r', label: 'CR - \\r' }, { id: '\x00', label: 'NULL - \\x00' }]}
+	]
+},
 	{ outputTypeId: '6dbb7bf7', fields: [ //Local Console Output
 			{ fieldName: 'text', fieldLabel: 'Text', fieldType: 'text'}
 		]
@@ -5371,6 +5379,9 @@ function RunAction(deviceId, busId, active) {
 						case 'tcp':
 							RunAction_TCP(actionObj.data);
 							break;
+						case 'udp':
+								RunAction_UDP(actionObj.data);
+								break;
 						case 'rosstalk':
 							RunAction_RossTalk(actionObj.data);
 							break;
@@ -5598,6 +5609,31 @@ function RunAction_TCP(data) {
 	}
 	catch (error) {
 		logger(`An error occured sending the Generic TCP: ${error}`, 'error');
+	}
+}
+
+function RunAction_UDP(data) {
+	try {
+		let sendBuf = Buffer.from(unescape(data.string) + data.end, 'latin1');
+
+
+		let client = dgram.createSocket('udp4');
+		client.on('message',function(msg,info){
+		});
+
+		if (sendBuf !== '') {
+		
+
+		client.send(sendBuf, data.port, data.ip, function(error) {
+			if (!error) {
+				logger(`Generic UDP sent: ${data.ip}:${data.port} : ${data.string}`, 'info');
+			}
+			client.close();
+		});
+		}
+	}
+	catch (error) {
+		logger(`An error occured sending the Generic UDP: ${error}`, 'error');
 	}
 }
 
