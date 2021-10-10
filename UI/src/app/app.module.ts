@@ -16,6 +16,7 @@ import { LoginComponent } from './_components/login/login.component';
 import { ChatComponent } from './_components/chat/chat.component';
 import { ErrorReportComponent } from './_components/error-report/error-report.component';
 import { ErrorReportsListComponent } from './_components/error-reports-list/error-reports-list.component';
+import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap';
 
 @NgModule({
   declarations: [
@@ -34,6 +35,7 @@ import { ErrorReportsListComponent } from './_components/error-reports-list/erro
     BrowserModule,
     AppRoutingModule,
     QrCodeModule,
+    NgbNavModule,
     FormsModule,
     ServiceWorkerModule.register('ngsw-worker.js', {
       enabled: environment.production,

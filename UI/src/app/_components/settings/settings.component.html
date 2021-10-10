@@ -1,338 +1,399 @@
 <div class="container pt-4" *ngIf="socketService.initialDataLoaded">
-  <div class="row">
-    <h2>
-      Sources
-      <button class="btn btn-outline-success me-2" (click)="addSource(sourceModal)">
-        <i class="fas fa-plus"></i> Add 
-      </button>
-      <button class="btn btn-outline-dark" (click)="toggleTestMode()">
-        <i class="fas fa-vial"></i> Turn {{ socketService.testModeOn ? "Off" : "On" }} Test Mode
-      </button>
-    </h2>
-    <span class="text-muted mt-3" *ngIf="socketService.sources.length == 0">No sources configured.</span>
-    <table class="table table-hover" *ngIf="socketService.sources.length > 0">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th></th>
-          <th>Type</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let source of socketService.sources" [class]="
-            source.enabled
-              ? source.connected
-                ? 'text-success'
-                : 'text-danger'
-              : 'text-muted'
-          ">
-          <td>{{ source.name }}</td>
-          <td><i class="fas fa-cloud text-muted" *ngIf="source.cloudConnection"></i></td>
-          <td>{{ source.sourceTypeName }}</td>
-          <td>
-            <button class="btn btn-outline-dark" (click)="editSource(source, sourceModal)">
-              <i class="fas fa-pen"></i> Edit
-            </button>
-            <button class="btn btn-outline-danger mx-2" (click)="deleteSource(source)">
-              <i class="fas fa-trash"></i> Delete
-            </button>
-            <button class="btn btn-outline-dark" *ngIf="!source.connected" (click)="reconnect(source)">
-              <i class="fas fa-sync"></i> Reconnect
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <hr class="my-5" />
-  <div class="row">
-    <h2>
-      Devices
-      <button class="btn btn-outline-success" (click)="addDevice(deviceModal)"><i class="fas fa-plus"></i> Add </button>
-    </h2>
-    <span class="text-muted mt-3" *ngIf="socketService.devices.length == 0">No devices configured.</span>
-    <table class="table table-hover" *ngIf="socketService.devices.length > 0">
-      <thead>
-        <tr>
-          <th>PVW</th>
-          <th>PGM</th>
-          <th>Name</th>
-          <th></th>
-          <th>Description</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let device of socketService.devices; index as index" [class.text-muted]="!device.enabled">
-          <td [class.bg-success]="device.modePreview"></td>
-          <td [class.bg-danger]="device.modeProgram"></td>
-          <td>
-            <small><b>{{ index + 1 }}</b></small>
-            {{ device.name }}
-          </td>
-          <td><i class="fas fa-cloud text-muted" *ngIf="device.cloudConnection"></i></td>
-          <td>{{ device.description }}</td>
-          <td>
-            <button class="btn btn-outline-dark me-2" (click)="editDevice(device, deviceModal)">
-              <i class="fas fa-pen"></i> Edit
-            </button>
-            <button class="btn btn-outline-dark me-2" (click)="editDeviceSources(device, deviceSourcesModal)"><i class="fas fa-link"></i> Edit Sources ({{getDeviceSourcesByDeviceId(device.id).length}})</button>
-            <button class="btn btn-outline-dark me-2" (click)="editDeviceActions(device, deviceActionsModal)"><i class="fas fa-play"></i> Edit Actions ({{getDeviceActionsByDeviceId(device.id).length}})</button>
-            <button class="btn btn-outline-danger" (click)="deleteDevice(device)"><i class="fas fa-trash"></i> Delete</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <hr class="my-5" />
-  <div class="row">
-    <h2>Connected Listeners</h2>
-    <span class="text-muted mt-3" *ngIf="socketService.listenerClients.length == 0">No listeners connected.</span>
-    <table class="table table-hover" *ngIf="socketService.listenerClients.length > 0">
-      <thead>
-        <tr>
-          <th>IP Address</th>
-          <th></th>
-          <th class="bg-light">Type</th>
-          <th>Device</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let listenerClient of socketService.listenerClients">
-          <td>{{ listenerClient.ipAddress }}</td>
-          <td><i class="fas fa-cloud text-muted" *ngIf="listenerClient.cloudConnection"></i></td>
-          <td class="bg-light">{{ listenerClient.listenerType }}</td>
-          <td>
-            <select class="form-select" *ngIf="listenerClient.listenerType != 'vmix'" [ngModel]="listenerClient.deviceId" (ngModelChange)="reassignListenerClient(listenerClient, $event)"
-              [disabled]="!listenerClient.canBeReassigned">
-              <option *ngFor="let device of socketService.devices" [value]="device.id">
-                {{ device.name }}
-              </option>
-            </select>
-          </td>
-          <td>
-            <button class="btn btn-outline-danger me-2" *ngIf="listenerClient.inactive" (click)="deleteListener(listenerClient)">
-                <i class="fas fa-trash"></i> Delete
-            </button>
-            <button class="btn btn-outline-dark" *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed"
-              (click)="flash(listenerClient)">
-              <i class="fas fa-exclamation"></i> Flash
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <hr class="my-5" />
-  <div class="row">
-    <h2>Connected vMix Listeners</h2>
-    <span class="text-muted mt-3" *ngIf="socketService.vmixClients.length == 0">No listeners connected.</span>
-    <table class="table table-hover" *ngIf="socketService.vmixClients.length > 0">
-      <thead>
-        <tr>
-          <th>IP Address</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let vmixClient of socketService.vmixClients">
-          <td>{{ vmixClient.host }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <hr class="my-5" />
-  <div class="row">
-    <h2>TSL Clients
-      <button class="btn btn-outline-success mr-1" (click)="addTSLClient(tslClientModal)"><i class="fas fa-plus"></i> Add</button>
-    </h2>
-    <div>
-      <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" id="chkTSLClients_1SecUpdate" [(ngModel)]="socketService.tslclients_1secupdate" (ngModelChange)="socketService.socket.emit('tslclients_1secupdate', $event);">
-        <label class="form-check-label" for="chkTSLClients_1SecUpdate">1-Second Updates</label>
-      </div>
-      <span class="text-muted mt-3 d-block" *ngIf="socketService.tslClients.length == 0">No TSL clients configured.</span>
-      <table class="table table-hover" *ngIf="socketService.tslClients.length > 0">
-          <thead>
-              <tr>
-                  <th>IP</th>
-                  <th>Port</th>
-                  <th>Transport</th>
-                  <th></th>
-              </tr>
-          </thead>
-          <tbody>
-              <tr *ngFor="let tslClient of socketService.tslClients" [class.text-success]="tslClient.connected">
-                <td>{{tslClient.ip}}</td>
-                <td>{{tslClient.port}}</td>
-                <td>{{tslClient.transport}}</td>
-                <td>
-                    <button class="btn btn-outline-dark" (click)="editTSLClient(tslClient, tslClientModal)">
-                        <i class="fas fa-pen"></i> Edit
-                    </button>
-                    <button class="btn btn-outline-danger mx-2" (click)="deleteTSLClient(tslClient)">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </td>
-              </tr>
-          </tbody>
-      </table>
-    </div>
-  </div>
-  <hr class="my-5" />
-  <div class="row">
-      <div class="mb-3">
-          <h2><i class="fas fa-cloud text-muted"></i> Cloud Settings</h2>
-        </div>
-        <div class="col">
-            <h4>
-                Destinations
-                <button class="btn btn-outline-success" (click)="addCloudDestination(cloudDestinationModal)"><i class="fas fa-plus"></i> Add </button>
-            </h4>
-            <span class="text-muted mt-3" *ngIf="socketService.cloudDestinations.length == 0">No cloud destinations configured.</span>
-            <table class="table table-hover" *ngIf="socketService.cloudDestinations.length > 0">
-                <thead>
-                    <tr>
-                        <th>Host</th>
-                        <th>Port</th>
-                        <th>Key</th>
-                        <th></th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="let cloudDestination of socketService.cloudDestinations" [class.text-success]="cloudDestination.status == 'connected'">
-                        <td>{{cloudDestination.host}}</td>
-                        <td>{{cloudDestination.port}}</td>
-                        <td>{{cloudDestination.key}}</td>
-                        <td><span *ngIf="cloudDestination.status == 'invalid_key'" class="text-danger">Invalid Key!</span></td>
-                        <td>
-                            <button class="btn btn-outline-dark" (click)="editCloudDestination(cloudDestination, cloudDestinationModal)">
-                                <i class="fas fa-pen"></i> Edit
-                            </button>
-                            <button class="btn btn-outline-danger mx-2" (click)="deleteCloudDestination(cloudDestination)">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                            <button class="btn btn-outline-dark" *ngIf="cloudDestination.status == 'disconnected'" (click)="reconnectCloudDestination(cloudDestination)">
-                                <i class="fas fa-sync"></i> Reconnect
-                            </button>
-                            <button class="btn btn-outline-dark" *ngIf="cloudDestination.status == 'connected'" (click)="disconnectCloudDestination(cloudDestination)">
-                                <i class="fas fa-times"></i> Disconnect
-                            </button>
-
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="col">
-            <h4>
-                Keys
-                <button class="btn btn-outline-success" (click)="addCloudKey(cloudKeyModal)"><i class="fas fa-plus"></i> Add </button>
-            </h4>
-            <span class="text-muted mt-3" *ngIf="socketService.cloudKeys.length == 0">No cloud keys configured.</span>
-            <table class="table table-hover" *ngIf="socketService.cloudKeys.length > 0">
-                <thead>
-                    <tr>
-                        <th>Key</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="let key of socketService.cloudKeys">
-                        <td>{{key}}</td>
-                        <td>
-                            <button class="btn btn-outline-danger" (click)="deleteCloudKey(key)"><i class="fas fa-trash"></i> Delete</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-  </div>
-  <div class="row mt-4">
-        <div class="col">
-            <h4>Clients</h4>
-            <span class="text-muted mt-3" *ngIf="socketService.cloudClients.length == 0">No cloud clients connected.</span>
-            <table class="table table-hover" *ngIf="socketService.cloudClients.length > 0">
-                <thead>
-                    <tr>
-                        <th>IP</th>
-                        <th>Key</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="let client of socketService.cloudClients">
-                        <td>{{client.ipAddress.replace("::ffff:", "")}}</td>
-                        <td>{{client.key}}</td>
-                        <td>
-                            <button class="btn btn-outline-danger" (click)="removeCloudClient(client)"><i class="fas fa-trash"></i> Remove</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-  </div>
-  <hr class="my-5" />
-  <div class="row">
-    <div class="col-xs-12 col-md-6" id="divContainer_Logs">
-      <h2>Logs
-        <select class="form-select d-inline w-50" [ngModel]="currentLogLevel" (ngModelChange)="setLogLevel($event)">
-          <option *ngFor="let logLevel of logLevels" [value]="logLevel.id">{{logLevel.title}}</option>
-        </select>
-      </h2>
-      <div class="logs bg-light p-1" #logsContainer>
-        <span class="d-block" [style.color]="
-            log.type == 'console_action'
-              ? '#00ff00'
-              : log.type == 'error'
-              ? '#FF0000'
-              : log.type == 'info-quiet'
-              ? '#888888'
-              : '#0000FF'
-          " *ngFor="let log of visibleLogs">[{{ log.datetime | date: "shortDate" }}
-          {{ log.datetime | date: "shortTime" }}] {{ log.log }}</span>
-      </div>
-    </div>
-    <div class="col-xs-12 col-md-6" id="divContainer_TallyData">
-      <h2>Tally Data</h2>
-      <div class="logs bg-light p-1" #tallyDataContainer>
-        <span class="d-block" *ngFor="let log of socketService.tallyData">[{{ log.datetime | date: "shortDate" }}
-          {{ log.datetime | date: "shortTime" }}] {{ log.log }}</span>
-      </div>
-    </div>
-  </div>
-  <div class="text-muted my-3">Version {{ socketService.version }} - <a routerLink="/errors">Go to error reports list</a></div>
+    <nav ngbNav #nav="ngbNav" class="nav-tabs" [animation]="false">
+        <ng-container ngbNavItem>
+            <a ngbNavLink>Sources & Devices</a>
+            <ng-template ngbNavContent>
+                <div class="row">
+                    <h2>
+                        Sources
+                        <button class="btn btn-outline-success me-2" (click)="addSource(sourceModal)">
+                    <i class="fas fa-plus"></i> Add 
+                  </button>
+                    </h2>
+                    <span class="text-muted mt-3" *ngIf="socketService.sources.length == 0">No sources configured.</span>
+                    <table class="table table-hover" *ngIf="socketService.sources.length > 0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th></th>
+                                <th>Type</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let source of socketService.sources" [class]="
+                        source.enabled
+                          ? source.connected
+                            ? 'text-success'
+                            : 'text-danger'
+                          : 'text-muted'
+                      ">
+                                <td>{{ source.name }}</td>
+                                <td><i class="fas fa-cloud text-muted" *ngIf="source.cloudConnection"></i></td>
+                                <td>{{ source.sourceTypeName }}</td>
+                                <td>
+                                    <button class="btn btn-outline-dark" (click)="editSource(source, sourceModal)">
+                          <i class="fas fa-pen"></i> Edit
+                        </button>
+                                    <button class="btn btn-outline-danger mx-2" (click)="deleteSource(source)">
+                          <i class="fas fa-trash"></i> Delete
+                        </button>
+                                    <button class="btn btn-outline-dark" *ngIf="!source.connected" (click)="reconnect(source)">
+                          <i class="fas fa-sync"></i> Reconnect
+                        </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <hr class="my-5" />
+                <div class="row">
+                    <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: true}"></ng-container>
+                </div>
+            </ng-template>
+        </ng-container>
+        <ng-container ngbNavItem>
+            <a ngbNavLink>Listeners</a>
+            <ng-template ngbNavContent>
+                <div class="row">
+                    <h2>Connected Listeners</h2>
+                    <span class="text-muted mt-3" *ngIf="socketService.listenerClients.length == 0">No listeners connected.</span>
+                    <table class="table table-hover" *ngIf="socketService.listenerClients.length > 0">
+                        <thead>
+                            <tr>
+                                <th>IP Address</th>
+                                <th></th>
+                                <th class="bg-light">Type</th>
+                                <th>Device</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let listenerClient of socketService.listenerClients">
+                                <td>{{ listenerClient.ipAddress }}</td>
+                                <td><i class="fas fa-cloud text-muted" *ngIf="listenerClient.cloudConnection"></i></td>
+                                <td class="bg-light">{{ listenerClient.listenerType }}</td>
+                                <td>
+                                    <select class="form-select" *ngIf="listenerClient.listenerType != 'vmix'" [ngModel]="listenerClient.deviceId" (ngModelChange)="reassignListenerClient(listenerClient, $event)" [disabled]="!listenerClient.canBeReassigned">
+                          <option *ngFor="let device of socketService.devices" [value]="device.id">
+                            {{ device.name }}
+                          </option>
+                        </select>
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-danger me-2" *ngIf="listenerClient.inactive" (click)="deleteListener(listenerClient)">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                                    <button class="btn btn-outline-dark" *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed" (click)="flash(listenerClient)">
+                          <i class="fas fa-exclamation"></i> Flash
+                        </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <hr class="my-5" />
+                <div class="row">
+                    <h2>Connected vMix Listeners</h2>
+                    <span class="text-muted mt-3" *ngIf="socketService.vmixClients.length == 0">No listeners connected.</span>
+                    <table class="table table-hover" *ngIf="socketService.vmixClients.length > 0">
+                        <thead>
+                            <tr>
+                                <th>IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let vmixClient of socketService.vmixClients">
+                                <td>{{ vmixClient.host }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <hr class="my-5" />
+                <div class="row">
+                    <h2>TSL Clients
+                        <button class="btn btn-outline-success mr-1" (click)="addTSLClient(tslClientModal)"><i class="fas fa-plus"></i> Add</button>
+                    </h2>
+                    <div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="chkTSLClients_1SecUpdate" [(ngModel)]="socketService.tslclients_1secupdate" (ngModelChange)="socketService.socket.emit('tslclients_1secupdate', $event);">
+                            <label class="form-check-label" for="chkTSLClients_1SecUpdate">1-Second Updates</label>
+                        </div>
+                        <span class="text-muted mt-3 d-block" *ngIf="socketService.tslClients.length == 0">No TSL clients configured.</span>
+                        <table class="table table-hover" *ngIf="socketService.tslClients.length > 0">
+                            <thead>
+                                <tr>
+                                    <th>IP</th>
+                                    <th>Port</th>
+                                    <th>Transport</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let tslClient of socketService.tslClients" [class.text-success]="tslClient.connected">
+                                    <td>{{tslClient.ip}}</td>
+                                    <td>{{tslClient.port}}</td>
+                                    <td>{{tslClient.transport}}</td>
+                                    <td>
+                                        <button class="btn btn-outline-dark" (click)="editTSLClient(tslClient, tslClientModal)">
+                                    <i class="fas fa-pen"></i> Edit
+                                </button>
+                                        <button class="btn btn-outline-danger mx-2" (click)="deleteTSLClient(tslClient)">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </ng-template>
+        </ng-container>
+        <ng-container ngbNavItem>
+            <a ngbNavLink>Cloud</a>
+            <ng-template ngbNavContent>
+                <div class="row">
+                    <div class="mb-3">
+                        <h2><i class="fas fa-cloud text-muted"></i> Cloud Settings</h2>
+                    </div>
+                    <div class="col">
+                        <h4>
+                            Destinations
+                            <button class="btn btn-outline-success" (click)="addCloudDestination(cloudDestinationModal)"><i class="fas fa-plus"></i> Add </button>
+                        </h4>
+                        <span class="text-muted mt-3" *ngIf="socketService.cloudDestinations.length == 0">No cloud destinations configured.</span>
+                        <table class="table table-hover" *ngIf="socketService.cloudDestinations.length > 0">
+                            <thead>
+                                <tr>
+                                    <th>Host</th>
+                                    <th>Port</th>
+                                    <th>Key</th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let cloudDestination of socketService.cloudDestinations" [class.text-success]="cloudDestination.status == 'connected'">
+                                    <td>{{cloudDestination.host}}</td>
+                                    <td>{{cloudDestination.port}}</td>
+                                    <td>{{cloudDestination.key}}</td>
+                                    <td><span *ngIf="cloudDestination.status == 'invalid_key'" class="text-danger">Invalid Key!</span></td>
+                                    <td>
+                                        <button class="btn btn-outline-dark" (click)="editCloudDestination(cloudDestination, cloudDestinationModal)">
+                                            <i class="fas fa-pen"></i> Edit
+                                        </button>
+                                        <button class="btn btn-outline-danger mx-2" (click)="deleteCloudDestination(cloudDestination)">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                        <button class="btn btn-outline-dark" *ngIf="cloudDestination.status == 'disconnected'" (click)="reconnectCloudDestination(cloudDestination)">
+                                            <i class="fas fa-sync"></i> Reconnect
+                                        </button>
+                                        <button class="btn btn-outline-dark" *ngIf="cloudDestination.status == 'connected'" (click)="disconnectCloudDestination(cloudDestination)">
+                                            <i class="fas fa-times"></i> Disconnect
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col">
+                        <h4>
+                            Keys
+                            <button class="btn btn-outline-success" (click)="addCloudKey(cloudKeyModal)"><i class="fas fa-plus"></i> Add </button>
+                        </h4>
+                        <span class="text-muted mt-3" *ngIf="socketService.cloudKeys.length == 0">No cloud keys configured.</span>
+                        <table class="table table-hover" *ngIf="socketService.cloudKeys.length > 0">
+                            <thead>
+                                <tr>
+                                    <th>Key</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let key of socketService.cloudKeys">
+                                    <td>{{key}}</td>
+                                    <td>
+                                        <button class="btn btn-outline-danger" (click)="deleteCloudKey(key)"><i class="fas fa-trash"></i> Delete</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col">
+                        <h4>Clients</h4>
+                        <span class="text-muted mt-3" *ngIf="socketService.cloudClients.length == 0">No cloud clients connected.</span>
+                        <table class="table table-hover" *ngIf="socketService.cloudClients.length > 0">
+                            <thead>
+                                <tr>
+                                    <th>IP</th>
+                                    <th>Key</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let client of socketService.cloudClients">
+                                    <td>{{client.ipAddress.replace("::ffff:", "")}}</td>
+                                    <td>{{client.key}}</td>
+                                    <td>
+                                        <button class="btn btn-outline-danger" (click)="removeCloudClient(client)"><i class="fas fa-trash"></i> Remove</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </ng-template>
+        </ng-container>
+        <ng-container ngbNavItem>
+            <a ngbNavLink>Testing</a>
+            <ng-template ngbNavContent>
+                <button class="btn btn-outline-dark mb-5" (click)="toggleTestMode()">
+                    <i class="fas fa-vial"></i> Turn {{ socketService.testModeOn ? "Off" : "On" }} Test Mode
+                </button>
+                <i *ngIf="socketService.testModeOn" class="fas fa-vial fa-spin fa-4x text-secondary float-end"></i>
+                <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: false}"></ng-container>
+            </ng-template>
+        </ng-container>
+        <ng-container ngbNavItem>
+            <a ngbNavLink>Config</a>
+            <ng-template ngbNavContent>
+                <div class="row">
+                    <h2>Bus Options</h2>
+                    <div>
+                        <span class="text-muted mt-3 d-block" *ngIf="socketService.busOptions.length == 0">No Bus Options configured.</span>
+                        <table class="table table-hover" *ngIf="socketService.busOptions.length > 0">
+                            <thead>
+                                <tr>
+                                    <th>Label</th>
+                                    <th>Type</th>
+                                    <th>Color</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let busOption of socketService.busOptions">
+                                    <td>{{busOption.label}}</td>
+                                    <td>{{busOption.type}}</td>
+                                    <td><span class="color-box me-3" [style.background-color]="busOption.color"></span>{{busOption.color}}</td>
+                                    <td>
+                                        <button class="btn btn-outline-dark" (click)="editBusOption(busOption, busOptionModal)">
+                                    <i class="fas fa-pen"></i> Edit
+                                </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </ng-template>
+        </ng-container>
+        <ng-container ngbNavItem>
+            <a ngbNavLink>Logs</a>
+            <ng-template ngbNavContent>
+                <div class="row">
+                    <div class="col-xs-12 col-md-6" id="divContainer_Logs">
+                        <h2>Logs
+                            <select class="form-select d-inline w-50" [ngModel]="currentLogLevel" (ngModelChange)="setLogLevel($event)">
+                                <option *ngFor="let logLevel of logLevels" [value]="logLevel.id">{{logLevel.title}}</option>
+                            </select>
+                        </h2>
+                        <div class="logs bg-light p-1" #logsContainer>
+                            <span class="d-block" [style.color]="
+                            log.type == 'console_action'
+                            ? '#00ff00'
+                            : log.type == 'error'
+                            ? '#FF0000'
+                            : log.type == 'info-quiet'
+                            ? '#888888'
+                            : '#0000FF'
+                        " *ngFor="let log of visibleLogs">[{{ log.datetime | date: "shortDate" }}
+                        {{ log.datetime | date: "shortTime" }}] {{ log.log }}</span>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-md-6" id="divContainer_TallyData">
+                        <h2>Tally Data</h2>
+                        <div class="logs bg-light p-1" #tallyDataContainer>
+                            <span class="d-block" *ngFor="let log of socketService.tallyData">[{{ log.datetime | date: "shortDate" }}
+                        {{ log.datetime | date: "shortTime" }}] {{ log.log }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-muted my-3">Version {{ socketService.version }} - <a routerLink="/errors">Go to error reports list</a></div>
+            </ng-template>
+        </ng-container>
+    </nav>
+    <div [ngbNavOutlet]="nav" class="m-2 mt-4"></div>
 </div>
+
+
+
 <div *ngIf="!socketService.initialDataLoaded" class="d-flex justify-content-center mt-5 pt-5">
     <div class="spinner spinner-border text-dark"></div>
 </div>
 
+<ng-template #devicesTable let-editMode="editMode">
+    <h2>
+        Devices
+        <button class="btn btn-outline-success" *ngIf="editMode" (click)="addDevice(deviceModal)"><i class="fas fa-plus"></i> Add </button>
+    </h2>
+    <span class="text-muted mt-3" *ngIf="socketService.devices.length == 0">No devices configured.</span>
+    <table class="table table-hover" *ngIf="socketService.devices.length > 0">
+        <thead>
+            <tr>
+                <th *ngFor="let bus of socketService.busOptions">{{bus.label}}</th>
+                <th>Name</th>
+                <th></th>
+                <th>Description</th>
+                <th *ngIf="editMode" ></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let device of socketService.devices; index as index" [class.text-muted]="!device.enabled">
+                <td *ngFor="let bus of socketService.busOptions" [style.background-color]="deviceBusColors[device.id]?.includes(bus.id) ? bus.color : '#FFFFFF'"></td>
+                <td>
+                    <small><b>{{ index + 1 }}</b></small> {{ device.name }}
+                </td>
+                <td><i class="fas fa-cloud text-muted" *ngIf="device.cloudConnection"></i></td>
+                <td>{{ device.description }}</td>
+                <td *ngIf="editMode" >
+                    <button class="btn btn-outline-dark me-2" (click)="editDevice(device, deviceModal)">
+                        <i class="fas fa-pen"></i> Edit
+                    </button>
+                    <button class="btn btn-outline-dark me-2" (click)="editDeviceSources(device, deviceSourcesModal)"><i class="fas fa-link"></i> Edit Sources ({{getDeviceSourcesByDeviceId(device.id).length}})</button>
+                    <button class="btn btn-outline-dark me-2" (click)="editDeviceActions(device, deviceActionsModal)"><i class="fas fa-play"></i> Edit Actions ({{getDeviceActionsByDeviceId(device.id).length}})</button>
+                    <button class="btn btn-outline-danger" (click)="deleteDevice(device)"><i class="fas fa-trash"></i> Delete</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</ng-template>
+
 <ng-template #sourceModal let-modal>
-  <div class="modal-header">
-    <h4 class="modal-title" id="modal-basic-title">
-      {{ editingSource ? "Edit" : "Add" }} Source
-    </h4>
-    <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
-  </div>
-  <div class="modal-body">
-    <ng-container *ngIf="editingSource">
-      <div class="mb-3">
-        <label for="sourceId" class="form-label">Source Id</label>
-        <input type="text" id="sourceId" class="form-control" disabled [ngModel]="currentSource.id" />
-      </div>
-      <div class="mb-3">
-        <label for="sourceType" class="form-label">Source Type</label>
-        <select id="sourceType" class="form-select" disabled>
+    <div class="modal-header">
+        <h4 class="modal-title" id="modal-basic-title">
+            {{ editingSource ? "Edit" : "Add" }} Source
+        </h4>
+        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+        <ng-container *ngIf="editingSource">
+            <div class="mb-3">
+                <label for="sourceId" class="form-label">Source Id</label>
+                <input type="text" id="sourceId" class="form-control" disabled [ngModel]="currentSource.id" />
+            </div>
+            <div class="mb-3">
+                <label for="sourceType" class="form-label">Source Type</label>
+                <select id="sourceType" class="form-select" disabled>
           <option>
             {{ socketService.sourceTypes[currentSourceSelectedTypeIdx!].label }}
           </option>
         </select>
-      </div>
-    </ng-container>
-    <ng-container *ngIf="!editingSource">
-      <select class="form-select" ngbAutofocus [(ngModel)]="currentSourceSelectedTypeIdx">
+            </div>
+        </ng-container>
+        <ng-container *ngIf="!editingSource">
+            <select class="form-select" ngbAutofocus [(ngModel)]="currentSourceSelectedTypeIdx">
         <option selected disabled [value]="undefined">-- Choose Source Type --</option>
         <option *ngFor="
             let sourceType of socketService.sourceTypes;
@@ -341,314 +402,291 @@
           {{ sourceType.label }}
         </option>
       </select>
-    </ng-container>
-    <div *ngIf="currentSourceSelectedTypeIdx !== undefined">
-      <p>{{ socketService.sourceTypes[currentSourceSelectedTypeIdx].help }}</p>
-      <div class="mb-3">
-        <label for="sourceName" class="form-label">Source Name</label>
-        <input type="text" class="form-control" id="sourceName" [(ngModel)]="currentSource.name" />
-      </div>
-      <ng-container *ngFor="
-          let field of getOptionFields(
-            socketService.sourceTypes[currentSourceSelectedTypeIdx]
-          )
-        ">
-        <ng-container [ngSwitch]="field.fieldType">
-          <div class="mb-3" *ngSwitchCase="'text'">
-            <label [for]="field.fieldName" class="form-label">{{
-              field.fieldLabel
-            }}</label>
-            <input type="text" class="form-control" [id]="field.fieldName"
-              [(ngModel)]="currentSource.data[field.fieldName]" />
-          </div>
-          <div class="mb-3" *ngSwitchCase="
-              ['port', 'number'].includes(field.fieldType)
-                ? field.fieldType
-                : ''
-            ">
-            <label [for]="field.fieldName" class="form-label">{{
-              field.fieldLabel
-            }}</label>
-            <input type="number" class="form-control" [id]="field.fieldName"
-              [(ngModel)]="currentSource.data[field.fieldName]" />
-          </div>
-          <div class="mb-3" *ngSwitchCase="'multiselect'">
-            <label [for]="field.fieldName" class="form-label">{{
-              field.fieldLabel
-            }}</label>
-            <select class="form-select" multiple [id]="field.fieldName"
-              [(ngModel)]="currentSource.data[field.fieldName]">
-              <option *ngFor="let option of field.options" [value]="option.id">
-                {{ option.label }}
-              </option>
-            </select>
-            <small class="form-text">Use Ctrl to select multiple items.</small>
-          </div>
-          <div class="mb-3" *ngSwitchCase="'dropdown'">
-            <label [for]="field.fieldName" class="form-label">{{
-              field.fieldLabel
-            }}</label>
-            <select class="form-select" [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]">
-              <option *ngFor="let option of field.options" [value]="option.id">
-                {{ option.label }}
-              </option>
-            </select>
-          </div>
-          <div class="mb-3" *ngSwitchCase="'info'">
-            <label class="form-label">{{ field.fieldLabel }}</label><br />
-            <small class="form-text">{{ field.text }}</small>
-          </div>
         </ng-container>
-      </ng-container>
-      <ng-container *ngIf="editingSource">
-        <div class="mb-3 form-check">
-          <input type="checkbox" class="form-check-input" id="enabled" [(ngModel)]="currentSource.enabled" />
-          <label class="form-check-label" for="enabled">Enabled</label>
-        </div>
-        <div class="mb-3 form-check">
-          <input type="checkbox" class="form-check-input" id="reconnect" [(ngModel)]="currentSource.reconnect" />
-          <label class="form-check-label" for="reconnect">Reconnect</label>
-        </div>
-      </ng-container>
-      <div class="d-flex justify-content-end">
-        <button class="btn btn-outline-dark" (click)="saveCurrentSource()">
-          <i class="fas fa-save"></i> {{ editingSource ? "Save Changes" : "Add Source" }}
-        </button>
-      </div>
-    </div>
-  </div>
-</ng-template>
-
-<ng-template #deviceModal let-modal>
-  <div class="modal-header">
-    <h4 class="modal-title" id="modal-basic-title">
-      {{ editingSource ? "Edit" : "Add" }} Device
-    </h4>
-    <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
-  </div>
-  <div class="modal-body">
-    <ng-container *ngIf="editingDevice">
-      <div class="mb-3">
-        <label for="deviceId" class="form-label">Device Id</label>
-        <input type="text" id="sourceId" class="form-control" disabled [ngModel]="currentDevice.id" />
-      </div>
-    </ng-container>
-
-    <div class="mb-3">
-      <label for="deviceName" class="form-label">Device Name</label>
-      <input type="text" class="form-control" id="deviceName" [(ngModel)]="currentDevice.name" />
-    </div>
-    <div class="mb-3">
-      <label for="deviceDescription" class="form-label">Device Description</label>
-      <input type="text" class="form-control" id="deviceDescription" [(ngModel)]="currentDevice.description" />
-    </div>
-    <div class="mb-3">
-		  <label for="deviceTSLAddress" class="form-label">TSL Address</label>
-		  <input type="number" [min]="0" [max]="126" [step]="1"  class="form-control" id="deviceTSLAddress" [(ngModel)]="currentDevice.tslAddress" />
-	  </div>
-    <ng-container *ngIf="editingDevice">
-      <div class="mb-3 form-check">
-        <input type="checkbox" class="form-check-input" id="enabled" [(ngModel)]="currentDevice.enabled" />
-        <label class="form-check-label" for="enabled">Enabled</label>
-      </div>
-    </ng-container>
-    <div class="d-flex justify-content-end">
-      <button class="btn btn-outline-dark" (click)="saveCurrentDevice()">
-        <i class="fas fa-save"></i> {{ editingDevice ? "Save Changes" : "Add Device" }}
-      </button>
-    </div>
-  </div>
-</ng-template>
-
-<ng-template #deviceSourcesModal let-modal>
-  <div class="modal-header">
-    <h4 class="modal-title" id="modal-basic-title">
-      Device Sources: {{currentDevice.name}}
-    </h4>
-    <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
-  </div>
-  <div class="modal-body">
-    <div *ngIf="!editingDeviceSource">
-      <b>Device Source Linking - Preview Bus:</b>
-      <div class="form-check">
-        <input type="radio" class="form-check-input" id="rdoDeviceSourcesPVWUnlinked" name="deviceSourcePVWLinking" [(ngModel)]="currentDevice.linkedPreview" [value]="false" (ngModelChange)="updateDeviceSourceLink('preview', $event)">
-        <label class="form-check-label" for="rdoDeviceSourcesPVWUnlinked">Unlinked: The device can be in PVW if it is in PVW in <b>any</b> Device Source (default)</label>
-      </div>
-      <div class="form-check">
-        <input type="radio" class="form-check-input" id="rdoDeviceSourcesPVWLinked" name="deviceSourcePVWLinking" [(ngModel)]="currentDevice.linkedPreview" [value]="true" (ngModelChange)="updateDeviceSourceLink('preview', $event)">
-        <label class="form-check-label" for="rdoDeviceSourcesPVWLinked">Linked: The device is only considered to be in PVW if it is in PVW across <b>all</b> Device Sources.</label>
-      </div>
-      <br />
-      <b>Device Source Linking - Program Bus:</b>
-      <div class="form-check">
-        <input type="radio" class="form-check-input" id="rdoDeviceSourcesPGMUnlinked" name="deviceSourcePGMLinking" [(ngModel)]="currentDevice.linkedProgram" [value]="false" (ngModelChange)="updateDeviceSourceLink('program', $event)">
-        <label class="form-check-label" for="rdoDeviceSourcesPGMUnlinked">Unlinked: The device can be in PGM if it is in PGM in <b>any</b> Device Source (default)</label>
-      </div>
-      <div class="form-check">
-        <input type="radio" class="form-check-input" id="rdoDeviceSourcesPGMLinked" name="deviceSourcePGMLinking" [(ngModel)]="currentDevice.linkedProgram" [value]="true" (ngModelChange)="updateDeviceSourceLink('program', $event)">
-        <label class="form-check-label" for="rdoDeviceSourcesPGMLinked">Linked: The device is only considered to be in PGM if it is in PGM across <b>all</b> Device Sources.</label>
-      </div>
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th>Source</th>
-            <th>Address</th>
-			<th>(Bus)</th>
-			<th>Allow Renaming</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let deviceSource of getDeviceSourcesByDeviceId(currentDevice.id)">
-            <td>
-              {{socketService.getSourceById(deviceSource.sourceId)?.name}}
-            </td>
-            <td>{{deviceSource.address}}</td>
-			<td>{{deviceSource.bus}}</td>
-			<td>{{deviceSource.rename}}</td>
-            <td>
-              <button class="btn btn-outline-dark me-1" (click)="editDeviceSource(deviceSource)"><i class="fas fa-pen"></i> Edit</button>
-              <button class="btn btn-outline-danger" (click)="deleteDeviceSource(deviceSource)"><i class="fas fa-trash"></i> Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <button class="btn btn-outline-success mr-1" (click)="editingDeviceSource = true"><i class="fas fa-plus"></i> Add Source</button>
-    </div>
-    <div *ngIf="editingDeviceSource">
-      <h5>New Device Source</h5>
-      <div class="mb-3">
-        <label for="deviceSource" class="form-label">Source</label>
-        <select class="form-select" [(ngModel)]="currentDeviceSource.sourceIdx"
-          (ngModelChange)="socketService.socket.emit('source_tallydata', socketService.sources[$event].id)">
-          <option *ngFor="let source of socketService.sources; index as index" [value]="index">{{source.name}}</option>
-        </select>
-      </div>
-      <div class="mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!]">
-        <label for="deviceSource" class="form-label">Address
-          ({{socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id] && socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0 ? 'select or ' : ''}}enter
-          manually):</label>
-        <div class="row">
-          <div class="col"
-            *ngIf="socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id] && socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0">
-            <select class="form-select" [(ngModel)]="currentDeviceSource.address">
-              <option *ngFor="let address of socketService.sourceTallyData[socketService.sources[currentDeviceSource.sourceIdx!].id]"
-                [value]="address.address">{{address.label}}</option>
-            </select>
-          </div>
-          <div class="col">
-            <input type="text" class="form-control" [(ngModel)]="currentDeviceSource.address" placeholder="Address">
-          </div>
-        </div>
-      </div>
-      <div class="mb-3"
-        *ngIf="socketService.sources[currentDeviceSource.sourceIdx!] && getSourceBusOptionsBySourceTypeId(socketService.sources[currentDeviceSource.sourceIdx!].sourceTypeId).length > 0">
-        <label for="bus" class="form-label">Bus:</label>
-        <select class="form-select" [(ngModel)]="currentDeviceSource.bus">
-          <option
-            *ngFor="let bus of getSourceBusOptionsBySourceTypeId(socketService.sources[currentDeviceSource.sourceIdx!].sourceTypeId)[0].busses"
-            [value]="bus.bus">{{bus.name}}</option>
-        </select>
-	  </div>
-      <div class="mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!]">
-        <label for="deviceSourceRename" class="form-label">Allow Device Renaming</label>
-		<input type="checkbox" placholder="Rename" [(ngModel)]="currentDeviceSource.rename">
-      </div>
-      <div class="d-flex justify-content-end">
-        <button class="btn btn-outline-dark" (click)="saveDeviceSource()"><i class="fas fa-save"></i> {{currentDeviceSource.id !== undefined ? 'Save Changes' : 'Add Device Source'}}</button>
-      </div>
-    </div>
-  </div>
-</ng-template>
-
-<ng-template #deviceActionsModal let-modal>
-    <div class="modal-header">
-        <h4 class="modal-title" id="modal-basic-title">
-        Device Actions: {{currentDevice.name}}
-        </h4>
-        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
-    </div>
-    <div class="modal-body">
-        <div *ngIf="!editingDeviceAction">
-        <table class="table table-hover">
-            <thead>
-            <tr>
-                <th>Bus</th>
-                <th>On / Off</th>
-                <th>Output Type</th>
-                <th></th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr *ngFor="let deviceAction of getDeviceActionsByDeviceId(currentDevice.id)">
-                <td>{{getBusById(deviceAction.busId)?.label}}</td>
-                <td>{{deviceAction.active ? 'On' : 'Off'}}</td>
-                <td>{{getOutputTypeById(deviceAction.outputTypeId)?.label}}</td>
-                <td>
-                <button class="btn btn-outline-dark me-1" (click)="editDeviceAction(deviceAction)"><i class="fas fa-pen"></i> Edit</button>
-                <button class="btn btn-outline-danger" (click)="deleteDeviceAction(deviceAction)"><i class="fas fa-trash"></i> Delete</button>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-        <button class="btn btn-outline-success mr-1" (click)="addDeviceAction()"><i class="fas fa-plus"></i> Add Action</button>
-        </div>
-        <div *ngIf="editingDeviceAction">
-        <h5>New Device Action</h5>
-        <div class="mb-3">
-            <label for="bus" class="form-label">Bus</label>
-            <select class="form-select" [(ngModel)]="currentDeviceAction.busId">
-                <option disabled selected [value]="undefined">-- Select --</option>
-                <option *ngFor="let bus of socketService.busOptions" [value]="bus.id">{{bus.label}}</option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label for="bus" class="form-label">Active</label>
-            <select class="form-select" [(ngModel)]="currentDeviceAction.active">
-                <option disabled selected [value]="undefined">-- Select --</option>
-                <option [ngValue]="true">On</option>
-                <option [ngValue]="false">Off</option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label for="outputType" class="form-label">Output Type</label>
-            <select class="form-select" id="outputType" [(ngModel)]="currentDeviceAction.outputTypeIdx">
-                <option disabled selected [value]="undefined">-- Select --</option>
-                <option *ngFor="let outputType of socketService.outputTypes; index as index" [value]="index">{{outputType.label}}</option>
-            </select>
-        </div>
-        
-        <ng-container *ngIf="socketService.outputTypes[currentDeviceAction.outputTypeIdx!]">
-
-            <ng-container *ngFor="let field of getOutputOptionFields(socketService.outputTypes[currentDeviceAction.outputTypeIdx!])">
+        <div *ngIf="currentSourceSelectedTypeIdx !== undefined">
+            <p>{{ socketService.sourceTypes[currentSourceSelectedTypeIdx].help }}</p>
+            <div class="mb-3">
+                <label for="sourceName" class="form-label">Source Name<span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="sourceName" [(ngModel)]="currentSource.name" />
+            </div>
+            <ng-container *ngFor="let field of getOptionFields(socketService.sourceTypes[currentSourceSelectedTypeIdx])">
                 <ng-container [ngSwitch]="field.fieldType">
                     <div class="mb-3" *ngSwitchCase="'text'">
-                        <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}</label>
-                        <input type="text" class="form-control" [id]="field.fieldName" [(ngModel)]="currentDeviceAction.data[field.fieldName]" />
+                        <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}<span class="text-danger" *ngIf="!field.optional">*</span></label>
+                        <input type="text" class="form-control" [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]" />
                     </div>
-                    <div class="mb-3" *ngSwitchCase="['port', 'number'].includes(field.fieldType) ? field.fieldType : ''">
-                        <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}</label>
-                        <input type="number" class="form-control" [id]="field.fieldName" [(ngModel)]="currentDeviceAction.data[field.fieldName]" />
+                    <div class="mb-3" *ngSwitchCase="
+                        ['port', 'number'].includes(field.fieldType)
+                            ? field.fieldType
+                            : ''
+                        ">
+                        <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}<span class="text-danger" *ngIf="!field.optional">*</span></label>
+                        <input type="number" class="form-control" [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]" />
+                    </div>
+                    <div class="mb-3" *ngSwitchCase="'multiselect'">
+                        <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}<span class="text-danger" *ngIf="!field.optional">*</span></label>
+                        <select class="form-select" multiple [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]">
+                            <option *ngFor="let option of field.options" [value]="option.id">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                        <small class="form-text">Use Ctrl to select multiple items.</small>
                     </div>
                     <div class="mb-3" *ngSwitchCase="'dropdown'">
-                        <label [for]="field.fieldName" class="form-label">{{
-                            field.fieldLabel
-                        }}</label>
-                        <select class="form-select" [id]="field.fieldName" [(ngModel)]="currentDeviceAction.data[field.fieldName]">
-                            <option disabled selected [value]="undefined">-- Select --</option>
+                        <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}<span class="text-danger" *ngIf="!field.optional">*</span></label>
+                        <select class="form-select" [id]="field.fieldName" [(ngModel)]="currentSource.data[field.fieldName]">
                             <option *ngFor="let option of field.options" [value]="option.id">
                                 {{ option.label }}
                             </option>
                         </select>
                     </div>
-                    <div class="mb-3 form-check" *ngSwitchCase="'bool'">
-                        <input class="form-check-input" type="checkbox" [id]="field.fieldName" [(ngModel)]="currentDeviceAction.data[field.fieldName]">
-                        <label [for]="field.fieldName" class="form-check-label">{{field.fieldLabel}}</label>
+                    <div class="mb-3" *ngSwitchCase="'info'">
+                        <label class="form-label">{{ field.fieldLabel }}</label><br />
+                        <small class="form-text">{{ field.text }}</small>
                     </div>
                 </ng-container>
             </ng-container>
+            <ng-container *ngIf="editingSource">
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="enabled" [(ngModel)]="currentSource.enabled" />
+                    <label class="form-check-label" for="enabled">Enabled</label>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="reconnect" [(ngModel)]="currentSource.reconnect" />
+                    <label class="form-check-label" for="reconnect">Reconnect</label>
+                </div>
+            </ng-container>
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-outline-dark" (click)="saveCurrentSource()">
+          <i class="fas fa-save"></i> {{ editingSource ? "Save Changes" : "Add Source" }}
+        </button>
+            </div>
+        </div>
+    </div>
+</ng-template>
+
+<ng-template #deviceModal let-modal>
+    <div class="modal-header">
+        <h4 class="modal-title" id="modal-basic-title">
+            {{ editingSource ? "Edit" : "Add" }} Device
+        </h4>
+        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+        <ng-container *ngIf="editingDevice">
+            <div class="mb-3">
+                <label for="deviceId" class="form-label">Device Id</label>
+                <input type="text" id="sourceId" class="form-control" disabled [ngModel]="currentDevice.id" />
+            </div>
         </ng-container>
-            
+
+        <div class="mb-3">
+            <label for="deviceName" class="form-label">Device Name</label>
+            <input type="text" class="form-control" id="deviceName" [(ngModel)]="currentDevice.name" />
+        </div>
+        <div class="mb-3">
+            <label for="deviceDescription" class="form-label">Device Description</label>
+            <input type="text" class="form-control" id="deviceDescription" [(ngModel)]="currentDevice.description" />
+        </div>
+        <div class="mb-3">
+            <label for="deviceTSLAddress" class="form-label">TSL Address</label>
+            <input type="number" [min]="0" [max]="126" [step]="1" class="form-control" id="deviceTSLAddress" [(ngModel)]="currentDevice.tslAddress" />
+        </div>
+        <div class="mb-3">
+            <b>Linked Busses:</b><br>
+            <small>
+                By default busses are unlinked. That means the device will be (for example) in PVW if it is in PVW in <b>any</b> Device Source. All busses you select here will only be in that bus if it is in PVW across <b>all</b> Device Sources.
+            </small>
+            <div>
+                <select class="form-select" [(ngModel)]="currentDevice.linkedBusses" multiple="multiple">
+                    <option *ngFor="let bus of socketService.busOptions" [value]="bus.id">{{bus.label}}</option>
+                </select>
+            </div>
+        </div>
+        <ng-container *ngIf="editingDevice">
+            <b>Device Enabled:</b>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="enabled" [(ngModel)]="currentDevice.enabled" />
+                <label class="form-check-label" for="enabled">Enabled</label>
+            </div>
+        </ng-container>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-outline-dark" (click)="saveCurrentDevice()">
+        <i class="fas fa-save"></i> {{ editingDevice ? "Save Changes" : "Add Device" }}
+      </button>
+        </div>
+    </div>
+</ng-template>
+
+<ng-template #deviceSourcesModal let-modal>
+    <div class="modal-header">
+        <h4 class="modal-title" id="modal-basic-title">
+            Device Sources: {{currentDevice.name}}
+        </h4>
+        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+        <div *ngIf="!editingDeviceSource">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Source</th>
+                        <th>Address</th>
+                        <th>(Bus)</th>
+                        <th>Allow Renaming</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let deviceSource of getDeviceSourcesByDeviceId(currentDevice.id)">
+                        <td>
+                            {{socketService.getSourceById(deviceSource.sourceId)?.name}}
+                        </td>
+                        <td>{{deviceSource.address}}</td>
+                        <td>{{deviceSource.bus}}</td>
+                        <td>{{deviceSource.rename}}</td>
+                        <td>
+                            <button class="btn btn-outline-dark me-1" (click)="editDeviceSource(deviceSource)"><i class="fas fa-pen"></i> Edit</button>
+                            <button class="btn btn-outline-danger" (click)="deleteDeviceSource(deviceSource)"><i class="fas fa-trash"></i> Delete</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <button class="btn btn-outline-success mr-1" (click)="editingDeviceSource = true"><i class="fas fa-plus"></i> Add Source</button>
+        </div>
+        <div *ngIf="editingDeviceSource">
+            <h5>New Device Source</h5>
+            <div class="mb-3">
+                <label for="deviceSource" class="form-label">Source</label>
+                <select class="form-select" [(ngModel)]="currentDeviceSource.sourceIdx" (ngModelChange)="socketService.socket.emit('source_tallydata', socketService.sources[$event].id)">
+          <option *ngFor="let source of socketService.sources; index as index" [value]="index">{{source.name}}</option>
+        </select>
+            </div>
+            <div class="mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!]">
+                <label for="deviceSource" class="form-label">Address
+          ({{socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0 ? 'select or ' : ''}}enter
+          manually):</label>
+                <div class="row">
+                    <div class="col" *ngIf="socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0">
+                        <select class="form-select" [(ngModel)]="currentDeviceSource.address">
+              <option *ngFor="let address of socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id]"
+                [value]="address.address">{{address.label}}</option>
+            </select>
+                    </div>
+                    <div class="col">
+                        <input type="text" class="form-control" [(ngModel)]="currentDeviceSource.address" placeholder="Address">
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!] && getSourceBusOptionsBySourceTypeId(socketService.sources[currentDeviceSource.sourceIdx!].sourceTypeId).length > 0">
+                <label for="bus" class="form-label">Bus:</label>
+                <select class="form-select" [(ngModel)]="currentDeviceSource.bus">
+                <option
+                    *ngFor="let bus of getSourceBusOptionsBySourceTypeId(socketService.sources[currentDeviceSource.sourceIdx!].sourceTypeId)"
+                    [value]="bus.bus">{{bus.name}}</option>
+            </select>
+            </div>
+            <div class="form-check mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!]">
+                <input class="form-check-input" type="checkbox" id="deviceSourceRename" [(ngModel)]="currentDeviceSource.rename">
+                <label class="form-check-label" for="deviceSourceRename">
+                    Allow Device Renaming
+                </label>
+            </div>
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-outline-dark" (click)="saveDeviceSource()"><i class="fas fa-save"></i> {{currentDeviceSource.id !== undefined ? 'Save Changes' : 'Add Device Source'}}</button>
+            </div>
+        </div>
+    </div>
+</ng-template>
+
+<ng-template #deviceActionsModal let-modal>
+    <div class="modal-header">
+        <h4 class="modal-title" id="modal-basic-title">
+            Device Actions: {{currentDevice.name}}
+        </h4>
+        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+        <div *ngIf="!editingDeviceAction">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Bus</th>
+                        <th>On / Off</th>
+                        <th>Output Type</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let deviceAction of getDeviceActionsByDeviceId(currentDevice.id)">
+                        <td>{{getBusById(deviceAction.busId)?.label}}</td>
+                        <td>{{deviceAction.active ? 'On' : 'Off'}}</td>
+                        <td>{{getOutputTypeById(deviceAction.outputTypeId)?.label}}</td>
+                        <td>
+                            <button class="btn btn-outline-dark me-1" (click)="editDeviceAction(deviceAction)"><i class="fas fa-pen"></i> Edit</button>
+                            <button class="btn btn-outline-danger" (click)="deleteDeviceAction(deviceAction)"><i class="fas fa-trash"></i> Delete</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <button class="btn btn-outline-success mr-1" (click)="addDeviceAction()"><i class="fas fa-plus"></i> Add Action</button>
+        </div>
+        <div *ngIf="editingDeviceAction">
+            <h5>New Device Action</h5>
+            <div class="mb-3">
+                <label for="bus" class="form-label">Bus</label>
+                <select class="form-select" [(ngModel)]="currentDeviceAction.busId">
+                <option disabled selected [value]="undefined">-- Select --</option>
+                <option *ngFor="let bus of socketService.busOptions" [value]="bus.id">{{bus.label}}</option>
+            </select>
+            </div>
+            <div class="mb-3">
+                <label for="bus" class="form-label">Active</label>
+                <select class="form-select" [(ngModel)]="currentDeviceAction.active">
+                <option disabled selected [value]="undefined">-- Select --</option>
+                <option [ngValue]="true">On</option>
+                <option [ngValue]="false">Off</option>
+            </select>
+            </div>
+            <div class="mb-3">
+                <label for="outputType" class="form-label">Output Type</label>
+                <select class="form-select" id="outputType" [(ngModel)]="currentDeviceAction.outputTypeIdx">
+                <option disabled selected [value]="undefined">-- Select --</option>
+                <option *ngFor="let outputType of socketService.outputTypes; index as index" [value]="index">{{outputType.label}}</option>
+            </select>
+            </div>
+
+            <ng-container *ngIf="socketService.outputTypes[currentDeviceAction.outputTypeIdx!]">
+
+                <ng-container *ngFor="let field of getOutputOptionFields(socketService.outputTypes[currentDeviceAction.outputTypeIdx!])">
+                    <ng-container [ngSwitch]="field.fieldType">
+                        <div class="mb-3" *ngSwitchCase="'text'">
+                            <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}</label>
+                            <input type="text" class="form-control" [id]="field.fieldName" [(ngModel)]="currentDeviceAction.data[field.fieldName]" />
+                        </div>
+                        <div class="mb-3" *ngSwitchCase="['port', 'number'].includes(field.fieldType) ? field.fieldType : ''">
+                            <label [for]="field.fieldName" class="form-label">{{field.fieldLabel}}</label>
+                            <input type="number" class="form-control" [id]="field.fieldName" [(ngModel)]="currentDeviceAction.data[field.fieldName]" />
+                        </div>
+                        <div class="mb-3" *ngSwitchCase="'dropdown'">
+                            <label [for]="field.fieldName" class="form-label">{{
+                            field.fieldLabel
+                        }}</label>
+                            <select class="form-select" [id]="field.fieldName" [(ngModel)]="currentDeviceAction.data[field.fieldName]">
+                            <option disabled selected [value]="undefined">-- Select --</option>
+                            <option *ngFor="let option of field.options" [value]="option.id">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                        </div>
+                        <div class="mb-3 form-check" *ngSwitchCase="'bool'">
+                            <input class="form-check-input" type="checkbox" [id]="field.fieldName" [(ngModel)]="currentDeviceAction.data[field.fieldName]">
+                            <label [for]="field.fieldName" class="form-check-label">{{field.fieldLabel}}</label>
+                        </div>
+                    </ng-container>
+                </ng-container>
+            </ng-container>
+
             <div class="d-flex justify-content-end">
                 <button class="btn btn-outline-dark" (click)="saveDeviceAction()"><i class="fas fa-save"></i> {{currentDeviceAction.id !== undefined ? 'Save Changes' : 'Add Action'}}</button>
             </div>
@@ -658,74 +696,109 @@
 
 <ng-template #tslClientModal let-modal>
     <div class="modal-header">
-      <h4 class="modal-title" id="modal-basic-title">
-        {{ editingSource ? "Edit" : "Add" }} TSL Client
-      </h4>
-      <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+        <h4 class="modal-title" id="modal-basic-title">
+            {{ editingTSLClient ? "Edit" : "Add" }} TSL Client
+        </h4>
+        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
     </div>
     <div class="modal-body">
-      <ng-container *ngIf="editingTSLClient">
+        <ng-container *ngIf="editingTSLClient">
+            <div class="mb-3">
+                <label for="tslClientId" class="form-label">TSL Client Id</label>
+                <input type="text" id="tslClientId" class="form-control" disabled [ngModel]="currentTSLClient.id" />
+            </div>
+        </ng-container>
+
         <div class="mb-3">
-          <label for="tslClientId" class="form-label">TSL Client Id</label>
-          <input type="text" id="tslClientId" class="form-control" disabled [ngModel]="currentTSLClient.id" />
+            <label for="tslIP" class="form-label">IP address</label>
+            <input type="text" class="form-control" id="tslIP" [(ngModel)]="currentTSLClient.ip" />
         </div>
-      </ng-container>
-  
-      <div class="mb-3">
-        <label for="tslIP" class="form-label">IP address</label>
-        <input type="text" class="form-control" id="tslIP" [(ngModel)]="currentTSLClient.ip" />
-      </div>
-      <div class="mb-3">
-        <label for="tslPort" class="form-label">Port</label>
-        <input type="number" class="form-control" id="tslPort" [(ngModel)]="currentTSLClient.port" />
-      </div>
-      <div class="mb-3">
-        <label for="tslTransport" class="form-label">Transport</label>
-        <select class="form-select" id="tslTransport" [(ngModel)]="currentTSLClient.transport">
+        <div class="mb-3">
+            <label for="tslPort" class="form-label">Port</label>
+            <input type="number" class="form-control" id="tslPort" [(ngModel)]="currentTSLClient.port" />
+        </div>
+        <div class="mb-3">
+            <label for="tslTransport" class="form-label">Transport</label>
+            <select class="form-select" id="tslTransport" [(ngModel)]="currentTSLClient.transport">
             <option value="tcp">TCP</option>
             <option value="udp">UDP</option>
         </select>
-      </div>
-      <div class="d-flex justify-content-end">
-        <button class="btn btn-outline-dark" (click)="saveCurrentTSLClient()">
+        </div>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-outline-dark" (click)="saveCurrentTSLClient()">
           <i class="fas fa-save"></i> {{ editingTSLClient ? "Save Changes" : "Add TSL Client" }}
         </button>
-      </div>
+        </div>
     </div>
-  </ng-template>
+</ng-template>
+
+<ng-template #busOptionModal let-modal>
+    <div class="modal-header">
+        <h4 class="modal-title" id="modal-basic-title">
+            {{ editingBusOption ? "Edit" : "Add" }} Bus Option
+        </h4>
+        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+        <ng-container *ngIf="editingBusOption">
+            <div class="mb-3">
+                <label for="busId" class="form-label">Bus Id</label>
+                <input type="text" id="busId" class="form-control" disabled [ngModel]="currentBusOption.id" />
+            </div>
+        </ng-container>
+
+        <div class="mb-3">
+            <label for="busLabel" class="form-label">Label</label>
+            <input type="text" class="form-control" id="busLabel" disabled [(ngModel)]="currentBusOption.label" />
+        </div>
+        <div class="mb-3">
+            <label for="busType" class="form-label">Type</label>
+            <input type="text" class="form-control" id="busType" disabled [(ngModel)]="currentBusOption.type" />
+        </div>
+        <div class="mb-3">
+            <label for="busColor" class="form-label">Color</label>
+            <input type="color" class="form-control color-input" id="busColor" [(ngModel)]="currentBusOption.color" />
+        </div>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-outline-dark" (click)="saveCurrentBusOption()">
+          <i class="fas fa-save"></i> {{ editingBusOption ? "Save Changes" : "Add Bus Option" }}
+        </button>
+        </div>
+    </div>
+</ng-template>
 
 <ng-template #cloudDestinationModal let-modal>
     <div class="modal-header">
-    <h4 class="modal-title" id="modal-basic-title">
-        {{ editingSource ? "Edit" : "Add" }} Cloud Destination
-    </h4>
-    <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+        <h4 class="modal-title" id="modal-basic-title">
+            {{ editingSource ? "Edit" : "Add" }} Cloud Destination
+        </h4>
+        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
     </div>
     <div class="modal-body">
-    <ng-container *ngIf="editingCloudDestination">
-        <div class="mb-3">
-        <label for="cloudId" class="form-label">Cloud Destination Id</label>
-        <input type="text" id="cloudId" class="form-control" disabled [ngModel]="currentCloudDestination.id" />
-        </div>
-    </ng-container>
+        <ng-container *ngIf="editingCloudDestination">
+            <div class="mb-3">
+                <label for="cloudId" class="form-label">Cloud Destination Id</label>
+                <input type="text" id="cloudId" class="form-control" disabled [ngModel]="currentCloudDestination.id" />
+            </div>
+        </ng-container>
 
-    <div class="mb-3">
-        <label for="cloudIP" class="form-label">Host</label>
-        <input type="text" class="form-control" id="cloudHost" [(ngModel)]="currentCloudDestination.host" />
-    </div>
-    <div class="mb-3">
-        <label for="cloudPort" class="form-label">Port</label>
-        <input type="number" class="form-control" id="cloudPort" [(ngModel)]="currentCloudDestination.port" />
-    </div>
-    <div class="mb-3">
-        <label for="cloudKey" class="form-label">Key</label>
-        <input type="text" class="form-control" id="cloudKey" [(ngModel)]="currentCloudDestination.key" />
-    </div>
-    <div class="d-flex justify-content-end">
-        <button class="btn btn-outline-dark" (click)="saveCurrentCloudDestination()">
+        <div class="mb-3">
+            <label for="cloudIP" class="form-label">Host</label>
+            <input type="text" class="form-control" id="cloudHost" [(ngModel)]="currentCloudDestination.host" />
+        </div>
+        <div class="mb-3">
+            <label for="cloudPort" class="form-label">Port</label>
+            <input type="number" class="form-control" id="cloudPort" [(ngModel)]="currentCloudDestination.port" />
+        </div>
+        <div class="mb-3">
+            <label for="cloudKey" class="form-label">Key</label>
+            <input type="text" class="form-control" id="cloudKey" [(ngModel)]="currentCloudDestination.key" />
+        </div>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-outline-dark" (click)="saveCurrentCloudDestination()">
         <i class="fas fa-save"></i> {{ editingCloudDestination ? "Save Changes" : "Add Cloud Destination" }}
         </button>
-    </div>
+        </div>
     </div>
 </ng-template>
 

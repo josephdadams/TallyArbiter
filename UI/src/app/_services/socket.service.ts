@@ -8,7 +8,6 @@ import { Message } from '../_models/Message';
 import { Device } from '../_models/Device';
 import { DeviceAction } from '../_models/DeviceAction';
 import { DeviceSource } from '../_models/DeviceSource';
-import { DeviceState } from '../_models/DeviceState';
 import { ListenerClient } from '../_models/ListenerClient';
 import { VmixClient } from '../_models/VmixClient';
 import { LogItem } from '../_models/LogItem';
@@ -16,13 +15,15 @@ import { OutputType } from '../_models/OutputType';
 import { OutputTypeDataFields } from '../_models/OutputTypeDataFields';
 import { Port } from '../_models/Port';
 import { Source } from '../_models/Source';
-import { SourceTallyData } from '../_models/SourceTallyData';
+import { TSLTallyData } from '../_models/TSLTallyData';
 import { SourceType } from '../_models/SourceType';
-import { SourceTypeBusOptions } from '../_models/SourceTypeBusOptions';
 import { SourceTypeDataFields } from '../_models/SourceTypeDataFields';
 import { TSLClient } from '../_models/TSLClient';
 import { ErrorReport } from '../_models/ErrorReport';
 import { ErrorReportsListElement } from '../_models/ErrorReportsListElement';
+import { DeviceTallyData } from "../_models/TallyData";
+import { Addresses } from '../_models/Addresses';
+import { DeviceState } from '../_models/DeviceState';
 
 @Injectable({
   providedIn: 'root'
@@ -30,7 +31,7 @@ import { ErrorReportsListElement } from '../_models/ErrorReportsListElement';
 export class SocketService {
   public socket: Socket;
   public devices: Device[] = [];
-  public deviceStates: DeviceState[] = [];
+  public device_states: DeviceState[] = [];
   public currentDeviceIdx?: number;
   public mode_preview?: boolean;
   public mode_program?: boolean;
@@ -49,8 +50,7 @@ export class SocketService {
   public testModeOn = false;
   public tslclients_1secupdate?: boolean;
   public deviceSources: DeviceSource[] = [];
-  public sourceTallyData: Record<string, SourceTallyData[]> = {};
-  public sourceTypesBusOptions: SourceTypeBusOptions[] = [];
+  public addresses: Addresses = {};
   public deviceActions: DeviceAction[] = [];
   public outputTypes: OutputType[] = [];
   public outputTypeDataFields: OutputTypeDataFields[] = [];
@@ -69,7 +69,7 @@ export class SocketService {
   public scrollTallyDataSubject = new Subject();
   public scrollChatSubject = new Subject();
   public closeModals = new Subject();
-  public deviceStateChanged = new Subject<{ deviceId: string; preview?: boolean; program?: boolean }>();
+  public deviceStateChanged = new Subject<DeviceState[]>();
 
 
   constructor() {
@@ -80,7 +80,7 @@ export class SocketService {
     this.socket.on('devices', (devices: Device[]) => {
       this.devices = devices;
       this._resolveDataLoadedPromise();
-      this.setupDeviceStates();
+      this.deviceStateChanged.next(this.device_states);
     });
     this.socket.on('bus_options', (busOptions: BusOption[]) => {
       this.busOptions = busOptions;
@@ -102,9 +102,9 @@ export class SocketService {
         return l;
       })
     });
-    this.socket.on('device_states', (states: DeviceState[]) => {
-      this.deviceStates = states;
-      this.setupDeviceStates();
+    this.socket.on('device_states', (device_states: DeviceState[]) => {
+      this.device_states = device_states;
+      this.deviceStateChanged.next(this.device_states);
     });
     this.socket.on("messaging", (type: "server" | "client" | "producer", socketId: string, message: string) => {
       this.messages.push({
@@ -143,10 +143,7 @@ export class SocketService {
       this.logs.push(log);
       this.newLogsSubject.next();
     });
-    this.socket.on("source_tallydata", (sourceId: string, data: SourceTallyData[]) => {
-      this.sourceTallyData[sourceId] = data;
-    });
-    this.socket.on('tally_data', (sourceId: string, tallyObj: SourceTallyData) => {
+    this.socket.on('tally_data', (sourceId: string, tallyObj: TSLTallyData) => {
       if (this.tallyData.length > 1000) {
         this.tallyData.shift();
       }
@@ -177,11 +174,15 @@ export class SocketService {
     this.socket.on('cloud_clients', (clients: CloudClient[]) => {
       this.cloudClients = clients;
     });
-    this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], sourceTypesBusOptions: SourceTypeBusOptions[], outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], deviceStates: DeviceState[], tslClients: TSLClient[], cloudDestinations: CloudDestination[], cloudKeys: string[], cloudClients: CloudClient[]) => {
+    this.socket.on('addresses', (addresses: Addresses) => {
+      console.log("new addresses", addresses);
+      this.addresses = addresses;
+    });
+    this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], addresses: Addresses, outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], device_states: DeviceState[], tslClients: TSLClient[], cloudDestinations: CloudDestination[], cloudKeys: string[], cloudClients: CloudClient[]) => {
       this.initialDataLoaded = true;
       this.sourceTypes = sourceTypes.filter((s: SourceType) => s.enabled);
       this.sourceTypeDataFields = sourceTypesDataFields;
-      this.sourceTypesBusOptions = sourceTypesBusOptions;
+      this.addresses = addresses;
       this.outputTypes = outputTypes;
       this.outputTypeDataFields = outputTypesDataFields;
       this.busOptions = busOptions;
@@ -189,13 +190,14 @@ export class SocketService {
       this.devices = devicesData;
       this.deviceSources = deviceSources;
       this.deviceActions = deviceActions;
-      this.deviceStates = deviceStates;
+      this.device_states = device_states;
       this.tslClients = tslClients;
       
       this.cloudDestinations = cloudDestinations;
       this.cloudKeys = cloudKeys;
       this.cloudClients = cloudClients;
-      this.setupDeviceStates();
+      console.log("initial", device_states);
+      this.deviceStateChanged.next(this.device_states);
     });
     this.socket.on('listener_clients', (listenerClients: ListenerClient[]) => {
       this.listenerClients = listenerClients.map((l) => {
@@ -242,7 +244,13 @@ export class SocketService {
         case 'tsl-client-deleted-successfully':
           this.closeModals.next();
           this.socket.emit('tsl_clients');
-          break;
+		  break;
+		case 'bus-option-added-successfully':
+		case 'bus-option-edited-successfully':
+		case 'bus-option-deleted-successfully':
+			this.closeModals.next();
+			this.socket.emit('bus_options');
+			break;
         case 'cloud-destination-added-successfully':
         case 'cloud-destination-edited-successfully':
         case 'cloud-destination-deleted-successfully':
@@ -302,40 +310,6 @@ export class SocketService {
 
   public getSourceById(sourceId: string) {
     return this.sources.find(({id}) => id === sourceId);
-  }
-
-  private setupDeviceStates() {
-    for (const device of this.devices) {
-      let sources_pvw = [];
-      let sources_pgm = [];
-      const formerProgram = device.modeProgram;
-      const formerPreview = device.modePreview;
-      device.modeProgram = false;
-      device.modePreview = false;
-      for (const state of this.deviceStates.filter((s) => s.deviceId == device.id)) {
-        if (this.getBusById(state.busId)!.type === 'preview') {
-          if (state.sources.length > 0) {
-            device.modePreview = true;
-            sources_pvw = state.sources;
-          } else {
-            device.modePreview = false;
-          }
-        } else if (this.getBusById(state.busId)!.type === 'program') {
-          if (state.sources.length > 0) {
-            device.modeProgram = true;
-            sources_pgm = state.sources;
-          } else {
-            device.modeProgram = false;
-          }
-        }
-      }
-      if(!formerProgram && device.modeProgram) {
-        this.deviceStateChanged.next({ deviceId: device.id, program: true })
-      }
-      if (!formerPreview && device.modePreview) {
-        this.deviceStateChanged.next({ deviceId: device.id, preview: true })
-      }
-    }
   }
 
   public joinProducers() {
