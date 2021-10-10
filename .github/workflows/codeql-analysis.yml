@@ -34,7 +34,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v1
       with:
-        node-version: 12
+        node-version: 14
 
     - name: Install dependencies
       run: npm i
@@ -65,10 +65,12 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v1
       with:
-        node-version: 12
+        node-version: 14
 
-    - name: Install dependencies
-      run: npm i
+    - name: Install dependencies and build
+      run: |
+        npm i
+        npm run build; cd UI; npm run build
 
     - name: Build an image from Dockerfile
       run: |
