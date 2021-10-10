@@ -8,7 +8,7 @@ import express from 'express';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import bodyParser from 'body-parser';
 import http from 'http';
-import mdns from 'mdns-js';
+import bonjour from 'bonjour';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
 import { BehaviorSubject } from 'rxjs';
@@ -173,13 +173,8 @@ function initialSetup() {
 
 	logger('Main HTTP Server Complete.', 'info-quiet');
 
-	let mdns_service = mdns.createAdvertisement(mdns.tcp('tally-arbiter'), 4455, {
-		name: 'tally-arbite',
-		txt: {
-			txtver: "test"
-		}
-	});			
-	mdns_service.start();
+	bonjour().publish({ name: 'tallyarbiter-uuidhere', type: 'tally-arbiter', port: 4455 });
+	logger('TallyArbiter advertised over MDNS.', 'info-quiet');
 
 	logger('Starting socket.IO Setup.', 'info-quiet');
 
