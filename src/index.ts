@@ -173,7 +173,14 @@ function initialSetup() {
 
 	logger('Main HTTP Server Complete.', 'info-quiet');
 
-	bonjour().publish({ name: 'tallyarbiter-uuidhere', type: 'tally-arbiter', port: 4455 });
+	bonjour().publish({
+		name: 'tallyarbiter-uuidhere',
+		type: 'tally-arbiter',
+		port: 4455,
+		txt: {
+			txtver: version
+		}
+	});
 	logger('TallyArbiter advertised over MDNS.', 'info-quiet');
 
 	logger('Starting socket.IO Setup.', 'info-quiet');
