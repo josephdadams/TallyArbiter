@@ -89,19 +89,33 @@ function checkForUpdates() {
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = false;
     autoUpdater.checkForUpdates();
-    autoUpdater.on("update-available", () => {
-        dialog.showMessageBox(mainWindow, {
-            title: "Update Available",
-            message: "There's an update available for TallyArbiter. Do you want to download and install it?",
-            buttons: ["Update", "Cancel"],
-        }).then((v) => {
-            if (v.response == 0) {
-                dialog.showMessageBox(mainWindow, {
-                    title: "Downloading update",
-                    message: "The update is being downloaded in the background. Once finished, you will be prompted to save your work and restart TallyArbiter."
-                });
-                autoUpdater.downloadUpdate();
-            }
+    autoUpdater.on("update-available", (info) => {
+        releaseNotesWindow = new BrowserWindow({
+            width: 800,
+            height: 600,
+            minHeight: 850,
+            minWidth: 1260,
+            webPreferences: {},
+            show: false,
+            title: `Release notes for version ${info.releaseName}`,
+        });
+        releaseNotesWindow.setMenu(null);
+        releaseNotesWindow.loadURL(`data:text/html;charset=utf-8,<h1>Release notes for version <b>${info.releaseName}</b></h1><br>${info.releaseNotes}`);
+        releaseNotesWindow.webContents.on('did-finish-load', function() {
+            releaseNotesWindow.show();
+            dialog.showMessageBox(releaseNotesWindow, {
+                title: "Update Available",
+                message: "There's an update available for TallyArbiter. Do you want to download and install it?",
+                buttons: ["Update", "Cancel"],
+            }).then((v) => {
+                if (v.response == 0) {
+                    dialog.showMessageBox(mainWindow, {
+                        title: "Downloading update",
+                        message: "The update is being downloaded in the background. Once finished, you will be prompted to save your work and restart TallyArbiter."
+                    });
+                    autoUpdater.downloadUpdate();
+                }
+            });
         });
     });
     autoUpdater.on("update-downloaded", () => {
