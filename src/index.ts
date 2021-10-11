@@ -174,11 +174,12 @@ function initialSetup() {
 	logger('Main HTTP Server Complete.', 'info-quiet');
 
 	bonjour().publish({
-		name: 'tallyarbiter-uuidhere',
+		name: 'tallyarbiter-'+currentConfig["uuid"],
 		type: 'tally-arbiter',
 		port: 4455,
 		txt: {
-			txtver: version
+			version: version,
+			uuid: currentConfig["uuid"]
 		}
 	});
 	logger('TallyArbiter advertised over MDNS.', 'info-quiet');
