@@ -9,6 +9,7 @@ import { Source } from "./Source";
 
 export interface Config {
     externalAddress: string;
+    uuid: string;
     security: ConfigSecuritySection;
     sources: Source[];
     devices: Device[];
