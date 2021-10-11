@@ -10,13 +10,11 @@
             "gpos": [
                 {
                     "pinNumber": 9,
-                    "busType": "preview",
-                    "state": false
+                    "busType": "preview"
                 },
                 {
                     "pinNumber": 10,
-                    "busType": "program",
-                    "state": false
+                    "busType": "program"
                 }
             ],
             "deviceId": "8ec94eba"
@@ -26,13 +24,11 @@
             "gpos": [
                 {
                     "pinNumber": 11,
-                    "busType": "preview",
-                    "state": false
+                    "busType": "preview"
                 },
                 {
                     "pinNumber": 12,
-                    "busType": "program",
-                    "state": false
+                    "busType": "program"
                 }
             ],
             "deviceId": "ed34bacd"
