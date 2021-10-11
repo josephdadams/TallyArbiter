@@ -11,6 +11,7 @@ import sys
 import os
 import time
 from uuid import uuid4
+from zeroconf import ServiceBrowser, Zeroconf
 import socketio
 import argparse
 import configparser
@@ -27,6 +28,7 @@ if not os.path.isfile('config.ini'):
 		'deviceId': deviceId,
 		'host': 'localhost',
 		'port': 4455,
+		'useMDNS': True,
 		'clientUUID': uuid4()
 	}
 	with open('config.ini', 'w') as configfile:
@@ -38,8 +40,8 @@ if os.path.isfile('deviceid.txt'):
 	os.remove('deviceid.txt')
 
 parser = argparse.ArgumentParser(description='Tally Arbiter Blink(1) Listener')
-parser.add_argument('--host', default=config['DEFAULT']['host'], help='Hostname or IP address of the server')
-parser.add_argument('--port', default=config['DEFAULT']['port'], help='Port of the server')
+parser.add_argument('--host', default=config['DEFAULT']['host'], help='Hostname or IP address of the server. Adding this flag, MDNS discovery will be disabled.')
+parser.add_argument('--port', default=config['DEFAULT']['port'], help='Port of the server. Adding this flag, MDNS discovery will be disabled.')
 parser.add_argument('--device-id', default=None, help='Load with custom device id')
 parser.add_argument('--debug', action='store_true', help='Show advanced logs usefull for debugging')
 parser.add_argument('--disable-reassign', action='store_true', help='Disable device reassignmend from UI')
@@ -76,21 +78,23 @@ class Blink1simulator:
 		return self.r, self.g, self.b
 
 try:
-    from blink1.blink1 import Blink1 # pyright: reportMissingImports=false
-    try:
-        b1 = Blink1()
-    except:
-        print('No blink(1) devices found.')
+	from blink1.blink1 import Blink1 # pyright: reportMissingImports=false
+	try:
+		b1 = Blink1()
+	except:
+		print('No blink(1) devices found.')
 except ImportError:
-    if not args.skip_blink1:
-        print("blink1 is not installed. Please install it and try again.")
-        print("If you want to try this program simulating blink1 add the flag --skip-blink1")
-        exit(1)
-    b1 = Blink1simulator()
+	if not args.skip_blink1:
+		print("blink1 is not installed. Please install it and try again.")
+		print("If you want to try this program simulating blink1 add the flag --skip-blink1")
+		exit(1)
+	b1 = Blink1simulator()
 
 device_states = []
 bus_options = []
 debounce = False #used to keep calls from happing concurrently
+
+server_uuid = False
 
 if config['DEFAULT']['deviceId']:
 	print('Last Used Device Id: ' + config['DEFAULT']['deviceId'])
@@ -102,6 +106,9 @@ if not args.device_id:
 
 #SocketIO Connections
 sio = socketio.Client()
+
+#ZeroConf instance
+zeroconf = Zeroconf()
 
 @sio.event
 def connect():
@@ -165,7 +172,7 @@ def on_bus_options(data):
 	bus_options = data
 
 @sio.on('flash')
-def on_flash():
+def on_flash(internalId):
 	if args.disable_flash:
 		return
 	doBlink(255, 255, 255)
@@ -180,7 +187,7 @@ def on_flash():
 	time.sleep(.5)
 
 @sio.on('reassign')
-def on_reassign(oldDeviceId, newDeviceId):
+def on_reassign(oldDeviceId, newDeviceId, internalId):
 	if args.disable_reassign:
 		return
 	print('Reassigning from DeviceID: ' + oldDeviceId + ' to Device ID: ' + newDeviceId)
@@ -234,21 +241,57 @@ def doBlink(r, g, b):
 		b1.fade_to_rgb(100, r, g, b)
 		debounce = False
 
-while(1):
-	try:
-		sio.connect('http://' + args.host + ':' + args.port)
-		sio.wait()
-		print('Tally Arbiter Listener Running. Press CTRL-C to exit.')
-		print('Attempting to connect to Tally Arbiter server: ' + args.host + '(' + args.port + ')')
-		print()
-	except KeyboardInterrupt:
-		print('Exiting Tally Arbiter Listener.')
-		doBlink(0, 0, 0)
-		exit(0)
-	except socketio.exceptions.ConnectionError:
-		doBlink(0, 0, 0)
-		time.sleep(15)
-	except:
-		print("Unexpected error:", sys.exc_info()[0])
-		print('An error occurred internally.')
-		doBlink(0, 0, 0)
+class TallyArbiterSeverListener:
+
+	def remove_service(self, zeroconf, type, name):
+		pass
+
+	def update_service(self, zeroconf, type, name):
+		pass
+
+	def add_service(self, zeroconf, type, name):
+		global server_uuid
+		if server_uuid:
+			return
+		info = zeroconf.get_service_info(type, name)
+		server_uuid = info.properties.get(b'uuid').decode('utf-8')
+		server_version = info.properties.get(b'version').decode('utf-8')
+		if not server_version.startswith('3.'):
+			print('Found Tally Arbiter Server version ' + server_version + ' but only version 3.x.x is supported.')
+			print('Please update Tally Arbiter to latest version or use an older version of this client.')
+			return
+		while(1):
+			try:
+				print('Tally Arbiter Blink1 Listener Running. Press CTRL-C to exit.')
+				print('Attempting to connect to Tally Arbiter server: {}:{} (UUID {}, server version {})'.format(info.server, str(info.port), server_uuid, server_version))
+				sio.connect('http://' + info.server + ':' + str(info.port))
+				sio.wait()
+			except socketio.exceptions.ConnectionError:
+				time.sleep(15)
+
+try:
+	if 'useMDNS' in config['DEFAULT'] and config['DEFAULT']['useMDNS']:
+		zeroconf = Zeroconf()
+		listener = TallyArbiterSeverListener()
+		browser = ServiceBrowser(zeroconf, "_tally-arbiter._tcp.local.", listener)
+		while True:
+			time.sleep(0.1)
+	else:
+		while(1):
+			try:
+				print('Tally Arbiter Blink1 Listener Running. Press CTRL-C to exit.')
+				print('Attempting to connect to Tally Arbiter server: {}:{}'.format(config['DEFAULT']['host'], str(config['DEFAULT']['port'])))
+				sio.connect('http://' + config['DEFAULT']['host'] + ':' + str(config['DEFAULT']['port']))
+				sio.wait()
+			except socketio.exceptions.ConnectionError:
+				doBlink(0, 0, 0)
+				time.sleep(15)
+except KeyboardInterrupt:
+	print('Exiting Tally Arbiter Blink1 Listener.')
+	doBlink(0, 0, 0)
+	exit(0)
+except:
+	print("Unexpected error:", sys.exc_info()[0])
+	print('An error occurred internally.')
+	doBlink(0, 0, 0)
+	exit(0)
