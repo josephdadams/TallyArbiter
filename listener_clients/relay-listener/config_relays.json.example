@@ -1,7 +1,8 @@
 {
  "server_config": {
   "ip": "localhost",
-  "port": 4455
+  "port": 4455,
+  "useMDNS": true
  },
  "relay_groups": [
   {
