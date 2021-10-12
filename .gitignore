@@ -120,3 +120,7 @@ deviceid.txt
 config.ini
 config_gpo.json
 config_relays.json
+*.bin
+*.elf
+*.hex
+*.hex.bin
