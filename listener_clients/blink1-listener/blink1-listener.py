@@ -241,7 +241,7 @@ def doBlink(r, g, b):
 		b1.fade_to_rgb(100, r, g, b)
 		debounce = False
 
-class TallyArbiterSeverListener:
+class TallyArbiterServerListener:
 
 	def remove_service(self, zeroconf, type, name):
 		pass
@@ -272,7 +272,7 @@ class TallyArbiterSeverListener:
 try:
 	if 'useMDNS' in config['DEFAULT'] and config['DEFAULT']['useMDNS']:
 		zeroconf = Zeroconf()
-		listener = TallyArbiterSeverListener()
+		listener = TallyArbiterServerListener()
 		browser = ServiceBrowser(zeroconf, "_tally-arbiter._tcp.local.", listener)
 		while True:
 			time.sleep(0.1)
