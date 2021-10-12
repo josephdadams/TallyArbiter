@@ -228,7 +228,7 @@ def processTallyData():
 					gpo['lastState'] = False
 		print()
 
-class TallyArbiterSeverListener:
+class TallyArbiterServerListener:
 
 	def remove_service(self, zeroconf, type, name):
 		pass
@@ -259,7 +259,7 @@ class TallyArbiterSeverListener:
 try:
 	if server_config['use_mdns']:
 		zeroconf = Zeroconf()
-		listener = TallyArbiterSeverListener()
+		listener = TallyArbiterServerListener()
 		browser = ServiceBrowser(zeroconf, "_tally-arbiter._tcp.local.", listener)
 		while True:
 			time.sleep(0.1)
