@@ -355,9 +355,11 @@ void WiFiEvent(WiFiEvent_t event) {
 void ws_emit(String event, const char *payload = NULL) {
   if (payload) {
     String msg = "[\"" + event + "\"," + payload + "]";
+    //Serial.println(msg);
     socket.sendEVENT(msg);
   } else {
     String msg = "[\"" + event + "\"]";
+    //Serial.println(msg);
     socket.sendEVENT(msg);
   }
 }
@@ -418,6 +420,7 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
 
 void socket_Connected(const char * payload, size_t length) {
   logger("Connected to Tally Arbiter server.", "info");
+  Serial.println(DeviceId);
   String deviceObj = "{\"deviceId\": \"" + DeviceId + "\", \"listenerType\": \"" + ListenerType + "\", \"canBeReassigned\": true, \"canBeFlashed\": true, \"supportsChat\": true }";
   char charDeviceObj[1024];
   strcpy(charDeviceObj, deviceObj.c_str());
@@ -462,6 +465,7 @@ String strip_quot(String str) {
 void socket_Reassign(String payload) {
   String oldDeviceId = payload.substring(0, payload.indexOf(','));
   String newDeviceId = payload.substring(oldDeviceId.length()+1);
+  newDeviceId = newDeviceId.substring(0, newDeviceId.indexOf(','));
   oldDeviceId = strip_quot(oldDeviceId);
   newDeviceId = strip_quot(newDeviceId);
 
@@ -477,6 +481,7 @@ void socket_Reassign(String payload) {
   M5.Lcd.fillScreen(WHITE);
   delay(200);
   M5.Lcd.fillScreen(TFT_BLACK);
+  Serial.println(newDeviceId);
   DeviceId = newDeviceId;
   preferences.begin("tally-arbiter", false);
   preferences.putString("deviceid", newDeviceId);
@@ -498,6 +503,10 @@ void socket_Messaging(String payload) {
 
 void processTallyData() {
   for (int i = 0; i < DeviceStates.length(); i++) {
+    if (DeviceStates[i]["sources"].length() > 0) {
+      Serial.println("Device is in " + getBusTypeById(JSON.stringify(DeviceStates[i]["busId"])) + " (color " + getBusColorById(JSON.stringify(DeviceStates[i]["busId"])) + " priority " + getBusPriorityById(JSON.stringify(DeviceStates[i]["busId"])) + ")");
+    }
+    /*
     if (getBusTypeById(JSON.stringify(DeviceStates[i]["busId"])) == "\"preview\"") {
       if (DeviceStates[i]["sources"].length() > 0) {
         mode_preview = true;
@@ -514,6 +523,7 @@ void processTallyData() {
         mode_program = false;
       }
     }
+    */
   }
 
   evaluateMode();
@@ -523,6 +533,26 @@ String getBusTypeById(String busId) {
   for (int i = 0; i < BusOptions.length(); i++) {
     if (JSON.stringify(BusOptions[i]["id"]) == busId) {
       return JSON.stringify(BusOptions[i]["type"]);
+    }
+  }
+
+  return "invalid";
+}
+
+String getBusColorById(String busId) {
+  for (int i = 0; i < BusOptions.length(); i++) {
+    if (JSON.stringify(BusOptions[i]["id"]) == busId) {
+      return JSON.stringify(BusOptions[i]["color"]);
+    }
+  }
+
+  return "invalid";
+}
+
+String getBusPriorityById(String busId) {
+  for (int i = 0; i < BusOptions.length(); i++) {
+    if (JSON.stringify(BusOptions[i]["id"]) == busId) {
+      return JSON.stringify(BusOptions[i]["priority"]);
     }
   }
 
@@ -549,7 +579,7 @@ void evaluateMode() {
   M5.Lcd.setFreeFont(FSS24);
   //M5.Lcd.setTextSize(maxTextSize);
 
-  
+  /*
   if (mode_preview && !mode_program && prevMode != 1) {
     prevMode = 1;
     logger("The device is in preview.", "info-quiet");
@@ -592,6 +622,7 @@ void evaluateMode() {
     M5.Lcd.fillScreen(TFT_BLACK);
     M5.Lcd.println(DeviceName);
   }
+  */
 
   if (LAST_MSG == true){
     M5.Lcd.println(LastMessage);
