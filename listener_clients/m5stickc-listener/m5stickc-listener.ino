@@ -24,10 +24,7 @@
 #define maxTextSize 5 //larger sourceName text
 
 
-//Device listener number
-int listenerDeviceNumber = 1;
-
-const String listenerDeviceName = "m5StickC "+String(listenerDeviceNumber);
+String listenerDeviceName = "m5StickC-1";
 
 /* USER CONFIG VARIABLES
  *  Change the following variables before compiling and sending the code to your device.
@@ -65,9 +62,6 @@ JSONVar Devices;
 JSONVar DeviceStates;
 String DeviceId = "unassigned";
 String DeviceName = "Unassigned";
-String ListenerType = "m5-stickc";
-bool mode_preview = false;
-bool mode_program = false;
 String LastMessage = "";
 
 //General Variables
@@ -86,9 +80,14 @@ void setup() {
 
   // Initialize the M5StickC object
   logger("Initializing M5StickC+.", "info-quiet");
-  M5.begin();
+
   setCpuFrequencyMhz(80);    //Save battery by turning down the CPU clock
   btStop();                 //Save battery by turning off BlueTooth
+
+  uint64_t chipid = ESP.getEfuseMac();
+  listenerDeviceName = "m5StickC-" + String((uint16_t)(chipid>>32)) + String((uint32_t)chipid);
+
+  M5.begin();
   M5.Lcd.setRotation(3);
   M5.Lcd.setCursor(0, 20);
   M5.Lcd.fillScreen(TFT_BLACK);
@@ -97,12 +96,13 @@ void setup() {
   M5.Lcd.setTextColor(WHITE, BLACK);
   M5.Lcd.println("booting...");
   logger("Tally Arbiter M5StickC+ Listener Client booting.", "info");
+  logger("Listener device name: " + listenerDeviceName, "info");
 
   preferences.begin("tally-arbiter", false);
 
   // added to clear out corrupt prefs
   //preferences.clear();
-  Serial.println("Reading preferences");
+  logger("Reading preferences", "info-quiet");
   if(preferences.getString("deviceid").length() > 0){
     DeviceId = preferences.getString("deviceid");
   }
@@ -111,15 +111,13 @@ void setup() {
   }
   if(preferences.getString("taHost").length() > 0){
     String newHost = preferences.getString("taHost");
-    Serial.println("Setting TallyArbiter host as");
-    Serial.println(newHost);
+    logger("Setting TallyArbiter host as" + newHost, "info-quiet");
     char chr_newHost[40];
     newHost.toCharArray(tallyarbiter_host, 40);
   }
   if(preferences.getString("taPort").length() > 0){
     String newPort = preferences.getString("taPort");
-    Serial.println("Setting TallyArbiter port as");
-    Serial.println(newPort);
+    logger("Setting TallyArbiter port as" + newPort, "info-quiet");
     char chr_newPort[6];
     newPort.toCharArray(tallyarbiter_port, 6);
   }
@@ -154,11 +152,11 @@ void setup() {
     })
     .onError([](ota_error_t error) {
       Serial.printf("Error[%u]: ", error);
-      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-      else if (error == OTA_END_ERROR) Serial.println("End Failed");
+      if (error == OTA_AUTH_ERROR) logger("Auth Failed", "error");
+      else if (error == OTA_BEGIN_ERROR) logger("Begin Failed", "error");
+      else if (error == OTA_CONNECT_ERROR) logger("Connect Failed", "error");
+      else if (error == OTA_RECEIVE_ERROR) logger("Receive Failed", "error");
+      else if (error == OTA_END_ERROR) logger("End Failed", "error");
     });
 
   ArduinoOTA.begin();
@@ -237,12 +235,15 @@ void updateBrightness() {
 }
 
 void logger(String strLog, String strType) {
+  Serial.println(strLog);
+  /*
   if (strType == "info") {
     Serial.println(strLog);
     //M5.Lcd.println(strLog);
   } else {
     Serial.println(strLog);
   }
+  */
 }
 
 void connectToNetwork() {
@@ -282,21 +283,22 @@ void connectToNetwork() {
   res = wm.autoConnect(listenerDeviceName.c_str()); // AP name for setup
 
   if (!res) {
-    Serial.println("Failed to connect");
+    logger("Failed to connect", "error");
     // ESP.restart();
   } else {
     //if you get here you have connected to the WiFi
-    Serial.println("connected...yay :)");
+    logger("connected...yay :)", "info");
     networkConnected = true;
 
     int nrOfServices = MDNS.queryService("tally-arbiter", "tcp");
 
     //TODO: fix MDNS discovery
+    /*
     if (nrOfServices == 0) {
-      Serial.println("No server found.");
+      logger("No server found.", "error");
     } else {
-      Serial.print("Number of servers found: ");
-      Serial.println(nrOfServices);
+      logger("Number of servers found: ", "info");
+      Serial.print(nrOfServices);
      
       for (int i = 0; i < nrOfServices; i=i+1) {
  
@@ -314,6 +316,7 @@ void connectToNetwork() {
         Serial.println("---------------");
       }
     }
+    */
   }
 }
 
@@ -328,15 +331,15 @@ String getParam(String name) {
 
 
 void saveParamCallback() {
-  Serial.println("[CALLBACK] saveParamCallback fired");
-  Serial.println("PARAM tally Arbiter Server = " + getParam("taHostIP"));
+  logger("[CALLBACK] saveParamCallback fired", "info-quiet");
+  logger("PARAM tally Arbiter Server = " + getParam("taHostIP"), "info-quiet");
   String str_taHost = getParam("taHostIP");
   String str_taPort = getParam("taHostPort");
 
   //str_taHost.toCharArray(tallyarbiter_host, 40);
   //saveEEPROM();
-  Serial.println("Saving new TallyArbiter host");
-  Serial.println(str_taHost);
+  logger("Saving new TallyArbiter host", "info-quiet");
+  logger(str_taHost, "info-quiet");
   preferences.begin("tally-arbiter", false);
   preferences.putString("taHost", str_taHost);
   preferences.putString("taPort", str_taPort);
@@ -426,8 +429,8 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
 
 void socket_Connected(const char * payload, size_t length) {
   logger("Connected to Tally Arbiter server.", "info");
-  Serial.println(DeviceId);
-  String deviceObj = "{\"deviceId\": \"" + DeviceId + "\", \"listenerType\": \"" + ListenerType + "\", \"canBeReassigned\": true, \"canBeFlashed\": true, \"supportsChat\": true }";
+  logger("DeviceId: " + DeviceId, "info-quiet");
+  String deviceObj = "{\"deviceId\": \"" + DeviceId + "\", \"listenerType\": \"" + listenerDeviceName.c_str() + "\", \"canBeReassigned\": true, \"canBeFlashed\": true, \"supportsChat\": true }";
   char charDeviceObj[1024];
   strcpy(charDeviceObj, deviceObj.c_str());
   ws_emit("listenerclient_connect", charDeviceObj);
@@ -487,7 +490,7 @@ void socket_Reassign(String payload) {
   M5.Lcd.fillScreen(WHITE);
   delay(200);
   M5.Lcd.fillScreen(TFT_BLACK);
-  Serial.println(newDeviceId);
+  logger("newDeviceId: " + newDeviceId, "info-quiet");
   DeviceId = newDeviceId;
   preferences.begin("tally-arbiter", false);
   preferences.putString("deviceid", newDeviceId);
@@ -579,7 +582,6 @@ void evaluateMode() {
     int r = number >> 16;
     int g = number >> 8 & 0xFF;
     int b = number & 0xFF;
-    Serial.println("r: " + String(r) + " g: " + String(g) + " b: " + String(b));
     M5.Lcd.setTextColor(BLACK);
     M5.Lcd.fillScreen(M5.Lcd.color565(r, g, b));
     M5.Lcd.println(DeviceName);
@@ -600,7 +602,8 @@ void evaluateMode() {
       M5.Lcd.fillScreen(TFT_BLACK);
       M5.Lcd.println(DeviceName);
     }
-    Serial.println("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")");
+    logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
+    Serial.print(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));
   }
   
   if (LAST_MSG == true){
@@ -621,29 +624,29 @@ void checkReset() {
       //M5.Lcd.setTextSize(1);
       M5.Lcd.setTextColor(WHITE, BLACK);
       M5.Lcd.println("Reset button pushed....");
-      Serial.println("Button Pressed");
+      logger("Button Pressed", "info");
       // still holding button for 3000 ms, reset settings, code not ideal for production
       delay(3000); // reset delay hold
       if ( digitalRead(TRIGGER_PIN) == LOW ) {
         M5.Lcd.println("Erasing....");
-        Serial.println("Button Held");
-        Serial.println("Erasing Config, restarting");
+        logger("Button Held", "info");
+        logger("Erasing Config, restarting", "info");
         wm.resetSettings();
         ESP.restart();
       }
 
       M5.Lcd.println("Starting Portal...");
       // start portal w delay
-      Serial.println("Starting config portal");
+      logger("Starting config portal", "info");
       wm.setConfigPortalTimeout(120);
 
       if (!wm.startConfigPortal(listenerDeviceName.c_str())) {
-        Serial.println("failed to connect or hit timeout");
+        logger("failed to connect or hit timeout", "error");
         delay(3000);
         // ESP.restart();
       } else {
         //if you get here you have connected to the WiFi
-        Serial.println("connected...yeey :)");
+        logger("connected...yeey :)", "info");
       }
     }
   }
