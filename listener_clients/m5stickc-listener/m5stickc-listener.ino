@@ -18,7 +18,7 @@
 
 
 #define TRIGGER_PIN 0 //reset pin 
-#define GRAY  0x0020 //   8  8  8
+#define GREY  0x0020 //   8  8  8
 #define GREEN 0x0200 //   0 64  0
 #define RED   0xF800 // 255  0  0
 #define maxTextSize 5 //larger sourceName text
@@ -47,10 +47,16 @@ PinButton btnM5(37); //the "M5" button on the device
 PinButton btnAction(39); //the "Action" button on the device
 Preferences preferences;
 uint8_t wasPressed();
-const byte led_program = 10;
-const int led_preview = 26;   //OPTIONAL Led for preview on pin G26
 
-uint8_t prevMode = 0; // reduce display flicker by storing previous state
+const int led_program = 10;
+const int led_preview = 26; //OPTIONAL Led for preview on pin G26
+const int led_aux = 36;     //OPTIONAL Led for aux on pin G36
+
+String prevType = ""; // reduce display flicker by storing previous state
+
+String actualType = "";
+String actualColor = "";
+int actualPriority = 0;
 
 //Tally Arbiter variables
 SocketIOclient socket;
@@ -213,7 +219,7 @@ void showSettings() {
 }
 
 void showDeviceInfo() {
-  M5.Lcd.setTextColor(DARKGREY, BLACK);
+  M5.Lcd.setTextColor(GREY, BLACK);
   M5.Lcd.fillScreen(TFT_BLACK);
   M5.Lcd.println(DeviceName);
 
@@ -504,29 +510,16 @@ void socket_Messaging(String payload) {
 void processTallyData() {
   for (int i = 0; i < DeviceStates.length(); i++) {
     if (DeviceStates[i]["sources"].length() > 0) {
-      Serial.println("Device is in " + getBusTypeById(JSON.stringify(DeviceStates[i]["busId"])) + " (color " + getBusColorById(JSON.stringify(DeviceStates[i]["busId"])) + " priority " + getBusPriorityById(JSON.stringify(DeviceStates[i]["busId"])) + ")");
+      actualType = getBusTypeById(JSON.stringify(DeviceStates[i]["busId"]));
+      actualColor = getBusColorById(JSON.stringify(DeviceStates[i]["busId"]));
+      actualPriority = getBusPriorityById(JSON.stringify(DeviceStates[i]["busId"]));
+    } else {
+      actualType = "";
+      actualColor = "";
+      actualPriority = 0;
     }
-    /*
-    if (getBusTypeById(JSON.stringify(DeviceStates[i]["busId"])) == "\"preview\"") {
-      if (DeviceStates[i]["sources"].length() > 0) {
-        mode_preview = true;
-      }
-      else {
-        mode_preview = false;
-      }
-    }
-    if (getBusTypeById(JSON.stringify(DeviceStates[i]["busId"])) == "\"program\"") {
-      if (DeviceStates[i]["sources"].length() > 0) {
-        mode_program = true;
-      }
-      else {
-        mode_program = false;
-      }
-    }
-    */
+    evaluateMode();
   }
-
-  evaluateMode();
 }
 
 String getBusTypeById(String busId) {
@@ -549,14 +542,14 @@ String getBusColorById(String busId) {
   return "invalid";
 }
 
-String getBusPriorityById(String busId) {
+int getBusPriorityById(String busId) {
   for (int i = 0; i < BusOptions.length(); i++) {
     if (JSON.stringify(BusOptions[i]["id"]) == busId) {
-      return JSON.stringify(BusOptions[i]["priority"]);
+      return (int) JSON.stringify(BusOptions[i]["priority"]).toInt();
     }
   }
 
-  return "invalid";
+  return 0;
 }
 
 void SetDeviceName() {
@@ -579,51 +572,37 @@ void evaluateMode() {
   M5.Lcd.setFreeFont(FSS24);
   //M5.Lcd.setTextSize(maxTextSize);
 
-  /*
-  if (mode_preview && !mode_program && prevMode != 1) {
-    prevMode = 1;
-    logger("The device is in preview.", "info-quiet");
+  if(actualType != prevType) {
+    actualColor.replace("#", "");
+    String hexstring = actualColor;
+    long number = (long) strtol( &hexstring[1], NULL, 16);
+    int r = number >> 16;
+    int g = number >> 8 & 0xFF;
+    int b = number & 0xFF;
+    Serial.println("r: " + String(r) + " g: " + String(g) + " b: " + String(b));
     M5.Lcd.setTextColor(BLACK);
-    M5.Lcd.fillScreen(GREEN);
-    digitalWrite(led_program, HIGH);
-    digitalWrite (led_preview, HIGH);
-        M5.Lcd.println(DeviceName);
-
-  }
-  else if (!mode_preview && mode_program && prevMode != 2) {
-    prevMode = 2;
-    logger("The device is in program.", "info-quiet");
-    M5.Lcd.setTextColor(BLACK);
-    M5.Lcd.fillScreen(RED);
-    digitalWrite(led_program, LOW);
-    digitalWrite(led_preview, LOW);
+    M5.Lcd.fillScreen(M5.Lcd.color565(r, g, b));
     M5.Lcd.println(DeviceName);
-
-
-  }
-  else if (mode_preview && mode_program && prevMode != 3) {
-    prevMode = 3;
-    logger("The device is in preview+program.", "info-quiet");
-    M5.Lcd.setTextColor(BLACK);
-    if (CUT_BUS == true) {
-      M5.Lcd.fillScreen(RED);
+    if (actualType == "preview") {
+      digitalWrite(led_program, HIGH);
+      digitalWrite (led_preview, LOW);
+      digitalWrite (led_aux, LOW);
+    } else if (actualType == "preview") {
+      digitalWrite(led_program, LOW);
+      digitalWrite (led_preview, HIGH);
+      digitalWrite (led_aux, LOW);
+    } else if (actualType == "aux") {
+      digitalWrite(led_program, LOW);
+      digitalWrite (led_preview, LOW);
+      digitalWrite (led_aux, HIGH);
+    } else {
+      M5.Lcd.setTextColor(GREY, BLACK);
+      M5.Lcd.fillScreen(TFT_BLACK);
+      M5.Lcd.println(DeviceName);
     }
-    else {
-      M5.Lcd.fillScreen(YELLOW);
-    }
-    digitalWrite(led_program, LOW);
-    digitalWrite (led_preview, HIGH);
-    M5.Lcd.println(DeviceName);
-  } else if (!mode_preview && !mode_program && prevMode != 0) {
-    prevMode = 0;
-    digitalWrite(led_program, HIGH);
-    digitalWrite(led_preview, LOW);
-    M5.Lcd.setTextColor(DARKGREY, BLACK);
-    M5.Lcd.fillScreen(TFT_BLACK);
-    M5.Lcd.println(DeviceName);
+    Serial.println("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")");
   }
-  */
-
+  
   if (LAST_MSG == true){
     M5.Lcd.println(LastMessage);
   }
