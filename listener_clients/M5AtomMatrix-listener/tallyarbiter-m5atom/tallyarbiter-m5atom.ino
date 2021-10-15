@@ -1,10 +1,14 @@
 #include <M5Atom.h>
 #include <WiFi.h>
-#include <SocketIoClient.h>
+#include <WebSocketsClient.h>
+#include <SocketIOclient.h>
 #include <Arduino_JSON.h>
 #include <PinButton.h>
 #include <stdint.h>
 #include <Arduino.h>
+#include <WiFiManager.h>
+#include <ArduinoOTA.h>
+#include <ESPmDNS.h>
 #include <Preferences.h>
 #define DATA_PIN_LED 27
 
@@ -21,29 +25,37 @@ Preferences preferences;
     Change the following variables before compiling and sending the code to your device.
 */
 
-//Wifi SSID and password
-const char * networkSSID = "YourNetwork";
-const char * networkPass = "YourPassword";
-
 //Tally Arbiter Server
-const char * tallyarbiter_host = "TALLYARBITERSERVERIP";
-const int tallyarbiter_port = 4455;
+char * tallyarbiter_host = "192.168.1.133";
+char * tallyarbiter_port = "4455";
 
 //Local Default Camera Number
 int camNumber = 0;
 
+String listenerDeviceName = "m5Atom-1";
+
 //Tally Arbiter variables
-SocketIoClient socket;
+SocketIOclient socket;
+WiFiManager wm; // global wm instance
+WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 JSONVar BusOptions;
 JSONVar Devices;
 JSONVar DeviceStates;
 String DeviceId = "unassigned";
 String DeviceName = "unassigned";
 String ListenerType = "m5";
-bool mode_preview = true;
-bool mode_program = false;
-// const byte led_program = 10;
 
+/*
+const int led_program = 10;
+const int led_preview = 26; //OPTIONAL Led for preview on pin G26
+const int led_aux = 36;     //OPTIONAL Led for aux on pin G36
+*/
+
+String prevType = ""; // reduce display flicker by storing previous state
+
+String actualType = "";
+String actualColor = "";
+int actualPriority = 0;
 
 // default color values
 int GRB_COLOR_WHITE = 0xffffff;
@@ -57,9 +69,6 @@ int GRB_COLOR_PURPLE = 0x008080;
 
 int numbercolor = GRB_COLOR_ORANGE;
 
-int programcolor[] = {GRB_COLOR_RED, numbercolor};
-int previewcolor[] = {GRB_COLOR_GREEN, numbercolor};
-int mixedcolor[] = {GRB_COLOR_RED, numbercolor};
 int flashcolor[] = {GRB_COLOR_WHITE, GRB_COLOR_WHITE};
 int offcolor[] = {GRB_COLOR_BLACK, numbercolor};
 int readycolour[] = {GRB_COLOR_BLUE, GRB_COLOR_BLUE};
@@ -236,6 +245,7 @@ void drawNumber(int arr[], int colors[])
 {
   for (int i = 0; i < 25; i++)
   {
+    //Serial.println("i: " + String(i) + " color: " + String(colors[arr[i]]));
     M5.dis.drawpix(i, colors[arr[i]]);
   }
 }
@@ -243,25 +253,42 @@ void drawNumber(int arr[], int colors[])
 
 // Determine if the device is currently in preview, program, or both
 void evaluateMode() {
-  if (mode_preview && !mode_program) {
-    logger("The device is in preview.", "info-quiet");
+  if(actualType != prevType) {
     M5.dis.clear();
-    drawNumber(number[camNumber], previewcolor);
-  }
-  else if (!mode_preview && mode_program) {
-    logger("The device is in program.", "info-quiet");
-    M5.dis.clear();
-    drawNumber(number[camNumber], programcolor);
-  }
-  else if (mode_preview && mode_program) {
-    logger("The device is in preview and program.", "info-quiet");
-    M5.dis.clear();
-    drawNumber(number[camNumber], mixedcolor);
-  }
-  else {
-    logger("The device is clear.", "info-quiet");
-    M5.dis.clear();
-    drawNumber(number[camNumber], offcolor);
+    actualColor.replace("#", "");
+    String hexstring = actualColor;
+    long colorNumber = (long) strtol( &hexstring[1], NULL, 16);
+    int r = colorNumber >> 16;
+    int g = colorNumber >> 8 & 0xFF;
+    int b = colorNumber & 0xFF;
+    if (actualType != "") {
+      drawNumber(number[camNumber], offcolor);
+    } else {
+      int currColor[] = {CRGB(r, g, b), numbercolor};
+      drawNumber(number[camNumber], currColor);
+    }
+
+    /*
+    if (actualType == "preview") {
+      digitalWrite(led_program, HIGH);
+      digitalWrite (led_preview, LOW);
+      digitalWrite (led_aux, LOW);
+    } else if (actualType == "preview") {
+      digitalWrite(led_program, LOW);
+      digitalWrite (led_preview, HIGH);
+      digitalWrite (led_aux, LOW);
+    } else if (actualType == "aux") {
+      digitalWrite(led_program, LOW);
+      digitalWrite (led_preview, LOW);
+      digitalWrite (led_aux, HIGH);
+    } else {
+      digitalWrite(led_program, LOW);
+      digitalWrite (led_preview, LOW);
+      digitalWrite (led_aux, LOW);
+    }
+    */
+    logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
+    Serial.print(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));
   }
 }
 
@@ -302,16 +329,40 @@ void socket_Flash(const char * payload, size_t length) {
   }
 }
 
+void ws_emit(String event, const char *payload = NULL) {
+  if (payload) {
+    String msg = "[\"" + event + "\"," + payload + "]";
+    Serial.println(msg);
+    socket.sendEVENT(msg);
+  } else {
+    String msg = "[\"" + event + "\"]";
+    Serial.println(msg);
+    socket.sendEVENT(msg);
+  }
+}
+
+String strip_quot(String str) {
+  if (str[0] == '"') {
+    str.remove(0, 1);
+  }
+  if (str.endsWith("\"")) {
+    str.remove(str.length()-1, 1);
+  }
+  return str;
+}
 
 void socket_Reassign(const char * payload, size_t length) {
   logger("Socket Reassign: " + String(payload), "info-quiet");
   Serial.println(payload);
-  String oldDeviceId = String(payload).substring(0, 8);
-  String newDeviceId = String(payload).substring(11);
+  String oldDeviceId = String(payload).substring(2, String(payload).indexOf(','));
+  String newDeviceId = String(payload).substring(oldDeviceId.length()+1);
+  newDeviceId = newDeviceId.substring(0, newDeviceId.indexOf(','));
+  oldDeviceId = strip_quot(oldDeviceId);
+  newDeviceId = strip_quot(newDeviceId);
   String reassignObj = "{\"oldDeviceId\": \"" + oldDeviceId + "\", \"newDeviceId\": \"" + newDeviceId + "\"}";
   char charReassignObj[1024];
   strcpy(charReassignObj, reassignObj.c_str());
-  socket.emit("listener_reassign_object", charReassignObj);
+  ws_emit("listener_reassign_object", charReassignObj);
   // Flash 2 times
 
   drawNumber(number[17], alloffcolor);
@@ -334,30 +385,56 @@ void socket_Reassign(const char * payload, size_t length) {
   logger("Socket Reassign pt2: " + String(newDeviceId), "info-quiet");
 }
 
+void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) {
+  switch (type) {
+    case sIOtype_CONNECT:
+      socket_Connected((char*)payload, length);
+      break;
+
+    case sIOtype_DISCONNECT:
+    case sIOtype_ACK:
+    case sIOtype_ERROR:
+    case sIOtype_BINARY_EVENT:
+    case sIOtype_BINARY_ACK:
+      // Not handled
+      break;
+
+    case sIOtype_EVENT:
+      String msg = (char*)payload;
+      String type = msg.substring(2, msg.indexOf("\"",2));
+      String content = msg.substring(type.length() + 4);
+      content.remove(content.length() - 1);
+
+      logger("Got event '" + type + "', data: " + content, "info-quiet");
+
+      if (type == "bus_options") socket_BusOptions((char*)payload, length);
+      if (type == "deviceId") socket_DeviceId((char*)payload, length);
+      if (type == "devices") socket_Devices((char*)payload, length);
+      if (type == "device_states") socket_DeviceStates((char*)payload, length);
+      if (type == "flash") socket_Flash((char*)payload, length);
+      if (type == "reassign") socket_Reassign((char*)payload, length);
+
+      break;
+  }
+}
+
 void connectToServer() {
   logger("---------------------------------", "info-quiet");
   logger("Connecting to Tally Arbiter host: " + String(tallyarbiter_host), "info-quiet");
-  socket.on("connect", socket_Connected);
-  socket.on("bus_options", socket_BusOptions);
-  socket.on("deviceId", socket_DeviceId);
-  socket.on("devices", socket_Devices);
-  socket.on("device_states", socket_DeviceStates);
-  socket.on("flash", socket_Flash);
-  socket.on("reassign", socket_Reassign);
-  socket.begin(tallyarbiter_host, tallyarbiter_port);
+  socket.onEvent(socket_event);
+  socket.begin(tallyarbiter_host, atol(tallyarbiter_port));
   logger("---------------------------------", "info-quiet");
 }
 
 void socket_Connected(const char * payload, size_t length) {
   logger("---------------------------------", "info-quiet");
   logger("Connected to Tally Arbiter host: " + String(tallyarbiter_host), "info-quiet");
-  String deviceObj = "{\"deviceId\": \"" + DeviceId + "\", \"listenerType\": \"" + ListenerType + "\"}";
+  String deviceObj = "{\"deviceId\": \"" + DeviceId + "\", \"listenerType\": \"" + listenerDeviceName.c_str() + "\", \"canBeReassigned\": true, \"canBeFlashed\": true, \"supportsChat\": true }";
   logger("deviceObj = " + String(deviceObj), "info-quiet");
   logger("DeviceId = " + String(DeviceId), "info-quiet");
   char charDeviceObj[1024];
   strcpy(charDeviceObj, deviceObj.c_str());
-  socket.emit("bus_options");
-  socket.emit("device_listen_m5", charDeviceObj);
+  ws_emit("listenerclient_connect", charDeviceObj);
   logger("charDeviceObj = " + String(charDeviceObj), "info-quiet");
   logger("---------------------------------", "info-quiet");
 }
@@ -375,32 +452,8 @@ void socket_Devices(const char * payload, size_t length) {
 
 void socket_DeviceId(const char * payload, size_t length) {
   logger("Socket Message DeviceId: " + String(payload), "info-quiet");
-  DeviceId = String(payload);
+  DeviceId = strip_quot(String(payload));
   setDeviceName();
-}
-
-
-void processTallyData() {
-  for (int i = 0; i < DeviceStates.length(); i++) {
-    if (getBusTypeById(JSON.stringify(DeviceStates[i]["busId"])) == "\"preview\"") {
-      if (DeviceStates[i]["sources"].length() > 0) {
-        mode_preview = true;
-      }
-      else {
-        mode_preview = false;
-      }
-    }
-    if (getBusTypeById(JSON.stringify(DeviceStates[i]["busId"])) == "\"program\"") {
-      if (DeviceStates[i]["sources"].length() > 0) {
-        mode_program = true;
-      }
-      else {
-        mode_program = false;
-      }
-    }
-  }
-
-  evaluateMode();
 }
 
 String getBusTypeById(String busId) {
@@ -413,6 +466,40 @@ String getBusTypeById(String busId) {
   return "invalid";
 }
 
+String getBusColorById(String busId) {
+  for (int i = 0; i < BusOptions.length(); i++) {
+    if (JSON.stringify(BusOptions[i]["id"]) == busId) {
+      return JSON.stringify(BusOptions[i]["color"]);
+    }
+  }
+
+  return "invalid";
+}
+
+int getBusPriorityById(String busId) {
+  for (int i = 0; i < BusOptions.length(); i++) {
+    if (JSON.stringify(BusOptions[i]["id"]) == busId) {
+      return (int) JSON.stringify(BusOptions[i]["priority"]).toInt();
+    }
+  }
+
+  return 0;
+}
+
+void processTallyData() {
+  for (int i = 0; i < DeviceStates.length(); i++) {
+    if (DeviceStates[i]["sources"].length() > 0) {
+      actualType = getBusTypeById(JSON.stringify(DeviceStates[i]["busId"]));
+      actualColor = getBusColorById(JSON.stringify(DeviceStates[i]["busId"]));
+      actualPriority = getBusPriorityById(JSON.stringify(DeviceStates[i]["busId"]));
+    } else {
+      actualType = "";
+      actualColor = "";
+      actualPriority = 0;
+    }
+    evaluateMode();
+  }
+}
 
 void socket_DeviceStates(const char * payload, size_t length) {
   logger("Socket Message DeviceStates: " + String(payload), "info-quiet");
@@ -422,16 +509,104 @@ void socket_DeviceStates(const char * payload, size_t length) {
 
 
 void connectToNetwork() {
-  logger("", "info");
-  logger("Connecting to SSID: " + String(networkSSID), "info");
+  WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
 
-  WiFi.disconnect(true);
-  WiFi.onEvent(WiFiEvent);
+  logger("Connecting to SSID: " + String(WiFi.SSID()), "info");
 
-  WiFi.mode(WIFI_STA); //station
-  WiFi.setSleep(false);
+  //reset settings - wipe credentials for testing
+  //wm.resetSettings();
 
-  WiFi.begin(networkSSID, networkPass);
+  //add a custom input field
+  int customFieldLength = 40;
+
+  //const char* custom_radio_str = "<br/><label for='taHostIP'>Tally Arbiter Server</label><input type='text' name='taHostIP'>";
+  //new (&custom_field) WiFiManagerParameter(custom_radio_str); // custom html input
+
+  WiFiManagerParameter custom_taServer("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
+  WiFiManagerParameter custom_taPort("taHostPort", "Port", tallyarbiter_port, 6);
+
+  wm.addParameter(&custom_taServer);
+  wm.addParameter(&custom_taPort);
+  
+  //wm.addParameter(&custom_field);
+  wm.setSaveParamsCallback(saveParamCallback);
+
+  // custom menu via array or vector
+  std::vector<const char *> menu = {"wifi","param","info","sep","restart","exit"};
+  wm.setMenu(menu);
+
+  // set dark theme
+  wm.setClass("invert");
+
+  wm.setConfigPortalTimeout(120); // auto close configportal after n seconds
+
+  bool res;
+
+  res = wm.autoConnect(listenerDeviceName.c_str()); // AP name for setup
+
+  if (!res) {
+    logger("Failed to connect", "error");
+    // ESP.restart();
+  } else {
+    //if you get here you have connected to the WiFi
+    logger("connected...yay :)", "info");
+    networkConnected = true;
+
+    int nrOfServices = MDNS.queryService("tally-arbiter", "tcp");
+
+    //TODO: fix MDNS discovery
+    /*
+    if (nrOfServices == 0) {
+      logger("No server found.", "error");
+    } else {
+      logger("Number of servers found: ", "info");
+      Serial.print(nrOfServices);
+     
+      for (int i = 0; i < nrOfServices; i=i+1) {
+ 
+        Serial.println("---------------");
+       
+        Serial.print("Hostname: ");
+        Serial.println(MDNS.hostname(i));
+ 
+        Serial.print("IP address: ");
+        Serial.println(MDNS.IP(i));
+ 
+        Serial.print("Port: ");
+        Serial.println(MDNS.port(i));
+ 
+        Serial.println("---------------");
+      }
+    }
+    */
+  }
+}
+
+String getParam(String name) {
+  //read parameter from server, for customhmtl input
+  String value;
+  if (wm.server->hasArg(name)) {
+    value = wm.server->arg(name);
+  }
+  return value;
+}
+
+
+void saveParamCallback() {
+  logger("[CALLBACK] saveParamCallback fired", "info-quiet");
+  logger("PARAM tally Arbiter Server = " + getParam("taHostIP"), "info-quiet");
+  String str_taHost = getParam("taHostIP");
+  String str_taPort = getParam("taHostPort");
+
+  //str_taHost.toCharArray(tallyarbiter_host, 40);
+  //saveEEPROM();
+  logger("Saving new TallyArbiter host", "info-quiet");
+  logger(str_taHost, "info-quiet");
+  preferences.begin("tally-arbiter", false);
+  preferences.putString("taHost", str_taHost);
+  preferences.putString("taPort", str_taPort);
+  preferences.end();
+
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -441,6 +616,13 @@ void setup() {
   Serial.begin(115200);
   while (!Serial);
   logger("Initializing M5-Atom.", "info-quiet");
+
+  setCpuFrequencyMhz(80);    //Save battery by turning down the CPU clock
+  btStop();                 //Save battery by turning off BlueTooth
+
+  uint64_t chipid = ESP.getEfuseMac();
+  listenerDeviceName = "m5Atom-" + String((uint16_t)(chipid>>32)) + String((uint32_t)chipid);
+  logger("Listener device name: " + listenerDeviceName, "info");
 
   M5.begin(true, false, true);
   delay(50);
@@ -472,8 +654,53 @@ void setup() {
     //DeviceName = preferences.getString("devicename");
     DeviceName = "unassigned";
   }
+  /*
+  //TODO: use taHost and taPort and not hardcoded string, so anyone can change them from WebManager interface
+  if(preferences.getString("taHost").length() > 0){
+    String newHost = preferences.getString("taHost");
+    logger("Setting TallyArbiter host as " + newHost, "info-quiet");
+    char chr_newHost[40];
+    newHost.toCharArray(tallyarbiter_host, 40);
+  }
+  if(preferences.getString("taPort").length() > 0){
+    String newPort = preferences.getString("taPort");
+    logger("Setting TallyArbiter port as " + newPort, "info-quiet");
+    char chr_newPort[6];
+    newPort.toCharArray(tallyarbiter_port, 6);
+  }
+  */
   preferences.end();
 
+  ArduinoOTA.setHostname(listenerDeviceName.c_str());
+  ArduinoOTA.setPassword("tallyarbiter");
+  ArduinoOTA
+    .onStart([]() {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "sketch";
+      else // U_SPIFFS
+        type = "filesystem";
+
+      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+      Serial.println("Start updating " + type);
+    })
+    .onEnd([]() {
+      Serial.println("\nEnd");
+    })
+    .onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    })
+    .onError([](ota_error_t error) {
+      Serial.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) logger("Auth Failed", "error");
+      else if (error == OTA_BEGIN_ERROR) logger("Begin Failed", "error");
+      else if (error == OTA_CONNECT_ERROR) logger("Connect Failed", "error");
+      else if (error == OTA_RECEIVE_ERROR) logger("Receive Failed", "error");
+      else if (error == OTA_END_ERROR) logger("End Failed", "error");
+    });
+
+  ArduinoOTA.begin();
+  
   connectToServer();
   delay (100);
 }

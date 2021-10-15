@@ -34,7 +34,7 @@ bool CUT_BUS = false; // true = Programm + Preview = Red Tally; false = Programm
 bool LAST_MSG = false; // true = show log on tally screen<
 
 //Tally Arbiter Server
-char tallyarbiter_host[40] = "192.168.1.133"; //IP address of the Tally Arbiter Server
+char tallyarbiter_host[40] = "192.168.1.2"; //IP address of the Tally Arbiter Server
 char tallyarbiter_port[6] = "4455";
 
 /* END OF USER CONFIG */
@@ -570,21 +570,26 @@ void SetDeviceName() {
 }
 
 void evaluateMode() {
-
-  M5.Lcd.setCursor(4, 82);
-  M5.Lcd.setFreeFont(FSS24);
-  //M5.Lcd.setTextSize(maxTextSize);
-
   if(actualType != prevType) {
+    M5.Lcd.setCursor(4, 82);
+    M5.Lcd.setFreeFont(FSS24);
+    //M5.Lcd.setTextSize(maxTextSize);
     actualColor.replace("#", "");
     String hexstring = actualColor;
     long number = (long) strtol( &hexstring[1], NULL, 16);
     int r = number >> 16;
     int g = number >> 8 & 0xFF;
     int b = number & 0xFF;
-    M5.Lcd.setTextColor(BLACK);
-    M5.Lcd.fillScreen(M5.Lcd.color565(r, g, b));
-    M5.Lcd.println(DeviceName);
+    if (actualType != "") {
+      M5.Lcd.setTextColor(BLACK);
+      M5.Lcd.fillScreen(M5.Lcd.color565(r, g, b));
+      M5.Lcd.println(DeviceName);
+    } else {
+      M5.Lcd.setTextColor(GREY, BLACK);
+      M5.Lcd.fillScreen(TFT_BLACK);
+      M5.Lcd.println(DeviceName);
+    }
+    
     if (actualType == "preview") {
       digitalWrite(led_program, HIGH);
       digitalWrite (led_preview, LOW);
@@ -598,9 +603,9 @@ void evaluateMode() {
       digitalWrite (led_preview, LOW);
       digitalWrite (led_aux, HIGH);
     } else {
-      M5.Lcd.setTextColor(GREY, BLACK);
-      M5.Lcd.fillScreen(TFT_BLACK);
-      M5.Lcd.println(DeviceName);
+      digitalWrite(led_program, LOW);
+      digitalWrite (led_preview, LOW);
+      digitalWrite (led_aux, LOW);
     }
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
     Serial.print(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));
