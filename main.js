@@ -89,7 +89,7 @@ function checkForUpdates() {
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = false;
     autoUpdater.checkForUpdates();
-        autoUpdater.on("update-available", (info) => {
+    autoUpdater.on("update-available", (info) => {
         ipcMain.on("updateButtonPressed", (event, arg) => {
             if(info.releaseNotes.includes("WARNING")){
                 dialog.showMessageBox(releaseNotesWindow, {
