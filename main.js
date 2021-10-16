@@ -1,5 +1,5 @@
 // This is the electron startup script
-const { app, BrowserWindow, Tray, Menu, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, dialog, ipcMain } = require('electron');
 const { autoUpdater } = require("electron-updater");
 const { nativeImage } = require('electron/common');
 const path = require("path");
@@ -90,32 +90,103 @@ function checkForUpdates() {
     autoUpdater.autoInstallOnAppQuit = false;
     autoUpdater.checkForUpdates();
     autoUpdater.on("update-available", (info) => {
+        if(info.releaseNotes.includes("WARNING")){
+            ipcMain.on("updateButtonPressed", (event, arg) => {
+                dialog.showMessageBox(releaseNotesWindow, {
+                    title: "Warning",
+                    message: "Please read release notes carefully, since this update may require updating listener clients or some other manual intervention. If you read release notes carefully, you can continue.",
+                    buttons: ["Update", "Cancel"],
+                }).then((v) => {
+                    if (v.response == 0) {
+                        dialog.showMessageBox(mainWindow, {
+                            title: "Downloading update",
+                            message: "The update is being downloaded in the background. Once finished, you will be prompted to save your work and restart TallyArbiter."
+                        });
+                        autoUpdater.downloadUpdate();
+                    }
+                });
+            });
+        } else {
+            dialog.showMessageBox(mainWindow, {
+                title: "Downloading update",
+                message: "The update is being downloaded in the background. Once finished, you will be prompted to save your work and restart TallyArbiter."
+            });
+            autoUpdater.downloadUpdate();
+        }
+        let releaseDate = new Date(Date.parse(info.releaseDate)).toLocaleString();
+        let releaseNotesPage = `
+<html>
+  <head>
+    <title>Release notes for version ${info.releaseName}</title>
+    <style>
+    .btn {
+        display: inline-block;
+        font-weight: 400;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        border: 1px solid transparent;
+        padding: .375rem .75rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        border-radius: .25rem;
+        transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    }
+    .btn-success {
+        color: #fff;
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+    .btn-success:hover {
+        color: #fff;
+        background-color: #218838;
+        border-color: #1e7e34;
+    }
+    .btn-danger {
+        color: #fff;
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+    .btn-danger:hover {
+        color: #fff;
+        background-color: #c82333;
+        border-color: #bd2130;
+    }
+    </style>
+  </head>
+  <body>
+    <script>const { ipcRenderer } = require('electron');</script>
+    <h1><b>There's an update available for TallyArbiter.</b> Do you want to download and install it?</h1>
+    <button class="btn btn-success" onclick="ipcRenderer.send('updateButtonPressed')">Update</button> <button class="btn btn-danger" onclick="window.close();">Cancel</button>
+    <h1>Release notes for version <b>${info.releaseName}</b>:</h1>
+    ${info.releaseNotes}
+    <br><br>
+    <p style="font-size: x-large">Release name: <b>${info.releaseName}</b></p>
+    <p style="font-size: x-large">Release date: <b>${releaseDate}</b></p>
+    <p style="font-size: x-large">sha512: <b><code>${info.sha512}</code></b></p>
+  </body>
+</html>
+        `;
         releaseNotesWindow = new BrowserWindow({
             width: 800,
             height: 600,
             minHeight: 850,
             minWidth: 1260,
-            webPreferences: {},
-            show: false,
-            title: `Release notes for version ${info.releaseName}`,
+            webPreferences: {
+                nodeIntegration: true,
+                contextIsolation: false
+            },
+            show: false
         });
         releaseNotesWindow.setMenu(null);
-        releaseNotesWindow.loadURL(`data:text/html;charset=utf-8,<h1>Release notes for version <b>${info.releaseName}</b></h1><br>${info.releaseNotes}`);
+        releaseNotesWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(releaseNotesPage)}`);
         releaseNotesWindow.webContents.on('did-finish-load', function() {
             releaseNotesWindow.show();
-            dialog.showMessageBox(releaseNotesWindow, {
-                title: "Update Available",
-                message: "There's an update available for TallyArbiter. Do you want to download and install it?",
-                buttons: ["Update", "Cancel"],
-            }).then((v) => {
-                if (v.response == 0) {
-                    dialog.showMessageBox(mainWindow, {
-                        title: "Downloading update",
-                        message: "The update is being downloaded in the background. Once finished, you will be prompted to save your work and restart TallyArbiter."
-                    });
-                    autoUpdater.downloadUpdate();
-                }
-            });
+            //releaseNotesWindow.webContents.openDevTools();
         });
     });
     autoUpdater.on("update-downloaded", () => {
