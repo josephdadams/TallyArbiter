@@ -89,9 +89,9 @@ function checkForUpdates() {
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = false;
     autoUpdater.checkForUpdates();
-    autoUpdater.on("update-available", (info) => {
-        if(info.releaseNotes.includes("WARNING")){
-            ipcMain.on("updateButtonPressed", (event, arg) => {
+        autoUpdater.on("update-available", (info) => {
+        ipcMain.on("updateButtonPressed", (event, arg) => {
+            if(info.releaseNotes.includes("WARNING")){
                 dialog.showMessageBox(releaseNotesWindow, {
                     title: "Warning",
                     message: "Please read release notes carefully, since this update may require updating listener clients or some other manual intervention. If you read release notes carefully, you can continue.",
@@ -105,14 +105,14 @@ function checkForUpdates() {
                         autoUpdater.downloadUpdate();
                     }
                 });
-            });
-        } else {
-            dialog.showMessageBox(mainWindow, {
-                title: "Downloading update",
-                message: "The update is being downloaded in the background. Once finished, you will be prompted to save your work and restart TallyArbiter."
-            });
-            autoUpdater.downloadUpdate();
-        }
+            } else {
+                dialog.showMessageBox(mainWindow, {
+                    title: "Downloading update",
+                    message: "The update is being downloaded in the background. Once finished, you will be prompted to save your work and restart TallyArbiter."
+                });
+                autoUpdater.downloadUpdate()
+            }
+        });
         let releaseDate = new Date(Date.parse(info.releaseDate)).toLocaleString();
         let releaseNotesPage = `
 <html>
