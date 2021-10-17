@@ -35,7 +35,8 @@ export class SettingsComponent {
 
 	public languages = {
 		en: "English",
-		de: "German"
+		de: "German",
+		it: "Italiano"
 	}
 
 	public logLevels: LogLevel[] = [
