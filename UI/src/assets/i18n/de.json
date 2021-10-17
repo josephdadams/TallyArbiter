@@ -1,0 +1,68 @@
+{
+    "HOME": {
+        "HOME": "Willkommen zu Tally Arbiter!",
+        "TALLY_WEB_CLIENTS": "Tally Web Clients",
+        "EXTERNAL_ADDRESS": "Externe Adresse",
+        "QR_INFO": "Scanne den QR Code mit Deinem Handy oder öffne eine der folgenden URLs:",
+        "LOCALHOST": "localhost (lokal)",
+        "DOCS_INFO": "Schau Dir die Dokumentation und Anleitungen an, wenn Du Hilfe benötigst.",
+        "PRODUCER_INFO": "In der Produzenten-Ansicht bekommst Du einen Überblück über alle verbundenen Geräte und Clients.",
+        "DOCS_LINK": "Zur Dokumentation",
+        "PRODUCER_LINK": "Zur Produzenten-Ansicht",
+        "SETTINGS_INFO": "Hier kannst Du alle Geräte, Quellen usw. einrichten."
+    },
+    "GENERAL": {
+        "SETTINGS": "Einstellungen",
+        "DOCS": "Dokumentation",
+        "HOME": "Home",
+        "TALLY_VIEW": "Tally",
+        "PRODUCER": "Produzent",
+        "ABOUT": "Über",
+        "VERSION": "Version",
+        "BACK": "Zurück",
+        "LOGS": "Logs",
+        "USERNAME": "Benutzername",
+        "PASSWORD": "Passwort",
+        "LOGIN": "Login",
+        "DEVICES": "Geräte",
+        "DEVICE": "Ger#t",
+        "IP": "IP",
+        "FLASH": "Blitzen",
+        "CHAT": "Chat",
+        "TYPE": "Typ",
+        "BUSSES": {
+            "PREVIEW_SHORT": "PVW",
+            "PROGRAM_SHORT": "PGM"
+        },
+        "NAME": "Name",
+        "DESCRIPTION": "Beschreibung",
+        "ACTIVE_LISTENERS": "Aktive Listener",
+        "CLIENTS": "Clients"
+    },
+    "DEVICES": {
+        "NO_DEVICES_CONFIGURED": "Keine Geräte konfiguriert.",
+        "SELECT_DEVICE": "Wähle ein Gerät aus",
+        "NO_DEVICES_AVAILABLE": "Aktuell sind keine Geräte verfügbar."
+    },
+    "CHAT": {
+        "TYPE_MESSAGE": "Gib eine Nachricht ein"
+    },
+    "CLIENTS": {
+        "NO_CLIENTS_CONNECTED": "Keine Clients verbunden."
+    },
+    "ERRORS": {
+        "UNEXPECTED_ERROR": "Leider gab es einen unerwarteten Fehler. Bitte erstelle einen Fehlerbericht auf der GitHub Seite von Tally Arbiter oder kontaktiere einen der Entwickler.",
+        "OPEN_BUG_REPORT": "Fehlerbericht auf GitHub erstellen",
+        "DATE": "Datum",
+        "CONFIG_FILE": "Konfigurationsdatei",
+        "STACKTRACE": "Stacktrace",
+        "ERROR_REPORT_NOT_FOUND": "Der Fehlerbericht wurde nicht gefunden.",
+        "MARK_ALL_AS_READ": "Alle als gelesen markieren",
+        "NO_ERROR_REPORTS_FOUND": "Hurra! Keine Fehlerberichte gefunden.",
+        "DELETE_ALL_ERROR_REPORTS": "Alle Fehlerberichte löschen",
+        "SELECT_ERROR_REPORT": "Wähle einen Fehlerbericht aus"
+    },
+    "LOGIN": {
+        "HEADLINE": "Bitte anmelden"
+    }
+}

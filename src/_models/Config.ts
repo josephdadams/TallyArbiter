@@ -20,4 +20,5 @@ export interface Config {
     cloud_destinations: CloudDestination[];
     cloud_keys: string[];
     bus_options: BusOption[];
+    language: string;
 }

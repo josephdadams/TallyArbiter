@@ -1,17 +1,17 @@
 <div class="container pt-3">
   <div class="row">
     <div class="col-md-6">
-    <h2>Devices</h2>
-    <span class="text-muted mt-3" *ngIf="socketService.devices.length == 0">No devices configured.</span>
+    <h2>{{"GENERAL.DEVICES" | translate}}</h2>
+    <span class="text-muted mt-3" *ngIf="socketService.devices.length == 0">{{"GENERAL.NO_DEVICES_CONFIGURED" | translate}}</span>
     <table class="table table-hover" *ngIf="socketService.devices.length > 0">
         <thead>
           <tr>
-            <th>PVW</th>
-            <th>PGM</th>
-            <th>Name</th>
+            <th>{{"GENERAL.BUSSES.PREVIEW_SHORT" | translate}}</th>
+            <th>{{"GENERAL.BUSSES.PROGRAM_SHORT" | translate}}</th>
+            <th>{{"GENERAL.NAME" | translate}}</th>
             <th></th>
-            <th>Description</th>
-            <th>Active Listeners</th>
+            <th>{{"GENERAL.DESCRIPTION" | translate}}</th>
+            <th>{{"GENERAL.ACTIVE_LISTENERS" | translate}}</th>
           </tr>
         </thead>
         <tbody>
@@ -26,16 +26,16 @@
         </tbody>
       </table>
       <hr class="my-5" />
-      <h2>Clients</h2>
-      <span class="text-muted mt-3" *ngIf="socketService.listenerClients.length == 0">No clients connected.</span>
+      <h2>{{"GENERAL.CLIENTS" | translate}}</h2>
+      <span class="text-muted mt-3" *ngIf="socketService.listenerClients.length == 0">{{"CLIENTS.NO_CLIENTS_CONNECTED" | translate}}</span>
       <table class="table table-hover" *ngIf="socketService.listenerClients.length > 0">
         <thead>
           <tr>
             <th></th>
-            <th>IP</th>
-            <th>Type</th>
+            <th>{{"GENERAL.IP" | translate}}</th>
+            <th>{{"GENERAL.TYPE" | translate}}</th>
             <th></th>
-            <th>Device</th>
+            <th>{{"GENERAL.DEVICE" | translate}}</th>
             <th></th>
           </tr>
         </thead>
@@ -46,13 +46,13 @@
             <td>{{listenerClient.listenerType}}</td>
             <td><i class="fas fa-cloud text-muted" *ngIf="listenerClient.cloudConnection"></i></td>
             <td>{{listenerClient.device?.name}}</td>
-            <td><button *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed" class="btn btn-outline-dark" (click)="socketService.flashListener(listenerClient)">Flash</button></td>
+            <td><button *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed" class="btn btn-outline-dark" (click)="socketService.flashListener(listenerClient)">{{"GENERAL.FLASH" | translate}}</button></td>
           </tr>
         </tbody>
       </table>
     </div>
     <div class="col-md-6 chat">
-        <h3>Chat</h3>
+        <h3>{{"GENERAL.CHAT" | translate}}</h3>
         <app-chat type="producer"></app-chat>
     </div>
   </div>

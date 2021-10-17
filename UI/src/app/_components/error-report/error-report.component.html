@@ -1,31 +1,30 @@
 <div class="d-flex justify-content-center mt-5 pt-5" *ngIf="loading">
     <div class="spinner spinner-border"></div>
 </div>
-<button (click)="locationBackService.goBack()" id="backBtn" title="Go back"><i class="fas fa-arrow-left"></i> Back</button>
+<button (click)="locationBackService.goBack()" id="backBtn" title="Go back"><i class="fas fa-arrow-left"></i> {{"GENERAL.BACK" | translate}}</button>
 <div id="page" *ngIf="validReport">
     <div id="text">
         <h1>:(</h1>
-        <h2>There was an unexpected error. Please open a bug report on the project's Github page or contact one of
-            the developers.</h2>
+        <h2>{{"ERRORS.UNEXPECTED_ERROR" | translate}}</h2>
     </div>
     <div style="text-align: center">
-        <button id="bugReportButton" class="btn btn-lg btn-custom" [disabled]="!bugReportUrlLoaded" (click)="bugReportButtonClick()" role="button">Open a bug report on Github</button>
+        <button id="bugReportButton" class="btn btn-lg btn-custom" [disabled]="!bugReportUrlLoaded" (click)="bugReportButtonClick()" role="button">{{"ERRORS.OPEN_BUG_REPORT" | translate}}</button>
     </div>
     <div class="col">
-        <h3>Stacktrace:</h3>
+        <h3>{{"ERRORS.STACKTRACE" | translate}}:</h3>
         <pre id="stacktrace">{{ currentReport.stacktrace }}</pre>
     </div>
     <div class="col">
-        <h3>Error datetime</h3>
+        <h3>{{"ERRORS.DATE" | translate}}</h3>
         <h4>{{ currentReport.datetime | date:'YYYY-MM-dd HH:mm:ss' }}</h4>
     </div>
     <div id="row">
         <div class="col">
-            <h3>Logs:</h3>
+            <h3>{{"GENERAL.LOGS" | translate}}:</h3>
             <pre class="limit" id="logs">{{ currentReport.logs }}</pre>
         </div>
         <div class="col">
-            <h3>Config file:</h3>
+            <h3>{{"ERRORS.CONFIG_FILE" | translate}}:</h3>
             <pre class="limit" id="config">{{ currentReport.config | json }}</pre>
         </div>
     </div>
@@ -33,6 +32,6 @@
 <div id="page" *ngIf="!validReport && !loading">
     <div id="text">
         <h1>:(</h1>
-        <h2>Error report not found.</h2>
+        <h2>{{"ERRORS.ERROR_REPORT_NOT_FOUND" | translate}}</h2>
     </div>
 </div>

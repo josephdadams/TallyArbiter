@@ -33,6 +33,11 @@ export class SettingsComponent {
 	@ViewChild('logsContainer') private logsContainer!: ElementRef;
 	@ViewChild('tallyDataContainer') private tallyDataContainer!: ElementRef;
 
+	public languages = {
+		en: "English",
+		de: "German"
+	}
+
 	public logLevels: LogLevel[] = [
 	{ title: "Error", id: "error" },
 	{ title: "Console", id: "console-action" },
@@ -139,6 +144,10 @@ export class SettingsComponent {
 
 	public ngOnInit() {
 		this.setLogLevel(this.currentLogLevel);
+	}
+
+	public updateLanguage(event: any) {
+		this.socketService.socket.emit("setLanguage", event.target.value);
 	}
 
 	public saveDeviceSource() {

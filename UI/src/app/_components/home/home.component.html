@@ -1,45 +1,45 @@
 <div class="container pt-5">
     <div class="row text-center">
-        <h1 class="display-4">Welcome to Tally Arbiter</h1>
+        <h1 class="display-4">{{"HOME.HOME" | translate}}</h1>
     </div>
     <div class="row mt-5 row-cols-1 row-cols-md-2 g-5 text-center">
         <div class="col">
             <div class="rounded bg-light p-3">
-                <h3><i class="fas fa-mobile-alt"></i> Tally Web Clients</h3>
+                <h3><i class="fas fa-mobile-alt"></i> {{"HOME.TALLY_WEB_CLIENTS" | translate}}</h3>
                 <qr-code class="my-4 d-block" [value]="netInterfaceUrl" size="250" errorCorrectionLevel="M"></qr-code>
                 <select [(ngModel)]="netInterfaceUrl" class="form-select d-inline w-unset">
-                    <option [value]="localNetInterfaceUrl">localhost (Local)</option>
-                    <option *ngIf="socketService.externalAddress !== 'http://0.0.0.0:4455/#/tally'" [value]= "socketService.externalAddress">External Address</option>
+                    <option [value]="localNetInterfaceUrl">{{"HOME.LOCALHOST" | translate}}</option>
+                    <option *ngIf="socketService.externalAddress !== 'http://0.0.0.0:4455/#/tally'" [value]= "socketService.externalAddress">{{"HOME.EXTERNAL_ADDRESS" | translate}}</option>
                     <option *ngFor="let netInterface of socketService.interfaces" [ngValue]="netInterface.url">
                         {{netInterface.address}} ({{netInterface.name}})
                     </option>
                 </select>
-                <p>Scan the QR Code with your Phone or open one of the following URLs:</p>
+                <p>{{"HOME.QR_INFO" | translate}}</p>
                 <ul>
                     <li *ngFor="let net_interface of socketService.interfaces">
                         <a target="_blank" [href]="net_interface.url">{{net_interface.url}}</a>
                     </li>
                     <li *ngIf="socketService.externalAddress !== 'http://0.0.0.0:4455/#/tally'">
-                        <a target="_blank" [href]="socketService.externalAddress">{{socketService.externalAddress}}</a> (External Address)
+                        <a target="_blank" [href]="socketService.externalAddress">{{socketService.externalAddress}}</a> ({{"HOME.EXTERNAL_ADDRESS" | translate}})
                     </li>
                 </ul>
             </div>
         </div>
         <div class="col">
 			<div class="rounded bg-light p-3">
-                <h3><i class="fas fa-book-open"></i> Documentation</h3>
-                <p>View the documentation and usage instructions online if you need help along the way.</p>
-                <a class="btn btn-outline-primary" href="https://josephdadams.github.io/TallyArbiter/" target="_blank">Documentation Link</a>
+                <h3><i class="fas fa-book-open"></i> {{"GENERAL.DOCS" | translate}}</h3>
+                <p>{{"HOME.DOCS_INFO" | translate}}</p>
+                <a class="btn btn-outline-primary" href="https://josephdadams.github.io/TallyArbiter/" target="_blank">{{"HOME.DOCS_LINK" | translate}}</a>
             </div>
             <div class="rounded bg-light mt-5 p-3">
-                <h3><i class="fas fa-tasks"></i> Producer</h3>
-                <p>On the Producer page you get an overview of all connected devices and Tally clients.</p>
-                <a class="btn btn-outline-primary" routerLink="/producer">Producer Page</a>
+                <h3><i class="fas fa-tasks"></i> {{"GENERAL.PRODUCER" | translate}}</h3>
+                <p>{{"HOME.PRODUCER_INFO" | translate}}</p>
+                <a class="btn btn-outline-primary" routerLink="/producer">{{"HOME.PRODUCER_LINK" | translate}}</a>
             </div>
             <div class="rounded bg-light mt-5 p-3">
-                <h3><i class="fas fa-cogs"></i> Settings</h3>
-                <p>Here you can configure and setup all sources, devices, Tally clients and more.</p>
-                <a class="btn btn-outline-primary" routerLink="/settings">Settings</a>
+                <h3><i class="fas fa-cogs"></i> {{"GENERAL.SETTINGS" | translate}}</h3>
+                <p>{{"HOME.SETTINGS_INFO" | translate}}</p>
+                <a class="btn btn-outline-primary" routerLink="/settings">{{"GENERAL.SETTINGS" | translate}}</a>
             </div>
         </div>
     </div>

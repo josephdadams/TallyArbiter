@@ -1,0 +1,68 @@
+{
+    "HOME": {
+        "HOME": "Welcome to Tally Arbiter!",
+        "TALLY_WEB_CLIENTS": "Tally Web Clients",
+        "EXTERNAL_ADDRESS": "External Address",
+        "QR_INFO": "Scan the QR Code with your Phone or open one of the following URLs:",
+        "LOCALHOST": "localhost (Local)",
+        "DOCS_INFO": "View the documentation and usage instructions online if you need help along the way.",
+        "PRODUCER_INFO": "On the Producer page you get an overview of all connected devices and Tally clients.",
+        "DOCS_LINK": "Go to Docs",
+        "PRODUCER_LINK": "Go to Producer",
+        "SETTINGS_INFO": "Here you can configure and setup all sources, devices, Tally clients and more."
+    },
+    "GENERAL": {
+        "SETTINGS": "Settings",
+        "DOCS": "Documentation",
+        "HOME": "Home",
+        "TALLY_VIEW": "Tally View",
+        "PRODUCER": "Producer",
+        "ABOUT": "About",
+        "VERSION": "Version",
+        "BACK": "Back",
+        "LOGS": "Logs",
+        "USERNAME": "Username",
+        "PASSWORD": "Password",
+        "LOGIN": "Login",
+        "DEVICES": "Devices",
+        "DEVICE": "Device",
+        "IP": "IP",
+        "FLASH": "Flash",
+        "CHAT": "Chat",
+        "TYPE": "Type",
+        "BUSSES": {
+            "PREVIEW_SHORT": "PVW",
+            "PROGRAM_SHORT": "PGM"
+        },
+        "NAME": "Name",
+        "DESCRIPTION": "Description",
+        "ACTIVE_LISTENERS": "Active Listeners",
+        "CLIENTS": "Clients"
+    },
+    "DEVICES": {
+        "NO_DEVICES_CONFIGURED": "No devices configured.",
+        "SELECT_DEVICE": "Select a device",
+        "NO_DEVICES_AVAILABLE": "No devices are available for tally monitoring at this time."
+    },
+    "CHAT": {
+        "TYPE_MESSAGE": "Type a message"
+    },
+    "CLIENTS": {
+        "NO_CLIENTS_CONNECTED": "No clients connected."
+    },
+    "ERRORS": {
+        "UNEXPECTED_ERROR": "There was an unexpected error. Please open a bug report on the project's Github page or contact one of the developers.",
+        "OPEN_BUG_REPORT": "Open a bug report on Github",
+        "DATE": "Date",
+        "CONFIG_FILE": "Config File",
+        "STACKTRACE": "Stacktrace",
+        "ERROR_REPORT_NOT_FOUND": "Error report not found.",
+        "MARK_ALL_AS_READ": "Mark all as read",
+        "NO_ERROR_REPORTS_FOUND": "Hurray! No error report detected.",
+        "DELETE_ALL_ERROR_REPORTS": "Permanently delete every bug report from disk",
+        "SELECT_ERROR_REPORT": "Select an error report"
+    },
+    "LOGIN": {
+        "HEADLINE": "Please sign in"
+    }
+}

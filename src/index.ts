@@ -189,6 +189,8 @@ function initialSetup() {
 	io.sockets.on('connection', (socket) => {
 		const ipAddr = socket.handshake.address;
 
+		socket.emit("language", currentConfig.language);
+
 		socket.on('login', (type: "settings" | "producer", username: string, password: string) => {
 			if((type === "producer" && username == currentConfig.security.username_producer && password == currentConfig.security.password_producer)
 			|| (type === "settings" && username == currentConfig.security.username_settings && password == currentConfig.security.password_settings)) {
@@ -229,6 +231,12 @@ function initialSetup() {
 
 		socket.on('externalAddress', () => {
 			socket.emit('externalAddress', currentConfig.externalAddress);
+		});
+
+		socket.on('setLanguage', (language: string) => {
+			currentConfig.language = language;
+			SaveConfig();
+			socket.emit('language', language);
 		});
 
 		socket.on('interfaces', () =>  {

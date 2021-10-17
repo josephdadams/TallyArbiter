@@ -8,21 +8,21 @@
     <div class="collapse navbar-collapse" id="navbarCollapse" [class.show]="showMenu">
       <ul class="navbar-nav me-auto mb-2 mb-md-0">
         <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/home">Home</a>
+          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/home">{{"GENERAL.HOME" | translate}}</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/tally">Tally View</a>
+          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/tally">{{"GENERAL.TALLY_VIEW" | translate}}</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/producer">Producer</a>
+          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/producer">{{"GENERAL.PRODUCER" | translate}}</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/settings">Settings</a>
+          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/settings">{{"GENERAL.SETTINGS" | translate}}</a>
         </li>
       </ul>
       <ul class="navbar-nav mb-2 mb-md-0">  
         <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/about">About</a>
+          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/about">{{"GENERAL.ABOUT" | translate}}</a>
         </li>
       </ul>
     </div>

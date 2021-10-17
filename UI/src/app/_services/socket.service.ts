@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { BusOption } from '../_models/BusOption';
 import { CloudClient } from '../_models/CloudClient';
@@ -61,6 +61,7 @@ export class SocketService {
   public portsInUse: Port[] = [];
   public messages: Message[] = [];
   public errorReports: ErrorReportsListElement[] = [] as ErrorReportsListElement[];
+  public language: BehaviorSubject<string> = new BehaviorSubject("en");
 
   public dataLoaded = new Promise<void>((resolve) => this._resolveDataLoadedPromise = resolve);
   private _resolveDataLoadedPromise!: () => void;
@@ -74,6 +75,9 @@ export class SocketService {
 
   constructor() {
     this.socket = io();
+    this.socket.on('language', (language: string) => {
+      this.language.next(language);
+    });
     this.socket.on('sources', (sources: Source[]) => {
       this.sources = this.prepareSources(sources);
     });

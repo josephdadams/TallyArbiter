@@ -2,7 +2,6 @@ import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { QrCodeModule } from 'ng-qrcode';
-
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { HomeComponent } from './_components/home/home.component';
@@ -17,34 +16,50 @@ import { ChatComponent } from './_components/chat/chat.component';
 import { ErrorReportComponent } from './_components/error-report/error-report.component';
 import { ErrorReportsListComponent } from './_components/error-reports-list/error-reports-list.component';
 import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap';
+import {TranslateModule, TranslateLoader} from '@ngx-translate/core';
+import { HttpClientModule, HttpClient } from '@angular/common/http';
+import { TranslateHttpLoader } from '@ngx-translate/http-loader';
+
+export function HttpLoaderFactory(http: HttpClient) {
+    return new TranslateHttpLoader(http);
+}
 
 @NgModule({
-  declarations: [
-    AppComponent,
-    HomeComponent,
-    ProducerComponent,
-    SettingsComponent,
-    TallyComponent,
-    AboutComponent,
-    LoginComponent,
-    ChatComponent,
-    ErrorReportComponent,
-    ErrorReportsListComponent
-  ],
-  imports: [
-    BrowserModule,
-    AppRoutingModule,
-    QrCodeModule,
-    NgbNavModule,
-    FormsModule,
-    ServiceWorkerModule.register('ngsw-worker.js', {
-      enabled: environment.production,
-      // Register the ServiceWorker as soon as the app is stable
-      // or after 30 seconds (whichever comes first).
-      registrationStrategy: 'registerWhenStable:30000'
-    }),
-  ],
-  providers: [],
-  bootstrap: [AppComponent]
+    declarations: [
+        AppComponent,
+        HomeComponent,
+        ProducerComponent,
+        SettingsComponent,
+        TallyComponent,
+        AboutComponent,
+        LoginComponent,
+        ChatComponent,
+        ErrorReportComponent,
+        ErrorReportsListComponent
+    ],
+    imports: [
+        BrowserModule,
+        AppRoutingModule,
+        QrCodeModule,
+        HttpClientModule,
+        NgbNavModule,
+        FormsModule,
+        TranslateModule.forRoot({
+            loader: {
+                provide: TranslateLoader,
+                useFactory: HttpLoaderFactory,
+                deps: [HttpClient]
+            },
+            defaultLanguage: 'en'
+        }),
+        ServiceWorkerModule.register('ngsw-worker.js', {
+            enabled: environment.production,
+            // Register the ServiceWorker as soon as the app is stable
+            // or after 30 seconds (whichever comes first).
+            registrationStrategy: 'registerWhenStable:30000'
+        }),
+    ],
+    providers: [],
+    bootstrap: [AppComponent]
 })
 export class AppModule { }

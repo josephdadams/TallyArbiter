@@ -11,7 +11,7 @@
         </div>
     </div>
     <div class="input-group">
-        <input type="text" class="form-control" placeholder="Type a message" (keydown.enter)="sendMessage()" [(ngModel)]="message">
+        <input type="text" class="form-control" [placeholder]="'CHAT.TYPE_MESSAGE' | translate" (keydown.enter)="sendMessage()" [(ngModel)]="message">
         <button class="btn btn-outline-dark" (click)="sendMessage()"><i class="fas fa-paper-plane"></i></button>
     </div>
 </div>
