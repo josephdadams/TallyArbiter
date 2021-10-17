@@ -1,5 +1,5 @@
 ---
-sidebar-position: 3
+sidebar-position: 2
 ---
 
 # Developing TallyArbiter itself
