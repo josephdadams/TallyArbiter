@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import { WakeLockService } from './_services/wake-lock.service';
 import { NavbarVisibilityService } from './_services/navbar-visibility.service';
 import { LocationBackService } from 'src/app/_services/locationBack.service';
+import {TranslateService} from '@ngx-translate/core';
+import { SocketService } from './_services/socket.service';
 
 @Component({
   selector: 'app-root',
@@ -14,8 +16,14 @@ export class AppComponent {
   constructor(
     private wakeLockService: WakeLockService,
     public navbarVisibilityService: NavbarVisibilityService,
-    private locationBackService: LocationBackService
+    private locationBackService: LocationBackService,
+    private translateService: TranslateService,
+    private socketService: SocketService,
   ) {
     wakeLockService.init();
+    translateService.setDefaultLang("en");
+    socketService.language.subscribe((l) => {
+      translateService.use(l);
+    });
   }
 }

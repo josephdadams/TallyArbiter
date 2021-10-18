@@ -39,7 +39,8 @@ export const ConfigDefaults: Config = {
         { id: '12c8d689', label: 'Aux 2', type: 'aux', color: '#0000FF', priority: 100}
     ],
     externalAddress: "http://0.0.0.0:4455/#/tally",
-	uuid: uuidv4()
+	uuid: uuidv4(),
+	language: "en"
 }
 
 export let currentConfig: Config = clone(ConfigDefaults);

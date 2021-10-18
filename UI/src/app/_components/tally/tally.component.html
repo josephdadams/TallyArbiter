@@ -5,11 +5,11 @@
     <div class="container mt-5" *ngIf="currentDeviceIdx === undefined">
         <div class="form-group" *ngIf="socketService.devices.length > 0">
             <select class='form-control col-xs-6 col-md-3' (change)="selectDevice($event)">
-                <option disabled selected>-- Select a device --</option>
+                <option disabled selected>-- {{"DEVICES.SELECT_DEVICE" | translate}} --</option>
                 <option [value]="device.id" *ngFor="let device of socketService.devices">{{device.name}}</option>
             </select>
         </div>
-        <h2 class="lead mt-5" *ngIf="socketService.devices.length == 0">No devices are available for tally monitoring at this time.</h2>
+        <h2 class="lead mt-5" *ngIf="socketService.devices.length == 0">{{"DEVICES.NO_DEVICES_AVAILABLE" | translate}}</h2>
     </div>
 
     <div class="d-flex flex-column max-height container-fluid pt-5 text-center" [class.text-white]="!currentBus?.color" [style.background-color]="currentBus?.color || COLORS.DARK_GREY" *ngIf="currentDeviceIdx !== undefined && socketService.devices[currentDeviceIdx]">

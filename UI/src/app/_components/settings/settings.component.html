@@ -286,6 +286,13 @@
                             </tbody>
                         </table>
                     </div>
+                    <hr class="my-4">
+                    <div>
+                        <h2>Language</h2>
+                        <select class="form-select" [ngModel]="socketService.language | async" (change)="updateLanguage($event)">
+                            <option *ngFor="let language of languages | keyvalue" [value]="language.key">{{language.value}}</option>
+                        </select>
+                    </div>
                 </div>
             </ng-template>
         </ng-container>

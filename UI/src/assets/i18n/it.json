@@ -1,0 +1,68 @@
+{
+    "HOME": {
+        "HOME": "Benvenuto su Tally Arbiter!",
+        "TALLY_WEB_CLIENTS": "Clients Web Tally",
+        "EXTERNAL_ADDRESS": "Indirizzo Esterno",
+        "QR_INFO": "Scansiona il QR Code con il tuo telefono o apri uno dei seguenti collegamenti:",
+        "LOCALHOST": "localhost (Locale)",
+        "DOCS_INFO": "Visualizza la documentazione le istruzioni d'uso online se hai bisogno di aiuto durante l'uso.",
+        "PRODUCER_INFO": "Nella pagina di Regia è possibile osservare un elenco con lo stato dei dispositivi tally configurati.",
+        "DOCS_LINK": "Vai alla Documentazione",
+        "PRODUCER_LINK": "Vai alla pagina di Regia",
+        "SETTINGS_INFO": "Qui è possibile configurare sorgenti, dispositivi, clients Tally e molto altro."
+    },
+    "GENERAL": {
+        "SETTINGS": "Impostazioni",
+        "DOCS": "Documentazione",
+        "HOME": "Home",
+        "TALLY_VIEW": "Elenco Tally",
+        "PRODUCER": "Regia",
+        "ABOUT": "Informazioni",
+        "VERSION": "Versione",
+        "BACK": "Torna indietro",
+        "LOGS": "Logs",
+        "USERNAME": "Username",
+        "PASSWORD": "Password",
+        "LOGIN": "Login",
+        "DEVICES": "Dispositivi",
+        "DEVICE": "Dispositivo",
+        "IP": "IP",
+        "FLASH": "Lampeggia",
+        "CHAT": "Chat",
+        "TYPE": "Tipo",
+        "BUSSES": {
+            "PREVIEW_SHORT": "PVW",
+            "PROGRAM_SHORT": "PGM"
+        },
+        "NAME": "Nome",
+        "DESCRIPTION": "Descrizione",
+        "ACTIVE_LISTENERS": "Clients Attivi",
+        "CLIENTS": "Clients"
+    },
+    "DEVICES": {
+        "NO_DEVICES_CONFIGURED": "Nessun dispositivo configurato.",
+        "SELECT_DEVICE": "Seleziona un dispositivo",
+        "NO_DEVICES_AVAILABLE": "Nessun dispositivo è attualmente disponibile per la visione dello stato."
+    },
+    "CHAT": {
+        "TYPE_MESSAGE": "Scrivi un messaggio"
+    },
+    "CLIENTS": {
+        "NO_CLIENTS_CONNECTED": "Nessun client connesso."
+    },
+    "ERRORS": {
+        "UNEXPECTED_ERROR": "C'è stato un errore inaspettato. Per favore, apri una segnalazione alla pagina Github del progetto o contatta uno sviluppatore.",
+        "OPEN_BUG_REPORT": "Apri una segnalazione su Github",
+        "DATE": "Data",
+        "CONFIG_FILE": "File di Configurazione",
+        "STACKTRACE": "Stacktrace",
+        "ERROR_REPORT_NOT_FOUND": "Rapporto di errore non trovato.",
+        "MARK_ALL_AS_READ": "Segna tutti come letti",
+        "NO_ERROR_REPORTS_FOUND": "Evviva! Nessun rapporto di errore rilevato.",
+        "DELETE_ALL_ERROR_REPORTS": "Cancella permanentemente i rapporti di errore dal disco",
+        "SELECT_ERROR_REPORT": "Seleziona un rapporto di errore"
+    },
+    "LOGIN": {
+        "HEADLINE": "Per favore, esegui il login."
+    }
+}
