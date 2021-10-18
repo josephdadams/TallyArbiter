@@ -12,6 +12,8 @@ import bonjour from 'bonjour';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
 import { BehaviorSubject } from 'rxjs';
+import * as Sentry from "@sentry/node";
+import { Integrations } from "@sentry/tracing";
 
 //TypeScript models
 import { TallyInput } from './sources/_Source';
@@ -147,6 +149,19 @@ function startUp() {
 	});
 }
 
+//Sentry Monitoring Setup
+let NODE_ENV;
+if (process.env.NODE_ENV == 'development') {
+	NODE_ENV = 'development'
+} else {
+	NODE_ENV = 'production'
+}
+Sentry.init({
+    dsn: "https://e9b77b121aeb4c29b7bd597b3062430f@o949237.ingest.sentry.io/5898128",
+    tracesSampleRate: 1.0,
+    release: "TallyArbiter@" + process.env.npm_package_version,
+	environment: NODE_ENV
+});
 
 //sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
 function initialSetup() {
@@ -2292,6 +2307,7 @@ function SendMessage(type: string, socketid: string | null, message: string) {
 }
 
 function generateAndSendErrorReport(error: Error) {
+	Sentry.captureException(error);
 	let id = generateErrorReport(error);
 	io.emit("server_error", id);
 }

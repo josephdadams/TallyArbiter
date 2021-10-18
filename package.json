@@ -48,6 +48,8 @@
         "Matteo Gheza <me@matteogheza.it>"
     ],
     "dependencies": {
+        "@sentry/node": "^6.13.3",
+        "@sentry/tracing": "^6.13.3",
         "@types/express": "^4.17.13",
         "atem-connection": "3.0.0-nightly-latest-20210530-132658-16c3cdd.0",
         "axios": "^0.21.1",
@@ -75,7 +77,7 @@
     },
     "main": "main.js",
     "scripts": {
-        "start": "ts-node-dev src/index.ts",
+        "start": "NODE_ENV=development ts-node-dev src/index.ts",
         "prepare": "cd UI && npm i && npm run build",
         "redundancyjs": "redundancyjs",
         "build": "tsc",
