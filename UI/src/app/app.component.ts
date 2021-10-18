@@ -12,8 +12,6 @@ import { DarkModeService } from './_services/darkmode.service';
 export class AppComponent {
   public showMenu = false;
   public hideNavBar = false;
-
-  public style = "icon";
   
   constructor(
     private wakeLockService: WakeLockService,
