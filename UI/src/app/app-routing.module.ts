@@ -8,18 +8,16 @@ import { LoginComponent } from './_components/login/login.component';
 import { ProducerComponent } from './_components/producer/producer.component';
 import { SettingsComponent } from './_components/settings/settings.component';
 import { TallyComponent } from './_components/tally/tally.component';
-import { ProducerGuard } from './_guards/producer.guard';
-import { SettingsGuard } from './_guards/settings.guard';
-import { ErrorsGuard } from './_guards/errors.guard';
+import { AuthorizeGuard } from './_guards/authorize.guard';
 
 const routes: Routes = [
   { path: "home", component: HomeComponent },
   { path: "tally/:deviceId", component: TallyComponent },
   { path: "tally", component: TallyComponent },
-  { path: "producer", component: ProducerComponent, canActivate: [ProducerGuard] },
-  { path: "settings", component: SettingsComponent, canActivate: [SettingsGuard] },
-  { path: "errors/:errorReportId", component: ErrorReportComponent, canActivate: [ErrorsGuard] },
-  { path: "errors", component: ErrorReportsListComponent, canActivate: [ErrorsGuard] },
+  { path: "producer", component: ProducerComponent, canActivate: [AuthorizeGuard] },
+  { path: "settings", component: SettingsComponent, canActivate: [AuthorizeGuard] },
+  { path: "errors/:errorReportId", component: ErrorReportComponent, canActivate: [AuthorizeGuard] },
+  { path: "errors", component: ErrorReportsListComponent, canActivate: [AuthorizeGuard] },
   { path: "about", component: AboutComponent },
   { path: "login/:redirect/:extraParam", component: LoginComponent },
   { path: "login/:redirect", component: LoginComponent },

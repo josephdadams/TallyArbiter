@@ -201,7 +201,7 @@ function initialSetup() {
 				}
 				let access_token = tmpSocketAccessTokens[socket.id];
 				validateAccessToken(access_token).then((user) => {
-					if(user.roles.includes(role)) {
+					if(user.roles.includes(role) || user.roles.includes("admin")) {
 						resolve(user);
 					} else {
 						let error_msg = "Access denied. You are not authorized to do this.";
@@ -215,7 +215,7 @@ function initialSetup() {
 			}); 
 		}
 
-		socket.on('login', (type: "settings" | "producer", username: string, password: string) => {
+		socket.on('login', (username: string, password: string) => {
 			authenticate(username, password).then((result) => {
 				console.log("result", result);
                 socket.emit('login_result', true); //old response, for compatibility with old UI clients
