@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { QrCodeModule } from 'ng-qrcode';
+import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -14,9 +15,9 @@ import { ServiceWorkerModule } from '@angular/service-worker';
 import { environment } from '../environments/environment';
 import { LoginComponent } from './_components/login/login.component';
 import { ChatComponent } from './_components/chat/chat.component';
+import { ThemeSelectorComponent } from './_components/theme-selector/theme-selector.component';
 import { ErrorReportComponent } from './_components/error-report/error-report.component';
 import { ErrorReportsListComponent } from './_components/error-reports-list/error-reports-list.component';
-import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap';
 
 @NgModule({
   declarations: [
@@ -28,6 +29,7 @@ import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap';
     AboutComponent,
     LoginComponent,
     ChatComponent,
+    ThemeSelectorComponent,
     ErrorReportComponent,
     ErrorReportsListComponent
   ],
