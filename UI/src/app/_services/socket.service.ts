@@ -347,4 +347,8 @@ export class SocketService {
       });
     });
   }
+
+  public sendAccessToken(accessToken: string) {
+    this.socket.emit('access_token', accessToken);
+  }
 }

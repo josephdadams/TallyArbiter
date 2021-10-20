@@ -58,7 +58,7 @@ import { VMixEmulator } from './_modules/VMix';
 import { TSLListenerProvider } from './_modules/TSL';
 import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
-import { authenticate } from './_helpers/auth';
+import { authenticate, validateAccessToken } from './_helpers/auth';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
@@ -187,8 +187,33 @@ function initialSetup() {
 
 	logger('Starting socket.IO Setup.', 'info-quiet');
 
+	let tmpSocketAccessTokens: string[] = [];
 	io.sockets.on('connection', (socket) => {
 		const ipAddr = socket.handshake.address;
+
+		const requireRole = (role: string) => {
+			return new Promise((resolve, reject) => {
+				console.log(tmpSocketAccessTokens);
+				if(typeof(tmpSocketAccessTokens[socket.id]) === undefined) {
+					let error_msg = "Access token required. Please login to use this feature.";
+					socket.emit('error', error_msg);
+					reject(error_msg);
+				}
+				let access_token = tmpSocketAccessTokens[socket.id];
+				validateAccessToken(access_token).then((user) => {
+					if(user.roles.includes(role)) {
+						resolve(user);
+					} else {
+						let error_msg = "Access denied. You are not authorized to do this.";
+					    socket.emit('error', error_msg);
+					    reject(error_msg);
+					}
+				}).catch((err) => {
+					socket.emit('error', err.message);
+					reject(err.message);
+				});
+			}); 
+		}
 
 		socket.on('login', (type: "settings" | "producer", username: string, password: string) => {
 			authenticate(username, password).then((result) => {
@@ -222,6 +247,11 @@ function initialSetup() {
 					socket.emit('login_response', { loginOk: false, message: "Too many attemps! Please try "+secondsToHms(retrySecs)+" later.", access_token: "" });
 				});
 			});
+		});
+
+		socket.on('access_token', (access_token: string) => {
+			tmpSocketAccessTokens[socket.id] = access_token;
+			console.log(tmpSocketAccessTokens);
 		});
 
 		socket.on('version', () =>  {
@@ -318,23 +348,27 @@ function initialSetup() {
 		});
 
 		socket.on('settings', () => {
-			socket.join('settings');
-			socket.join('messaging');
-			socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), addresses.value, getOutputTypes(), getOutputTypeDataFields(), currentConfig.bus_options, getSources(), devices, device_sources, device_actions, getDeviceStates(), tslListenerProvider.tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
-			socket.emit('listener_clients', listener_clients);
-			socket.emit('logs', Logs);
-			socket.emit('PortsInUse', PortsInUse.value);
-			socket.emit('tslclients_1secupdate', currentConfig.tsl_clients_1secupdate);
+			requireRole("admin").then((user) => {
+				socket.join('settings');
+				socket.join('messaging');
+				socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), addresses.value, getOutputTypes(), getOutputTypeDataFields(), currentConfig.bus_options, getSources(), devices, device_sources, device_actions, getDeviceStates(), tslListenerProvider.tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
+				socket.emit('listener_clients', listener_clients);
+				socket.emit('logs', Logs);
+				socket.emit('PortsInUse', PortsInUse.value);
+				socket.emit('tslclients_1secupdate', currentConfig.tsl_clients_1secupdate);
+			}).catch((e) => {console.error(e);});
 		});
 
 		socket.on('producer', () => {
-			socket.join('producer');
-			socket.join('messaging');
-			socket.emit('sources', getSources());
-			socket.emit('devices', devices);
-			socket.emit('bus_options', currentConfig.bus_options);
-			socket.emit('listener_clients', listener_clients);
-			socket.emit('device_states', getDeviceStates());
+			requireRole("producer").then((user) => {
+				socket.join('producer');
+				socket.join('messaging');
+				socket.emit('sources', getSources());
+				socket.emit('devices', devices);
+				socket.emit('bus_options', currentConfig.bus_options);
+				socket.emit('listener_clients', listener_clients);
+				socket.emit('device_states', getDeviceStates());
+			}).catch((e) => {console.error(e);});
 		});
 
 		socket.on('companion', () => {
@@ -473,15 +507,17 @@ function initialSetup() {
 		});
 
 		socket.on('listener_delete', (clientId) => { // emitted by the Settings page when an inactive client is being removed manually
-			for (let i = listener_clients.length - 1; i >= 0; i--) {
-				if (listener_clients[i].id === clientId) {
-					logger(`Inactive Client removed: ${listener_clients[i].id}`, 'info');
-					listener_clients.splice(i, 1);
-					break;
+			requireRole("admin").then((user) => {
+				for (let i = listener_clients.length - 1; i >= 0; i--) {
+					if (listener_clients[i].id === clientId) {
+						logger(`Inactive Client removed: ${listener_clients[i].id}`, 'info');
+						listener_clients.splice(i, 1);
+						break;
+					}
 				}
-			}
-			UpdateSockets('listener_clients');
-			UpdateCloud('listener_clients');
+				UpdateSockets('listener_clients');
+				UpdateCloud('listener_clients');
+			}).catch((e) => {console.error(e);});
 		});
 
 		socket.on('cloud_destination_reconnect', (cloudDestinationId) => {
@@ -757,13 +793,17 @@ function initialSetup() {
 		});
 
 		socket.on('testmode', (value: boolean) => {
-			ToggleTestMode(value);
+			requireRole("admin").then((user) => {
+				ToggleTestMode(value);
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('tslclients_1secupdate', (value: boolean) => {
-			currentConfig.tsl_clients_1secupdate = value;
-			SaveConfig();
-			TSLClients_1SecUpdate(value);
+			requireRole("admin").then((user) => {
+				currentConfig.tsl_clients_1secupdate = value;
+				SaveConfig();
+				TSLClients_1SecUpdate(value);
+			}).catch((err) => { console.error(err); });
 		})
 
 		socket.on('messaging', (type: string, message: string) => {
@@ -771,24 +811,34 @@ function initialSetup() {
 		});
 
 		socket.on('get_error_reports', () =>  {
-			socket.emit('error_reports', getErrorReportsList());
+			requireRole("admin").then((user) => {
+				socket.emit('error_reports', getErrorReportsList());
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('get_unread_error_reports', () =>  {
-			socket.emit('unread_error_reports', getUnreadErrorReportsList());
+			requireRole("admin").then((user) => {
+				socket.emit('unread_error_reports', getUnreadErrorReportsList());
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('get_error_report', (errorReportId: string) => {
-			markErrorReportAsRead(errorReportId);
-			socket.emit('error_report', getErrorReport(errorReportId));
+			requireRole("admin").then((user) => {
+				markErrorReportAsRead(errorReportId);
+				socket.emit('error_report', getErrorReport(errorReportId));
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('mark_error_reports_as_read', () => {
-			markErrorReportsAsRead();
+			requireRole("admin").then((user) => {
+				markErrorReportsAsRead();
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('delete_every_error_report', () => {
-			deleteEveryErrorReport();
+			requireRole("admin").then((user) => {
+				deleteEveryErrorReport();
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('disconnect', () =>  { // emitted when any socket.io client disconnects from the server

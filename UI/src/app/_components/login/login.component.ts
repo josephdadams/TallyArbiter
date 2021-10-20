@@ -9,7 +9,7 @@ import { AuthService, LoginResponse } from 'src/app/_services/auth.service';
 })
 export class LoginComponent {
   public loading = false;
-  public loginResponse: LoginResponse = {loginOk: false, message: ''};
+  public loginResponse: LoginResponse = {loginOk: false, message: '', accessToken: ''};
   public username = "";
   public password = "";
   private type!: "producer" | "settings";
