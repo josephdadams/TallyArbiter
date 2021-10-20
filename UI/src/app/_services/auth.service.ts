@@ -4,6 +4,7 @@ import { SocketService } from './socket.service';
 export interface LoginResponse {
   loginOk: boolean;
   message: string;
+  accessToken: string;
 }
 
 @Injectable({
