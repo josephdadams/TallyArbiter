@@ -4,6 +4,7 @@ import { currentConfig } from './config';
 import { clone } from "./clone";
 
 import { AuthenticateSuccessResponse } from '../_models/AuthenticateSuccessResponse';
+import { User } from '../_models/User';
 
 export function authenticate(username: string, password: string): Promise<AuthenticateSuccessResponse> {
     return new Promise<AuthenticateSuccessResponse>((resolve, reject) => {
@@ -28,5 +29,17 @@ export function authenticate(username: string, password: string): Promise<Authen
             }
         });
         if(!userFound) reject(new Error('User not found'));
+    });
+}
+
+export function validateAccessToken(access_token: string): Promise<User> {
+    return new Promise<User>((resolve, reject) => {
+        jwt.verify(access_token, "JWT_PRIVATE_KEY", (err, decoded) => {
+            console.log(decoded);
+            if(err) {
+                reject(err);
+            }
+            resolve(decoded.user);
+        });
     });
 }
