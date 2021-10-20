@@ -33,7 +33,7 @@ export const ConfigDefaults: Config = {
 		{
 			username: "admin",
 			password: "12345",
-                        roles: "producer,settings"
+                        roles: "producer,admin"
 		},
 	],
     cloud_destinations: [],
@@ -111,6 +111,7 @@ export function getConfigRedacted(): Config {
 		username_producer: "producer",
 		password_producer: "12345"
 	};
+        config["users"] = [];
 	config["cloud_destinations"] = [];
 	config["cloud_keys"] = [];
 	config["uuid"] = "uuid";
