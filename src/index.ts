@@ -764,8 +764,10 @@ function initialSetup() {
 		});
 
 		socket.on('manage', (arbiterObj: Manage) => {
-			const response = TallyArbiter_Manage(arbiterObj);
-			io.to('settings').emit('manage_response', response);
+			requireRole("admin").then((user) => {
+				const response = TallyArbiter_Manage(arbiterObj);
+				io.to('settings').emit('manage_response', response);
+		    }).catch((e) => {console.error(e);});
 		});
 
 		socket.on('reconnect_source', (sourceId: string) => {
