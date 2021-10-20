@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { SocketService } from './socket.service';
 import jwt_decode from 'jwt-decode';
 
@@ -12,13 +13,10 @@ export interface LoginResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private _isProducer = false;
-  private _isAdmin = false;
-
   public access_token: string = "";
   public profile: any = undefined;
 
-  constructor(private socketService: SocketService) {
+  constructor(private socketService: SocketService, private router: Router) {
     if(localStorage.getItem("access_token") !== null) {
       this.access_token = localStorage.getItem("access_token") as string;
       this.loadProfile();
@@ -54,25 +52,12 @@ export class AuthService {
     return true;
   }
 
-  public isProducer() {
-    return this._isProducer;
-  }
-  
-  public isAdmin() {
-    return this._isAdmin;
-  }
-
-  public login(type: "producer" | "settings", username: string, password: string) {
+  public login(username: string, password: string) {
     return new Promise<LoginResponse>((resolve) => {
-      this.socketService.socket.emit("login", type, username, password);
+      this.socketService.socket.emit("login", username, password);
       this.socketService.socket.once("login_response", (response: LoginResponse) => {
         if (response.loginOk === true) {
           this.setToken(response.accessToken);
-          if (type == "producer") {
-            this._isProducer = true;
-          } else {
-            this._isAdmin = true;
-          }
         }
         resolve(response);
       })
@@ -81,8 +66,14 @@ export class AuthService {
 
   public logout() {
     this.removeToken();
-    this._isProducer = false;
-    this._isAdmin = false;
     this.profile = undefined;
+    this.router.navigate(["home"]);
+  }
+
+  public requireRole(role: string) {
+    if (this.profile === undefined) return false;
+    if (this.profile.roles.includes("admin")) return true;
+    if (!this.profile.roles.includes(role)) return false;
+    return true;
   }
 }
