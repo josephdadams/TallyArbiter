@@ -111,6 +111,7 @@ export function getConfigRedacted(): Config {
 		username_producer: "producer",
 		password_producer: "12345"
 	};
+        config["users"] = [];
 	config["cloud_destinations"] = [];
 	config["cloud_keys"] = [];
 	config["uuid"] = "uuid";
