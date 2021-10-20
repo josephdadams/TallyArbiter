@@ -1,6 +1,7 @@
 import { BusOption } from "./BusOption";
 import { CloudDestination } from "./CloudDestination";
 import { ConfigSecuritySection } from "./ConfigSecuritySection";
+import { User } from "./User";
 import { ConfigTSLClient } from "./ConfigTSLClient";
 import { Device } from "./Device";
 import { DeviceAction } from "./DeviceAction";
@@ -11,6 +12,7 @@ export interface Config {
     externalAddress: string;
     uuid: string;
     security: ConfigSecuritySection;
+    users: User[];
     sources: Source[];
     devices: Device[];
     device_sources: DeviceSource[];
