@@ -27,11 +27,13 @@ export const ConfigDefaults: Config = {
 	users: [
 		{
 			username: "producer",
-			password: "12345"
+			password: "12345",
+			roles: "producer"
 		},
 		{
 			username: "admin",
-			password: "12345"
+			password: "12345",
+			roles: "admin"
 		},
 	],
     cloud_destinations: [],
