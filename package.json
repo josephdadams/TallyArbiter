@@ -59,6 +59,7 @@
         "find-remove": "^3.1.0",
         "fs-extra": "^10.0.0",
         "jquery": "^3.6.0",
+        "jsonwebtoken": "^8.5.1",
         "jspack": "^0.0.4",
         "obs-websocket-js": "^4.0.2",
         "osc": "^2.4.1",

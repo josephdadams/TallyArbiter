@@ -24,6 +24,16 @@ export const ConfigDefaults: Config = {
         username_settings: 'admin',
         password_settings: '12345',
     },
+	users: [
+		{
+			username: "producer",
+			password: "12345"
+		},
+		{
+			username: "admin",
+			password: "12345"
+		},
+	],
     cloud_destinations: [],
     cloud_keys: [],
     device_actions: [],
@@ -43,6 +53,7 @@ export const ConfigDefaults: Config = {
 }
 
 export let currentConfig: Config = clone(ConfigDefaults);
+export let isConfigLoaded: boolean = false;
 
 export function SaveConfig() {
 	try {
@@ -74,6 +85,7 @@ export function SaveConfig() {
 }
 
 export function readConfig(): void {
+	isConfigLoaded = true;
 	let loadedConfig = JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
     currentConfig = {
         ...clone(ConfigDefaults),

@@ -58,6 +58,7 @@ import { VMixEmulator } from './_modules/VMix';
 import { TSLListenerProvider } from './_modules/TSL';
 import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
+import { authenticate } from './_helpers/auth';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
@@ -174,12 +175,12 @@ function initialSetup() {
 	logger('Main HTTP Server Complete.', 'info-quiet');
 
 	bonjour().publish({
-		name: 'tallyarbiter-'+currentConfig["uuid"],
+		name: 'tallyarbiter-'+(currentConfig["uuid"] || "unknown"),
 		type: 'tally-arbiter',
 		port: 4455,
 		txt: {
 			version: version,
-			uuid: currentConfig["uuid"]
+			uuid: (currentConfig["uuid"] || "unknown")
 		}
 	});
 	logger('TallyArbiter advertised over MDNS.', 'info-quiet');
@@ -190,6 +191,11 @@ function initialSetup() {
 		const ipAddr = socket.handshake.address;
 
 		socket.on('login', (type: "settings" | "producer", username: string, password: string) => {
+			authenticate(username, password).then((result) => {
+				console.log("result", result);
+			}).catch((error) => {
+				console.log("error", error);
+			})
 			if((type === "producer" && username == currentConfig.security.username_producer && password == currentConfig.security.password_producer)
 			|| (type === "settings" && username == currentConfig.security.username_settings && password == currentConfig.security.password_settings)) {
 				//login successfull
