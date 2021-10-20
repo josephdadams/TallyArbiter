@@ -193,16 +193,11 @@ function initialSetup() {
 		socket.on('login', (type: "settings" | "producer", username: string, password: string) => {
 			authenticate(username, password).then((result) => {
 				console.log("result", result);
+                                socket.emit('login_result', true); //old response, for compatibility with old UI clients
+				socket.emit('login_response', { loginOk: true, message: "" });
 			}).catch((error) => {
 				console.log("error", error);
-			})
-			if((type === "producer" && username == currentConfig.security.username_producer && password == currentConfig.security.password_producer)
-			|| (type === "settings" && username == currentConfig.security.username_settings && password == currentConfig.security.password_settings)) {
-				//login successfull
-				socket.emit('login_result', true); //old response, for compatibility with old UI clients
-				socket.emit('login_response', { loginOk: true, message: "" });
-			} else {
-				//wrong credentials
+                                //wrong credentials
 				Promise.all([
 					limiterConsecutiveFailsByUsernameAndIP.consume(ipAddr),
 					limiterSlowBruteByIP.consume(`${username}_${ipAddr}`)
@@ -217,8 +212,8 @@ function initialSetup() {
 					socket.emit('login_response', { loginOk: false, message: message });
 				}).catch((error) => {
 					//rate limits exceeded
-                    socket.emit('login_result', false); //old response, for compatibility with old UI clients
-                    let retrySecs = 1;
+                                        socket.emit('login_result', false); //old response, for compatibility with old UI clients
+                                        let retrySecs = 1;
 					try{
 						retrySecs = Math.round(error.msBeforeNext / 1000) || 1;
 					} catch(e) {
@@ -226,7 +221,7 @@ function initialSetup() {
 					}
 					socket.emit('login_response', { loginOk: false, message: "Too many attemps! Please try "+secondsToHms(retrySecs)+" later." });
 				});
-			}
+			});
 		});
 
 		socket.on('version', () =>  {
