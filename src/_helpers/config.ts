@@ -18,12 +18,9 @@ function getConfigFilePath(): string {
 const config_file = getConfigFilePath();
 
 export const ConfigDefaults: Config = {
-    security: {
-        username_producer: 'producer',
-        password_producer: '12345',
-        username_settings: 'admin',
-        password_settings: '12345',
-    },
+	security: {
+		jwt_private_key: "",
+	},
 	users: [
 		{
 			username: "producer",
@@ -93,8 +90,32 @@ export function readConfig(): void {
         ...clone(ConfigDefaults),
         ...loadedConfig,
     };
+	if(!loadedConfig.users) {
+		logger('Migrating user configs to the new format.', 'info-quiet');
+		currentConfig.users = [];
+		currentConfig.users.push({
+			username: (currentConfig.security.username_producer || "producer"),
+			password: (currentConfig.security.password_producer || "12345"),
+			roles: "producer"
+		});
+		currentConfig.users.push({
+			username: (currentConfig.security.username_settings || "admin"),
+			password: (currentConfig.security.password_settings || "12345"),
+			roles: "admin"
+		});
+		delete currentConfig.security.username_producer;
+		delete currentConfig.security.password_producer;
+		delete currentConfig.security.username_settings;
+		delete currentConfig.security.password_settings;
+		SaveConfig();
+	}
 	if(!loadedConfig.uuid) {
 		logger('Adding an uuid identifier to this server for using MDNS.', 'info-quiet');
+		SaveConfig(); //uuid added if missing on config save
+	}
+	if(!loadedConfig.security.jwt_private_key) {
+		logger('Adding a private key for JWT authentication.', 'info-quiet');
+		currentConfig.security.jwt_private_key = require('crypto').randomBytes(256).toString('base64');
 		SaveConfig(); //uuid added if missing on config save
 	}
 }
@@ -106,14 +127,11 @@ export function getConfigRedacted(): Config {
 	} catch (e) {
 	}
 	config["security"] = {
-		username_settings: "admin",
-		password_settings: "12345",
-		username_producer: "producer",
-		password_producer: "12345"
+		jwt_private_key: ""
 	};
-        config["users"] = [];
+    config["users"] = [];
 	config["cloud_destinations"] = [];
 	config["cloud_keys"] = [];
-	config["uuid"] = "uuid";
+	config["uuid"] = "";
 	return config;
 }

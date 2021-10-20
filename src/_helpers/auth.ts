@@ -18,7 +18,7 @@ export function authenticate(username: string, password: string): Promise<Authen
                     reject(new Error('Password is incorrect'));
                 }
                 delete user["password"];
-                jwt.sign({user}, "JWT_PRIVATE_KEY", { expiresIn: '2 days' }, (err, token) => {
+                jwt.sign({user}, currentConfig.security.jwt_private_key, { expiresIn: '2 days' }, (err, token) => {
                     if(err) { reject(err) }
                     resolve({
                         access_token: token,
@@ -34,7 +34,7 @@ export function authenticate(username: string, password: string): Promise<Authen
 
 export function validateAccessToken(access_token: string): Promise<User> {
     return new Promise<User>((resolve, reject) => {
-        jwt.verify(access_token, "JWT_PRIVATE_KEY", (err, decoded) => {
+        jwt.verify(access_token, currentConfig.security.jwt_private_key, (err, decoded) => {
             console.log(decoded);
             if(err) {
                 reject(err);
