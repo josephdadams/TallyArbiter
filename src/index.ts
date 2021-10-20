@@ -194,7 +194,7 @@ function initialSetup() {
 			authenticate(username, password).then((result) => {
 				console.log("result", result);
                                 socket.emit('login_result', true); //old response, for compatibility with old UI clients
-				socket.emit('login_response', { loginOk: true, message: "" });
+				socket.emit('login_response', { loginOk: true, message: "", accessToken: result.access_token });
 			}).catch((error) => {
 				console.log("error", error);
                                 //wrong credentials
@@ -209,7 +209,7 @@ function initialSetup() {
 						message += " Remaining attemps:"+points;
 					}
 					socket.emit('login_result', false); //old response, for compatibility with old UI clients
-					socket.emit('login_response', { loginOk: false, message: message });
+					socket.emit('login_response', { loginOk: false, message: message, access_token: "" });
 				}).catch((error) => {
 					//rate limits exceeded
                                         socket.emit('login_result', false); //old response, for compatibility with old UI clients
@@ -219,7 +219,7 @@ function initialSetup() {
 					} catch(e) {
 						retrySecs = Math.round(error[0].msBeforeNext / 1000) || 1;
 					}
-					socket.emit('login_response', { loginOk: false, message: "Too many attemps! Please try "+secondsToHms(retrySecs)+" later." });
+					socket.emit('login_response', { loginOk: false, message: "Too many attemps! Please try "+secondsToHms(retrySecs)+" later.", access_token: "" });
 				});
 			});
 		});
