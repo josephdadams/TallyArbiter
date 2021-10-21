@@ -102,3 +102,14 @@ export function getConfigRedacted(): Config {
 	config["uuid"] = "uuid";
 	return config;
 }
+
+export function replaceConfig(config: Config): void {
+	fs.copyFileSync(getConfigFilePath(), getConfigFilePath() + '.bak');
+	currentConfig = config;
+	SaveConfig();
+}
+
+export function rollbackConfig(): void {
+	fs.copyFileSync(getConfigFilePath() + '.bak', getConfigFilePath());
+	readConfig();
+}

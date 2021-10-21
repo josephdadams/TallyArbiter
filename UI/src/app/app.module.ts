@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { QrCodeModule } from 'ng-qrcode';
 import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap';
+import { NgJsonEditorModule } from 'ang-jsoneditor'
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -38,6 +39,7 @@ import { ErrorReportsListComponent } from './_components/error-reports-list/erro
     AppRoutingModule,
     QrCodeModule,
     NgbNavModule,
+    NgJsonEditorModule,
     FormsModule,
     ServiceWorkerModule.register('ngsw-worker.js', {
       enabled: environment.production,
