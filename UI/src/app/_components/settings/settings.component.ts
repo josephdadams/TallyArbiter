@@ -17,6 +17,7 @@ import { SocketService } from 'src/app/_services/socket.service';
 import Swal from 'sweetalert2';
 import { BusOption } from 'src/app/_models/BusOption';
 import { SourceTypeBus } from 'src/app/_models/SourceTypeBus';
+import { JsonEditorComponent, JsonEditorOptions } from 'ang-jsoneditor';
 
 const globalSwalOptions = {
 	confirmButtonColor: "#2a70c7",
@@ -74,6 +75,13 @@ export class SettingsComponent {
 	public currentBusOption: BusOption = {} as BusOption;
 
 	public newCloudKey = "";
+
+	public config = {
+		test: 12345,
+		test2: "test2"
+	};
+
+	public jsonEditorOptions = new JsonEditorOptions();
 
 	constructor(private modalService: NgbModal, public socketService: SocketService, private router: Router) {
 		this.socketService.joinAdmins();
@@ -573,5 +581,9 @@ export class SettingsComponent {
 			e.nativeElement.scrollTop = e.nativeElement.scrollHeight;
 			} catch { }
 		});
+	}
+
+	public configUpdated(event: any) {
+		console.log(event);
 	}
 }

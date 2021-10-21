@@ -287,6 +287,11 @@
                         </table>
                     </div>
                 </div>
+                <hr class="my-5" />
+                <div class="row">
+                    <h2>Raw Config editor</h2>
+                    <json-editor [options]="jsonEditorOptions" [data]="config" (change)="configUpdated($event)"></json-editor>
+                </div>
             </ng-template>
         </ng-container>
         <ng-container ngbNavItem>

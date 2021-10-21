@@ -51,13 +51,14 @@ import { getNetworkInterfaces } from './_helpers/networkInterfaces';
 import { loadClassesFromFolder } from './_helpers/fileLoder';
 import { UsePort } from './_decorators/UsesPort.decorator';
 import { secondsToHms } from './_helpers/time';
-import { currentConfig, getConfigRedacted, readConfig, SaveConfig } from './_helpers/config';
+import { currentConfig, getConfigRedacted, readConfig, SaveConfig, replaceConfig } from './_helpers/config';
 import { deleteEveryErrorReport, generateErrorReport, getErrorReport, getErrorReportsList, getUnreadErrorReportsList, markErrorReportAsRead, markErrorReportsAsRead } from './_helpers/errorReports';
 import { DeviceState } from './_models/DeviceState';
 import { VMixEmulator } from './_modules/VMix';
 import { TSLListenerProvider } from './_modules/TSL';
 import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
+import { Config } from './_models/Config';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
@@ -788,6 +789,16 @@ function initialSetup() {
 
 		socket.on('delete_every_error_report', () => {
 			deleteEveryErrorReport();
+		});
+
+		socket.on('get_config', () => {
+			//TODO: check user roles when #247 get merged
+			socket.emit('config', currentConfig);
+		});
+
+		socket.on('set_config', (config: Config) => {
+			//TODO: check user roles when #247 get merged
+			replaceConfig(config);
 		});
 
 		socket.on('disconnect', () =>  { // emitted when any socket.io client disconnects from the server
