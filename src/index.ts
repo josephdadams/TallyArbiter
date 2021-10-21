@@ -813,9 +813,7 @@ function initialSetup() {
 		});
 
 		socket.on('get_error_reports', () =>  {
-			requireRole("admin").then((user) => {
-				socket.emit('error_reports', getErrorReportsList());
-			}).catch((err) => { console.error(err); });
+			socket.emit('error_reports', getErrorReportsList());
 		});
 
 		socket.on('get_unread_error_reports', () =>  {
