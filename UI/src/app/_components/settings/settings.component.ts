@@ -17,6 +17,8 @@ import { SocketService } from 'src/app/_services/socket.service';
 import Swal from 'sweetalert2';
 import { BusOption } from 'src/app/_models/BusOption';
 import { SourceTypeBus } from 'src/app/_models/SourceTypeBus';
+import { User } from 'src/app/_models/User';
+import { AuthService } from 'src/app/_services/auth.service';
 
 const globalSwalOptions = {
 	confirmButtonColor: "#2a70c7",
@@ -73,9 +75,18 @@ export class SettingsComponent {
 	public currentBusOptionSelectedTypeIdx?: number;
 	public currentBusOption: BusOption = {} as BusOption;
 
+	// edit User
+	public editingUser = false;
+	public currentUser: User = {} as User;
+
 	public newCloudKey = "";
 
-	constructor(private modalService: NgbModal, public socketService: SocketService, private router: Router) {
+	constructor(
+		private modalService: NgbModal,
+		public socketService: SocketService,
+		private router: Router,
+		public authService: AuthService
+	) {
 		this.socketService.joinAdmins();
 		this.socketService.closeModals.subscribe(() => this.modalService.dismissAll());
 		this.socketService.scrollTallyDataSubject.subscribe(() => this.scrollToBottom(this.tallyDataContainer));
@@ -97,6 +108,7 @@ export class SettingsComponent {
 			}
 		});
 		this.socketService.socket.emit('get_unread_error_reports');
+		this.socketService.socket.emit('users');
 	}
 
 	@Confirmable("There was an unexpected error. Do you want to view the bug report?", false)
@@ -327,6 +339,35 @@ export class SettingsComponent {
 		this.socketService.socket.emit('manage', arbiterObj);
 	}
 
+	public deleteUserButton(user: User) {
+		if(this.authService.profile.username === user.username) {
+			this.deleteUserAndLogout(user);
+		} else {
+			this.deleteUser(user);
+		}
+	}
+
+	@Confirmable("Are you sure you want to delete this user?")
+	public deleteUser(user: User) {
+		const arbiterObj = {
+			action: 'delete',
+			type: 'user',
+			user: user,
+		};
+		this.socketService.socket.emit('manage', arbiterObj);
+	}
+
+	@Confirmable("You are logged in using this user. Are you sure you want to delete it? You'll be disconnected from this account and redirected to the login page.")
+	public deleteUserAndLogout(user: User) {
+		const arbiterObj = {
+			action: 'delete',
+			type: 'user',
+			user: user,
+		};
+		this.socketService.socket.emit('manage', arbiterObj);
+		this.authService.logout(["login", "settings"]);
+	}
+
 	public getOptionFields(sourceType: SourceType) {
 		return this.socketService.sourceTypeDataFields.find((s) => s.sourceTypeId == sourceType.id)?.fields || [];
 	}
@@ -483,6 +524,18 @@ export class SettingsComponent {
 		this.socketService.socket.emit('manage', arbiterObj);
 	}
 
+	public saveCurrentUser() {
+		const userObj = {
+			...this.currentUser,
+		} as any;
+		const arbiterObj = {
+			action: this.editingUser ? 'edit' : 'add',
+			type: 'user',
+			user: userObj,
+		};
+		this.socketService.socket.emit('manage', arbiterObj);
+	}
+
 	public getBusById(busId: string) {
 		return this.socketService.busOptions.find(({id}) => id === busId);
 	}
@@ -512,6 +565,12 @@ export class SettingsComponent {
 		this.editingCloudDestination = false;
 		this.currentCloudDestination = { } as CloudDestination;
 		this.modalService.open(modal);
+	}
+
+	public addUser(userModal: any) {
+		this.editingUser = false;
+		this.currentUser = { } as User;
+		this.modalService.open(userModal);
 	}
 
 	public getOutputTypeById(outputTypeId: string) {
@@ -556,6 +615,13 @@ export class SettingsComponent {
 		this.currentBusOption = {
 			...bus,
 		} as BusOption;
+		this.modalService.open(modal);
+	}
+
+	public editUser(user: User, modal: any) {
+		console.log(user, modal);
+		this.editingUser = true;
+		this.currentUser = user;
 		this.modalService.open(modal);
 	}
 

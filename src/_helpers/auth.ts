@@ -43,3 +43,50 @@ export function validateAccessToken(access_token: string): Promise<User> {
         });
     });
 }
+
+export function getUsersList(removePassword = false): User[] {
+    let users = clone(currentConfig.users);
+    if(removePassword) {
+        users.forEach((user) => {
+            delete user["password"];
+        });
+    }
+    return users;
+}
+
+export function addUser(user: User) {
+    let userFound = false;
+    currentConfig.users.forEach((user_original) => {
+        if(user.username === user_original.username) {
+            userFound = true;
+            return false;
+        }
+    });
+    if(!userFound) {
+        currentConfig.users.push(user);
+        return true;
+    }
+}
+
+export function editUser(user: User) {
+    let userFound = false;
+    currentConfig.users.forEach((user_original, index) => {
+        if(user.username === user_original.username) {
+            userFound = true;
+            currentConfig.users[index] = user;
+        }
+    });
+    return userFound;
+}
+
+export function deleteUser(user: User) {
+    let userFound = false;
+    currentConfig.users.forEach((user_original, index) => {
+        if(user_original.username === user.username) {
+            userFound = true;
+            currentConfig.users.splice(index, 1);
+            return true;
+        }
+    });
+    return userFound;
+}
