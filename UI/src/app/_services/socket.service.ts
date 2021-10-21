@@ -301,6 +301,12 @@ export class SocketService {
     this.socket.on('users', (users: User[]) => {
       this.users = users;
     });
+    this.socket.on('error', (message: string) => {
+      console.error(message);
+      if(message.includes("Access") || message.includes("JWT") || message.includes("jwt")) {
+        alert(message);
+      }
+    });
 
     this.socket.emit('version');
     this.socket.emit('externalAddress');
