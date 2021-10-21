@@ -58,7 +58,7 @@ import { VMixEmulator } from './_modules/VMix';
 import { TSLListenerProvider } from './_modules/TSL';
 import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
-import { authenticate, validateAccessToken } from './_helpers/auth';
+import { authenticate, validateAccessToken, getUsersList, addUser, editUser, deleteUser } from './_helpers/auth';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
@@ -843,6 +843,12 @@ function initialSetup() {
 			}).catch((err) => { console.error(err); });
 		});
 
+		socket.on('users', () => {
+			requireRole("admin").then((user) => {
+				socket.emit('users', getUsersList());
+			}).catch((err) => { console.error(err); });
+		});
+
 		socket.on('disconnect', () =>  { // emitted when any socket.io client disconnects from the server
 			DeactivateListenerClient(socket.id);
 			CheckCloudClients(socket.id);
@@ -1350,6 +1356,17 @@ function TallyArbiter_Manage(obj: Manage): ManageResponse {
 		case 'cloud_client':
 			if (obj.action === 'remove') {
 				result = TallyArbiter_Remove_Cloud_Client(obj);
+			}
+			break;
+		case 'user':
+			if (obj.action === 'add') {
+				result = TallyArbiter_Add_User(obj);
+			}
+			else if (obj.action === 'edit') {
+				result = TallyArbiter_Edit_User(obj);
+			}
+			else if (obj.action === 'delete') {
+				result = TallyArbiter_Delete_User(obj);
 			}
 			break;
 		default:
@@ -2015,6 +2032,33 @@ function TallyArbiter_Remove_Cloud_Client(obj: Manage): ManageResponse {
 		return {result: 'cloud-client-removed-successfully'};
 	} else {
 		return {result: 'cloud-client-not-removed', error: 'Cloud client not found.' };
+	}
+}
+
+function TallyArbiter_Add_User(obj: Manage): ManageResponse {
+	if(addUser(obj.user)) {
+		logger(`User Added: ${obj.user.username}`, 'info');
+		return {result: 'user-added-successfully'};
+	} else {
+		return {result: 'error', error: 'User already exists.' };
+	}
+}
+
+function TallyArbiter_Edit_User(obj: Manage): ManageResponse {
+	if(editUser(obj.user)) {
+		logger(`User Edited: ${obj.user.username}`, 'info');
+		return {result: 'user-edited-successfully'};
+	} else {
+		return {result: 'error', error: 'User not found.' };
+	}
+}
+
+function TallyArbiter_Delete_User(obj: Manage): ManageResponse {
+	if(deleteUser(obj.user)) {
+		logger(`User Deleted: ${obj.user.username}`, 'info');
+		return {result: 'user-deleted-successfully'};
+	} else {
+		return {result: 'error', error: 'User not found.' };
 	}
 }
 

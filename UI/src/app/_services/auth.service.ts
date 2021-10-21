@@ -64,10 +64,13 @@ export class AuthService {
     })
   }
 
-  public logout() {
+  public logout(routerDestination: string[] | null = null) {
     this.removeToken();
     this.profile = undefined;
-    this.router.navigate(["home"]);
+    if(routerDestination === null) {
+      routerDestination = ["home"];
+    }
+    this.router.navigate(routerDestination);
   }
 
   public requireRole(role: string) {

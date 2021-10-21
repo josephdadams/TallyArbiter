@@ -290,6 +290,48 @@
             </ng-template>
         </ng-container>
         <ng-container ngbNavItem>
+            <a ngbNavLink>Users</a>
+            <ng-template ngbNavContent>
+                <div class="row">
+                    <h2>
+                        Users
+                        <button class="btn btn-outline-success me-2" (click)="addUser(userModal)">
+                            <i class="fas fa-plus"></i> Add 
+                        </button>
+                    </h2>
+                    <div>
+                        <span class="text-muted mt-3 d-block" *ngIf="socketService.users.length == 0">No user found. This should not happen... Please, open a bug report on Github.</span>
+                        <table class="table table-hover" *ngIf="socketService.users.length > 0">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Roles</th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let user of socketService.users">
+                                    <td>{{user.username}}</td>
+                                    <td>{{user.roles}}</td>
+                                    <td>
+                                        <button class="btn btn-outline-dark" (click)="editUser(user, userModal)">
+                                            <i class="fas fa-pen"></i> Edit
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-outline-danger" (click)="deleteUserButton(user)">
+                                            <i class="fas fa-trash"></i> Delete <i class="fas fa-exclamation-triangle" *ngIf="authService.profile.username === user.username"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </ng-template>
+        </ng-container>
+        <ng-container ngbNavItem>
             <a ngbNavLink>Logs</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -762,6 +804,34 @@
         <div class="d-flex justify-content-end">
             <button class="btn btn-outline-dark" (click)="saveCurrentBusOption()">
           <i class="fas fa-save"></i> {{ editingBusOption ? "Save Changes" : "Add Bus Option" }}
+        </button>
+        </div>
+    </div>
+</ng-template>
+
+<ng-template #userModal let-modal>
+    <div class="modal-header">
+        <h4 class="modal-title" id="modal-basic-title">
+            {{ editingUser ? "Edit" : "Add" }} User
+        </h4>
+        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+        <div class="mb-3">
+            <label for="userUsername" class="form-label">Username</label>
+            <input type="text" class="form-control" id="userUsername" [disabled]="editingUser" [(ngModel)]="currentUser.username" />
+        </div>
+        <div class="mb-3">
+            <label for="userRoles" class="form-label">Roles</label>
+            <input type="text" class="form-control" id="userRoles" [(ngModel)]="currentUser.roles" />
+        </div>
+        <div class="mb-3">
+            <label for="userPassword" class="form-label">Password</label>
+            <input type="text" class="form-control" id="userPassword" [(ngModel)]="currentUser.password" />
+        </div>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-outline-dark" (click)="saveCurrentUser()">
+            <i class="fas fa-save"></i> {{ editingUser ? "Save Changes" : "Add User" }}
         </button>
         </div>
     </div>

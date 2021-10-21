@@ -24,6 +24,7 @@ import { ErrorReportsListElement } from '../_models/ErrorReportsListElement';
 import { DeviceTallyData } from "../_models/TallyData";
 import { Addresses } from '../_models/Addresses';
 import { DeviceState } from '../_models/DeviceState';
+import { User } from '../_models/User';
 
 @Injectable({
   providedIn: 'root'
@@ -61,6 +62,7 @@ export class SocketService {
   public portsInUse: Port[] = [];
   public messages: Message[] = [];
   public errorReports: ErrorReportsListElement[] = [] as ErrorReportsListElement[];
+  public users: User[] = [];
 
   public dataLoaded = new Promise<void>((resolve) => this._resolveDataLoadedPromise = resolve);
   private _resolveDataLoadedPromise!: () => void;
@@ -270,6 +272,12 @@ export class SocketService {
           alert(response.error);
           this.closeModals.next();
           break;
+        case 'user-added-successfully':
+        case 'user-edited-successfully':
+        case 'user-deleted-successfully':
+          this.closeModals.next();
+          this.socket.emit('users');
+          break;
         case 'error':
           alert('Unexpected Error Occurred: ' + response.error);
           break;
@@ -290,11 +298,14 @@ export class SocketService {
     this.socket.on('error_reports', (errorReports: ErrorReportsListElement[]) => {
       this.errorReports = errorReports;
     });
-    this.socket.emit('get_error_reports');
-    
+    this.socket.on('users', (users: User[]) => {
+      this.users = users;
+    });
+
     this.socket.emit('version');
     this.socket.emit('externalAddress');
     this.socket.emit('interfaces');
+    this.socket.emit('get_error_reports');
   }
 
   private prepareSources(sources: Source[]): Source[] {
