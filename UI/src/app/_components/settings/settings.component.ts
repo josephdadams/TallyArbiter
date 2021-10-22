@@ -18,6 +18,7 @@ import Swal from 'sweetalert2';
 import { BusOption } from 'src/app/_models/BusOption';
 import { SourceTypeBus } from 'src/app/_models/SourceTypeBus';
 import { JsonEditorComponent, JsonEditorOptions } from 'ang-jsoneditor';
+import { default as configSchema } from '../../../../../src/_helpers/configSchema'
 
 const globalSwalOptions = {
 	confirmButtonColor: "#2a70c7",
@@ -76,12 +77,15 @@ export class SettingsComponent {
 
 	public newCloudKey = "";
 
-	public config = {
-		test: 12345,
-		test2: "test2"
-	};
-
+	public configLoaded = false;
+	public config = {};
+	public updatedConfig = {};
+	public updatedConfigValid = true;
+	public updatedRawConfig = "";
+	@ViewChild('configEditor', { static: false }) configEditor!: JsonEditorComponent;
 	public jsonEditorOptions = new JsonEditorOptions();
+
+	public activeNavTab = "sources_devices";
 
 	constructor(private modalService: NgbModal, public socketService: SocketService, private router: Router) {
 		this.socketService.joinAdmins();
@@ -104,7 +108,22 @@ export class SettingsComponent {
 			this.show_errors_list();
 			}
 		});
+		this.socketService.socket.on('config', (config) => {
+			this.config = config;
+			this.updatedConfig = config;
+			this.updatedRawConfig = JSON.stringify(config, null, 2);
+			this.configLoaded = true;
+		});
 		this.socketService.socket.emit('get_unread_error_reports');
+		this.socketService.socket.emit('get_config');
+		this.jsonEditorOptions.schema = configSchema;
+	}
+
+	public navChanged() {
+		console.log("nav changed", this.activeNavTab);
+		if(this.activeNavTab === "config") {
+			this.socketService.socket.emit('get_config');
+		}
 	}
 
 	@Confirmable("There was an unexpected error. Do you want to view the bug report?", false)
@@ -584,6 +603,28 @@ export class SettingsComponent {
 	}
 
 	public configUpdated(event: any) {
-		console.log(event);
+		console.log(event, this.configEditor);
+		this.updatedConfig = event;
+		this.updatedRawConfig = JSON.stringify(event, null, 2);
+
+		const editorJson = this.configEditor.getEditor();
+		console.log(editorJson);
+		editorJson.validate();
+		const errors = editorJson.validateSchema.errors;
+		if (errors && errors.length > 0) {
+			this.updatedConfigValid = false;
+		} else {
+			this.updatedConfigValid = true;
+		}
+	}
+
+	public saveConfig() {
+		console.log(this.updatedConfig);
+		this.socketService.socket.emit('set_config', this.updatedConfig);
+	}
+
+	public saveRawConfig() {
+		console.log(this.updatedRawConfig);
+		this.socketService.socket.emit('set_config', JSON.parse(this.updatedRawConfig));
 	}
 }

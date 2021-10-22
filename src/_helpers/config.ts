@@ -74,7 +74,7 @@ export function SaveConfig() {
 }
 
 export function readConfig(): void {
-	let loadedConfig = JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
+	let loadedConfig = JSON.parse(fs.readFileSync(config_file).toString());
     currentConfig = {
         ...clone(ConfigDefaults),
         ...loadedConfig,
@@ -88,7 +88,7 @@ export function readConfig(): void {
 export function getConfigRedacted(): Config {
 	let config: Config = {} as Config;
 	try {
-		config = JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
+		config = JSON.parse(fs.readFileSync(config_file).toString());
 	} catch (e) {
 	}
 	config["security"] = {
@@ -104,12 +104,13 @@ export function getConfigRedacted(): Config {
 }
 
 export function replaceConfig(config: Config): void {
-	fs.copyFileSync(getConfigFilePath(), getConfigFilePath() + '.bak');
+	logger('Replacing configuration.', 'info-quiet');
+	fs.copyFileSync(config_file, config_file + '.bak');
 	currentConfig = config;
 	SaveConfig();
 }
 
 export function rollbackConfig(): void {
-	fs.copyFileSync(getConfigFilePath() + '.bak', getConfigFilePath());
+	fs.copyFileSync(config_file + '.bak', config_file);
 	readConfig();
 }
