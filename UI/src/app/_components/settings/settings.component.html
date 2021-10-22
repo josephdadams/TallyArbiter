@@ -1,5 +1,5 @@
 <div class="container pt-4" *ngIf="socketService.initialDataLoaded">
-    <nav ngbNav #nav="ngbNav" class="nav-tabs" [animation]="false" (navChange)="navChanged()" [(activeId)]="activeNavTab">
+    <nav ngbNav #nav="ngbNav" class="nav-tabs" [animation]="false" (navChange)="navChanged($event)" [(activeId)]="activeNavTab">
         <ng-container ngbNavItem="sources_devices">
             <a ngbNavLink>Sources & Devices</a>
             <ng-template ngbNavContent>
