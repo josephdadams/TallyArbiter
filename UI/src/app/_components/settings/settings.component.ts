@@ -87,7 +87,11 @@ export class SettingsComponent {
 
 	public activeNavTab = "sources_devices";
 
-	constructor(private modalService: NgbModal, public socketService: SocketService, private router: Router) {
+	constructor(
+		private modalService: NgbModal,
+		public socketService: SocketService,
+		private router: Router
+	) {
 		this.socketService.joinAdmins();
 		this.socketService.closeModals.subscribe(() => this.modalService.dismissAll());
 		this.socketService.scrollTallyDataSubject.subscribe(() => this.scrollToBottom(this.tallyDataContainer));
@@ -620,11 +624,45 @@ export class SettingsComponent {
 
 	public saveConfig() {
 		console.log(this.updatedConfig);
-		this.socketService.socket.emit('set_config', this.updatedConfig);
+		this.config = this.updatedConfig;
+		this.socketService.socket.emit('set_config', this.config);
 	}
 
 	public saveRawConfig() {
 		console.log(this.updatedRawConfig);
-		this.socketService.socket.emit('set_config', JSON.parse(this.updatedRawConfig));
+		this.config = JSON.parse(this.updatedRawConfig);
+		this.socketService.socket.emit('set_config', this.config);
+	}
+
+	public exportConfig() {
+		const blob = new Blob([JSON.stringify(this.config, null, 2)], { type: 'application/json' });
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = 'config.json';
+		a.click();
+	}
+
+	public importConfig() {
+		try {
+			const input = document.createElement('input');
+			input.type = 'file';
+			input.onchange = (e) => {
+				const reader = new FileReader();
+				reader.onload = (e) => {
+					if(e?.target?.result) {
+						let result = e?.target?.result as string;
+						console.log('file contents:', result);
+						this.config = JSON.parse(result);
+						this.updatedConfig = this.config;
+						this.updatedRawConfig = JSON.stringify(this.config, null, 2);
+						this.socketService.socket.emit('set_config', this.config);
+					}
+				}
+				reader.readAsText((input.files as FileList)[0]);
+			};
+			input.click();
+		} catch (e) {
+		}
 	}
 }

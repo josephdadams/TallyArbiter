@@ -293,6 +293,14 @@
                 <div *ngIf="configLoaded">
                     <hr class="my-5" />
                     <div class="row">
+                        <h2>Config tools</h2>
+                        <div class="btn-group" role="group" aria-label="Basic example">
+                            <button type="button" class="btn btn-outline-primary" style="font-size: 1.2em" (click)="importConfig()"><i class="fas fa-upload"></i> Import</button>
+                            <button type="button" class="btn btn-outline-primary" style="font-size: 1.2em" (click)="exportConfig()"><i class="fas fa-download"></i> Export</button>
+                        </div>
+                    </div>
+                    <hr class="my-5" />
+                    <div class="row">
                         <h2>Config editor</h2>
                         <json-editor [options]="jsonEditorOptions" [data]="config" (change)="configUpdated($event)" #configEditor></json-editor>
                         <div style="display: flex; justify-content: flex-end;">
