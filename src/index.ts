@@ -5,6 +5,7 @@ import fs from 'fs-extra';
 import findPackageJson from "find-package-json";
 import path from 'path';
 import express from 'express';
+import compression from 'compression';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import bodyParser from 'body-parser';
 import http from 'http';
@@ -155,6 +156,7 @@ function initialSetup() {
 
 	app.disable('x-powered-by');
 	app.use(bodyParser.json({ type: 'application/json' }));
+	app.use(compression());
 
 	//about the author, this program, etc.
 	app.get('/', (req, res) => {
