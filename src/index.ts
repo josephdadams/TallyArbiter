@@ -851,7 +851,7 @@ function getSources(): Source[] {
 
 function TSLClients_1SecUpdate(value) {
 	if (tsl_clients_interval !== null) {
-		clearInterval(this.tsl_clients_interval);
+		clearInterval(tsl_clients_interval);
 	}
 
 	logger(`TSL Clients 1 Second Updates are turned ${(value ? 'on' : 'off')}.`, 'info');

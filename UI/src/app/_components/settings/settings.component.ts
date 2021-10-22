@@ -119,9 +119,9 @@ export class SettingsComponent {
 		this.jsonEditorOptions.schema = configSchema;
 	}
 
-	public navChanged() {
-		console.log("nav changed", this.activeNavTab);
-		if(this.activeNavTab === "config") {
+	public navChanged(event: any) {
+		console.log("nav changed", event);
+		if(event.nextId === "config") {
 			this.socketService.socket.emit('get_config');
 		}
 	}
