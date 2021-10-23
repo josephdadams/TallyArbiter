@@ -39,6 +39,7 @@ export class SocketService {
   public vmixClients: VmixClient[] = [];
   public sources: Source[] = [];
   public busOptions: BusOption[] = [];
+  public remoteErrorOpt: boolean = true;
   public initialDataLoaded = false;
   public version?: string;
   public externalAddress?: string;
@@ -290,6 +291,10 @@ export class SocketService {
     this.socket.on('error_reports', (errorReports: ErrorReportsListElement[]) => {
       this.errorReports = errorReports;
     });
+    this.socket.on('remote_error_opt', (optStatus: boolean) => {
+      this.remoteErrorOpt = optStatus;
+    });
+
     this.socket.emit('get_error_reports');
     
     this.socket.emit('version');
@@ -322,6 +327,10 @@ export class SocketService {
 
   public flashListener(listener: any) {
     this.socket.emit('flash', listener.id);
+  }
+  public remoteErrorOptStatus() {
+    this.socket.emit('get_remote_error_opt')
+    return this.remoteErrorOpt;
   }
 
   private getBusById(busId: string) {

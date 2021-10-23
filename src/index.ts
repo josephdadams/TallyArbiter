@@ -150,18 +150,20 @@ function startUp() {
 }
 
 //Sentry Monitoring Setup
-let NODE_ENV;
-if (process.env.NODE_ENV == 'development') {
-	NODE_ENV = 'development'
-} else {
-	NODE_ENV = 'production'
+if (currentConfig.remoteErrorReporting == true) {
+	let NODE_ENV;
+	if (process.env.NODE_ENV == 'development') {
+		NODE_ENV = 'development'
+	} else {
+		NODE_ENV = 'production'
+	}
+	Sentry.init({
+		dsn: "https://e9b77b121aeb4c29b7bd597b3062430f@o949237.ingest.sentry.io/5898128",
+		tracesSampleRate: 1.0,
+		release: "TallyArbiter@" + process.env.npm_package_version,
+		environment: NODE_ENV
+	});
 }
-Sentry.init({
-    dsn: "https://e9b77b121aeb4c29b7bd597b3062430f@o949237.ingest.sentry.io/5898128",
-    tracesSampleRate: 1.0,
-    release: "TallyArbiter@" + process.env.npm_package_version,
-	environment: NODE_ENV
-});
 
 //sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
 function initialSetup() {
@@ -245,6 +247,10 @@ function initialSetup() {
 		socket.on('externalAddress', () => {
 			socket.emit('externalAddress', currentConfig.externalAddress);
 		});
+
+		socket.on('get_remote_error_opt', () => {
+			socket.emit('remote_error_opt', currentConfig.remoteErrorReporting);
+		})
 
 		socket.on('interfaces', () =>  {
 			socket.emit('interfaces', getNetworkInterfaces());
@@ -809,6 +815,11 @@ function initialSetup() {
 			DeactivateListenerClient(socket.id);
 			CheckCloudClients(socket.id);
 		});
+
+		socket.on('remote_error_opt', (optStatus: boolean) => {
+			currentConfig.remoteErrorReporting = optStatus;
+			SaveConfig();
+		})
 	});
 
 	logger('Socket.IO Setup Complete.', 'info-quiet');
