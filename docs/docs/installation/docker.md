@@ -7,7 +7,7 @@ sidebar_position: 2
 If you have Docker installed, you can install TallyArbiter using our official Docker image [`TallyArbiter`](https://hub.docker.com/r/josephdadams/tallyarbiter).
 You can pull the image from DockerHub using the following command:
 ```bash
-docker pull tallyarbiter:latest
+docker pull josephdadams/tallyarbiter:latest
 ```
 
 Then, start it by typing `docker run -p 4455:4455 -v $(pwd)/config.json:/app/config.json --restart unless-stopped tallyarbiter`.
