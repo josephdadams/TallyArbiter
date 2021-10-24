@@ -10,9 +10,9 @@ You can pull the image from DockerHub using the following command:
 docker pull josephdadams/tallyarbiter:latest
 ```
 
-Then, start it by typing `docker run -p 4455:4455 -v $(pwd)/config.json:/app/config.json --restart unless-stopped tallyarbiter`.
-If you are using traditional Windows CMD, you can use `docker run -p 4455:4455 -v %CD%\config.json:/app/config.json --restart unless-stopped tallyarbiter`.
-If you are using Powershell, you can use `docker run -p 4455:4455 -v $pwd\config.json:/app/config.json --restart unless-stopped tallyarbiter`.
+Then, start it by typing `docker run -p 4455:4455 -v $(pwd)/config.json:/app/config.json --restart unless-stopped josephdadams/tallyarbiter`.
+If you are using traditional Windows CMD, you can use `docker run -p 4455:4455 -v %CD%\config.json:/app/config.json --restart unless-stopped josephdadams/tallyarbiter`.
+If you are using Powershell, you can use `docker run -p 4455:4455 -v $pwd\config.json:/app/config.json --restart unless-stopped josephdadams/tallyarbiter`.
 If you prefer using docker-compose, you can use this configuration:
 ```yaml
 version: '3.3'
@@ -23,7 +23,7 @@ services:
         volumes:
             - './config.json:/app/config.json'
         restart: unless-stopped
-        image: tallyarbiter
+        image: josephdadams/tallyarbiter
 ```
 
 **Be sure to back up or save your [config file](../usage/control-interface.md#configuration)!**
