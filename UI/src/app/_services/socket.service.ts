@@ -328,10 +328,6 @@ export class SocketService {
   public flashListener(listener: any) {
     this.socket.emit('flash', listener.id);
   }
-  public remoteErrorOptStatus() {
-    this.socket.emit('get_remote_error_opt')
-    return this.remoteErrorOpt;
-  }
 
   private getBusById(busId: string) {
     //gets the bus type (preview/program) by the bus id
