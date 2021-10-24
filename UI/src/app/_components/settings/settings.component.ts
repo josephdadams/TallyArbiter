@@ -23,9 +23,11 @@ const globalSwalOptions = {
 	confirmButtonColor: "#2a70c7",
 };
 
+const remoteErrorText: string = 'Remote error reporting helps us keep Tally Arbiter running smoothly.';
+
 const optOutAlertOptions: SweetAlertOptions = {
 	title: 'Are you sure?',
-	text: 'Remote error reporting helps us keep Tally Arbiter running smoothly.',
+	text: remoteErrorText,
 	showCancelButton: true,
 	confirmButtonColor: "#2a70c7",
 	icon: 'question',
@@ -34,7 +36,7 @@ const optOutAlertOptions: SweetAlertOptions = {
 
 const optInAlertOptions: SweetAlertOptions = {
 	title: 'Thank you!',
-	text: 'Remote error reporting helps us keep Tally Arbiter running smoothly.',
+	text: remoteErrorText,
 	showCancelButton: false,
 	confirmButtonColor: "#2a70c7",
 	icon: 'success',
@@ -128,12 +130,12 @@ export class SettingsComponent {
 	this.router.navigate(['/errors']);
 	}
 
-	@Confirmable('Remote error reporting helps us keep Tally Arbiter running smoothly.', false, optOutAlertOptions)
+	@Confirmable(remoteErrorText, false, optOutAlertOptions)
 	public optOutErrorReporting() {
 		this.socketService.socket.emit('remote_error_opt', false);
 	}
 
-	@Confirmable('Remote error reporting helps us keep Tally Arbiter running smoothly.', false, optInAlertOptions)
+	@Confirmable(remoteErrorText, false, optInAlertOptions)
 	public optInErrorReporting() {
 		this.socketService.socket.emit('remote_error_opt', true);
 	}

@@ -248,9 +248,9 @@ function initialSetup() {
 			socket.emit('externalAddress', currentConfig.externalAddress);
 		});
 
-		socket.on('get_remote_error_opt', () => {
-			socket.emit('remote_error_opt', currentConfig.remoteErrorReporting);
-		})
+		/*socket.on('get_remote_error_opt', () => {
+			socket.emit('get_', currentConfig.remoteErrorReporting);
+		})*/
 
 		socket.on('interfaces', () =>  {
 			socket.emit('interfaces', getNetworkInterfaces());
@@ -819,6 +819,7 @@ function initialSetup() {
 		socket.on('remote_error_opt', (optStatus: boolean) => {
 			currentConfig.remoteErrorReporting = optStatus;
 			SaveConfig();
+			socket.emit('remote_error_opt', currentConfig.remoteErrorReporting);
 		})
 	});
 
