@@ -822,8 +822,15 @@
             <input type="text" class="form-control" id="userUsername" [disabled]="editingUser" [(ngModel)]="currentUser.username" />
         </div>
         <div class="mb-3">
-            <label for="userRoles" class="form-label">Roles</label>
-            <input type="text" class="form-control" id="userRoles" [(ngModel)]="currentUser.roles" />
+            <label for="userRoles" class="form-label">Role</label>
+            <select id="userRoles" class="form-select" [ngModel]="currentUser.roles">
+                <option value="producer">
+                    Producer
+                </option>
+                <option value="admin">
+                  Admin
+                </option>
+            </select>
         </div>
         <div class="mb-3">
             <label for="userPassword" class="form-label">Password</label>
