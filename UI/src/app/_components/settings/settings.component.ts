@@ -622,12 +622,14 @@ export class SettingsComponent {
 		}
 	}
 
+	@Confirmable("Are you sure you want to update your config? Be careful and continue only if you are absolutely sure.")
 	public saveConfig() {
 		console.log(this.updatedConfig);
 		this.config = this.updatedConfig;
 		this.socketService.socket.emit('set_config', this.config);
 	}
 
+	@Confirmable("Are you sure you want to update your config? Be careful and continue only if you are absolutely sure.")
 	public saveRawConfig() {
 		console.log(this.updatedRawConfig);
 		this.config = JSON.parse(this.updatedRawConfig);
