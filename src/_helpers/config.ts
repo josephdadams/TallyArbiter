@@ -19,7 +19,7 @@ const config_file = getConfigFilePath();
 
 export const ConfigDefaults: Config = {
 	security: {
-		jwt_private_key: "",
+		jwt_private_key: "REPLACE_THIS",
 	},
 	users: [
 		{
