@@ -1,7 +1,5 @@
 // This is the electron startup script
 const { app, BrowserWindow, Tray, Menu, dialog, ipcMain } = require('electron');
-const Sentry = require("@sentry/node");
-const Tracing = require("@sentry/tracing");
 const { autoUpdater } = require("electron-updater");
 const { nativeImage } = require('electron/common');
 const path = require("path");
