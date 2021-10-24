@@ -626,6 +626,9 @@ export class SettingsComponent {
 	public saveConfig() {
 		console.log(this.updatedConfig);
 		this.config = this.updatedConfig;
+		this.socketService.socket.once("error", (message: string) => {
+			alert(message);
+		});
 		this.socketService.socket.emit('set_config', this.config);
 	}
 
@@ -633,6 +636,9 @@ export class SettingsComponent {
 	public saveRawConfig() {
 		console.log(this.updatedRawConfig);
 		this.config = JSON.parse(this.updatedRawConfig);
+		this.socketService.socket.once("error", (message: string) => {
+			alert(message);
+		});
 		this.socketService.socket.emit('set_config', this.config);
 	}
 

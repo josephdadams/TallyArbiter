@@ -49,6 +49,7 @@
     ],
     "dependencies": {
         "@types/express": "^4.17.13",
+        "ajv": "^6.12.6",
         "atem-connection": "3.0.0-nightly-latest-20210530-132658-16c3cdd.0",
         "axios": "^0.21.1",
         "bonjour": "^3.5.0",

@@ -53,6 +53,7 @@ import { loadClassesFromFolder } from './_helpers/fileLoder';
 import { UsePort } from './_decorators/UsesPort.decorator';
 import { secondsToHms } from './_helpers/time';
 import { currentConfig, getConfigRedacted, readConfig, SaveConfig, replaceConfig } from './_helpers/config';
+import { validateConfig } from './_helpers/configValidator';
 import { deleteEveryErrorReport, generateErrorReport, getErrorReport, getErrorReportsList, getUnreadErrorReportsList, markErrorReportAsRead, markErrorReportsAsRead } from './_helpers/errorReports';
 import { DeviceState } from './_models/DeviceState';
 import { VMixEmulator } from './_modules/VMix';
@@ -800,7 +801,11 @@ function initialSetup() {
 
 		socket.on('set_config', (config: Config) => {
 			//TODO: check user roles when #247 get merged
-			replaceConfig(config);
+			validateConfig(config).then((config) => {
+				replaceConfig(config);
+			}).catch((error) => {
+				socket.emit('error', "Config is not valid");
+			});
 		});
 
 		socket.on('disconnect', () =>  { // emitted when any socket.io client disconnects from the server
