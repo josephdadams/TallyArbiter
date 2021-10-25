@@ -151,18 +151,16 @@ function startUp() {
 
 //Sentry Monitoring Setup
 if (currentConfig.remoteErrorReporting == true) {
-	let NODE_ENV;
 	if (process.env.NODE_ENV == 'development') {
-		NODE_ENV = 'development'
+		
 	} else {
-		NODE_ENV = 'production'
+		Sentry.init({
+			dsn: process.env.SENTRY_DSN,
+			tracesSampleRate: 1.0,
+			release: "TallyArbiter@" + process.env.npm_package_version,
+			environment: 'production'
+		});
 	}
-	Sentry.init({
-		dsn: "https://e9b77b121aeb4c29b7bd597b3062430f@o949237.ingest.sentry.io/5898128",
-		tracesSampleRate: 1.0,
-		release: "TallyArbiter@" + process.env.npm_package_version,
-		environment: NODE_ENV
-	});
 }
 
 //sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
