@@ -19,7 +19,7 @@ const config_file = getConfigFilePath();
 
 export const ConfigDefaults: Config = {
 	security: {
-		jwt_private_key: "REPLACE_THIS",
+		jwt_private_key: require('crypto').randomBytes(256).toString('base64'),
 	},
 	users: [
 		{
@@ -115,7 +115,6 @@ export function readConfig(): void {
 	}
 	if(!loadedConfig.security.jwt_private_key) {
 		logger('Adding a private key for JWT authentication.', 'info-quiet');
-		currentConfig.security.jwt_private_key = require('crypto').randomBytes(256).toString('base64');
 		SaveConfig(); //uuid added if missing on config save
 	}
 }
