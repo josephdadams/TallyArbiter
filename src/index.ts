@@ -12,8 +12,8 @@ import bonjour from 'bonjour';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
 import { BehaviorSubject } from 'rxjs';
-import * as Sentry from "@sentry/node";
-import { Integrations } from "@sentry/tracing";
+import { default as dotenv } from 'dotenv';
+dotenv.config();
 
 //TypeScript models
 import { TallyInput } from './sources/_Source';
@@ -62,6 +62,9 @@ import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
+const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
+
+if(devmode) logger('TallyArbiter running in Development Mode.', 'info');
 
 //Rate limiter configurations
 const maxWrongAttemptsByIPperDay = 100;
@@ -91,6 +94,9 @@ var uiDistPath = path.join(__dirname, 'ui-dist');
 if (!fs.existsSync(uiDistPath)) {
     uiDistPath = path.join(__dirname, '..', 'ui-dist');
 }
+
+//Imported Sentry lib (imported only if prod and enabled from config)
+var Sentry: any = undefined;
 
 const listenPort: number = parseInt(process.env.PORT) || 4455;
 const app = express();
@@ -150,17 +156,20 @@ function startUp() {
 }
 
 //Sentry Monitoring Setup
-if (currentConfig.remoteErrorReporting == true) {
-	if (process.env.NODE_ENV == 'development') {
-		
-	} else {
+if (
+	process.env.SENTRY_ENABLED &&
+	!devmode &&
+	currentConfig.remoteErrorReporting == true
+) {
+	import("@sentry/node").then((ImportedSentry) => {
+		Sentry = ImportedSentry;
 		Sentry.init({
 			dsn: process.env.SENTRY_DSN,
 			tracesSampleRate: 1.0,
 			release: "TallyArbiter@" + process.env.npm_package_version,
 			environment: 'production'
 		});
-	}
+	});
 }
 
 //sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
@@ -1058,7 +1067,7 @@ export function logger(log, type: "info-quiet" | "info" | "error" | "console_act
 	logObj.log = log;
 	logObj.type = type;
 	Logs.push(logObj);
-	io.to('settings').emit('log_item', logObj);
+	if(typeof(io) !== "undefined") io.to('settings').emit('log_item', logObj);
 }
 
 function writeTallyDataFile(log) {
@@ -2317,7 +2326,7 @@ function SendMessage(type: string, socketid: string | null, message: string) {
 }
 
 function generateAndSendErrorReport(error: Error) {
-	Sentry.captureException(error);
+	if(Sentry !== undefined) Sentry.captureException(error);
 	let id = generateErrorReport(error);
 	io.emit("server_error", id);
 }
