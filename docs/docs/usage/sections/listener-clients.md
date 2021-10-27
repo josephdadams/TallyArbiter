@@ -21,6 +21,9 @@ Navigate to `/producer` on the Tally Arbiter server in your browser to view all 
 ## Using an M5StickC for tally output
 Tally Arbiter can send tally data to an M5StickC Arduino Finger Computer. A remote script is available in the separate repository, [Tally Arbiter M5StickC Listener](http://github.com/josephdadams/tallyarbiter-m5stickclistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-M5StickCListener/blob/master/readme.md).
 
+## Using an ESP32 board with NeoPixel LEDs
+You can use Tally Arbiter with generic ESP32 boards as well with this separate script: [Tally Arbiter ESP32 Listener](https://github.com/LukasSchulz/TallyArbiter-ESP32Listener-NeoPixel). For installation and instructions, please check out that repository's [readme](https://github.com/LukasSchulz/TallyArbiter-ESP32Listener-NeoPixel/blob/master/readme.md).
+
 ## Using an M5 Atom Matrix for tally output
 Tally Arbiter can send tally data to an M5 Atom Matrix. A remote script is available in the separate repository, [Tally Arbiter M5 Atom Matrix Listener](http://github.com/josephdadams/tallyarbiter-m5atommatrixlistener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter-M5AtomMatrixListener/blob/master/readme.md).
 
@@ -43,4 +46,7 @@ Use AdaFruit NeoPixel LED strips connected to an Arduino. Check out [NoahCallawa
 Use TTGO_T Display devices with Tally Arbiter using [peterfdej](http://github.com/peterfdej)'s repository: https://github.com/peterfdej/TallyArbiter-TTGO_T
 
 ## VMix Tally Emulation
-Tally Arbiter will also emulate a VMix server, which means you can use any compatible VMix tally client to view tally as well, such as the [VMix M5Stick Tally Light](https://github.com/guido-visser/vMix-M5Stick-Tally-Light) project by Guido Visser. Follow the instructions on that repository to set up your M5Stick device, and specify Tally Arbiter as your VMix server!
+Tally Arbiter will also emulate a VMix server, which means you can use any compatible VMix tally client to view tally as well, such as the [VMix M5Stick Tally Light](https://github.com/guido-visser/vMix-M5Stick-Tally-Light) project by Guido Visser. Follow the instructions on that repository to set up your M5Stick device, and specify Tally Arbiter as your VMix server.
+
+## Tally over NDI
+Tally Arbiter can send out TSL 3.1 data via the `TSL 3.1 Clients` section. Paired with the [TSL NDI tally](https://github.com/iliessens/TSL-NDI-tally) software by [iliessens](https://github.com/iliessens), you can send live tally data to your NDI devices.
