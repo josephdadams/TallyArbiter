@@ -45,11 +45,13 @@ String DeviceId = "unassigned";
 String DeviceName = "unassigned";
 String ListenerType = "m5";
 
-/*
+#define TALLY_EXTRA_OUTPUT false
+
+#if TALLY_EXTRA_OUTPUT
 const int led_program = 10;
 const int led_preview = 26; //OPTIONAL Led for preview on pin G26
 const int led_aux = 36;     //OPTIONAL Led for aux on pin G36
-*/
+#endif
 
 String prevType = ""; // reduce display flicker by storing previous state
 
@@ -268,7 +270,7 @@ void evaluateMode() {
       drawNumber(number[camNumber], currColor);
     }
 
-    /*
+    #if TALLY_EXTRA_OUTPUT
     if (actualType == "preview") {
       digitalWrite(led_program, HIGH);
       digitalWrite (led_preview, LOW);
@@ -286,7 +288,7 @@ void evaluateMode() {
       digitalWrite (led_preview, LOW);
       digitalWrite (led_aux, LOW);
     }
-    */
+    #endif
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
     Serial.print(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));
   }
@@ -700,7 +702,16 @@ void setup() {
     });
 
   ArduinoOTA.begin();
-  
+
+  #if TALLY_EXTRA_OUTPUT
+  // Enable interal led for program trigger
+  pinMode(led_program, OUTPUT);
+  digitalWrite(led_program, HIGH);
+  pinMode(led_preview, OUTPUT);
+  digitalWrite(led_preview, HIGH);
+  pinMode(led_aux, OUTPUT);
+  digitalWrite(led_aux, HIGH);
+  #endif  
   connectToServer();
   delay (100);
 }

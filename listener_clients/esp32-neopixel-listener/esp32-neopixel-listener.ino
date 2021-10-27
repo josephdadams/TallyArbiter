@@ -1,36 +1,39 @@
-#define C_PLUS 1 //CHANGE TO 1 IF YOU USE THE M5STICK-C PLUS
-
-#if C_PLUS == 1
-#include <M5StickCPlus.h>
-#else
-#include <M5StickC.h>
-#endif
-
 #include <WebSocketsClient.h>
 #include <SocketIOclient.h>
 #include <Arduino_JSON.h>
-#include <PinButton.h>
+#include <Adafruit_NeoPixel.h>
 #include <WiFiManager.h>
 #include <ArduinoOTA.h>
 #include <ESPmDNS.h>
 #include <Preferences.h>
-#include "Free_Fonts.h"
 
 
-#define TRIGGER_PIN 0 //reset pin 
-#define GREY  0x0020 //   8  8  8
-#define GREEN 0x0200 //   0 64  0
-#define RED   0xF800 // 255  0  0
-#define maxTextSize 5 //larger sourceName text
-
-
-String listenerDeviceName = "m5StickC-1";
+String listenerDeviceName = "neoPixel-1";
 
 /* USER CONFIG VARIABLES
  *  Change the following variables before compiling and sending the code to your device.
  */
+#define LED_PIN     5
+#define BRIGHTNESS 50 // Set BRIGHTNESS to about 1/5 (max = 255)
+#define LED_COUNT  2
+// Declare our NeoPixel strip object:
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_RGB + NEO_KHZ800);
+// Argument 1 = Number of pixels in NeoPixel strip
+// Argument 2 = Arduino pin number (most are valid)
+// Argument 3 = Pixel type flags, add together as needed:
+//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
+//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
+//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
+//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
+//   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 
-bool LAST_MSG = false; // true = show log on tally screen<
+#define TALLY_EXTRA_OUTPUT false
+
+#if TALLY_EXTRA_OUTPUT
+const int led_program = 10;
+const int led_preview = 26; //OPTIONAL Led for preview on pin G26
+const int led_aux = 36;     //OPTIONAL Led for aux on pin G36
+#endif
 
 //Tally Arbiter Server
 char tallyarbiter_host[40] = "192.168.1.2"; //IP address of the Tally Arbiter Server
@@ -38,15 +41,7 @@ char tallyarbiter_port[6] = "4455";
 
 /* END OF USER CONFIG */
 
-//M5StickC variables
-PinButton btnM5(37); //the "M5" button on the device
-PinButton btnAction(39); //the "Action" button on the device
 Preferences preferences;
-uint8_t wasPressed();
-
-const int led_program = 10;
-const int led_preview = 26; //OPTIONAL Led for preview on pin G26
-const int led_aux = 36;     //OPTIONAL Led for aux on pin G36
 
 String prevType = ""; // reduce display flicker by storing previous state
 
@@ -61,40 +56,33 @@ JSONVar Devices;
 JSONVar DeviceStates;
 String DeviceId = "unassigned";
 String DeviceName = "Unassigned";
-String LastMessage = "";
 
 //General Variables
 bool networkConnected = false;
-int currentScreen = 0; //0 = Tally Screen, 1 = Settings Screen
-int currentBrightness = 11; //12 is Max level
+
+#define WHITE strip.Color(255, 255, 255)
+#define BLACK strip.Color(0, 0, 0)
 
 WiFiManager wm; // global wm instance
 WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 
 void setup() {
-  pinMode(TRIGGER_PIN, INPUT_PULLUP);
-  pinMode (led_preview, OUTPUT);
   Serial.begin(115200);
   while (!Serial);
 
-  // Initialize the M5StickC object
-  logger("Initializing M5StickC+.", "info-quiet");
+  // Initialize the ESP32 object
+  logger("Initializing ESP32.", "info-quiet");
 
   setCpuFrequencyMhz(80);    //Save battery by turning down the CPU clock
   btStop();                 //Save battery by turning off BlueTooth
 
   uint64_t chipid = ESP.getEfuseMac();
-  listenerDeviceName = "m5StickC-" + String((uint16_t)(chipid>>32)) + String((uint32_t)chipid);
+  listenerDeviceName = "neoPixel-" + String((uint16_t)(chipid>>32)) + String((uint32_t)chipid);
 
-  M5.begin();
-  M5.Lcd.setRotation(3);
-  M5.Lcd.setCursor(0, 20);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  M5.Lcd.setFreeFont(FSS9);
-  //M5.Lcd.setTextSize(2);
-  M5.Lcd.setTextColor(WHITE, BLACK);
-  M5.Lcd.println("booting...");
-  logger("Tally Arbiter M5StickC+ Listener Client booting.", "info");
+  strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
+  strip.show();            // Turn OFF all pixels ASAP
+  strip.setBrightness(BRIGHTNESS);
+  setColor(strip.Color(0, 0, 255));
   logger("Listener device name: " + listenerDeviceName, "info");
 
   preferences.begin("tally-arbiter", false);
@@ -125,7 +113,6 @@ void setup() {
 
   delay(100); //wait 100ms before moving on
   connectToNetwork(); //starts Wifi connection
-  M5.Lcd.println("SSID: " + String(WiFi.SSID()));
   while (!networkConnected) {
     delay(200);
   }
@@ -160,77 +147,27 @@ void setup() {
 
   ArduinoOTA.begin();
 
+  #if TALLY_EXTRA_OUTPUT
   // Enable interal led for program trigger
   pinMode(led_program, OUTPUT);
   digitalWrite(led_program, HIGH);
+  pinMode(led_preview, OUTPUT);
+  digitalWrite(led_preview, HIGH);
+  pinMode(led_aux, OUTPUT);
+  digitalWrite(led_aux, HIGH);
+  #endif
   connectToServer();
 
 }
 
 void loop() {
-  checkReset(); //check for reset pin
   ArduinoOTA.handle();
   socket.loop();
-  btnM5.update();
-  btnAction.update();
-
-  if (btnM5.isClick()) {
-    switch (currentScreen) {
-      case 0:
-        showSettings();
-        currentScreen = 1;
-        break;
-      case 1:
-        showDeviceInfo();
-        currentScreen = 0;
-        break;
-    }
-  }
-
-  if (btnAction.isClick()) {
-    updateBrightness();
-  }
-}
-
-void showSettings() {
-  //displays the current network connection and Tally Arbiter server data
-  M5.Lcd.setCursor(0, 20);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  M5.Lcd.setFreeFont(FSS9);
-  //M5.Lcd.setTextSize(1);
-  M5.Lcd.setTextColor(WHITE, BLACK);
-  M5.Lcd.println("SSID: " + String(WiFi.SSID()));
-  M5.Lcd.println(WiFi.localIP());
-
-  M5.Lcd.println("Tally Arbiter Server:");
-  M5.Lcd.println(String(tallyarbiter_host) + ":" + String(tallyarbiter_port));
-  M5.Lcd.println();
-  M5.Lcd.print("Battery: ");
-  int batteryLevel = floor(100.0 * (((M5.Axp.GetVbatData() * 1.1 / 1000) - 3.0) / (4.07 - 3.0)));
-  batteryLevel = batteryLevel > 100 ? 100 : batteryLevel;
-  if(batteryLevel >= 100){
-    M5.Lcd.println("Charging...");   // show when M5 is plugged in
-  } else {
-    M5.Lcd.println(String(batteryLevel) + "%");
-  }
 }
 
 void showDeviceInfo() {
-  M5.Lcd.setTextColor(GREY, BLACK);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  M5.Lcd.println(DeviceName);
-
   //displays the currently assigned device and tally data
   evaluateMode();
-}
-
-void updateBrightness() {
-  if(currentBrightness >= 12) {
-    currentBrightness = 7;
-  } else {
-    currentBrightness++;
-  }
-  M5.Axp.ScreenBreath(currentBrightness);
 }
 
 void logger(String strLog, String strType) {
@@ -238,7 +175,6 @@ void logger(String strLog, String strType) {
   /*
   if (strType == "info") {
     Serial.println(strLog);
-    //M5.Lcd.println(strLog);
   } else {
     Serial.println(strLog);
   }
@@ -403,13 +339,11 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
       if (type == "bus_options") BusOptions = JSON.parse(content);
       if (type == "reassign") socket_Reassign(content);
       if (type == "flash") socket_Flash();
-      if (type == "messaging") socket_Messaging(content);
 
       if (type == "deviceId") {
         DeviceId = content.substring(1, content.length()-1);
         SetDeviceName();
         showDeviceInfo();
-        currentScreen = 0;
       }
 
       if (type == "devices") {
@@ -436,27 +370,28 @@ void socket_Connected(const char * payload, size_t length) {
 }
 
 void socket_Flash() {
-  //flash the screen white 3 times
-  M5.Lcd.fillScreen(WHITE);
+  //flash the pixel array white 3 times
+  strip.setBrightness(255);
+  setColor(WHITE);
   delay(500);
-  M5.Lcd.fillScreen(TFT_BLACK);
+  setColor(BLACK);
   delay(500);
-  M5.Lcd.fillScreen(WHITE);
+  setColor(WHITE);
   delay(500);
-  M5.Lcd.fillScreen(TFT_BLACK);
+  setColor(BLACK);
   delay(500);
-  M5.Lcd.fillScreen(WHITE);
+  setColor(WHITE);
   delay(500);
-  M5.Lcd.fillScreen(TFT_BLACK);
+  setColor(BLACK);
+  strip.setBrightness(BRIGHTNESS);
 
-  //then resume normal operation
-  switch (currentScreen) {
-    case 0:
-      showDeviceInfo();
-      break;
-    case 1:
-      showSettings();
-      break;
+  showDeviceInfo();
+}
+
+void setColor(uint32_t color) {
+  for(int i=0; i<strip.numPixels(); i++) { // For each pixel in strip...
+    strip.setPixelColor(i, color);         //  Set pixel's color (in RAM)
+    strip.show();                          //  Update strip to match
   }
 }
 
@@ -482,31 +417,19 @@ void socket_Reassign(String payload) {
   strcpy(charReassignObj, reassignObj.c_str());
   ws_emit("listener_reassign_object", charReassignObj);
   ws_emit("devices");
-  M5.Lcd.fillScreen(WHITE);
+  setColor(WHITE);
   delay(200);
-  M5.Lcd.fillScreen(TFT_BLACK);
+  setColor(BLACK);
   delay(200);
-  M5.Lcd.fillScreen(WHITE);
+  setColor(WHITE);
   delay(200);
-  M5.Lcd.fillScreen(TFT_BLACK);
+  setColor(BLACK);
   logger("newDeviceId: " + newDeviceId, "info-quiet");
   DeviceId = newDeviceId;
   preferences.begin("tally-arbiter", false);
   preferences.putString("deviceid", newDeviceId);
   preferences.end();
   SetDeviceName();
-}
-
-void socket_Messaging(String payload) {
-  String strPayload = String(payload);
-  int typeQuoteIndex = strPayload.indexOf(',');
-  String messageType = strPayload.substring(0, typeQuoteIndex);
-  messageType.replace("\"", "");
-  int messageQuoteIndex = strPayload.lastIndexOf(',');
-  String message = strPayload.substring(messageQuoteIndex + 1);
-  message.replace("\"", "");
-  LastMessage = messageType + ": " + message;
-  evaluateMode();
 }
 
 void processTallyData() {
@@ -570,9 +493,6 @@ void SetDeviceName() {
 
 void evaluateMode() {
   if(actualType != prevType) {
-    M5.Lcd.setCursor(4, 82);
-    M5.Lcd.setFreeFont(FSS24);
-    //M5.Lcd.setTextSize(maxTextSize);
     actualColor.replace("#", "");
     String hexstring = actualColor;
     long number = (long) strtol( &hexstring[1], NULL, 16);
@@ -580,15 +500,12 @@ void evaluateMode() {
     int g = number >> 8 & 0xFF;
     int b = number & 0xFF;
     if (actualType != "") {
-      M5.Lcd.setTextColor(BLACK);
-      M5.Lcd.fillScreen(M5.Lcd.color565(r, g, b));
-      M5.Lcd.println(DeviceName);
+      setColor(strip.Color(r, g, b));
     } else {
-      M5.Lcd.setTextColor(GREY, BLACK);
-      M5.Lcd.fillScreen(TFT_BLACK);
-      M5.Lcd.println(DeviceName);
+      setColor(BLACK);
     }
     
+    #if TALLY_EXTRA_OUTPUT
     if (actualType == "preview") {
       digitalWrite(led_program, HIGH);
       digitalWrite (led_preview, LOW);
@@ -606,52 +523,9 @@ void evaluateMode() {
       digitalWrite (led_preview, LOW);
       digitalWrite (led_aux, LOW);
     }
+    #endif
+
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
     Serial.print(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));
-  }
-  
-  if (LAST_MSG == true){
-    M5.Lcd.println(LastMessage);
-  }
-}
-
-void checkReset() {
-  // check for button press
-  if ( digitalRead(TRIGGER_PIN) == LOW ) {
-
-    // poor mans debounce/press-hold, code not ideal for production
-    delay(50);
-    if ( digitalRead(TRIGGER_PIN) == LOW ) {
-      M5.Lcd.setCursor(0, 40);
-      M5.Lcd.fillScreen(TFT_BLACK);
-      M5.Lcd.setFreeFont(FSS9);
-      //M5.Lcd.setTextSize(1);
-      M5.Lcd.setTextColor(WHITE, BLACK);
-      M5.Lcd.println("Reset button pushed....");
-      logger("Button Pressed", "info");
-      // still holding button for 3000 ms, reset settings, code not ideal for production
-      delay(3000); // reset delay hold
-      if ( digitalRead(TRIGGER_PIN) == LOW ) {
-        M5.Lcd.println("Erasing....");
-        logger("Button Held", "info");
-        logger("Erasing Config, restarting", "info");
-        wm.resetSettings();
-        ESP.restart();
-      }
-
-      M5.Lcd.println("Starting Portal...");
-      // start portal w delay
-      logger("Starting config portal", "info");
-      wm.setConfigPortalTimeout(120);
-
-      if (!wm.startConfigPortal(listenerDeviceName.c_str())) {
-        logger("failed to connect or hit timeout", "error");
-        delay(3000);
-        // ESP.restart();
-      } else {
-        //if you get here you have connected to the WiFi
-        logger("connected...yeey :)", "info");
-      }
-    }
   }
 }
