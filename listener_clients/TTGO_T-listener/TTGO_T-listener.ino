@@ -1,48 +1,52 @@
-#define C_PLUS 1 //CHANGE TO 1 IF YOU USE THE M5STICK-C PLUS
+/*
+#########################################################################################
+include libs:
+Websockets
+Arduino_JSON
+TFT_eSPI
+MultiButton
 
-#if C_PLUS == 1
-#include <M5StickCPlus.h>
-#else
-#include <M5StickC.h>
-#endif
-
+Modify User_Setup_Select.h in libraryY TFT_eSPI
+  //#include <User_Setup.h>
+  #include <User_Setups/Setup25_TTGO_T_Display.h>
+#########################################################################################
+*/
+#include <WiFi.h>
 #include <WebSocketsClient.h>
 #include <SocketIOclient.h>
 #include <Arduino_JSON.h>
 #include <PinButton.h>
+#include <TFT_eSPI.h>
+#include <SPI.h>
+#include <Arduino.h>
 #include <WiFiManager.h>
 #include <ArduinoOTA.h>
 #include <ESPmDNS.h>
 #include <Preferences.h>
-#include "Free_Fonts.h"
+#include "esp_adc_cal.h"
+#include "TallyArbiterLogo.h"
 
+#define ADC_EN  14  //ADC_EN is the ADC detection enable port
+#define ADC_PIN 34
 
-#define TRIGGER_PIN 0 //reset pin 
-#define GREY  0x0020 //   8  8  8
-#define GREEN 0x0200 //   0 64  0
-#define RED   0xF800 // 255  0  0
-#define maxTextSize 5 //larger sourceName text
-
-
-String listenerDeviceName = "m5StickC-1";
-
-/* USER CONFIG VARIABLES
- *  Change the following variables before compiling and sending the code to your device.
- */
-
-bool LAST_MSG = false; // true = show log on tally screen<
+float battery_voltage;
+String voltage;
+int vref = 1100;
+int batteryLevel = 100;
+int barLevel = 0;
+int LevelColor = TFT_WHITE;
+bool backlight = true;
+PinButton btntop(35); //top button, switch screen. hold button while booting: setupmode
+PinButton btnbottom(0); //bottom button, screen on/off
+Preferences preferences;
 
 //Tally Arbiter Server
 char tallyarbiter_host[40] = "192.168.1.2"; //IP address of the Tally Arbiter Server
 char tallyarbiter_port[6] = "4455";
 
-/* END OF USER CONFIG */
+TFT_eSPI tft = TFT_eSPI();  // Invoke library, pins defined in User_Setup.h
 
-//M5StickC variables
-PinButton btnM5(37); //the "M5" button on the device
-PinButton btnAction(39); //the "Action" button on the device
-Preferences preferences;
-uint8_t wasPressed();
+bool LAST_MSG = true; // true = show messages on tally screen
 
 #define TALLY_EXTRA_OUTPUT false
 
@@ -52,12 +56,6 @@ const int led_preview = 26; //OPTIONAL Led for preview on pin G26
 const int led_aux = 36;     //OPTIONAL Led for aux on pin G36
 #endif
 
-String prevType = ""; // reduce display flicker by storing previous state
-
-String actualType = "";
-String actualColor = "";
-int actualPriority = 0;
-
 //Tally Arbiter variables
 SocketIOclient socket;
 JSONVar BusOptions;
@@ -66,192 +64,106 @@ JSONVar DeviceStates;
 String DeviceId = "unassigned";
 String DeviceName = "Unassigned";
 String LastMessage = "";
+String listenerDeviceName = "TTGO_T-1";
+
+String prevType = ""; // reduce display flicker by storing previous state
+
+String actualType = "";
+String actualColor = "";
+int actualPriority = 0;
 
 //General Variables
 bool networkConnected = false;
-int currentScreen = 0; //0 = Tally Screen, 1 = Settings Screen
-int currentBrightness = 11; //12 is Max level
+int currentScreen = 0;        //0 = Tally Screen, 1 = Settings Screen
 
-WiFiManager wm; // global wm instance
-WiFiManagerParameter custom_field; // global param ( for non blocking w params )
-
-void setup() {
-  pinMode(TRIGGER_PIN, INPUT_PULLUP);
-  Serial.begin(115200);
-  while (!Serial);
-
-  // Initialize the M5StickC object
-  logger("Initializing M5StickC+.", "info-quiet");
-
-  setCpuFrequencyMhz(80);    //Save battery by turning down the CPU clock
-  btStop();                 //Save battery by turning off BlueTooth
-
-  uint64_t chipid = ESP.getEfuseMac();
-  listenerDeviceName = "m5StickC-" + String((uint16_t)(chipid>>32)) + String((uint32_t)chipid);
-
-  M5.begin();
-  M5.Lcd.setRotation(3);
-  M5.Lcd.setCursor(0, 20);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  M5.Lcd.setFreeFont(FSS9);
-  //M5.Lcd.setTextSize(2);
-  M5.Lcd.setTextColor(WHITE, BLACK);
-  M5.Lcd.println("booting...");
-  logger("Tally Arbiter M5StickC+ Listener Client booting.", "info");
-  logger("Listener device name: " + listenerDeviceName, "info");
-
-  preferences.begin("tally-arbiter", false);
-
-  // added to clear out corrupt prefs
-  //preferences.clear();
-  logger("Reading preferences", "info-quiet");
-  if(preferences.getString("deviceid").length() > 0){
-    DeviceId = preferences.getString("deviceid");
-  }
-  if(preferences.getString("devicename").length() > 0){
-    DeviceName = preferences.getString("devicename");
-  }
-  if(preferences.getString("taHost").length() > 0){
-    String newHost = preferences.getString("taHost");
-    logger("Setting TallyArbiter host as" + newHost, "info-quiet");
-    char chr_newHost[40];
-    newHost.toCharArray(tallyarbiter_host, 40);
-  }
-  if(preferences.getString("taPort").length() > 0){
-    String newPort = preferences.getString("taPort");
-    logger("Setting TallyArbiter port as" + newPort, "info-quiet");
-    char chr_newPort[6];
-    newPort.toCharArray(tallyarbiter_port, 6);
-  }
- 
-  preferences.end();
-
-  delay(100); //wait 100ms before moving on
-  connectToNetwork(); //starts Wifi connection
-  M5.Lcd.println("SSID: " + String(WiFi.SSID()));
-  while (!networkConnected) {
-    delay(200);
-  }
-
-  ArduinoOTA.setHostname(listenerDeviceName.c_str());
-  ArduinoOTA.setPassword("tallyarbiter");
-  ArduinoOTA
-    .onStart([]() {
-      String type;
-      if (ArduinoOTA.getCommand() == U_FLASH)
-        type = "sketch";
-      else // U_SPIFFS
-        type = "filesystem";
-
-      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      Serial.println("Start updating " + type);
-    })
-    .onEnd([]() {
-      Serial.println("\nEnd");
-    })
-    .onProgress([](unsigned int progress, unsigned int total) {
-      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    })
-    .onError([](ota_error_t error) {
-      Serial.printf("Error[%u]: ", error);
-      if (error == OTA_AUTH_ERROR) logger("Auth Failed", "error");
-      else if (error == OTA_BEGIN_ERROR) logger("Begin Failed", "error");
-      else if (error == OTA_CONNECT_ERROR) logger("Connect Failed", "error");
-      else if (error == OTA_RECEIVE_ERROR) logger("Receive Failed", "error");
-      else if (error == OTA_END_ERROR) logger("End Failed", "error");
-    });
-
-  ArduinoOTA.begin();
-
-  #if TALLY_EXTRA_OUTPUT
-  // Enable interal led for program trigger
-  pinMode(led_program, OUTPUT);
-  digitalWrite(led_program, HIGH);
-  pinMode(led_preview, OUTPUT);
-  digitalWrite(led_preview, HIGH);
-  pinMode(led_aux, OUTPUT);
-  digitalWrite(led_aux, HIGH);
-  #endif
-  connectToServer();
-
+void espDelay(int ms) {
+  esp_sleep_enable_timer_wakeup(ms * 1000);
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+  esp_light_sleep_start();
 }
 
-void loop() {
-  checkReset(); //check for reset pin
-  ArduinoOTA.handle();
-  socket.loop();
-  btnM5.update();
-  btnAction.update();
-
-  if (btnM5.isClick()) {
-    switch (currentScreen) {
-      case 0:
-        showSettings();
-        currentScreen = 1;
-        break;
-      case 1:
-        showDeviceInfo();
-        currentScreen = 0;
-        break;
+void showVoltage() {
+    static uint64_t timeStamp = 0;
+    if (millis() - timeStamp > 5000) {
+        timeStamp = millis();
+        uint16_t v = analogRead(ADC_PIN);
+        battery_voltage = ((float)v / 4095.0) * 2.0 * 3.3 * (vref / 1000.0);
+        voltage = "Voltage :" + String(battery_voltage) + "V";
+        batteryLevel = floor(100.0 * (((battery_voltage * 1.1) - 3.0) / (4.07 - 3.0))); //100%=3.7V, Vmin = 2.8V
+        batteryLevel = batteryLevel > 100 ? 100 : batteryLevel;
+        barLevel = 133 - (batteryLevel * 133/100);
+        if (battery_voltage >= 3){
+          LevelColor = TFT_WHITE;
+        }
+        else {
+          LevelColor = TFT_RED;
+        }
+        if (currentScreen == 0){
+          tft.fillRect(232, 0, 8, 135, LevelColor);
+          tft.fillRect(233, 1, 6, barLevel, TFT_BLACK);
+        }
+        if (battery_voltage < 2.8){ //go into sleep,awake with top button
+          tft.setRotation(1);
+          tft.setCursor(0, 0);
+          tft.fillScreen(TFT_BLACK);
+          tft.setTextColor(TFT_WHITE);
+          tft.setTextSize(2);
+          tft.println("Battery level low");
+          tft.println("Going into sleepmode");
+          espDelay(5000);
+          tft.writecommand(TFT_DISPOFF);
+          tft.writecommand(TFT_SLPIN);
+          //After using light sleep, you need to disable timer wake, because here use external IO port to wake up
+          esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
+          // esp_sleep_enable_ext1_wakeup(GPIO_SEL_35, ESP_EXT1_WAKEUP_ALL_LOW);
+          esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, 0);
+          delay(200);
+          esp_deep_sleep_start();
+        }
     }
-  }
-
-  if (btnAction.isClick()) {
-    updateBrightness();
-  }
 }
 
 void showSettings() {
   //displays the current network connection and Tally Arbiter server data
-  M5.Lcd.setCursor(0, 20);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  M5.Lcd.setFreeFont(FSS9);
-  //M5.Lcd.setTextSize(1);
-  M5.Lcd.setTextColor(WHITE, BLACK);
-  M5.Lcd.println("SSID: " + String(WiFi.SSID()));
-  M5.Lcd.println(WiFi.localIP());
-
-  M5.Lcd.println("Tally Arbiter Server:");
-  M5.Lcd.println(String(tallyarbiter_host) + ":" + String(tallyarbiter_port));
-  M5.Lcd.println();
-  M5.Lcd.print("Battery: ");
-  int batteryLevel = floor(100.0 * (((M5.Axp.GetVbatData() * 1.1 / 1000) - 3.0) / (4.07 - 3.0)));
-  batteryLevel = batteryLevel > 100 ? 100 : batteryLevel;
-  if(batteryLevel >= 100){
-    M5.Lcd.println("Charging...");   // show when M5 is plugged in
-  } else {
-    M5.Lcd.println(String(batteryLevel) + "%");
+  tft.setCursor(0, 0);
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextSize(2);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.println("SSID: " + String(ssid));
+  tft.println(WiFi.localIP());
+  tft.println();
+  tft.println("TallyArbiter Server:");
+  tft.println(String(ip) + ":" + String(port));
+  tft.println();
+  Serial.println(voltage);
+  if(battery_voltage >= 4.2){
+    tft.println("Battery charging...");   // show when TTGO is plugged in
   }
+  else if (battery_voltage < 3) {
+    tft.println("Battery empty. Recharge!!");
+  }
+  else {
+    tft.println("Battery:" + String(batteryLevel) + "%");
+     }
 }
 
 void showDeviceInfo() {
-  M5.Lcd.setTextColor(GREY, BLACK);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  M5.Lcd.println(DeviceName);
-
   //displays the currently assigned device and tally data
   evaluateMode();
 }
 
-void updateBrightness() {
-  if(currentBrightness >= 12) {
-    currentBrightness = 7;
-  } else {
-    currentBrightness++;
-  }
-  M5.Axp.ScreenBreath(currentBrightness);
-}
-
 void logger(String strLog, String strType) {
-  Serial.println(strLog);
-  /*
   if (strType == "info") {
     Serial.println(strLog);
-    //M5.Lcd.println(strLog);
-  } else {
+    int x = strLog.length();
+    for (int i=0; i < x; i=i+19) {
+      tft.println(strLog.substring(0,19));
+      strLog = strLog.substring(19);
+    }
+  }
+  else {
     Serial.println(strLog);
   }
-  */
 }
 
 void connectToNetwork() {
@@ -363,8 +275,14 @@ void WiFiEvent(WiFiEvent_t event) {
       networkConnected = true;
       break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
+      tft.setCursor(0, 0);
+      tft.fillScreen(TFT_BLACK);
+      tft.setTextSize(2);
       logger("Network connection lost!", "info");
+      digitalWrite(led_blue, HIGH);
       networkConnected = false;
+      delay(1000);
+      connectToNetwork();
       break;
   }
 }
@@ -372,17 +290,15 @@ void WiFiEvent(WiFiEvent_t event) {
 void ws_emit(String event, const char *payload = NULL) {
   if (payload) {
     String msg = "[\"" + event + "\"," + payload + "]";
-    //Serial.println(msg);
     socket.sendEVENT(msg);
   } else {
     String msg = "[\"" + event + "\"]";
-    //Serial.println(msg);
     socket.sendEVENT(msg);
   }
 }
 
 void connectToServer() {
-  logger("Connecting to Tally Arbiter host: " + String(tallyarbiter_host), "info");
+  logger("Connecting to Tally Arbiter host: " + String(ip) + port, "info");
   socket.onEvent(socket_event);
   socket.begin(tallyarbiter_host, atol(tallyarbiter_port));
 }
@@ -435,9 +351,19 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
   }
 }
 
+void socket_Disconnected() {
+  digitalWrite(led_blue, HIGH);
+  tft.setCursor(0, 0);
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextSize(2);
+  logger("Disconnected from   TallyArbiter!", "info");
+}
+
 void socket_Connected(const char * payload, size_t length) {
   logger("Connected to Tally Arbiter server.", "info");
   logger("DeviceId: " + DeviceId, "info-quiet");
+  digitalWrite(led_blue, LOW);
+  tft.fillScreen(TFT_BLACK);
   String deviceObj = "{\"deviceId\": \"" + DeviceId + "\", \"listenerType\": \"" + listenerDeviceName.c_str() + "\", \"canBeReassigned\": true, \"canBeFlashed\": true, \"supportsChat\": true }";
   char charDeviceObj[1024];
   strcpy(charDeviceObj, deviceObj.c_str());
@@ -446,18 +372,24 @@ void socket_Connected(const char * payload, size_t length) {
 
 void socket_Flash() {
   //flash the screen white 3 times
-  M5.Lcd.fillScreen(WHITE);
+  tft.fillScreen(TFT_WHITE);
+  digitalWrite(led_blue, HIGH);
   delay(500);
-  M5.Lcd.fillScreen(TFT_BLACK);
+  tft.fillScreen(TFT_BLACK);
+  digitalWrite(led_blue, LOW);
   delay(500);
-  M5.Lcd.fillScreen(WHITE);
+  tft.fillScreen(TFT_WHITE);
+  digitalWrite(led_blue, HIGH);
   delay(500);
-  M5.Lcd.fillScreen(TFT_BLACK);
+  tft.fillScreen(TFT_BLACK);
+  digitalWrite(led_blue, LOW);
   delay(500);
-  M5.Lcd.fillScreen(WHITE);
+  tft.fillScreen(TFT_WHITE);
+  digitalWrite(led_blue, HIGH);
   delay(500);
-  M5.Lcd.fillScreen(TFT_BLACK);
-
+  tft.fillScreen(TFT_BLACK);
+  digitalWrite(led_blue, LOW);
+  
   //then resume normal operation
   switch (currentScreen) {
     case 0:
@@ -485,20 +417,24 @@ void socket_Reassign(String payload) {
   newDeviceId = newDeviceId.substring(0, newDeviceId.indexOf(','));
   oldDeviceId = strip_quot(oldDeviceId);
   newDeviceId = strip_quot(newDeviceId);
-
+  
   String reassignObj = "{\"oldDeviceId\": \"" + oldDeviceId + "\", \"newDeviceId\": \"" + newDeviceId + "\"}";
   char charReassignObj[1024];
   strcpy(charReassignObj, reassignObj.c_str());
+  //socket.emit("listener_reassign_object", charReassignObj);
   ws_emit("listener_reassign_object", charReassignObj);
   ws_emit("devices");
-  M5.Lcd.fillScreen(WHITE);
+  tft.fillScreen(TFT_WHITE);
+  digitalWrite(led_blue, HIGH);
   delay(200);
-  M5.Lcd.fillScreen(TFT_BLACK);
+  tft.fillScreen(TFT_BLACK);
+  digitalWrite(led_blue, LOW);
   delay(200);
-  M5.Lcd.fillScreen(WHITE);
+  tft.fillScreen(TFT_WHITE);
+  digitalWrite(led_blue, HIGH);
   delay(200);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  logger("newDeviceId: " + newDeviceId, "info-quiet");
+  tft.fillScreen(TFT_BLACK);
+  digitalWrite(led_blue, LOW);
   DeviceId = newDeviceId;
   preferences.begin("tally-arbiter", false);
   preferences.putString("deviceid", newDeviceId);
@@ -511,11 +447,14 @@ void socket_Messaging(String payload) {
   int typeQuoteIndex = strPayload.indexOf(',');
   String messageType = strPayload.substring(0, typeQuoteIndex);
   messageType.replace("\"", "");
-  int messageQuoteIndex = strPayload.lastIndexOf(',');
-  String message = strPayload.substring(messageQuoteIndex + 1);
-  message.replace("\"", "");
-  LastMessage = messageType + ": " + message;
-  evaluateMode();
+  //Only messages from producer and clients.
+  if (messageType != "server") {
+    int messageQuoteIndex = strPayload.lastIndexOf(',');
+    String message = strPayload.substring(messageQuoteIndex + 1);
+    message.replace("\"", "");
+    LastMessage = messageType + ": " + message;
+    evaluateMode();
+  }
 }
 
 void processTallyData() {
@@ -579,9 +518,8 @@ void SetDeviceName() {
 
 void evaluateMode() {
   if(actualType != prevType) {
-    M5.Lcd.setCursor(4, 82);
-    M5.Lcd.setFreeFont(FSS24);
-    //M5.Lcd.setTextSize(maxTextSize);
+    tft.setCursor(0, 0);
+    tft.setTextSize(2);
     actualColor.replace("#", "");
     String hexstring = actualColor;
     long number = (long) strtol( &hexstring[1], NULL, 16);
@@ -589,13 +527,11 @@ void evaluateMode() {
     int g = number >> 8 & 0xFF;
     int b = number & 0xFF;
     if (actualType != "") {
-      M5.Lcd.setTextColor(BLACK);
-      M5.Lcd.fillScreen(M5.Lcd.color565(r, g, b));
-      M5.Lcd.println(DeviceName);
+      tft.setTextColor(TFT_BLACK);
+      tft.fillScreen(tft.color565(r, g, b));
     } else {
-      M5.Lcd.setTextColor(GREY, BLACK);
-      M5.Lcd.fillScreen(TFT_BLACK);
-      M5.Lcd.println(DeviceName);
+      tft.setTextColor(TFT_WHITE);
+      tft.fillScreen(TFT_BLACK);
     }
     
     #if TALLY_EXTRA_OUTPUT
@@ -620,49 +556,155 @@ void evaluateMode() {
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
     Serial.print(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));
   }
-  
-  if (LAST_MSG == true){
-    M5.Lcd.println(LastMessage);
+  tft.println(DeviceName);
+  tft.println("-------------------");
+  if (LAST_MSG == true) {
+    logger(LastMessage, "info");
   }
+  tft.fillRect(232, 0, 8, 135, LevelColor);
+  tft.fillRect(233, 1, 6, barLevel, TFT_BLACK);
 }
 
-void checkReset() {
-  // check for button press
-  if ( digitalRead(TRIGGER_PIN) == LOW ) {
+void setup(void) {
+  Serial.begin(115200);
+  while (!Serial);
+/*
+  ADC_EN is the ADC detection enable port
+  If the USB port is used for power supply, it is turned on by default.
+  If it is powered by battery, it needs to be set to high level
+  */
+  pinMode(ADC_EN, OUTPUT);
+  digitalWrite(ADC_EN, HIGH);
 
-    // poor mans debounce/press-hold, code not ideal for production
-    delay(50);
-    if ( digitalRead(TRIGGER_PIN) == LOW ) {
-      M5.Lcd.setCursor(0, 40);
-      M5.Lcd.fillScreen(TFT_BLACK);
-      M5.Lcd.setFreeFont(FSS9);
-      //M5.Lcd.setTextSize(1);
-      M5.Lcd.setTextColor(WHITE, BLACK);
-      M5.Lcd.println("Reset button pushed....");
-      logger("Button Pressed", "info");
-      // still holding button for 3000 ms, reset settings, code not ideal for production
-      delay(3000); // reset delay hold
-      if ( digitalRead(TRIGGER_PIN) == LOW ) {
-        M5.Lcd.println("Erasing....");
-        logger("Button Held", "info");
-        logger("Erasing Config, restarting", "info");
-        wm.resetSettings();
-        ESP.restart();
-      }
+  // Initialize the TTGO object
+  logger("Initializing TTGO.", "info-quiet");
 
-      M5.Lcd.println("Starting Portal...");
-      // start portal w delay
-      logger("Starting config portal", "info");
-      wm.setConfigPortalTimeout(120);
+  setCpuFrequencyMhz(80);    //Save battery by turning down the CPU clock
+  btStop();                  //Save battery by turning off BlueTooth
+  
+  uint64_t chipid = ESP.getEfuseMac();
+  listenerDeviceName = "TTGO_T-" + String((uint16_t)(chipid>>32)) + String((uint32_t)chipid);
 
-      if (!wm.startConfigPortal(listenerDeviceName.c_str())) {
-        logger("failed to connect or hit timeout", "error");
-        delay(3000);
-        // ESP.restart();
-      } else {
-        //if you get here you have connected to the WiFi
-        logger("connected...yeey :)", "info");
-      }
+  tft.init();
+  tft.setRotation(1);
+  tft.setCursor(0, 0);
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_WHITE);
+  tft.setTextSize(1);
+  tft.setSwapBytes(true);
+  tft.pushImage(0, 0,  240, 135, TallyArbiterLogo);
+  
+  //check if top button is pressed at boot foor setup mode
+  if (digitalRead(35) == 0) {
+    setupmode = true;
+  }
+  espDelay(5000);
+  logger("Tally Arbiter TTGO Listener Client booting.", "info");
+  logger("Listener device name: " + listenerDeviceName, "info");
+
+  preferences.begin("tally-arbiter", false);
+
+  // added to clear out corrupt prefs
+  //preferences.clear();
+  logger("Reading preferences", "info-quiet");
+  if(preferences.getString("deviceid").length() > 0){
+    DeviceId = preferences.getString("deviceid");
+  }
+  if(preferences.getString("devicename").length() > 0){
+    DeviceName = preferences.getString("devicename");
+  }
+  if(preferences.getString("taHost").length() > 0){
+    String newHost = preferences.getString("taHost");
+    logger("Setting TallyArbiter host as" + newHost, "info-quiet");
+    char chr_newHost[40];
+    newHost.toCharArray(tallyarbiter_host, 40);
+  }
+  if(preferences.getString("taPort").length() > 0){
+    String newPort = preferences.getString("taPort");
+    logger("Setting TallyArbiter port as" + newPort, "info-quiet");
+    char chr_newPort[6];
+    newPort.toCharArray(tallyarbiter_port, 6);
+  }
+ 
+  preferences.end();
+  
+  pinMode(led_blue, OUTPUT);
+  digitalWrite(led_blue, HIGH);
+  Serial.println("Blue LED ON.");
+
+  delay(100); //wait 100ms before moving on
+  connectToNetwork(); //starts Wifi connection
+  while (!networkConnected) {
+    delay(200);
+  }
+
+  ArduinoOTA.setHostname(listenerDeviceName.c_str());
+  ArduinoOTA.setPassword("tallyarbiter");
+  ArduinoOTA
+    .onStart([]() {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "sketch";
+      else // U_SPIFFS
+        type = "filesystem";
+
+      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+      Serial.println("Start updating " + type);
+    })
+    .onEnd([]() {
+      Serial.println("\nEnd");
+    })
+    .onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    })
+    .onError([](ota_error_t error) {
+      Serial.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) logger("Auth Failed", "error");
+      else if (error == OTA_BEGIN_ERROR) logger("Begin Failed", "error");
+      else if (error == OTA_CONNECT_ERROR) logger("Connect Failed", "error");
+      else if (error == OTA_RECEIVE_ERROR) logger("Receive Failed", "error");
+      else if (error == OTA_END_ERROR) logger("End Failed", "error");
+    });
+
+  ArduinoOTA.begin();
+
+  #if TALLY_EXTRA_OUTPUT
+  // Enable interal led for program trigger
+  pinMode(led_program, OUTPUT);
+  digitalWrite(led_program, HIGH);
+  pinMode(led_preview, OUTPUT);
+  digitalWrite(led_preview, HIGH);
+  pinMode(led_aux, OUTPUT);
+  digitalWrite(led_aux, HIGH);
+  #endif
+  connectToServer();
+}
+
+void loop() {
+  ArduinoOTA.handle();
+  socket.loop();
+  btntop.update();
+  btnbottom.update();
+  showVoltage();
+  if (btntop.isClick()) {
+    switch (currentScreen) {
+      case 0:
+        showSettings();
+        currentScreen = 1;
+        break;
+      case 1:
+        showDeviceInfo();
+        currentScreen = 0;
+        break;
+    }
+  }
+  if (btnbottom.isClick()) {
+    if (backlight == true) {
+      digitalWrite(TFT_BL, LOW);
+      backlight = false;
+    } else {
+      digitalWrite(TFT_BL, HIGH);
+      backlight = true;
     }
   }
 }

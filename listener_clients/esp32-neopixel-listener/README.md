@@ -18,7 +18,7 @@ The NeoPixel-LEDs need to be soldered (or connected via cables) to the ESP32-boa
 <!-- (Insert an image of an example pinout and connections) -->
 
 ## Installing Sketch and Libraries
-1. Follow the tutorial for your specific ESP32-borad to download, install, and configure the Arduino IDE program. This is necessary to compile the code for your device.
+1. Follow the tutorial for your specific ESP32-board to download, install, and configure the Arduino IDE program. This is necessary to compile the code for your device.
 1. Once you have the Arduino IDE installed and configured for your OS, install the following libraries (if not already installed):
 	* `Adafruit_NeoPixel` by Adafruit (depending on the device you are using)
 	* `WebSockets` by Markus Sattler
@@ -27,7 +27,7 @@ The NeoPixel-LEDs need to be soldered (or connected via cables) to the ESP32-boa
 These will have to be included with the sketch file in order for it to compile properly.
 ## Compile and Upload the Sketch to the Device
 1. Once all libraries are downloaded, open the `esp32-neopixel-listener.ino` file in the Arduino IDE.
-1. Modify the LED-Pin and LED-Count to reflect your setup (and change the LED-Brightness if you want to):
+2. Modify the LED-Pin and LED-Count to reflect your setup (and change the LED-Brightness if you want to):
 	```c++
 	#define LED_PIN     5
 	#define BRIGHTNESS 50 // Set BRIGHTNESS to about 1/5 (max = 255)
@@ -51,9 +51,9 @@ These will have to be included with the sketch file in order for it to compile p
 8. Go to Tools > Port > and choose the serial port that represents your device.
 9. Go to Sketch > and choose `Upload`. The code will compile and upload to the device.
 
-Once the code is successfully compiled and uploaded to the device. the M5Stick-C will boot up and automatically try to connect to your Tally Arbiter server. It will auto-assign itself to the first Device on the server, and you can reassign it through the Settings GUI of Tally Arbiter.
+Once the code is successfully compiled and uploaded to the device. the ESP32 will boot up and automatically try to connect to your Tally Arbiter server. It will auto-assign itself to the first Device on the server, and you can reassign it through the Settings GUI of Tally Arbiter.
 
-Video Walkthrough (for the M5Stick-C): https://youtu.be/WMrRKD63Jrw
+Video Walkthrough (for the M5Stick-C, not for this kind of devices): https://youtu.be/WMrRKD63Jrw
 
 ## Using the Device
 When you turn on the ESP32 device after it has been programmed, the LEDs will light up blue, then it will automatically connect to the wireless network using the settings provided, and then initiate a connection to the Tally Arbiter server. If the server is offline, just reboot the device after the server is back online.
