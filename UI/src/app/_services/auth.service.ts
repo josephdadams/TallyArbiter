@@ -1,6 +1,11 @@
 import { Injectable } from '@angular/core';
 import { SocketService } from './socket.service';
 
+export interface LoginResponse {
+  loginOk: boolean;
+  message: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -18,19 +23,17 @@ export class AuthService {
   }
 
   public login(type: "producer" | "settings", username: string, password: string) {
-    return new Promise((resolve) => {
+    return new Promise<LoginResponse>((resolve) => {
       this.socketService.socket.emit("login", type, username, password);
-      this.socketService.socket.once("login_result", (result: boolean) => {
-        if (result === true) {
+      this.socketService.socket.once("login_response", (response: LoginResponse) => {
+        if (response.loginOk === true) {
           if (type == "producer") {
             this._isProducer = true;
           } else {
             this._isAdmin = true;
           }
-          resolve(true);
-        } else {
-          resolve(false);
         }
+        resolve(response);
       })
     })
   }

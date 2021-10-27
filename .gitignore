@@ -98,7 +98,7 @@ dist
 .fusebox/
 
 # DynamoDB Local files
-.dynamodb/
+./
 
 # TernJS port file
 .tern-port
@@ -112,7 +112,14 @@ config.json
 # don't include the generated UI
 ui-dist/*
 
-# don't include any installers
+# UI models
+UI/src/app/_models
+!UI/src/app/_models/*.md
+
+# don't include UI versions.ts file
+UI/src/environments/versions.ts
+
+# don't include any installer
 release
 
 #listener clients configs
@@ -124,3 +131,7 @@ config_relays.json
 *.elf
 *.hex
 *.hex.bin
+
+# don't include .DS_Store file and vscode workspace file
+.DS_Store
+TallyArbiter.code-workspace

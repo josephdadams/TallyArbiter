@@ -1,0 +1,19 @@
+<div class="d-flex justify-content-center mt-5 pt-5" *ngIf="!errorReportsLoaded">
+    <div class="spinner spinner-border"></div>
+</div>
+<button (click)="locationBackService.goBack()" class="btn btn-outline-primary" style="margin: 10px" title="Go back"><i class="fas fa-arrow-left"></i> Back</button>
+<div *ngIf="errorReportsLoaded">
+    <div class="container mt-5">
+        <div class="form-group" *ngIf="socketService.errorReports.length > 0">
+            <select class='form-control col-xs-6 col-md-3' (change)="selectErrorReport($event)">
+                <option disabled selected>-- Select an error report --</option>
+                <option [value]="errorReport.id" *ngFor="let errorReport of socketService.errorReports">{{ errorReport.datetime }} {{ unread_error_reports.includes(errorReport.id) ? "(unread)" : "" }}</option>
+            </select>
+            <div class="text-center" id="buttons_div">
+                <button class="btn btn-outline-success" (click)="markErrorReportsAsRead()">Mark all as read</button>
+                <button class="btn btn-outline-danger" (click)="deleteEveryErrorReport()" style="margin-left: 10px">Permanently delete every bug report from disk</button>
+            </div>
+        </div>
+    </div>
+    <h2 class="lead mt-5 text-center" *ngIf="socketService.errorReports.length == 0">Hurray! No error report detected.</h2>
+</div>

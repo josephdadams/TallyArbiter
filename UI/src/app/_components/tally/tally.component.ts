@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { BusOption } from 'src/app/_models/BusOption';
+import { DeviceState } from 'src/app/_models/DeviceState';
 import { SocketService } from 'src/app/_services/socket.service';
 
 @Component({
@@ -9,8 +11,11 @@ import { SocketService } from 'src/app/_services/socket.service';
 })
 export class TallyComponent {
   public currentDeviceIdx?: number;
-  public mode_preview?: boolean;
-  public mode_program?: boolean;
+  public currentBus?: BusOption;
+  
+  public COLORS = {
+    DARK_GREY: "#212529",
+  }
   
   constructor(
     private router: Router,
@@ -23,7 +28,13 @@ export class TallyComponent {
       this.route.params.subscribe((params) => {
         if (params.deviceId) {
           this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id == params.deviceId);
-          this.socketService.socket.emit('device_listen', this.socketService.devices[this.currentDeviceIdx!].id, 'web');
+          this.socketService.socket.emit('listenerclient_connect', {
+            deviceId: this.socketService.devices[this.currentDeviceIdx!].id,
+            listenerType: "web",
+            canBeReassigned: true,
+            canBeFlashed: true,
+            supportsChat: true,
+          });
         }
       });
     });
@@ -33,17 +44,21 @@ export class TallyComponent {
         document.body.classList.remove('flash');
       }, 500);
     });
-    this.socketService.deviceStateChanged.subscribe(({ deviceId, program, preview }:
-      { deviceId: string, program?: boolean, preview?: boolean }) => {
-      if (this.currentDeviceIdx === undefined || deviceId !== this.socketService.devices[this.currentDeviceIdx].id) {
+    this.socketService.deviceStateChanged.subscribe((deviceStates) => {
+      if (this.currentDeviceIdx === undefined) {
         return;
       }
-      if (program) {
+      const hightestPriorityBus = deviceStates.filter((d) => d.deviceId == this.socketService.devices[this.currentDeviceIdx!].id && d.sources.length > 0).map(({busId}) => this.socketService.busOptions.find((b) => b.id == busId)).reduce((a: any, b: any) => a?.priority > b?.priority ? a : b, {}) as BusOption;
+      if (!hightestPriorityBus || Object.entries(hightestPriorityBus).length == 0) {
+        this.currentBus = undefined;
+        return;
+      }
+      if (hightestPriorityBus.type == "program") {
         window.navigator.vibrate(400);
-      } else if (preview) {
+      } else if (hightestPriorityBus.type == "preview") {
         window.navigator.vibrate([100, 30, 100, 30, 100]);
       }
-      
+      this.currentBus = hightestPriorityBus;
     });
     this.socketService.socket.on('reassign', (oldDeviceId: string, deviceId: string) => {
       //processes a reassign request that comes from the Settings GUI and relays the command so it originates from this socket

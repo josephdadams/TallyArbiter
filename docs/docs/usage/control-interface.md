@@ -22,7 +22,7 @@ You can also manually edit that file.
 
 **Make sure that TallyArbiter is closed while making changes, because otherwise they will be overwritten!**
 
-You can change the security of the settings and the producer page by adding the following section to your `config.json` file:
+You can change the security of the settings and the producer page by adding or replacing the following section to your `config.json` file:
 ```javascript
 {
 	"security":

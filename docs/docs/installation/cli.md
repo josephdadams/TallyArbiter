@@ -10,12 +10,17 @@ npm install --global tallyarbiter
 ```
 or in short: `npm i -g tallyarbiter`
 
-Then, start it ty typing `tallyarbiter`.
+Depending on your OS, you may need to run the command as root using the prefix "sudo".
+```bash
+sudo npm install --global tallyarbiter
+```
+
+Then, start it by typing `tallyarbiter`.
 
 ## Upgrading
 To install the latest version, just run the same command from above (`npm i -g tallyarbiter`) again.
 
-**Be sure to back up or save your [config file](#configuration)!**
+**Be sure to back up or save your [config file](../usage/control-interface.md#configuration)!**
 
 
 ## Running as a service
