@@ -99,13 +99,11 @@ void setup() {
   if(preferences.getString("taHost").length() > 0){
     String newHost = preferences.getString("taHost");
     logger("Setting TallyArbiter host as" + newHost, "info-quiet");
-    char chr_newHost[40];
     newHost.toCharArray(tallyarbiter_host, 40);
   }
   if(preferences.getString("taPort").length() > 0){
     String newPort = preferences.getString("taPort");
     logger("Setting TallyArbiter port as" + newPort, "info-quiet");
-    char chr_newPort[6];
     newPort.toCharArray(tallyarbiter_port, 6);
   }
  
@@ -225,7 +223,7 @@ void connectToNetwork() {
     //TODO: fix MDNS discovery
     /*
     int nrOfServices = MDNS.queryService("tally-arbiter", "tcp");
-    
+
     if (nrOfServices == 0) {
       logger("No server found.", "error");
     } else {
