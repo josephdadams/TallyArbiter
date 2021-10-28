@@ -125,3 +125,30 @@ jobs:
 ##      with:
 ##        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-Windows'
 ##        path: 'release/TallyArbiter Setup ${{ steps.package-version.outputs.version }}.exe'
+
+  build_m5stickc-listener:
+    name: Build M5StickC Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: arduino/compile-sketches@v1
+      with:
+        #platform: |
+        #  - name: esp32:esp32:m5stack-core-esp32
+        #    source-url: https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/arduino/package_m5stack_index.json
+        fqbn: 'esp32:esp32:m5stack-core-esp32'
+        libraries: |
+          - name: M5StickC
+          - name: M5StickCPlus
+          - name: WebSockets
+          - name: WiFiManager
+          - name: MultiButton
+          - name: Arduino_JSON
+        sketch-paths: |
+          - listener_clients/m5stickc-listener
+        enable-deltas-report: true
+##    - name: Upload Artifact
+##      uses: actions/upload-artifact@v2
+##      with:
+##        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-Linux'
+##        path: 'release/TallyArbiter-${{ steps.package-version.outputs.version }}.AppImage'
