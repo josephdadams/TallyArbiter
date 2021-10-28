@@ -5,6 +5,7 @@ import fs from 'fs-extra';
 import findPackageJson from "find-package-json";
 import path from 'path';
 import express from 'express';
+import compression from 'compression';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import bodyParser from 'body-parser';
 import http from 'http';
@@ -51,13 +52,15 @@ import { getNetworkInterfaces } from './_helpers/networkInterfaces';
 import { loadClassesFromFolder } from './_helpers/fileLoder';
 import { UsePort } from './_decorators/UsesPort.decorator';
 import { secondsToHms } from './_helpers/time';
-import { currentConfig, getConfigRedacted, readConfig, SaveConfig } from './_helpers/config';
+import { currentConfig, getConfigRedacted, readConfig, SaveConfig, replaceConfig } from './_helpers/config';
+import { validateConfig } from './_helpers/configValidator';
 import { deleteEveryErrorReport, generateErrorReport, getErrorReport, getErrorReportsList, getUnreadErrorReportsList, markErrorReportAsRead, markErrorReportsAsRead } from './_helpers/errorReports';
 import { DeviceState } from './_models/DeviceState';
 import { VMixEmulator } from './_modules/VMix';
 import { TSLListenerProvider } from './_modules/TSL';
 import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
+import { Config } from './_models/Config';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 
@@ -154,6 +157,7 @@ function initialSetup() {
 
 	app.disable('x-powered-by');
 	app.use(bodyParser.json({ type: 'application/json' }));
+	app.use(compression());
 
 	//about the author, this program, etc.
 	app.get('/', (req, res) => {
@@ -790,6 +794,20 @@ function initialSetup() {
 			deleteEveryErrorReport();
 		});
 
+		socket.on('get_config', () => {
+			//TODO: check user roles when #247 get merged
+			socket.emit('config', currentConfig);
+		});
+
+		socket.on('set_config', (config: Config) => {
+			//TODO: check user roles when #247 get merged
+			validateConfig(config).then((config) => {
+				replaceConfig(config);
+			}).catch((error) => {
+				socket.emit('error', "Config is not valid");
+			});
+		});
+
 		socket.on('disconnect', () =>  { // emitted when any socket.io client disconnects from the server
 			DeactivateListenerClient(socket.id);
 			CheckCloudClients(socket.id);
@@ -840,7 +858,7 @@ function getSources(): Source[] {
 
 function TSLClients_1SecUpdate(value) {
 	if (tsl_clients_interval !== null) {
-		clearInterval(this.tsl_clients_interval);
+		clearInterval(tsl_clients_interval);
 	}
 
 	logger(`TSL Clients 1 Second Updates are turned ${(value ? 'on' : 'off')}.`, 'info');
