@@ -10,7 +10,7 @@ jobs:
     - uses: actions/checkout@v1
     - uses: arduino/compile-sketches@v1
       with:
-        platform: |
+        platforms: |
           - name: esp32:esp32:m5stick-c
             source-url: https://dl.espressif.com/dl/package_esp32_index.json
         fqbn: 'esp32:esp32:m5stick-c'
