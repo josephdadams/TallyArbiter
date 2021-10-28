@@ -1,6 +1,6 @@
 <div class="container pt-4" *ngIf="socketService.initialDataLoaded">
-    <nav ngbNav #nav="ngbNav" class="nav-tabs" [animation]="false">
-        <ng-container ngbNavItem>
+    <nav ngbNav #nav="ngbNav" class="nav-tabs" [animation]="false" (navChange)="navChanged($event)" [(activeId)]="activeNavTab">
+        <ng-container ngbNavItem="sources_devices">
             <a ngbNavLink>Sources & Devices</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -52,7 +52,7 @@
                 </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem>
+        <ng-container ngbNavItem="listeners">
             <a ngbNavLink>Listeners</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -149,7 +149,7 @@
                 </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem>
+        <ng-container ngbNavItem="cloud">
             <a ngbNavLink>Cloud</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -246,7 +246,7 @@
                 </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem>
+        <ng-container ngbNavItem="testing">
             <a ngbNavLink>Testing</a>
             <ng-template ngbNavContent>
                 <button class="btn btn-outline-dark mb-5" (click)="toggleTestMode()">
@@ -256,7 +256,7 @@
                 <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: false}"></ng-container>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem>
+        <ng-container ngbNavItem="config">
             <a ngbNavLink>Config</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -287,9 +287,41 @@
                         </table>
                     </div>
                 </div>
+                <div *ngIf="!configLoaded" class="d-flex justify-content-center mt-5 pt-5">
+                    <div class="spinner spinner-border text-dark"><p style="margin-left: 0.5 rem">Loading config...</p></div>
+                </div>
+                <div *ngIf="configLoaded">
+                    <hr class="my-5" />
+                    <div class="row">
+                        <h2>Config tools</h2>
+                        <div class="btn-group" role="group" aria-label="Basic example">
+                            <button type="button" class="btn btn-outline-primary" style="font-size: 1.2em" (click)="importConfig()"><i class="fas fa-upload"></i> Import</button>
+                            <button type="button" class="btn btn-outline-primary" style="font-size: 1.2em" (click)="exportConfig()"><i class="fas fa-download"></i> Export</button>
+                        </div>
+                    </div>
+                    <hr class="my-5" />
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i> Please note that updating your config manually shouldn't be necesary and it's not recommended. Continue at your own risk.
+                    </div>
+                    <div class="row">
+                        <h2>Config editor</h2>
+                        <json-editor [options]="jsonEditorOptions" [data]="config" (change)="configUpdated($event)" #configEditor></json-editor>
+                        <div style="display: flex; justify-content: flex-end;">
+                            <button class="btn btn-primary m-1" (click)="saveConfig()" [disabled]="!updatedConfigValid">Save config</button>
+                        </div>
+                    </div>
+                    <hr class="my-5" />
+                    <div class="row">
+                        <h2>Raw Config editor</h2>
+                        <textarea class="form-control" id="exampleFormControlTextarea1" rows="20" [(ngModel)]="updatedRawConfig"></textarea>
+                        <div style="display: flex; justify-content: flex-end;">
+                            <button class="btn btn-primary m-1" (click)="saveRawConfig()">Save config</button>
+                        </div>
+                    </div>
+                </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem>
+        <ng-container ngbNavItem="logs">
             <a ngbNavLink>Logs</a>
             <ng-template ngbNavContent>
                 <div class="row">
