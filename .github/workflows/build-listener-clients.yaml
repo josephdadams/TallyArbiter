@@ -60,7 +60,19 @@ jobs:
         path: 'listener_clients/esp32-neopixel-listener/build'
 
   build_TTGO_T1-listener:
-    name: Build TTGO_T1 Listener
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - fqbn: esp32:esp32:ttgo-t1
+            name: TTGO T1
+          - fqbn: esp32:esp32:ttgo-t7-v13-mini32
+            name: TTGO T7 v13 Mini32
+          - fqbn: esp32:esp32:ttgo-t7-v14-mini32
+            name: TTGO T7 v14 Mini32
+          - fqbn: esp32:esp32:twatch
+            name: TTGO T-Watch
+    name: Build ${{ matrix.name }} Listener
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -69,7 +81,7 @@ jobs:
         platforms: |
           - name: esp32:esp32
             source-url: https://dl.espressif.com/dl/package_esp32_index.json
-        fqbn: 'esp32:esp32:ttgo-t1'
+        fqbn: ${{ matrix.fqbn }}
         libraries: |
           - name: WebSockets
           - name: WiFiManager
@@ -84,5 +96,5 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
-        name: 'TallyArbiter-Listener-TTGO_T1'
+        name: 'TallyArbiter-Listener-${{ matrix.name }}'
         path: 'listener_clients/TTGO_T-listener/build'
