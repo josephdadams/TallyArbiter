@@ -293,6 +293,8 @@ void WiFiEvent(WiFiEvent_t event) {
       logger("Network connection lost!", "info");
       networkConnected = false;
       break;
+    default:
+      break;
   }
 }
 
