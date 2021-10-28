@@ -58,3 +58,31 @@ jobs:
       with:
         name: 'TallyArbiter-Listener-ESP32-NeoPixel'
         path: 'listener_clients/esp32-neopixel-listener/build'
+
+  build_TTGO_T1-listener:
+    name: Build TTGO_T1 Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: arduino/compile-sketches@v1
+      with:
+        platforms: |
+          - name: esp32:esp32
+            source-url: https://dl.espressif.com/dl/package_esp32_index.json
+        fqbn: 'esp32:esp32:ttgo-t1'
+        libraries: |
+          - name: WebSockets
+          - name: WiFiManager
+          - name: MultiButton
+          - name: Arduino_JSON
+          - name: TFT_eSPI
+        cli-compile-flags: |
+          - --export-binaries
+        sketch-paths: |
+          - listener_clients/TTGO_T-listener
+        enable-deltas-report: true
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'TallyArbiter-Listener-TTGO_T1'
+        path: 'listener_clients/TTGO_T-listener/build'
