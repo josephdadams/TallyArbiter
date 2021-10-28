@@ -48,11 +48,13 @@ jobs:
           - name: MultiButton
           - name: Arduino_JSON
           - name: Adafruit NeoPixel
+        cli-compile-flags: |
+          - --build-property
         sketch-paths: |
           - listener_clients/esp32-neopixel-listener
         enable-deltas-report: true
-##    - name: Upload Artifact
-##      uses: actions/upload-artifact@v2
-##      with:
-##        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-Linux'
-##        path: 'release/TallyArbiter-${{ steps.package-version.outputs.version }}.AppImage'
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'TallyArbiter-Listener-ESP32-NeoPixel'
+        path: 'listener_clients/esp32-neopixel-listener/build'
