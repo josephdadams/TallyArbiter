@@ -22,14 +22,16 @@ jobs:
 #          - name: WiFiManager
 #          - name: MultiButton
 #          - name: Arduino_JSON
+#        cli-compile-flags: |
+#          - --export-binaries
 #        sketch-paths: |
 #          - listener_clients/m5stickc-listener
 #        enable-deltas-report: true
-##    - name: Upload Artifact
-##      uses: actions/upload-artifact@v2
-##      with:
-##        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-Linux'
-##        path: 'release/TallyArbiter-${{ steps.package-version.outputs.version }}.AppImage'
+#    - name: Upload Artifact
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: 'TallyArbiter-Listener-M5StickC'
+#        path: 'listener_clients/m5stickc-listener/build/esp32.esp32.m5stick-c'
 
   build_esp32-neopixel-listener:
     name: Build ESP32 NeoPixel Listener
@@ -94,7 +96,7 @@ jobs:
           - listener_clients/TTGO_T-listener
         enable-deltas-report: true
     - name: Get FQBN build dir for ${{ matrix.board.name }}
-        run:
+        run: |
           RAW_FQBN="${{ matrix.board.fqbn }}"
           FQBN_REPLACED=$(echo $RAW_FQBN | sed 's/:/./')
           echo "FQBN_REPLACED=$FQBN_REPLACED" >> $GITHUB_ENV
