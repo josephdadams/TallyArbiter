@@ -36,7 +36,7 @@ int batteryLevel = 100;
 int barLevel = 0;
 int LevelColor = TFT_WHITE;
 bool backlight = true;
-PinButton btntop(35); //top button, switch screen. hold button while booting: setupmode
+PinButton btntop(35); //top button, switch screen.
 PinButton btnbottom(0); //bottom button, screen on/off
 Preferences preferences;
 
@@ -55,6 +55,11 @@ const int led_program = 10;
 const int led_preview = 26; //OPTIONAL Led for preview on pin G26
 const int led_aux = 36;     //OPTIONAL Led for aux on pin G36
 #endif
+const int led_blue = 26;     //blue led  connected with 270ohm resistor
+
+#define TFT_DISPOFF 0x28
+#define TFT_SLPIN   0x10
+#define TFT_BL      4        // Display backlight control pin
 
 //Tally Arbiter variables
 SocketIOclient socket;
@@ -207,10 +212,10 @@ void connectToNetwork() {
     logger("connected...yay :)", "info");
     networkConnected = true;
 
-    int nrOfServices = MDNS.queryService("tally-arbiter", "tcp");
-
     //TODO: fix MDNS discovery
     /*
+    int nrOfServices = MDNS.queryService("tally-arbiter", "tcp");
+
     if (nrOfServices == 0) {
       logger("No server found.", "error");
     } else {
@@ -297,7 +302,7 @@ void ws_emit(String event, const char *payload = NULL) {
 }
 
 void connectToServer() {
-  logger("Connecting to Tally Arbiter host: " + String(ip) + port, "info");
+  logger("Connecting to Tally Arbiter host: " + String(tallyarbiter_host) + tallyarbiter_port, "info");
   socket.onEvent(socket_event);
   socket.begin(tallyarbiter_host, atol(tallyarbiter_port));
 }
@@ -593,10 +598,6 @@ void setup(void) {
   tft.setSwapBytes(true);
   tft.pushImage(0, 0,  240, 135, TallyArbiterLogo);
   
-  //check if top button is pressed at boot foor setup mode
-  if (digitalRead(35) == 0) {
-    setupmode = true;
-  }
   espDelay(5000);
   logger("Tally Arbiter TTGO Listener Client booting.", "info");
   logger("Listener device name: " + listenerDeviceName, "info");
@@ -615,13 +616,11 @@ void setup(void) {
   if(preferences.getString("taHost").length() > 0){
     String newHost = preferences.getString("taHost");
     logger("Setting TallyArbiter host as" + newHost, "info-quiet");
-    char chr_newHost[40];
     newHost.toCharArray(tallyarbiter_host, 40);
   }
   if(preferences.getString("taPort").length() > 0){
     String newPort = preferences.getString("taPort");
     logger("Setting TallyArbiter port as" + newPort, "info-quiet");
-    char chr_newPort[6];
     newPort.toCharArray(tallyarbiter_port, 6);
   }
  
