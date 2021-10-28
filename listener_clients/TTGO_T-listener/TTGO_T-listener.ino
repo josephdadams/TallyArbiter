@@ -61,6 +61,9 @@ const int led_blue = 26;     //blue led  connected with 270ohm resistor
 #define TFT_SLPIN   0x10
 #define TFT_BL      4        // Display backlight control pin
 
+WiFiManager wm; // global wm instance
+WiFiManagerParameter custom_field; // global param ( for non blocking w params )
+
 //Tally Arbiter variables
 SocketIOclient socket;
 JSONVar BusOptions;
@@ -134,11 +137,11 @@ void showSettings() {
   tft.fillScreen(TFT_BLACK);
   tft.setTextSize(2);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.println("SSID: " + String(ssid));
+  tft.println("SSID: " + String(WiFi.SSID()));
   tft.println(WiFi.localIP());
   tft.println();
   tft.println("TallyArbiter Server:");
-  tft.println(String(ip) + ":" + String(port));
+  tft.println(String(tallyarbiter_host) + ":" + String(tallyarbiter_port));
   tft.println();
   Serial.println(voltage);
   if(battery_voltage >= 4.2){
