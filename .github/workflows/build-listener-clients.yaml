@@ -50,6 +50,7 @@ jobs:
           - name: Adafruit NeoPixel
         cli-compile-flags: |
           - --build-property
+          - --export-binaries
         sketch-paths: |
           - listener_clients/esp32-neopixel-listener
         enable-deltas-report: true
