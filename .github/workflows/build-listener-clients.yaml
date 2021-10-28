@@ -3,8 +3,36 @@ name: Build Listener Clients
 on: [push, workflow_dispatch]
 
 jobs:
-  build_m5stickc-listener:
-    name: Build M5StickC Listener
+#  build_m5stickc-listener:
+#    name: Build M5StickC Listener
+#    runs-on: ubuntu-latest
+#    steps:
+#    - uses: actions/checkout@v1
+#    - uses: arduino/compile-sketches@v1
+#      with:
+#        platforms: |
+#          - name: esp32:esp32
+#            source-url: https://dl.espressif.com/dl/package_esp32_index.json
+#        fqbn: 'esp32:esp32:m5stick-c'
+#        libraries: |
+#          - source-url: https://github.com/m5stack/M5_BM8563.git
+#          - name: M5StickC
+#          - name: M5StickCPlus
+#          - name: WebSockets
+#          - name: WiFiManager
+#          - name: MultiButton
+#          - name: Arduino_JSON
+#        sketch-paths: |
+#          - listener_clients/m5stickc-listener
+#        enable-deltas-report: true
+##    - name: Upload Artifact
+##      uses: actions/upload-artifact@v2
+##      with:
+##        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-Linux'
+##        path: 'release/TallyArbiter-${{ steps.package-version.outputs.version }}.AppImage'
+
+  build_esp32-neopixel-listener:
+    name: Build ESP32 NeoPixel Listener
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -13,16 +41,15 @@ jobs:
         platforms: |
           - name: esp32:esp32
             source-url: https://dl.espressif.com/dl/package_esp32_index.json
-        fqbn: 'esp32:esp32:m5stick-c'
+        fqbn: 'esp32:esp32:esp32'
         libraries: |
-          - name: M5StickC
-          - name: M5StickCPlus
           - name: WebSockets
           - name: WiFiManager
           - name: MultiButton
           - name: Arduino_JSON
+          - name: Adafruit NeoPixel
         sketch-paths: |
-          - listener_clients/m5stickc-listener
+          - listener_clients/esp32-neopixel-listener
         enable-deltas-report: true
 ##    - name: Upload Artifact
 ##      uses: actions/upload-artifact@v2
