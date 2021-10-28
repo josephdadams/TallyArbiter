@@ -98,7 +98,7 @@ jobs:
     - name: Get FQBN build dir for ${{ matrix.board.name }}
       run: |
         RAW_FQBN="${{ matrix.board.fqbn }}"
-        FQBN_REPLACED=$(echo $RAW_FQBN | sed 's/:/./')
+        FQBN_REPLACED=$(echo $RAW_FQBN | sed 's/:/./g')
         echo "FQBN_REPLACED=$FQBN_REPLACED" >> $GITHUB_ENV
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
