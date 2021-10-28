@@ -189,9 +189,6 @@ void connectToNetwork() {
   //reset settings - wipe credentials for testing
   //wm.resetSettings();
 
-  //add a custom input field
-  int customFieldLength = 40;
-
   //const char* custom_radio_str = "<br/><label for='taHostIP'>Tally Arbiter Server</label><input type='text' name='taHostIP'>";
   //new (&custom_field) WiFiManagerParameter(custom_radio_str); // custom html input
 
@@ -225,10 +222,10 @@ void connectToNetwork() {
     logger("connected...yay :)", "info");
     networkConnected = true;
 
-    int nrOfServices = MDNS.queryService("tally-arbiter", "tcp");
-
     //TODO: fix MDNS discovery
     /*
+    int nrOfServices = MDNS.queryService("tally-arbiter", "tcp");
+    
     if (nrOfServices == 0) {
       logger("No server found.", "error");
     } else {
