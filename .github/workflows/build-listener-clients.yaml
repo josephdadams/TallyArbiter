@@ -57,7 +57,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: 'TallyArbiter-Listener-ESP32-NeoPixel'
-        path: 'listener_clients/esp32-neopixel-listener/build/esp32:esp32:esp32'
+        path: 'listener_clients/esp32-neopixel-listener/build/esp32.esp32.esp32'
 
   build_TTGO-listener:
     strategy:
@@ -93,8 +93,13 @@ jobs:
         sketch-paths: |
           - listener_clients/TTGO_T-listener
         enable-deltas-report: true
+    - name: Get FQBN build dir for ${{ matrix.board.name }}
+        run:
+          RAW_FQBN="${{ matrix.board.fqbn }}"
+          FQBN_REPLACED=$(echo $RAW_FQBN | sed 's/:/./')
+          echo "FQBN_REPLACED=$FQBN_REPLACED" >> $GITHUB_ENV
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
         name: 'TallyArbiter-Listener-${{ matrix.board.name }}'
-        path: 'listener_clients/TTGO_T-listener/build/${{ matrix.board.fqbn }}'
+        path: 'listener_clients/TTGO_T-listener/build/${{ env.FQBN_REPLACED }}'
