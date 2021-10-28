@@ -96,10 +96,10 @@ jobs:
           - listener_clients/TTGO_T-listener
         enable-deltas-report: true
     - name: Get FQBN build dir for ${{ matrix.board.name }}
-        run: |
-          RAW_FQBN="${{ matrix.board.fqbn }}"
-          FQBN_REPLACED=$(echo $RAW_FQBN | sed 's/:/./')
-          echo "FQBN_REPLACED=$FQBN_REPLACED" >> $GITHUB_ENV
+      run: |
+        RAW_FQBN="${{ matrix.board.fqbn }}"
+        FQBN_REPLACED=$(echo $RAW_FQBN | sed 's/:/./')
+        echo "FQBN_REPLACED=$FQBN_REPLACED" >> $GITHUB_ENV
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
