@@ -509,18 +509,21 @@ int getBusPriorityById(String busId) {
 }
 
 void processTallyData() {
+  bool typeChanged = false;
   for (int i = 0; i < DeviceStates.length(); i++) {
     if (DeviceStates[i]["sources"].length() > 0) {
+      typeChanged = true;
       actualType = getBusTypeById(JSON.stringify(DeviceStates[i]["busId"]));
       actualColor = getBusColorById(JSON.stringify(DeviceStates[i]["busId"]));
       actualPriority = getBusPriorityById(JSON.stringify(DeviceStates[i]["busId"]));
-    } else {
-      actualType = "";
-      actualColor = "";
-      actualPriority = 0;
     }
-    evaluateMode();
   }
+  if(!typeChanged) {
+    actualType = "";
+    actualColor = "";
+    actualPriority = 0;
+  }
+  evaluateMode();
 }
 
 void connectToNetwork() {
