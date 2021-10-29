@@ -26,11 +26,11 @@ Preferences preferences;
 */
 
 //Tally Arbiter Server
-char * tallyarbiter_host = "192.168.1.133";
+char * tallyarbiter_host = "192.168.0.110";
 char * tallyarbiter_port = "4455";
 
 //Local Default Camera Number
-int camNumber = 0;
+int camNumber = 1;
 
 String listenerDeviceName = "m5Atom-1";
 
@@ -69,18 +69,18 @@ int GRB_COLOR_GREEN = 0xff0000;
 int GRB_COLOR_BLUE = 0x0000ff;
 int GRB_COLOR_PURPLE = 0x008080;
 
-int numbercolor = GRB_COLOR_ORANGE;
+int numbercolor = GRB_COLOR_WHITE;
 
 int flashcolor[] = {GRB_COLOR_WHITE, GRB_COLOR_WHITE};
 int offcolor[] = {GRB_COLOR_BLACK, numbercolor};
-int readycolour[] = {GRB_COLOR_BLUE, GRB_COLOR_BLUE};
+int readycolor[] = {GRB_COLOR_BLACK, GRB_COLOR_GREEN};
 int alloffcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_BLACK};
 int wificolor[] = {GRB_COLOR_BLACK, GRB_COLOR_BLUE};
 
-int currentBrightness = 20;
+int currentBrightness = 40;
 
 //this is the array that stores the number layout
-int number[19][25] = {{
+int number[23][25] = {{
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
     0, 0, 1, 0, 0,
@@ -195,6 +195,30 @@ int number[19][25] = {{
     1, 0, 1, 0, 0,
     1, 0, 1, 0, 1
   },
+  { 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 1, 1,
+    0, 0, 1, 0, 0,
+    0, 0, 1, 0, 1
+  },
+  { 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 1
+  },
+  { 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 0,
+    0, 1, 0, 1, 0,
+    0, 1, 1, 1, 0,
+    0, 0, 0, 0, 0
+  },
+  { 1, 1, 1, 1, 1,
+    1, 0, 0, 0, 1,
+    1, 0, 0, 0, 1,
+    1, 0, 0, 0, 1,
+    1, 1, 1, 1, 1
+  },
 };
 
 // Logger - logs to serial number
@@ -263,11 +287,15 @@ void evaluateMode() {
     int r = colorNumber >> 16;
     int g = colorNumber >> 8 & 0xFF;
     int b = colorNumber & 0xFF;
+    
     if (actualType != "") {
-      drawNumber(number[camNumber], offcolor);
-    } else {
-      int currColor[] = {CRGB(r, g, b), numbercolor};
+      int backgroundColor = 0x10000 * r + 0x100 * g + b;
+      int currColor[] = {backgroundColor, numbercolor};
+      logger("Current color: " + String(backgroundColor), "info");
+      //logger("Current camNumber: " + String(camNumber), "info");
       drawNumber(number[camNumber], currColor);
+    } else {
+      drawNumber(number[camNumber], offcolor);
     }
 
     #if TALLY_EXTRA_OUTPUT
@@ -290,46 +318,19 @@ void evaluateMode() {
     }
     #endif
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
-    Serial.print(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));
+    logger(" r: " + String(r) + " g: " + String(g) + " b: " + String(b), "info");
   }
 }
 
-
-
-void showDeviceInfo() {
-  //displays the currently assigned device and tally data
-  evaluateMode();
+void connectToServer() {
+  logger("---------------------------------", "info-quiet");
+  logger("Connecting to Tally Arbiter host: " + String(tallyarbiter_host), "info-quiet");
+  socket.onEvent(socket_event);
+  socket.begin(tallyarbiter_host, atol(tallyarbiter_port));
+  logger("---------------------------------", "info-quiet");
 }
 
 // Here are all the socket listen events - messages sent from Tally Arbiter to the M5
-
-void socket_Flash(const char * payload, size_t length) {
-  //flash the screen white 3 times
-  logger("The device flashed.", "info-quiet");
-  drawNumber(number[17], alloffcolor);
-  delay(100);
-  drawNumber(number[17], flashcolor);
-  delay(100);
-  drawNumber(number[17], alloffcolor);
-  delay(100);
-  drawNumber(number[17], flashcolor);
-  delay(100);
-  drawNumber(number[17], alloffcolor);
-  delay(100);
-  drawNumber(number[17], flashcolor);
-  delay(100);
-  drawNumber(number[17], alloffcolor);
-  delay(100);
-  //then resume normal operation
-  switch (currentScreen) {
-    case 0:
-      showDeviceInfo();
-      break;
-    case 1:
-      //  showSettings();
-      break;
-  }
-}
 
 void ws_emit(String event, const char *payload = NULL) {
   if (payload) {
@@ -353,40 +354,6 @@ String strip_quot(String str) {
   return str;
 }
 
-void socket_Reassign(const char * payload, size_t length) {
-  logger("Socket Reassign: " + String(payload), "info-quiet");
-  Serial.println(payload);
-  String oldDeviceId = String(payload).substring(2, String(payload).indexOf(','));
-  String newDeviceId = String(payload).substring(oldDeviceId.length()+1);
-  newDeviceId = newDeviceId.substring(0, newDeviceId.indexOf(','));
-  oldDeviceId = strip_quot(oldDeviceId);
-  newDeviceId = strip_quot(newDeviceId);
-  String reassignObj = "{\"oldDeviceId\": \"" + oldDeviceId + "\", \"newDeviceId\": \"" + newDeviceId + "\"}";
-  char charReassignObj[1024];
-  strcpy(charReassignObj, reassignObj.c_str());
-  ws_emit("listener_reassign_object", charReassignObj);
-  // Flash 2 times
-
-  drawNumber(number[17], alloffcolor);
-  delay(200);
-  drawNumber(number[18], wificolor);
-  delay(300);
-  drawNumber(number[17], alloffcolor);
-  delay(200);
-  drawNumber(number[18], wificolor);
-  delay(300);
-  drawNumber(number[17], alloffcolor);
-  delay(200);
-  //
-
-  DeviceId = newDeviceId;
-  preferences.begin("tally-arbiter", false);
-  preferences.putString("deviceid", newDeviceId);
-  preferences.end();
-  setDeviceName();
-  logger("Socket Reassign pt2: " + String(newDeviceId), "info-quiet");
-}
-
 void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) {
   switch (type) {
     case sIOtype_CONNECT:
@@ -407,31 +374,78 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
       String content = msg.substring(type.length() + 4);
       content.remove(content.length() - 1);
 
-      logger("Got event '" + type + "', data: " + content, "info-quiet");
+      logger("Got event '" + type + "', data: " + content, "VERBOSE");
 
-      if (type == "bus_options") socket_BusOptions((char*)payload, length);
-      if (type == "deviceId") socket_DeviceId((char*)payload, length);
-      if (type == "devices") socket_Devices((char*)payload, length);
-      if (type == "device_states") socket_DeviceStates((char*)payload, length);
-      if (type == "flash") socket_Flash((char*)payload, length);
-      if (type == "reassign") socket_Reassign((char*)payload, length);
+      if (type == "bus_options") socket_BusOptions(content);
+      if (type == "deviceId") socket_DeviceId(content);
+      if (type == "devices") socket_Devices(content);
+      if (type == "device_states") socket_DeviceStates(content);
+      if (type == "flash") socket_Flash();
+      if (type == "reassign") socket_Reassign(content);
 
       break;
   }
 }
 
-void connectToServer() {
-  logger("---------------------------------", "info-quiet");
-  logger("Connecting to Tally Arbiter host: " + String(tallyarbiter_host), "info-quiet");
-  socket.onEvent(socket_event);
-  socket.begin(tallyarbiter_host, atol(tallyarbiter_port));
-  logger("---------------------------------", "info-quiet");
+void socket_Reassign(String payload) {
+  logger("Socket Reassign: " + String(payload), "info-quiet");
+  Serial.println(payload);
+  String oldDeviceId = payload.substring(0, payload.indexOf(','));
+  String newDeviceId = payload.substring(oldDeviceId.length()+1);
+  newDeviceId = newDeviceId.substring(0, newDeviceId.indexOf(','));
+  oldDeviceId = strip_quot(oldDeviceId);
+  newDeviceId = strip_quot(newDeviceId);
+  
+  String reassignObj = "{\"oldDeviceId\": \"" + oldDeviceId + "\", \"newDeviceId\": \"" + newDeviceId + "\"}";
+  char charReassignObj[1024];
+  strcpy(charReassignObj, reassignObj.c_str());
+  ws_emit("listener_reassign_object", charReassignObj);
+  ws_emit("devices");
+  
+  // Flash 2 times
+  drawNumber(number[17], alloffcolor);
+  delay(200);
+  drawNumber(number[21], readycolor);
+  delay(300);
+  drawNumber(number[17], alloffcolor);
+  delay(200);
+  drawNumber(number[22], readycolor);
+  delay(300);
+  drawNumber(number[17], alloffcolor);
+  delay(200);
+
+  logger("newDeviceId: " + newDeviceId, "info-quiet");
+  DeviceId = newDeviceId;
+  preferences.begin("tally-arbiter", false);
+  preferences.putString("deviceid", newDeviceId);
+  preferences.end();
+  setDeviceName();
+}
+void socket_Flash() {
+  //flash the screen white 3 times
+  logger("The device flashed.", "info-quiet");
+  drawNumber(number[17], alloffcolor);
+  delay(100);
+  drawNumber(number[17], flashcolor);
+  delay(100);
+  drawNumber(number[17], alloffcolor);
+  delay(100);
+  drawNumber(number[17], flashcolor);
+  delay(100);
+  drawNumber(number[17], alloffcolor);
+  delay(100);
+  drawNumber(number[17], flashcolor);
+  delay(100);
+  drawNumber(number[17], alloffcolor);
+  delay(100);
+  //then resume normal operation
+  evaluateMode();
 }
 
 void socket_Connected(const char * payload, size_t length) {
   logger("---------------------------------", "info-quiet");
   logger("Connected to Tally Arbiter host: " + String(tallyarbiter_host), "info-quiet");
-  String deviceObj = "{\"deviceId\": \"" + DeviceId + "\", \"listenerType\": \"" + listenerDeviceName.c_str() + "\", \"canBeReassigned\": true, \"canBeFlashed\": true, \"supportsChat\": true }";
+  String deviceObj = "{\"deviceId\": \"" + DeviceId + "\", \"listenerType\": \"" + listenerDeviceName.c_str() + "\", \"canBeReassigned\": true, \"canBeFlashed\": true, \"supportsChat\": false }";
   logger("deviceObj = " + String(deviceObj), "info-quiet");
   logger("DeviceId = " + String(DeviceId), "info-quiet");
   char charDeviceObj[1024];
@@ -441,21 +455,27 @@ void socket_Connected(const char * payload, size_t length) {
   logger("---------------------------------", "info-quiet");
 }
 
-void socket_BusOptions(const char * payload, size_t length) {
-  logger("Socket Message BusOptions: " + String(payload), "info-quiet");
+void socket_BusOptions(String payload) {
+  //logger("Socket Message BusOptions: " + String(payload), "info-quiet");
   BusOptions = JSON.parse(payload);
 }
 
-void socket_Devices(const char * payload, size_t length) {
-  logger("Socket Message Devices: " + String(payload), "info-quiet");
+void socket_Devices(String payload) {
+  //logger("Socket Message Devices: " + String(payload), "info-quiet");
   Devices = JSON.parse(payload);
   setDeviceName();
 }
 
-void socket_DeviceId(const char * payload, size_t length) {
-  logger("Socket Message DeviceId: " + String(payload), "info-quiet");
+void socket_DeviceId(String payload) {
+  //logger("Socket Message DeviceId: " + String(payload), "info-quiet");
   DeviceId = strip_quot(String(payload));
   setDeviceName();
+}
+
+void socket_DeviceStates(String payload) {
+  //logger("Socket Message DeviceStates: " + String(payload), "VERBOSE");
+  DeviceStates = JSON.parse(payload);
+  processTallyData();
 }
 
 String getBusTypeById(String busId) {
@@ -502,13 +522,6 @@ void processTallyData() {
     evaluateMode();
   }
 }
-
-void socket_DeviceStates(const char * payload, size_t length) {
-  logger("Socket Message DeviceStates: " + String(payload), "info-quiet");
-  DeviceStates = JSON.parse(payload);
-  processTallyData();
-}
-
 
 void connectToNetwork() {
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
@@ -639,22 +652,25 @@ void setup() {
     delay(200);
   }
   // Flash screen if connected to wifi.
-  // Would like to animate this as a wifi logo in the future
   drawNumber(number[17], alloffcolor);
   delay(100);
-  drawNumber(number[18], wificolor);
-  delay(500);
+  drawNumber(number[20], wificolor); //1 ring
+  delay(200);
+  drawNumber(number[19], wificolor); //2 rings
+  delay(200);
+  drawNumber(number[18], wificolor); //3 rings
+  delay(200);
   drawNumber(number[17], alloffcolor);
   delay(100);
 
   preferences.begin("tally-arbiter", false);
   if (preferences.getString("deviceid").length() > 0) {
-    //DeviceId = preferences.getString("deviceid");
-    DeviceId = "unassigned";
+    DeviceId = preferences.getString("deviceid");
+    //DeviceId = "unassigned";
   }
   if (preferences.getString("devicename").length() > 0) {
-    //DeviceName = preferences.getString("devicename");
-    DeviceName = "unassigned";
+    DeviceName = preferences.getString("devicename");
+    //DeviceName = "unassigned";
   }
   /*
   //TODO: use taHost and taPort and not hardcoded string, so anyone can change them from WebManager interface
@@ -719,11 +735,19 @@ void setup() {
 
 // --------------------------------------------------------------------------------------------------------------------
 // This is the main program loop
-void loop()
-{
+void loop(){
   socket.loop();
-  if (M5.Btn.wasPressed())
-  {
+  if (M5.Btn.wasPressed()){
+    // Switch action below
+    if (FSM < 17){
+      camNumber = FSM;
+      drawNumber(number[FSM], offcolor);
+    }
+    FSM++;
+    if (FSM > 16){
+      FSM = 0;
+    }
+    
     // Lets get some info sent out the serial connection for debugging
     logger("", "info-quiet");
     logger("---------------------------------", "info-quiet");
@@ -732,21 +756,10 @@ void loop()
     logger("Tally Arbiter Server: " + String(tallyarbiter_host), "info-quiet");
     logger("Device ID: " + String(DeviceId), "info-quiet");
     logger("Device Name: " + String(DeviceName), "info-quiet");
+    logger("Cam Number: " + String(camNumber), "info-quiet");
     logger("---------------------------------", "info-quiet");
     logger("", "info-quiet");
-    // Switch action below
-    if (FSM < 17)
-    {
-      camNumber = FSM;
-      drawNumber(number[FSM], offcolor);
-    }
-    FSM++;
-    if (FSM > 16)
-    {
-      FSM = 0;
-    }
   }
-
   delay(50);
   M5.update();
 }
