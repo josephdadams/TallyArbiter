@@ -1,4 +1,4 @@
-#define C_PLUS 1 //CHANGE TO 1 IF YOU USE THE M5STICK-C PLUS
+#define C_PLUS 0 //CHANGE TO 1 IF YOU USE THE M5STICK-C PLUS
 
 #if C_PLUS == 1
 #include <M5StickCPlus.h>
@@ -33,7 +33,7 @@ String listenerDeviceName = "m5StickC-1";
 bool LAST_MSG = false; // true = show log on tally screen<
 
 //Tally Arbiter Server
-char tallyarbiter_host[40] = "192.168.1.2"; //IP address of the Tally Arbiter Server
+char tallyarbiter_host[40] = "192.168.0.110"; //IP address of the Tally Arbiter Server
 char tallyarbiter_port[6] = "4455";
 
 /* END OF USER CONFIG */
@@ -491,13 +491,15 @@ void socket_Reassign(String payload) {
   strcpy(charReassignObj, reassignObj.c_str());
   ws_emit("listener_reassign_object", charReassignObj);
   ws_emit("devices");
-  M5.Lcd.fillScreen(WHITE);
+  
+  M5.Lcd.fillScreen(RED);
   delay(200);
   M5.Lcd.fillScreen(TFT_BLACK);
   delay(200);
-  M5.Lcd.fillScreen(WHITE);
+  M5.Lcd.fillScreen(RED);
   delay(200);
   M5.Lcd.fillScreen(TFT_BLACK);
+  
   logger("newDeviceId: " + newDeviceId, "info-quiet");
   DeviceId = newDeviceId;
   preferences.begin("tally-arbiter", false);
