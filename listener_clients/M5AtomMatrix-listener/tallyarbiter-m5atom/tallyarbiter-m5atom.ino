@@ -319,7 +319,9 @@ void evaluateMode() {
     #endif
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
     logger(" r: " + String(r) + " g: " + String(g) + " b: " + String(b), "info");
-  }
+
+    prevType = actualType;
+  }  
 }
 
 void connectToServer() {
