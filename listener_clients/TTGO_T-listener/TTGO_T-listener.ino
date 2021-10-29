@@ -565,6 +565,8 @@ void evaluateMode() {
     #endif
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
     Serial.print(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));
+
+    prevType = actualType;
   }
   tft.println(DeviceName);
   tft.println("-------------------");
