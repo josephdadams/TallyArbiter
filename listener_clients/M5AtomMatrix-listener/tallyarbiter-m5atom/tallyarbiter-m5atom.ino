@@ -715,8 +715,7 @@ void setup() {
     DeviceName = preferences.getString("devicename");
     //DeviceName = "unassigned";
   }
-  /*
-  //TODO: use taHost and taPort and not hardcoded string, so anyone can change them from WebManager interface
+
   if(preferences.getString("taHost").length() > 0){
     String newHost = preferences.getString("taHost");
     logger("Setting TallyArbiter host as " + newHost, "info-quiet");
@@ -729,7 +728,7 @@ void setup() {
     char chr_newPort[6];
     newPort.toCharArray(tallyarbiter_port, 6);
   }
-  */
+
   preferences.end();
 
   ArduinoOTA.setHostname(listenerDeviceName.c_str());
