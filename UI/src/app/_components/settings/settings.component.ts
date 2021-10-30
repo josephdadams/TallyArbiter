@@ -15,6 +15,7 @@ import { SourceType } from 'src/app/_models/SourceType';
 import { TSLClient } from 'src/app/_models/TSLClient';
 import { SocketService } from 'src/app/_services/socket.service';
 import Swal from 'sweetalert2';
+import { SweetAlertOptions } from 'sweetalert2';
 import { BusOption } from 'src/app/_models/BusOption';
 import { SourceTypeBus } from 'src/app/_models/SourceTypeBus';
 import { JsonEditorComponent, JsonEditorOptions } from 'ang-jsoneditor';
@@ -22,6 +23,26 @@ import { default as configSchema } from '../../../../../src/_helpers/configSchem
 
 const globalSwalOptions = {
 	confirmButtonColor: "#2a70c7",
+};
+
+const remoteErrorText: string = 'Remote error reporting helps us keep Tally Arbiter running smoothly.';
+
+const optOutAlertOptions: SweetAlertOptions = {
+	title: 'Are you sure?',
+	text: remoteErrorText,
+	showCancelButton: true,
+	confirmButtonColor: "#2a70c7",
+	icon: 'question',
+	focusCancel: false,
+};
+
+const optInAlertOptions: SweetAlertOptions = {
+	title: 'Thank you!',
+	text: remoteErrorText,
+	showCancelButton: false,
+	confirmButtonColor: "#2a70c7",
+	icon: 'success',
+	focusCancel: false,
 };
 
 type LogLevel = { title: string; id: string };
@@ -138,6 +159,16 @@ export class SettingsComponent {
 	@Confirmable(`There are error reports that you haven't read yet. Do you want to open the list of errors now?`, false)
 	public show_errors_list() {
 	this.router.navigate(['/errors']);
+	}
+
+	@Confirmable(remoteErrorText, false, optOutAlertOptions)
+	public optOutErrorReporting() {
+		this.socketService.socket.emit('remote_error_opt', false);
+	}
+
+	@Confirmable(remoteErrorText, false, optInAlertOptions)
+	public optInErrorReporting() {
+		this.socketService.socket.emit('remote_error_opt', true);
 	}
 
 	private portInUse(portToCheck: number, sourceId: string) {

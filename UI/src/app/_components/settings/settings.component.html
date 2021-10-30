@@ -355,6 +355,12 @@
                         </div>
                     </div>
                 </div>
+                <div *ngIf="socketService.remoteErrorOpt == false; else optOutButton">
+                    <button class="btn btn-outline-dark my-3" (click)="optInErrorReporting()"><i class="fas fa-remove"></i> Opt in to remote error reporting</button>
+                </div>
+                <ng-template #optOutButton>
+                    <button class="btn btn-outline-dark my-3" (click)="optOutErrorReporting()"><i class="fas fa-remove"></i> Opt out of remote error reporting</button>
+                </ng-template>
                 <div class="text-muted my-3">Version {{ socketService.version }} - <a routerLink="/errors">Go to error reports list</a></div>
             </ng-template>
         </ng-container>
@@ -367,6 +373,8 @@
 <div *ngIf="!socketService.initialDataLoaded" class="d-flex justify-content-center mt-5 pt-5">
     <div class="spinner spinner-border text-dark"></div>
 </div>
+
+
 
 <ng-template #devicesTable let-editMode="editMode">
     <h2>
