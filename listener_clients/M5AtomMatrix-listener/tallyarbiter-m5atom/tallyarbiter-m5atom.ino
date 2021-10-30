@@ -12,11 +12,6 @@
 #include <Preferences.h>
 #define DATA_PIN_LED 27
 
-//General Variables
-bool networkConnected = false;
-int currentScreen;
-uint8_t FSM = 0;
-
 //M5 variables
 PinButton btnAction(39); //the "Action" button on the device
 Preferences preferences;
@@ -32,7 +27,14 @@ char * tallyarbiter_port = "4455";
 //Local Default Camera Number
 int camNumber = 1;
 
+// Name of the device
 String listenerDeviceName = "m5Atom-1";
+
+// Enables the GPIO pinout
+#define TALLY_EXTRA_OUTPUT false
+/* END OF USER VARIABLES
+ *  
+ */
 
 //Tally Arbiter variables
 SocketIOclient socket;
@@ -45,7 +47,6 @@ String DeviceId = "unassigned";
 String DeviceName = "unassigned";
 String ListenerType = "m5";
 
-#define TALLY_EXTRA_OUTPUT false
 
 #if TALLY_EXTRA_OUTPUT
 const int led_program = 10;
@@ -54,7 +55,6 @@ const int led_aux = 36;     //OPTIONAL Led for aux on pin G36
 #endif
 
 String prevType = ""; // reduce display flicker by storing previous state
-
 String actualType = "";
 String actualColor = "";
 int actualPriority = 0;
@@ -62,10 +62,10 @@ int actualPriority = 0;
 // default color values
 int GRB_COLOR_WHITE = 0xffffff;
 int GRB_COLOR_BLACK = 0x000000;
-int GRB_COLOR_RED = 0x00ff00;
+int GRB_COLOR_RED = 0xff0000;
 int GRB_COLOR_ORANGE = 0xa5ff00;
 int GRB_COLOR_YELLOW = 0xffff00;
-int GRB_COLOR_GREEN = 0xff0000;
+int GRB_COLOR_GREEN = 0x00ff00;
 int GRB_COLOR_BLUE = 0x0000ff;
 int GRB_COLOR_PURPLE = 0x008080;
 
@@ -73,17 +73,19 @@ int numbercolor = GRB_COLOR_WHITE;
 
 int flashcolor[] = {GRB_COLOR_WHITE, GRB_COLOR_WHITE};
 int offcolor[] = {GRB_COLOR_BLACK, numbercolor};
+int badcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_RED};
 int readycolor[] = {GRB_COLOR_BLACK, GRB_COLOR_GREEN};
 int alloffcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_BLACK};
 int wificolor[] = {GRB_COLOR_BLACK, GRB_COLOR_BLUE};
+int infocolor[] = {GRB_COLOR_BLACK, GRB_COLOR_ORANGE};
 
 int currentBrightness = 40;
 
 //this is the array that stores the number layout
-int number[23][25] = {{
+int number[17][25] = {{
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
-    0, 0, 1, 0, 0,
+    0, 0, 0, 0, 1,
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0
   },
@@ -183,42 +185,82 @@ int number[23][25] = {{
     0, 0, 0, 0, 0,
     1, 1, 1, 1, 1
   },
+};
+
+// this array stores all the icons for the display
+int icons[12][25] = {
   { 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1,
     1, 1, 1, 1, 1,
     1, 1, 1, 1, 1,
     1, 1, 1, 1, 1
-  },
+  }, // full blank
   { 0, 0, 1, 1, 1,
     0, 1, 0, 0, 0,
     1, 0, 0, 1, 1,
     1, 0, 1, 0, 0,
     1, 0, 1, 0, 1
-  },
+  }, // wifi 3 rings
   { 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
     0, 0, 0, 1, 1,
     0, 0, 1, 0, 0,
     0, 0, 1, 0, 1
-  },
+  }, // wifi 2 rings
   { 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 1
-  },
+  }, // wifi 1 ring
+  { 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 1, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0
+  }, // reassign 1
   { 0, 0, 0, 0, 0,
     0, 1, 1, 1, 0,
     0, 1, 0, 1, 0,
     0, 1, 1, 1, 0,
     0, 0, 0, 0, 0
-  },
+  }, // reassign 2
   { 1, 1, 1, 1, 1,
     1, 0, 0, 0, 1,
     1, 0, 0, 0, 1,
     1, 0, 0, 0, 1,
     1, 1, 1, 1, 1
-  },
+  }, // reassign 3
+  { 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 1, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0
+  }, // setup 1
+  { 0, 0, 0, 0, 0,
+    0, 0, 1, 0, 0,
+    0, 1, 0, 1, 0,
+    0, 0, 1, 0, 0,
+    0, 0, 0, 0, 0
+  }, // setup 2
+  { 0, 0, 1, 0, 0,
+    0, 0, 0, 0, 0,
+    1, 0, 0, 0, 1,
+    0, 0, 0, 0, 0,
+    0, 0, 1, 0, 0
+  }, // setup 3
+  { 1, 0, 0, 0, 1,
+    0, 1, 0, 1, 0,
+    0, 0, 1, 0, 0,
+    0, 1, 0, 1, 0,
+    1, 0, 0, 0, 1
+  }, // error
+  { 0, 1, 0, 0, 0,
+    0, 0, 1, 0, 0,
+    0, 0, 0, 1, 0,
+    0, 0, 0, 0, 1,
+    0, 0, 0, 1, 0
+  }, // good
 };
 
 // Logger - logs to serial number
@@ -230,10 +272,8 @@ void logger(String strLog, String strType) {
     Serial.println(strLog);
   }
 }
-
 // Set Device name
-void setDeviceName()
-{
+void setDeviceName(){
   for (int i = 0; i < Devices.length(); i++) {
     if (JSON.stringify(Devices[i]["id"]) == "\"" + DeviceId + "\"") {
       String strDevice = JSON.stringify(Devices[i]["Type"]);
@@ -251,28 +291,20 @@ void setDeviceName()
   logger("-------------------------------------------------", "info-quiet");
 }
 
-void WiFiEvent(WiFiEvent_t event) {
-  switch (event) {
-    case SYSTEM_EVENT_STA_GOT_IP:
-      logger("Network connected!", "info");
-      logger(String(WiFi.localIP()), "info");
-      networkConnected = true;
-      break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
-      logger("Network connection lost!", "info");
-      networkConnected = false;
-      break;
-  }
-}
-
 //---------------------------------------------------------------
 //HERE IS THE MAIN LED DRAWING ROUTINE aka drawNumber
-void drawNumber(int arr[], int colors[])
-{
+void drawNumber(int arr[], int colors[]) {
   for (int i = 0; i < 25; i++)
   {
     //Serial.println("i: " + String(i) + " color: " + String(colors[arr[i]]));
     M5.dis.drawpix(i, colors[arr[i]]);
+  }
+}
+
+void drawMultiple(int arr[], int colors[], int times, int delays) {
+  for (times; times > 0; times--) {
+    drawNumber(arr, colors);
+    delay(delays);
   }
 }
 //---------------------------------------------------------------
@@ -280,7 +312,7 @@ void drawNumber(int arr[], int colors[])
 // Determine if the device is currently in preview, program, or both
 void evaluateMode() {
   if(actualType != prevType) {
-    M5.dis.clear();
+    //M5.dis.clear();
     actualColor.replace("#", "");
     String hexstring = actualColor;
     long colorNumber = (long) strtol( &hexstring[1], NULL, 16);
@@ -405,15 +437,19 @@ void socket_Reassign(String payload) {
   ws_emit("devices");
   
   // Flash 2 times
-  drawNumber(number[17], alloffcolor);
+  drawNumber(icons[1], alloffcolor);
   delay(200);
-  drawNumber(number[21], readycolor);
+  drawNumber(icons[4], readycolor);
   delay(300);
-  drawNumber(number[17], alloffcolor);
+  drawNumber(icons[1], alloffcolor);
   delay(200);
-  drawNumber(number[22], readycolor);
+  drawNumber(icons[5], readycolor);
   delay(300);
-  drawNumber(number[17], alloffcolor);
+  drawNumber(icons[1], alloffcolor);
+  delay(200);
+  drawNumber(icons[6], readycolor);
+  delay(300);
+  drawNumber(icons[1], alloffcolor);
   delay(200);
 
   logger("newDeviceId: " + newDeviceId, "info-quiet");
@@ -426,19 +462,19 @@ void socket_Reassign(String payload) {
 void socket_Flash() {
   //flash the screen white 3 times
   logger("The device flashed.", "info-quiet");
-  drawNumber(number[17], alloffcolor);
+  drawNumber(icons[1], alloffcolor);
   delay(100);
-  drawNumber(number[17], flashcolor);
+  drawNumber(icons[1], flashcolor);
   delay(100);
-  drawNumber(number[17], alloffcolor);
+  drawNumber(icons[1], alloffcolor);
   delay(100);
-  drawNumber(number[17], flashcolor);
+  drawNumber(icons[1], flashcolor);
   delay(100);
-  drawNumber(number[17], alloffcolor);
+  drawNumber(icons[1], alloffcolor);
   delay(100);
-  drawNumber(number[17], flashcolor);
+  drawNumber(icons[1], flashcolor);
   delay(100);
-  drawNumber(number[17], alloffcolor);
+  drawNumber(icons[1], alloffcolor);
   delay(100);
   //then resume normal operation
   evaluateMode();
@@ -536,12 +572,7 @@ void connectToNetwork() {
   //reset settings - wipe credentials for testing
   //wm.resetSettings();
 
-  //add a custom input field
-  int customFieldLength = 40;
-
-  //const char* custom_radio_str = "<br/><label for='taHostIP'>Tally Arbiter Server</label><input type='text' name='taHostIP'>";
-  //new (&custom_field) WiFiManagerParameter(custom_radio_str); // custom html input
-
+  //add TA fields
   WiFiManagerParameter custom_taServer("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
   WiFiManagerParameter custom_taPort("taHostPort", "Port", tallyarbiter_port, 6);
 
@@ -561,21 +592,33 @@ void connectToNetwork() {
   wm.setConfigPortalTimeout(120); // auto close configportal after n seconds
 
   bool res;
-
-  res = wm.autoConnect(listenerDeviceName.c_str()); // AP name for setup
+  bool busy = false;
+  
+  res = wm.autoConnect(listenerDeviceName.c_str());
 
   if (!res) {
     logger("Failed to connect", "error");
+    drawNumber(icons[10], badcolor); //display failed mark
     // ESP.restart();
   } else {
     //if you get here you have connected to the WiFi
     logger("connected...yay :)", "info");
-    networkConnected = true;
+
+    // Flash screen if connected to wifi.
+    drawNumber(icons[3], wificolor); //1 ring
+    delay(500);
+    drawNumber(icons[2], wificolor); //2 rings
+    delay(500);
+    drawNumber(icons[1], wificolor); //3 rings
+    delay(500);
+    drawNumber(icons[11], readycolor); //display okay mark
+    delay(400);
+    
+    //TODO: fix MDNS discovery
+    /*
 
     int nrOfServices = MDNS.queryService("tally-arbiter", "tcp");
 
-    //TODO: fix MDNS discovery
-    /*
     if (nrOfServices == 0) {
       logger("No server found.", "error");
     } else {
@@ -636,9 +679,9 @@ void setup() {
   Serial.begin(115200);
   while (!Serial);
   logger("Initializing M5-Atom.", "info-quiet");
-
-  setCpuFrequencyMhz(80);    //Save battery by turning down the CPU clock
-  btStop();                 //Save battery by turning off BlueTooth
+  
+  //Save battery by turning off BlueTooth
+  btStop();
 
   uint64_t chipid = ESP.getEfuseMac();
   listenerDeviceName = "m5Atom-" + String((uint16_t)(chipid>>32)) + String((uint32_t)chipid);
@@ -649,24 +692,18 @@ void setup() {
   M5.dis.drawpix(0, 0xf00000);
 
   // blanks out the screen
-  drawNumber(number[17], alloffcolor);
+  drawNumber(icons[0], alloffcolor);
   delay(100); //wait 100ms before moving on
 
+  //do startup animation
+  drawNumber(icons[7], infocolor);
+  delay(400);
+  drawNumber(icons[8], infocolor);
+  delay(400);
+  drawNumber(icons[9], infocolor);
+  delay(400);
+  
   connectToNetwork(); //starts Wifi connection
-  while (!networkConnected) {
-    delay(200);
-  }
-  // Flash screen if connected to wifi.
-  drawNumber(number[17], alloffcolor);
-  delay(100);
-  drawNumber(number[20], wificolor); //1 ring
-  delay(200);
-  drawNumber(number[19], wificolor); //2 rings
-  delay(200);
-  drawNumber(number[18], wificolor); //3 rings
-  delay(200);
-  drawNumber(number[17], alloffcolor);
-  delay(100);
 
   preferences.begin("tally-arbiter", false);
   if (preferences.getString("deviceid").length() > 0) {
@@ -733,6 +770,7 @@ void setup() {
   pinMode(led_aux, OUTPUT);
   digitalWrite(led_aux, HIGH);
   #endif  
+  
   connectToServer();
   delay (100);
 }
@@ -744,13 +782,12 @@ void loop(){
   socket.loop();
   if (M5.Btn.wasPressed()){
     // Switch action below
-    if (FSM < 17){
-      camNumber = FSM;
-      drawNumber(number[FSM], offcolor);
+    if (camNumber < 17){
+      drawNumber(number[camNumber], offcolor);
     }
-    FSM++;
-    if (FSM > 16){
-      FSM = 0;
+    camNumber++;
+    if (camNumber > 16){
+      camNumber = 0;
     }
     
     // Lets get some info sent out the serial connection for debugging
