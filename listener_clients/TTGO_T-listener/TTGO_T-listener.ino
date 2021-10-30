@@ -63,6 +63,7 @@ const int led_blue = 26;     //blue led  connected with 270ohm resistor
 
 WiFiManager wm; // global wm instance
 WiFiManagerParameter custom_field; // global param ( for non blocking w params )
+bool portalRunning = false;
 
 //Tally Arbiter variables
 SocketIOclient socket;
@@ -132,6 +133,8 @@ void showVoltage() {
 }
 
 void showSettings() {
+  wm.startWebPortal();
+  portalRunning = true;
   //displays the current network connection and Tally Arbiter server data
   tft.setCursor(0, 0);
   tft.fillScreen(TFT_BLACK);
@@ -146,17 +149,20 @@ void showSettings() {
   Serial.println(voltage);
   if(battery_voltage >= 4.2){
     tft.println("Battery charging...");   // show when TTGO is plugged in
-  }
-  else if (battery_voltage < 3) {
+  } else if (battery_voltage < 3) {
     tft.println("Battery empty. Recharge!!");
-  }
-  else {
+  } else {
     tft.println("Battery:" + String(batteryLevel) + "%");
-     }
+  }
 }
 
 void showDeviceInfo() {
-  //displays the currently assigned device and tally data
+  if(portalRunning) {
+    wm.stopWebPortal();
+    portalRunning = false;
+  }
+  tft.setCursor(0, 0);
+  tft.fillScreen(TFT_BLACK);
   evaluateMode();
 }
 
@@ -181,9 +187,6 @@ void connectToNetwork() {
 
   //reset settings - wipe credentials for testing
   //wm.resetSettings();
-
-  //const char* custom_radio_str = "<br/><label for='taHostIP'>Tally Arbiter Server</label><input type='text' name='taHostIP'>";
-  //new (&custom_field) WiFiManagerParameter(custom_radio_str); // custom html input
 
   WiFiManagerParameter custom_taServer("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
   WiFiManagerParameter custom_taPort("taHostPort", "Port", tallyarbiter_port, 6);
@@ -305,7 +308,7 @@ void ws_emit(String event, const char *payload = NULL) {
 }
 
 void connectToServer() {
-  logger("Connecting to Tally Arbiter host: " + String(tallyarbiter_host) + tallyarbiter_port, "info");
+  logger("Connecting to Tally Arbiter host: " + String(tallyarbiter_host) + " " + tallyarbiter_port, "info");
   socket.onEvent(socket_event);
   socket.begin(tallyarbiter_host, atol(tallyarbiter_port));
 }
@@ -527,9 +530,12 @@ void SetDeviceName() {
 }
 
 void evaluateMode() {
+  if(currentScreen == 1) {
+    return;
+  }
+  tft.setCursor(0, 0);
+  tft.setTextSize(2);
   if(actualType != prevType) {
-    tft.setCursor(0, 0);
-    tft.setTextSize(2);
     actualColor.replace("#", "");
     String hexstring = actualColor;
     long number = (long) strtol( &hexstring[1], NULL, 16);
@@ -563,12 +569,16 @@ void evaluateMode() {
       digitalWrite (led_aux, LOW);
     }
     #endif
-    logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
+    logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info-quiet");
     Serial.print(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));
 
     prevType = actualType;
   }
-  tft.println(DeviceName);
+  String device_status_line = DeviceName;
+  if (actualType != "") {
+    device_status_line += " (" + strip_quot(actualType) + ")";
+  }
+  tft.println(device_status_line);
   tft.println("-------------------");
   if (LAST_MSG == true) {
     logger(LastMessage, "info");
@@ -602,7 +612,7 @@ void setup(void) {
   tft.setCursor(0, 0);
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE);
-  tft.setTextSize(1);
+  tft.setTextSize(2);
   tft.setSwapBytes(true);
   tft.pushImage(0, 0,  240, 135, TallyArbiterLogo);
   
@@ -687,6 +697,9 @@ void setup(void) {
 }
 
 void loop() {
+  if(portalRunning){
+    wm.process();
+  }
   ArduinoOTA.handle();
   socket.loop();
   btntop.update();
