@@ -61,7 +61,7 @@
         "jquery": "^3.6.0",
         "jspack": "^0.0.4",
         "obs-websocket-js": "^4.0.2",
-        "osc": "^2.4.1",
+        "osc": "^2.4.2",
         "packet": "0.0.6",
         "rate-limiter-flexible": "^2.2.4",
         "reflect-metadata": "^0.1.13",
