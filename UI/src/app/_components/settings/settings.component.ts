@@ -370,9 +370,28 @@ export class SettingsComponent {
 		return this.socketService.sourceTypes.find((obj) => obj.id === sourceTypeId)?.busses as SourceTypeBus[];
 	}
 
-	public toggleTestMode() {
-		this.socketService.testModeOn = !this.socketService.testModeOn;
-		this.socketService.socket.emit('testmode', this.socketService.testModeOn);
+	public setTestMode(state: boolean) {
+		if (state == true) {
+			this.socketService.socket.emit('testmode', true);
+			this.socketService.testModeOn = true;
+		} else if (state == false) {
+			this.socketService.socket.emit('testmode', false);
+			this.socketService.testModeOn = false;
+		}
+	}
+
+	public checkTestMode() {
+		let sources = this.socketService.sources;
+		let status = false;
+		for (let i = 0; i < sources.length; i++) {
+			if (sources[i].id == 'TEST') {
+				status = true;
+				break;
+			} else {
+				status = false;
+			}
+		}
+		return status;
 	}
 
 	public getDeviceSourcesByDeviceId(deviceId: string) {
