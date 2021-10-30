@@ -249,10 +249,13 @@
         <ng-container ngbNavItem="testing">
             <a ngbNavLink>Testing</a>
             <ng-template ngbNavContent>
-                <button class="btn btn-outline-dark mb-5" (click)="toggleTestMode()">
-                    <i class="fas fa-vial"></i> Turn {{ socketService.testModeOn ? "Off" : "On" }} Test Mode
-                </button>
-                <i *ngIf="socketService.testModeOn" class="fas fa-vial fa-spin fa-4x text-secondary float-end"></i>
+                <div *ngIf="checkTestMode() == false; else testModeOffButton">
+                    <button class="btn btn-outline-dark mb-5" (click)="setTestMode(true)"><i class="fas fa-vial"></i> Turn On Test Mode</button>
+                </div>
+                <ng-template #testModeOffButton>
+                    <button class="btn btn-outline-dark mb-5" (click)="setTestMode(false)"><i class="fas fa-vial"></i> Turn Off Test Mode</button>
+                </ng-template>
+                <i *ngIf="checkTestMode()" class="fas fa-vial fa-spin fa-4x text-secondary float-end"></i>
                 <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: false}"></ng-container>
             </ng-template>
         </ng-container>
