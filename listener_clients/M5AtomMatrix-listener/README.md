@@ -12,15 +12,21 @@ https://m5stack.com/collections/m5-atom/products/atom-matrix-esp32-development-k
 OR
 https://www.adafruit.com/product/4497 (Shipped from USA)
 
-# Instructions
+# Installation
 
 1. Go to https://docs.m5stack.com/en/arduino/arduino_development follow the instructions under heading "Boards Manager"
 2. Open tallyarbiter-m5atom.ino in Arduino IDE https://www.arduino.cc/en/software
-2. Update `networkSSID`, `networkPass` variable to match your Wifi network
-3. Update `tallyarbiter_host` values to match your TallyArbiter installation
-4. In Library Manager install FastLED, SocketIoClient, Arduino_JSON, WebSockets version 2.3.4, and MultiButton
+3. Update `tallyarbiter_host` and `tallyarbiter_host` values to match your TallyArbiter installation
+4. In Library Manager install FastLED, SocketIoClient, Arduino_JSON, WebSockets version 2.3.4, WifiManager (by tzapu) and MultiButton 
 6. Open `~/Documents/Arduino/libraries/SocketIoClient/SocketIoClient.cpp` in a text editor. Find the line that says `hexdump(payload, length);` and comment it out by adding `//` to the beginning of the line. Save and close that file.
 7. Go In the IDE go to Sketch -> Upload
+
+# Setup on device
+1. Plug the device in a powersource
+2. Wait for the boot animation to finish, if there is no saved AP it will startup an Access Point where you can configure one
+3. Connect to the 'm5Atom-1xxxxxxx' Access Point via phone and go to 192.168.4.1
+4. Configure your AP for Tally Arbiter
+5. If connection succesfull a WiFi animation and a green tick mark will show. If not a big red cross will be shown and you can reboot the device to try again.
 
 ## Troubleshooting
 
