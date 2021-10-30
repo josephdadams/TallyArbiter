@@ -36,34 +36,39 @@ oscUDP.on('ready', function () {
 export class OSC extends Action {
     public run(): void {
         let args = [];
+        let data = [];
 
         if (this.action.data.args !== '') {
             let args = this.action.data.args.split(' ');
             let arg;
 
             for (let i = 0; i < args.length; i++) {
-                if (isNaN(args[i])) {
+                if (Number.isNaN(args[i])) {
                     arg = {
                         type: 's',
                         value: args[i].replace(/"/g, '').replace(/'/g, '')
                     };
-                    args.push(arg);
+                    data.push(arg);
                 }
-                else if (args[i].indexOf('.') > -1) {
+                else if (args[i].toString().indexOf('.') > -1) {
                     arg = {
                         type: 'f',
                         value: parseFloat(args[i])
                     };
-                    args.push(arg);
+                    data.push(arg);
                 }
                 else {
                     arg = {
                         type: 'i',
                         value: parseInt(args[i])
                     };
-                    args.push(arg);
+                    data.push(arg);
                 }
             }
+        }
+
+        if (this.action.data.path == '') {
+            this.action.data.path = '/';
         }
 
         logger(`Sending OSC Message: ${this.action.data.ip}:${this.action.data.port} ${this.action.data.path} ${this.action.data.args}`, 'info');
