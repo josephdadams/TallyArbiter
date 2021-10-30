@@ -32,6 +32,7 @@ String listenerDeviceName = "m5Atom-1";
 
 // Enables the GPIO pinout
 #define TALLY_EXTRA_OUTPUT false
+
 /* END OF USER VARIABLES
  *  
  */
