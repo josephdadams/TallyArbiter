@@ -430,18 +430,21 @@ void socket_Reassign(String payload) {
 }
 
 void processTallyData() {
+  bool typeChanged = false;
   for (int i = 0; i < DeviceStates.length(); i++) {
     if (DeviceStates[i]["sources"].length() > 0) {
+      typeChanged = true;
       actualType = getBusTypeById(JSON.stringify(DeviceStates[i]["busId"]));
       actualColor = getBusColorById(JSON.stringify(DeviceStates[i]["busId"]));
       actualPriority = getBusPriorityById(JSON.stringify(DeviceStates[i]["busId"]));
-    } else {
-      actualType = "";
-      actualColor = "";
-      actualPriority = 0;
     }
-    evaluateMode();
   }
+  if(!typeChanged) {
+    actualType = "";
+    actualColor = "";
+    actualPriority = 0;
+  }
+  evaluateMode();
 }
 
 String getBusTypeById(String busId) {
@@ -522,7 +525,8 @@ void evaluateMode() {
     }
     #endif
 
-    logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
-    Serial.print(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));
+    logger("Device is in " + actualType + " (color " + actualColor + " r: " + String(r) + " g: " + String(g) + " b: " + String(b) + " - priority " + String(actualPriority) + ")", "info");
+
+    prevType = actualType;
   }
 }
