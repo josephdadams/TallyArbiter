@@ -6,8 +6,6 @@ import { clone } from "./clone";
 import { AuthenticateSuccessResponse } from '../_models/AuthenticateSuccessResponse';
 import { User } from '../_models/User';
 
-export const roles = ["admin", "settings:sources_devices", "settings:listeners", "settings:cloud", "settings:testing", "settings:config", "settings:users", "settings:logs", "producer", "tally_viewer"];
-
 export function authenticate(username: string, password: string): Promise<AuthenticateSuccessResponse> {
     return new Promise<AuthenticateSuccessResponse>((resolve, reject) => {
         console.log(currentConfig.users);
