@@ -1,9 +1,16 @@
 tasks:
-  - init: npm i -g npm redundancyjs; cd UI; npm i --ignore-scripts; npm run build; cd ..; npm i --ignore-scripts
+  - name: Server
+    init: npm i -g npm redundancyjs; cd UI; npm i --ignore-scripts; npm run build; cd ..; npm i --ignore-scripts; gp sync-done server
     command: npm start
+  - name: Angular serve
+    init: gp sync-await server
+    command: cd UI; npm start
 ports:
   - port: 4455
-    onOpen: open-preview
+    visibility: public
+  - port: 4200
+    onOpen: open-browser
+    visibility: public
   - port: 8099
     onOpen: ignore
   - port: 5958
