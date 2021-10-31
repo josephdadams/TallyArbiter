@@ -5,6 +5,7 @@ tasks:
   - name: Angular serve
     init: gp sync-await server
     command: cd UI; npm start
+    openMode: split-right
 ports:
   - port: 4455
     visibility: public
