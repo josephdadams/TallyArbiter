@@ -1,6 +1,6 @@
 <div class="container pt-4" *ngIf="socketService.initialDataLoaded">
     <nav ngbNav #nav="ngbNav" class="nav-tabs" [animation]="false">
-        <ng-container ngbNavItem>
+        <ng-container ngbNavItem *requireRole>
             <a ngbNavLink>Sources & Devices</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -52,7 +52,7 @@
                 </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem>
+        <ng-container ngbNavItem *requireRole="'tally_viewer'">
             <a ngbNavLink>Listeners</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -149,7 +149,7 @@
                 </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem>
+        <ng-container ngbNavItem *requireRole>
             <a ngbNavLink>Cloud</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -246,7 +246,7 @@
                 </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem>
+        <ng-container ngbNavItem *requireRole>
             <a ngbNavLink>Testing</a>
             <ng-template ngbNavContent>
                 <button class="btn btn-outline-dark mb-5" (click)="toggleTestMode()">
@@ -256,7 +256,7 @@
                 <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: false}"></ng-container>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem>
+        <ng-container ngbNavItem *requireRole>
             <a ngbNavLink>Config</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -289,7 +289,7 @@
                 </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem>
+        <ng-container ngbNavItem *requireRole>
             <a ngbNavLink>Users</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -331,7 +331,7 @@
                 </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem>
+        <ng-container ngbNavItem *requireRole>
             <a ngbNavLink>Logs</a>
             <ng-template ngbNavContent>
                 <div class="row">

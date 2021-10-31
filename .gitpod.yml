@@ -8,9 +8,10 @@ tasks:
     openMode: split-right
 ports:
   - port: 4455
+    onOpen: notify
     visibility: public
   - port: 4200
-    onOpen: open-browser
+    onOpen: notify
     visibility: public
   - port: 8099
     onOpen: ignore

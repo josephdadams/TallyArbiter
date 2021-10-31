@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { SocketService } from './socket.service';
 import jwt_decode from 'jwt-decode';
+import { roles } from '../../../../src/_helpers/authRoles';
 
 export interface LoginResponse {
   loginOk: boolean;
@@ -15,6 +16,7 @@ export interface LoginResponse {
 export class AuthService {
   public access_token: string = "";
   public profile: any = undefined;
+  public roles: string[] = [];
 
   constructor(private socketService: SocketService, private router: Router) {
     if(localStorage.getItem("access_token") !== null) {
@@ -22,6 +24,8 @@ export class AuthService {
       this.loadProfile();
       this.socketService.sendAccessToken(this.access_token);
     }
+    this.roles = roles;
+    console.log("roles", this.roles);
   }
 
   private setToken(value: string) {
