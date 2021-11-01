@@ -49,6 +49,7 @@ jobs:
           - name: WiFiManager
           - name: MultiButton
           - name: Arduino_JSON
+          - name: FastLED
         cli-compile-flags: |
           - --export-binaries
         sketch-paths: |
