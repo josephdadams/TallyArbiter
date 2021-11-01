@@ -143,7 +143,7 @@ jobs:
       run: pip install prospector[with_everything]
     - name: Analyse
       working-directory: listener_clients/blink1-listener
-      run: prospector -W pyroma
+      run: prospector -W pyroma -0
 
   analyse_blinkt-listener:
     name: Analyse Pimoroni Blinkt Listener
@@ -154,7 +154,7 @@ jobs:
       run: pip install prospector[with_everything]
     - name: Analyse
       working-directory: listener_clients/pimoroni-blinkt-listener
-      run: prospector -W pyroma
+      run: prospector -W pyroma -0
 
   analyse_gpo-listener:
     name: Analyse GPO Listener
@@ -165,4 +165,4 @@ jobs:
       run: pip install prospector[with_everything]
     - name: Analyse
       working-directory: listener_clients/gpo-listener
-      run: prospector -W pyroma
+      run: prospector -W pyroma -0
