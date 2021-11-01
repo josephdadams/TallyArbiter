@@ -382,9 +382,9 @@ void connectToServer() {
 }
 
 void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) {
-  String msg = "";
-  String type = "";
-  String content = "";
+  String eventMsg = "";
+  String eventType = "";
+  String eventContent = "";
 
   switch (type) {
     case sIOtype_CONNECT:
@@ -400,32 +400,32 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
       break;
 
     case sIOtype_EVENT:
-      msg = (char*)payload;
-      type = msg.substring(2, msg.indexOf("\"",2));
-      content = msg.substring(type.length() + 4);
-      content.remove(content.length() - 1);
+      eventMsg = (char*)payload;
+      eventType = eventMsg.substring(2, eventMsg.indexOf("\"",2));
+      eventContent = eventMsg.substring(eventType.length() + 4);
+      eventContent.remove(eventContent.length() - 1);
 
-      logger("Got event '" + type + "', data: " + content, "info-quiet");
+      logger("Got event '" + eventType + "', data: " + eventContent, "info-quiet");
 
-      if (type == "bus_options") BusOptions = JSON.parse(content);
-      if (type == "reassign") socket_Reassign(content);
-      if (type == "flash") socket_Flash();
-      if (type == "messaging") socket_Messaging(content);
+      if (eventType == "bus_options") BusOptions = JSON.parse(eventContent);
+      if (eventType == "reassign") socket_Reassign(eventContent);
+      if (eventType == "flash") socket_Flash();
+      if (eventType == "messaging") socket_Messaging(eventContent);
 
-      if (type == "deviceId") {
-        DeviceId = content.substring(1, content.length()-1);
+      if (eventType == "deviceId") {
+        DeviceId = eventContent.substring(1, eventContent.length()-1);
         SetDeviceName();
         showDeviceInfo();
         currentScreen = 0;
       }
 
-      if (type == "devices") {
-        Devices = JSON.parse(content);
+      if (eventType == "devices") {
+        Devices = JSON.parse(eventContent);
         SetDeviceName();
       }
 
-      if (type == "device_states") {
-        DeviceStates = JSON.parse(content);
+      if (eventType == "device_states") {
+        DeviceStates = JSON.parse(eventContent);
         processTallyData();
       }
 
