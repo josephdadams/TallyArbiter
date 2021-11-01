@@ -259,7 +259,7 @@ void connectToNetwork() {
 
   //reset settings - wipe credentials for testing
   //wm.resetSettings();
-  
+
   WiFiManagerParameter custom_taServer("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
   WiFiManagerParameter custom_taPort("taHostPort", "Port", tallyarbiter_port, 6);
 
@@ -382,6 +382,10 @@ void connectToServer() {
 }
 
 void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) {
+  String msg = "";
+  String type = "";
+  String content = "";
+
   switch (type) {
     case sIOtype_CONNECT:
       socket_Connected((char*)payload, length);
@@ -396,9 +400,9 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
       break;
 
     case sIOtype_EVENT:
-      String msg = (char*)payload;
-      String type = msg.substring(2, msg.indexOf("\"",2));
-      String content = msg.substring(type.length() + 4);
+      msg = (char*)payload;
+      type = msg.substring(2, msg.indexOf("\"",2));
+      content = msg.substring(type.length() + 4);
       content.remove(content.length() - 1);
 
       logger("Got event '" + type + "', data: " + content, "info-quiet");
@@ -426,6 +430,7 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
       }
 
       break;
+
     default:
       break;
   }
