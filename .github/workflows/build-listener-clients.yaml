@@ -133,3 +133,14 @@ jobs:
       with:
         name: 'TallyArbiter-Listener-${{ matrix.board.name }}'
         path: 'listener_clients/TTGO_T-listener/build/${{ env.FQBN_REPLACED }}'
+
+  analyse_blink1-listener:
+    name: Analyse Blink1 Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: install prosepector
+      run: pip install prospector[with_everything]
+    - name: Analyse
+      working-directory: listener_clients/blink1-listener
+      run: prospector -W pyroma
