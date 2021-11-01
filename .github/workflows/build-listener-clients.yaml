@@ -144,3 +144,25 @@ jobs:
     - name: Analyse
       working-directory: listener_clients/blink1-listener
       run: prospector -W pyroma
+
+  analyse_blinkt-listener:
+    name: Analyse Pimoroni Blinkt Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: install prosepector
+      run: pip install prospector[with_everything]
+    - name: Analyse
+      working-directory: listener_clients/pimoroni-blinkt-listener
+      run: prospector -W pyroma
+
+  analyse_gpo-listener:
+    name: Analyse GPO Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: install prosepector
+      run: pip install prospector[with_everything]
+    - name: Analyse
+      working-directory: listener_clients/gpo-listener
+      run: prospector -W pyroma
