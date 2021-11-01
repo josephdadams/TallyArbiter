@@ -1,10 +1,19 @@
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import { logger } from "../index";
 import { currentConfig } from './config';
 import { clone } from "./clone";
 
 import { AuthenticateSuccessResponse } from '../_models/AuthenticateSuccessResponse';
 import { User } from '../_models/User';
+
+export function hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, 20);
+}
+
+export function checkPassword(input_password: string, original_password: string): Promise<boolean> {
+    return bcrypt.compare(input_password, original_password);
+}
 
 export function authenticate(username: string, password: string): Promise<AuthenticateSuccessResponse> {
     return new Promise<AuthenticateSuccessResponse>((resolve, reject) => {
@@ -13,18 +22,21 @@ export function authenticate(username: string, password: string): Promise<Authen
             let user = clone(user_original);
             if(username === user.username) {
                 userFound = true;
-                if(password !== user.password) {
-                    reject(new Error('Password is incorrect'));
-                }
-                delete user["password"];
-                jwt.sign({user}, currentConfig.security.jwt_private_key, { expiresIn: '2 days' }, (err, token) => {
-                    if(err) { reject(err) }
-                    resolve({
-                        access_token: token,
-                        user: user
-                    });
+                checkPassword(password, user.password).then((password_valid) => {
+                    if(!password_valid) {
+                        reject(new Error('Password is incorrect'));
+                    } else {
+                        delete user["password"];
+                        jwt.sign({user}, currentConfig.security.jwt_private_key, { expiresIn: '2 days' }, (err, token) => {
+                            if(err) { reject(err) }
+                            resolve({
+                                access_token: token,
+                                user: user
+                            });
+                        });
+                        return true;
+                    }
                 });
-                return true;
             }
         });
         if(!userFound) reject(new Error('User not found'));
@@ -52,18 +64,24 @@ export function getUsersList(removePassword = false): User[] {
     return users;
 }
 
-export function addUser(user: User) {
-    let userFound = false;
-    currentConfig.users.forEach((user_original) => {
-        if(user.username === user_original.username) {
-            userFound = true;
-            return false;
+export function addUser(user: User): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+        let userFound = false;
+        currentConfig.users.forEach((user_original) => {
+            if(user.username === user_original.username) {
+                userFound = true;
+            }
+        });
+        if(!userFound) {
+            hashPassword(user.password).then((hashed_password) => {
+                user.password = hashed_password;
+                currentConfig.users.push(user);
+                resolve(true);
+            });
+        } else {
+            reject();
         }
     });
-    if(!userFound) {
-        currentConfig.users.push(user);
-        return true;
-    }
 }
 
 export function editUser(user: User) {
