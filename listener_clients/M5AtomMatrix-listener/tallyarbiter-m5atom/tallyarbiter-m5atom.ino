@@ -40,7 +40,7 @@ String listenerDeviceName = "m5Atom-1";
 //Tally Arbiter variables
 SocketIOclient socket;
 WiFiManager wm; // global wm instance
-WiFiManagerParameter custom_field; // global param ( for non blocking w params )
+
 JSONVar BusOptions;
 JSONVar Devices;
 JSONVar DeviceStates;
@@ -390,6 +390,10 @@ String strip_quot(String str) {
 }
 
 void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) {
+  String eventMsg = "";
+  String eventType = "";
+  String eventContent = "";
+
   switch (type) {
     case sIOtype_CONNECT:
       socket_Connected((char*)payload, length);
@@ -404,20 +408,23 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
       break;
 
     case sIOtype_EVENT:
-      String msg = (char*)payload;
-      String type = msg.substring(2, msg.indexOf("\"",2));
-      String content = msg.substring(type.length() + 4);
-      content.remove(content.length() - 1);
+      String eventMsg = (char*)payload;
+      String eventType = eventMsg.substring(2, eventMsg.indexOf("\"",2));
+      String eventContent = eventMsg.substring(eventType.length() + 4);
+      eventContent.remove(eventContent.length() - 1);
 
-      logger("Got event '" + type + "', data: " + content, "VERBOSE");
+      logger("Got event '" + eventType + "', data: " + eventContent, "VERBOSE");
 
-      if (type == "bus_options") socket_BusOptions(content);
-      if (type == "deviceId") socket_DeviceId(content);
-      if (type == "devices") socket_Devices(content);
-      if (type == "device_states") socket_DeviceStates(content);
-      if (type == "flash") socket_Flash();
-      if (type == "reassign") socket_Reassign(content);
+      if (eventType == "bus_options") socket_BusOptions(eventContent);
+      if (eventType == "deviceId") socket_DeviceId(eventContent);
+      if (eventType == "devices") socket_Devices(eventContent);
+      if (eventType == "device_states") socket_DeviceStates(eventContent);
+      if (eventType == "flash") socket_Flash();
+      if (eventType == "reassign") socket_Reassign(eventContent);
 
+      break;
+
+    default:
       break;
   }
 }
@@ -579,8 +586,7 @@ void connectToNetwork() {
 
   wm.addParameter(&custom_taServer);
   wm.addParameter(&custom_taPort);
-  
-  //wm.addParameter(&custom_field);
+
   wm.setSaveParamsCallback(saveParamCallback);
 
   // custom menu via array or vector
@@ -719,13 +725,11 @@ void setup() {
   if(preferences.getString("taHost").length() > 0){
     String newHost = preferences.getString("taHost");
     logger("Setting TallyArbiter host as " + newHost, "info-quiet");
-    char chr_newHost[40];
     newHost.toCharArray(tallyarbiter_host, 40);
   }
   if(preferences.getString("taPort").length() > 0){
     String newPort = preferences.getString("taPort");
     logger("Setting TallyArbiter port as " + newPort, "info-quiet");
-    char chr_newPort[6];
     newPort.toCharArray(tallyarbiter_port, 6);
   }
 
