@@ -3,35 +3,34 @@ name: Build Listener Clients
 on: [push, workflow_dispatch]
 
 jobs:
-#  build_m5stickc-listener:
-#    name: Build M5StickC Listener
-#    runs-on: ubuntu-latest
-#    steps:
-#    - uses: actions/checkout@v1
-#    - uses: arduino/compile-sketches@v1
-#      with:
-#        platforms: |
-#          - name: esp32:esp32
-#            source-url: https://dl.espressif.com/dl/package_esp32_index.json
-#        fqbn: 'esp32:esp32:m5stick-c'
-#        libraries: |
-#          - source-url: https://github.com/m5stack/M5_BM8563.git
-#          - name: M5StickC
-#          - name: M5StickCPlus
-#          - name: WebSockets
-#          - name: WiFiManager
-#          - name: MultiButton
-#          - name: Arduino_JSON
-#        cli-compile-flags: |
-#          - --export-binaries
-#        sketch-paths: |
-#          - listener_clients/m5stickc-listener
-#        enable-deltas-report: true
-#    - name: Upload Artifact
-#      uses: actions/upload-artifact@v2
-#      with:
-#        name: 'TallyArbiter-Listener-M5StickC'
-#        path: 'listener_clients/m5stickc-listener/build/esp32.esp32.m5stick-c'
+  build_m5stickc-listener:
+    name: Build M5StickC Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: arduino/compile-sketches@v1
+      with:
+        platforms: |
+          - name: esp32:esp32
+            source-url: https://dl.espressif.com/dl/package_esp32_index.json
+        fqbn: 'esp32:esp32:m5stick-c'
+        libraries: |
+          - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.2.4.zip
+          - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.0.4.zip
+          - name: WebSockets
+          - name: WiFiManager
+          - name: MultiButton
+          - name: Arduino_JSON
+        cli-compile-flags: |
+          - --export-binaries
+        sketch-paths: |
+          - listener_clients/m5stickc-listener
+        enable-deltas-report: true
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'TallyArbiter-Listener-M5StickC'
+        path: 'listener_clients/m5stickc-listener/build/esp32.esp32.m5stick-c'
 
   build_esp32-neopixel-listener:
     name: Build ESP32 NeoPixel Listener
