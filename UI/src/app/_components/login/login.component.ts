@@ -29,8 +29,8 @@ export class LoginComponent {
         this.extraParam = params.extraParam;
       }
     });
-    console.log(this.redirectParam);
-    console.log(this.extraParam);
+    //console.log(this.redirectParam);
+    //console.log(this.extraParam);
     switch (this.redirectParam) {
       case "producer":
       case "errors":

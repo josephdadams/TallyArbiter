@@ -193,7 +193,6 @@ function initialSetup() {
 
 		const requireRole = (role: string) => {
 			return new Promise((resolve, reject) => {
-				console.log(tmpSocketAccessTokens);
 				if(typeof(tmpSocketAccessTokens[socket.id]) === undefined) {
 					let error_msg = "Access token required. Please login to use this feature.";
 					socket.emit('error', error_msg);
@@ -217,11 +216,10 @@ function initialSetup() {
 
 		socket.on('login', (username: string, password: string) => {
 			authenticate(username, password).then((result) => {
-				console.log("result", result);
                 socket.emit('login_result', true); //old response, for compatibility with old UI clients
 				socket.emit('login_response', { loginOk: true, message: "", accessToken: result.access_token });
 			}).catch((error) => {
-				console.log("error", error);
+				logger(`User ${username} (ip addr ${ipAddr}) has attempted a login: wrong username or password.`);
                 //wrong credentials
 				Promise.all([
 					limiterConsecutiveFailsByUsernameAndIP.consume(ipAddr),
@@ -251,7 +249,6 @@ function initialSetup() {
 
 		socket.on('access_token', (access_token: string) => {
 			tmpSocketAccessTokens[socket.id] = access_token;
-			console.log(tmpSocketAccessTokens);
 		});
 
 		socket.on('version', () =>  {
@@ -1176,8 +1173,8 @@ function loadConfig() { // loads the JSON data from the config file to memory
 
 function initializeSource(source: Source): TallyInput {
 	if (!TallyInputs[source.sourceTypeId]?.cls) {
-		console.log(TallyInputs);
-		console.log(source)
+		//console.log(TallyInputs);
+		//console.log(source);
 		throw Error(`No class found for Source ${source.name} (${source.sourceTypeId})`);
 	}
 	logger(`Source: ${source.name} Creating ${TallyInputs[source.sourceTypeId].label} connection.`, 'info-quiet');

@@ -177,7 +177,6 @@ export class SocketService {
       this.cloudClients = clients;
     });
     this.socket.on('addresses', (addresses: Addresses) => {
-      console.log("new addresses", addresses);
       this.addresses = addresses;
     });
     this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], addresses: Addresses, outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], device_states: DeviceState[], tslClients: TSLClient[], cloudDestinations: CloudDestination[], cloudKeys: string[], cloudClients: CloudClient[]) => {
@@ -198,7 +197,6 @@ export class SocketService {
       this.cloudDestinations = cloudDestinations;
       this.cloudKeys = cloudKeys;
       this.cloudClients = cloudClients;
-      console.log("initial", device_states);
       this.deviceStateChanged.next(this.device_states);
     });
     this.socket.on('listener_clients', (listenerClients: ListenerClient[]) => {

@@ -25,7 +25,6 @@ export class AuthService {
       this.socketService.sendAccessToken(this.access_token);
     }
     this.roles = roles;
-    console.log("roles", this.roles);
   }
 
   private setToken(value: string) {
@@ -41,7 +40,6 @@ export class AuthService {
   }
 
   public loadProfile() {
-    console.log("Loading profile", this.access_token);
     let now = Date.now().valueOf() / 1000;
     let decoded: any = jwt_decode(this.access_token);
     if (typeof decoded.exp !== 'undefined' && decoded.exp < now) {
@@ -51,8 +49,6 @@ export class AuthService {
       return false;
     }
     this.profile = decoded.user;
-
-    console.log(this.profile);
     return true;
   }
 
