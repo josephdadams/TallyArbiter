@@ -73,7 +73,6 @@ int currentScreen = 0; //0 = Tally Screen, 1 = Settings Screen
 int currentBrightness = 11; //12 is Max level
 
 WiFiManager wm; // global wm instance
-WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 
 void setup() {
   pinMode(TRIGGER_PIN, INPUT_PULLUP);
@@ -265,8 +264,7 @@ void connectToNetwork() {
 
   wm.addParameter(&custom_taServer);
   wm.addParameter(&custom_taPort);
-  
-  //wm.addParameter(&custom_field);
+
   wm.setSaveParamsCallback(saveParamCallback);
 
   // custom menu via array or vector
