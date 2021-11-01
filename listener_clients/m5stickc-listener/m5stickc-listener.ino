@@ -114,13 +114,11 @@ void setup() {
   if(preferences.getString("taHost").length() > 0){
     String newHost = preferences.getString("taHost");
     logger("Setting TallyArbiter host as" + newHost, "info-quiet");
-    char chr_newHost[40];
     newHost.toCharArray(tallyarbiter_host, 40);
   }
   if(preferences.getString("taPort").length() > 0){
     String newPort = preferences.getString("taPort");
     logger("Setting TallyArbiter port as" + newPort, "info-quiet");
-    char chr_newPort[6];
     newPort.toCharArray(tallyarbiter_port, 6);
   }
  
@@ -261,13 +259,7 @@ void connectToNetwork() {
 
   //reset settings - wipe credentials for testing
   //wm.resetSettings();
-
-  //add a custom input field
-  int customFieldLength = 40;
-
-  //const char* custom_radio_str = "<br/><label for='taHostIP'>Tally Arbiter Server</label><input type='text' name='taHostIP'>";
-  //new (&custom_field) WiFiManagerParameter(custom_radio_str); // custom html input
-
+  
   WiFiManagerParameter custom_taServer("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
   WiFiManagerParameter custom_taPort("taHostPort", "Port", tallyarbiter_port, 6);
 
@@ -298,10 +290,10 @@ void connectToNetwork() {
     logger("connected...yay :)", "info");
     networkConnected = true;
 
-    int nrOfServices = MDNS.queryService("tally-arbiter", "tcp");
-
     //TODO: fix MDNS discovery
     /*
+    int nrOfServices = MDNS.queryService("tally-arbiter", "tcp");
+
     if (nrOfServices == 0) {
       logger("No server found.", "error");
     } else {
@@ -365,6 +357,8 @@ void WiFiEvent(WiFiEvent_t event) {
     case SYSTEM_EVENT_STA_DISCONNECTED:
       logger("Network connection lost!", "info");
       networkConnected = false;
+      break;
+    default:
       break;
   }
 }
@@ -431,6 +425,8 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
         processTallyData();
       }
 
+      break;
+    default:
       break;
   }
 }
