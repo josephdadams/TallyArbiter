@@ -20,9 +20,7 @@ export class ErrorReportsListComponent implements OnInit {
     public navbarVisibilityService: NavbarVisibilityService,
     public locationBackService: LocationBackService
   ) {
-    console.log(this.socketService.errorReports);
     this.socketService.socket.on('unread_error_reports', (list) => {
-      console.log(list);
       list.forEach((report: ErrorReportsListElement) => {
         this.unread_error_reports.push(report.id);
       });

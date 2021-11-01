@@ -14,7 +14,6 @@ export class AuthorizeGuard implements CanActivate {
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
   ): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
-    console.log(this.authService, route, state);
     let destination = ["login"].concat(state.url.replace('/', '').split('/').map(x => x.replace('/', '')));
     let currentSection = destination[1];
     let requiredRole = "";
@@ -29,15 +28,15 @@ export class AuthorizeGuard implements CanActivate {
             break;
     }
     if(this.authService.profile === undefined) {
-      console.log("not logged in");
+      console.log("Not logged in. Navigating to the login page...");
       this.router.navigate(destination);
       return false;
     } else {
       let checkRole = this.authService.requireRole(requiredRole);
-      console.log("checkRole", checkRole); 
       if(checkRole) {
         return true;
       } else {
+        console.log("Access denied. Navigating to the login page...");
         this.router.navigate(destination);
         return false;
       }

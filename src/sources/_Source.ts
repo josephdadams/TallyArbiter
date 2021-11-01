@@ -32,12 +32,12 @@ export class TallyInput extends EventEmitter {
                     this.tryReconnecting = true;
                     return;
                 }
-                console.log("not connected")
+                //console.log("not connected")
                 if (this.tryReconnecting && this.reconnectFailureCounter < MAX_FAILED_RECONNECTS) {
                     if (this.reconnectTimeout) {
                         return;
                     }
-                    console.log("try reconnecting", this.reconnectFailureCounter);
+                    //console.log("try reconnecting", this.reconnectFailureCounter);
                     this.reconnectFailureCounter++;
                     this.reconnectTimeout = setTimeout(() => {
                         this.reconnectTimeout = undefined;

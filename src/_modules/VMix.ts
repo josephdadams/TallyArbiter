@@ -42,7 +42,7 @@ export class VMixEmulator extends ListenerProvider {
     }
 
     private onConnData(socket: net.Socket, d: Buffer) {
-        console.log(d);
+        //console.log(d);
         const parts = d.toString().split(/\r?\n/);
 
         if (parts[0] === 'SUBSCRIBE TALLY') {
@@ -86,8 +86,8 @@ export class VMixEmulator extends ListenerProvider {
             socketID: socketId,
             inactive: false,
         });
-        console.log(this.vmix_client_data);
-        console.log(this.vmix_client_data.length);
+        //console.log(this.vmix_client_data);
+        //console.log(this.vmix_client_data.length);
         this.emit("updateSockets", "vmix_clients");
         logger(`VMix Emulator Connection ${host} subscribed to tally`, 'info');
     }
@@ -121,7 +121,7 @@ export class VMixEmulator extends ListenerProvider {
             }
         }
 
-        console.log(this.vmix_client_data);
+        //console.log(this.vmix_client_data);
         this.emit("updateSockets", "vmix_clients");
     }
 

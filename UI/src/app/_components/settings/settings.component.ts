@@ -619,7 +619,6 @@ export class SettingsComponent {
 	}
 
 	public editUser(user: User, modal: any) {
-		console.log(user, modal);
 		this.editingUser = true;
 		this.currentUser = user;
 		this.modalService.open(modal);
