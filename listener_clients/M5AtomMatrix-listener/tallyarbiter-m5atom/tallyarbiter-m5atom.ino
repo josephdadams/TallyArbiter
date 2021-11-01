@@ -21,8 +21,8 @@ Preferences preferences;
 */
 
 //Tally Arbiter Server
-char * tallyarbiter_host = "192.168.0.110";
-char * tallyarbiter_port = "4455";
+char tallyarbiter_host[40] = "192.168.0.110";
+char tallyarbiter_port[6] = "4455";
 
 //Local Default Camera Number
 int camNumber = 1;
@@ -302,8 +302,8 @@ void drawNumber(int arr[], int colors[]) {
   }
 }
 
-void drawMultiple(int arr[], int colors[], int times, int delays) {
-  for (times; times > 0; times--) {
+void drawMultiple(int arr[], int colors[], int param_times, int delays) {
+  for (int times = param_times; times > 0; times--) {
     drawNumber(arr, colors);
     delay(delays);
   }
@@ -408,9 +408,9 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
       break;
 
     case sIOtype_EVENT:
-      String eventMsg = (char*)payload;
-      String eventType = eventMsg.substring(2, eventMsg.indexOf("\"",2));
-      String eventContent = eventMsg.substring(eventType.length() + 4);
+      eventMsg = (char*)payload;
+      eventType = eventMsg.substring(2, eventMsg.indexOf("\"",2));
+      eventContent = eventMsg.substring(eventType.length() + 4);
       eventContent.remove(eventContent.length() - 1);
 
       logger("Got event '" + eventType + "', data: " + eventContent, "VERBOSE");
@@ -599,7 +599,6 @@ void connectToNetwork() {
   wm.setConfigPortalTimeout(120); // auto close configportal after n seconds
 
   bool res;
-  bool busy = false;
   
   res = wm.autoConnect(listenerDeviceName.c_str());
 
