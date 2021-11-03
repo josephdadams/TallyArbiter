@@ -70,7 +70,7 @@ try:
         if not "server_config" in configJson:
             configJson["server_config"] = {
                 "ip": "127.0.0.1",
-                "port": "8080",
+                "port": "4455",
                 "use_mdns": True,
             }
             with open("config_gpo.json", "w") as outfile:
