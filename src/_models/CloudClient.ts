@@ -1,5 +1,5 @@
 export interface CloudClient {
-    datetimeConnected: number;
+    datetime_connected: number;
     id: string;
     inactive: boolean;
     ipAddress: string;

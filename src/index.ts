@@ -110,7 +110,9 @@ const socketupdates_Settings: string[]  = ['sources', 'devices', 'device_sources
 const socketupdates_Producer: string[]  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients'];
 const socketupdates_Companion: string[] = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
 
-var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
+var listener_clients: ListenerClient[] = []; //array of connected listener clients (web, python, relay, etc.)
+var unsupported_listener_clients = []; //array of connected listener clients (web, python, relay, etc.) that uses the old API
+
 let vMixEmulator: VMixEmulator;
 export let tslListenerProvider: TSLListenerProvider;
 let tsl_clients_interval: NodeJS.Timer | null = null;
@@ -324,8 +326,8 @@ function initialSetup() {
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
 
 			let ipAddress = socket.handshake.address;
-			let datetimeConnected = new Date().getTime();
-			let clientId = AddListenerClient(socket.id, deviceId, obj.internalId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed, supportsChat);
+			let datetime_connected = new Date().getTime();
+			let clientId = AddListenerClient(socket.id, deviceId, obj.internalId, listenerType, ipAddress, datetime_connected, canBeReassigned, canBeFlashed, supportsChat);
 			
 			if (supportsChat) {
 				socket.join('messaging');
@@ -383,14 +385,14 @@ function initialSetup() {
 		socket.on('flash', (clientId) => {
 			FlashListenerClient(clientId);
 		});
-
+		/*
 		socket.on('messaging_client', (clientId: {
 			relayGroupId?: string;
 			gpoGroupId?: string;
 		}, type: string, socketid: string, message: string) => {
 			MessageListenerClient(clientId, type, socketid, message);
 		});
-
+		*/
 		socket.on('reassign', (clientId: string, oldDeviceId: string, deviceId: string) => {
 			ReassignListenerClient(clientId, oldDeviceId, deviceId);
 		});
@@ -415,7 +417,7 @@ function initialSetup() {
 			UpdateCloud('listener_clients');
 			socket.emit('device_states', getDeviceStates());
 		});
-
+/*
 		socket.on('listener_reassign_relay', (relayGroupId, oldDeviceId, deviceId) => {
 			let canRemove = true;
 			for (let i = 0; i < listener_clients.length; i++) {
@@ -481,7 +483,7 @@ function initialSetup() {
 			UpdateSockets('listener_clients');
 			UpdateCloud('listener_clients');
 		});
-
+*/
 		socket.on('listener_reassign_object', (reassignObj) => {
 			socket.leave('device-' + reassignObj.oldDeviceId);
 			socket.join('device-' + reassignObj.newDeviceId);
@@ -527,9 +529,9 @@ function initialSetup() {
 			let ipAddress = socket.handshake.address;
 
 			if (cloud_keys.includes(key)) {
-				let datetimeConnected = new Date().getTime();
+				let datetime_connected = new Date().getTime();
 				logger(`Cloud Client Connected: ${ipAddress}`, 'info');
-				AddCloudClient(socket.id, key, ipAddress, datetimeConnected);
+				AddCloudClient(socket.id, key, ipAddress, datetime_connected);
 			}
 			else {
 				socket.emit('invalidkey');
@@ -707,7 +709,7 @@ function initialSetup() {
 							listener_clients[j].internalId = data[i].id;
 							listener_clients[j].listenerType = data[i].listenerType;
 							listener_clients[j].ipAddress = data[i].ipAddress;
-							listener_clients[j].datetimeConnected = data[i].datetimeConnected;
+							listener_clients[j].datetime_connected = data[i].datetime_connected;
 							listener_clients[j].inactive = data[i].inactive;
 							listener_clients[j].cloudConnection = true;
 							listener_clients[j].cloudClientId = cloudClientId;
@@ -1405,11 +1407,11 @@ function StartCloudDestination(cloudDestinationId) {
 			cloud_destinations_sockets[i].socket.on('flash', (listenerClientId) => {
 				FlashListenerClient(listenerClientId);
 			});
-
+			/*
 			cloud_destinations_sockets[i].socket.on('messaging_client', (listenerClientId, type, socketid, message) => {
 				MessageListenerClient(listenerClientId, type, socketid, message);
 			});
-
+			*/
 			cloud_destinations_sockets[i].socket.on('error', (error) => {
 				logger(`An error occurred with the connection to ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port}  ${error}`, 'error');
 				cloud_destinations[i].error = true;
@@ -2064,7 +2066,7 @@ function GetCloudClientBySocketId(socket: string): CloudClient {
 	return cloud_clients.find( ({ socketId }) => socketId === socket);
 }
 
-function AddListenerClient(socketId: string, deviceId: string, internalId: string, listenerType: string, ipAddress: string, datetimeConnected: number, canBeReassigned = true, canBeFlashed = true, supportsChat = false): string {
+function AddListenerClient(socketId: string, deviceId: string, internalId: string, listenerType: string, ipAddress: string, datetime_connected: number, canBeReassigned = true, canBeFlashed = true, supportsChat = false): string {
     let id = uuidv4();
 	if(!internalId) internalId = id;
 	
@@ -2075,7 +2077,7 @@ function AddListenerClient(socketId: string, deviceId: string, internalId: strin
 		internalId: internalId,
         listenerType: listenerType,
         ipAddress: ipAddress,
-        datetime_connected: datetimeConnected,
+        datetime_connected: datetime_connected,
         canBeReassigned: canBeReassigned,
         canBeFlashed: canBeFlashed,
         supportsChat: supportsChat,
@@ -2204,7 +2206,7 @@ function FlashListenerClient(listenerClientId): FlashListenerClientResponse | vo
 		return {result: 'flash-not-sent', listenerClientId: listenerClientId, error: 'listener-client-not-found'};
 	}
 }
-
+/*
 function MessageListenerClient(listenerClientId: { relayGroupId?: string; gpoGroupId?: string }, type: string, socketid: string, message: string): MessageListenerClientResponse | void {
 	let listenerClientObj = listener_clients.find( ({ id }) => id === listenerClientId);
 
@@ -2235,14 +2237,14 @@ function MessageListenerClient(listenerClientId: { relayGroupId?: string; gpoGro
 		return {result: 'message-not-sent', listenerClientId: listenerClientId, error: 'listener-client-not-found'};
 	}
 }
-
-function AddCloudClient(socketId, key, ipAddress, datetimeConnected) {
+*/
+function AddCloudClient(socketId: string, key: string, ipAddress: string, datetime_connected: number) {
     const cloudClientObj: CloudClient = {
         id: uuidv4(),
         socketId: socketId,
         key: key,
         ipAddress: ipAddress,
-        datetimeConnected: datetimeConnected,
+        datetime_connected: datetime_connected,
         inactive: false,
     };
 
