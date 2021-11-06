@@ -13,6 +13,8 @@ import bonjour from 'bonjour';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
 import { BehaviorSubject } from 'rxjs';
+import { default as dotenv } from 'dotenv';
+dotenv.config();
 
 //TypeScript models
 import { TallyInput } from './sources/_Source';
@@ -63,6 +65,9 @@ import { InternalTestModeSource } from './sources/InternalTestMode';
 import { Config } from './_models/Config';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
+const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
+
+if(devmode) logger('TallyArbiter running in Development Mode.', 'info');
 
 //Rate limiter configurations
 const maxWrongAttemptsByIPperDay = 100;
@@ -92,6 +97,9 @@ var uiDistPath = path.join(__dirname, 'ui-dist');
 if (!fs.existsSync(uiDistPath)) {
     uiDistPath = path.join(__dirname, '..', 'ui-dist');
 }
+
+//Imported Sentry lib (imported only if prod and enabled from config)
+var Sentry: any = undefined;
 
 const listenPort: number = parseInt(process.env.PORT) || 4455;
 const app = express();
@@ -150,6 +158,22 @@ function startUp() {
 	});
 }
 
+//Sentry Monitoring Setup
+if (
+	process.env.SENTRY_ENABLED &&
+	!devmode &&
+	currentConfig.remoteErrorReporting == true
+) {
+	import("@sentry/node").then((ImportedSentry) => {
+		Sentry = ImportedSentry;
+		Sentry.init({
+			dsn: process.env.SENTRY_DSN,
+			tracesSampleRate: 1.0,
+			release: "TallyArbiter@" + process.env.npm_package_version,
+			environment: 'production'
+		});
+	});
+}
 
 //sets up the REST API and GUI pages and starts the Express server that will listen for incoming requests
 function initialSetup() {
@@ -234,6 +258,10 @@ function initialSetup() {
 		socket.on('externalAddress', () => {
 			socket.emit('externalAddress', currentConfig.externalAddress);
 		});
+
+		/*socket.on('get_remote_error_opt', () => {
+			socket.emit('get_', currentConfig.remoteErrorReporting);
+		})*/
 
 		socket.on('interfaces', () =>  {
 			socket.emit('interfaces', getNetworkInterfaces());
@@ -812,6 +840,12 @@ function initialSetup() {
 			DeactivateListenerClient(socket.id);
 			CheckCloudClients(socket.id);
 		});
+
+		socket.on('remote_error_opt', (optStatus: boolean) => {
+			currentConfig.remoteErrorReporting = optStatus;
+			SaveConfig();
+			socket.emit('remote_error_opt', currentConfig.remoteErrorReporting);
+		})
 	});
 
 	logger('Socket.IO Setup Complete.', 'info-quiet');
@@ -1051,7 +1085,7 @@ export function logger(log, type: "info-quiet" | "info" | "error" | "console_act
 	logObj.log = log;
 	logObj.type = type;
 	Logs.push(logObj);
-	io.to('settings').emit('log_item', logObj);
+	if(typeof(io) !== "undefined") io.to('settings').emit('log_item', logObj);
 }
 
 function writeTallyDataFile(log) {
@@ -2310,6 +2344,7 @@ function SendMessage(type: string, socketid: string | null, message: string) {
 }
 
 function generateAndSendErrorReport(error: Error) {
+	if(Sentry !== undefined) Sentry.captureException(error);
 	let id = generateErrorReport(error);
 	io.emit("server_error", id);
 }

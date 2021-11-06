@@ -1,0 +1,183 @@
+name: Build Listener Clients
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build_m5stickc-listener:
+    name: Build M5StickC Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: arduino/compile-sketches@v1
+      with:
+        platforms: |
+          - name: esp32:esp32
+            source-url: https://dl.espressif.com/dl/package_esp32_index.json
+        fqbn: 'esp32:esp32:m5stick-c'
+        libraries: |
+          - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.2.4.zip
+          - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.0.4.zip
+          - name: WebSockets
+          - name: WiFiManager
+          - name: MultiButton
+          - name: Arduino_JSON
+        cli-compile-flags: |
+          - --export-binaries
+        sketch-paths: |
+          - listener_clients/m5stickc-listener
+        enable-deltas-report: true
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'TallyArbiter-Listener-M5StickC'
+        path: 'listener_clients/m5stickc-listener/build/esp32.esp32.m5stick-c'
+
+  build_m5atom-listener:
+    name: Build M5Atom Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: arduino/compile-sketches@v1
+      with:
+        platforms: |
+          - name: esp32:esp32
+            source-url: https://dl.espressif.com/dl/package_esp32_index.json
+        fqbn: 'esp32:esp32:m5stack-atom'
+        libraries: |
+          - source-url: https://github.com/m5stack/M5Atom/archive/refs/tags/0.0.6.zip
+          - name: WebSockets
+          - name: WiFiManager
+          - name: MultiButton
+          - name: Arduino_JSON
+          - name: FastLED
+        cli-compile-flags: |
+          - --export-binaries
+        sketch-paths: |
+          - listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom
+        enable-deltas-report: true
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'TallyArbiter-Listener-M5Atom'
+        path: 'listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom/build/esp32.esp32.m5stack-atom'
+
+  build_esp32-neopixel-listener:
+    name: Build ESP32 NeoPixel Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: arduino/compile-sketches@v1
+      with:
+        platforms: |
+          - name: esp32:esp32
+            source-url: https://dl.espressif.com/dl/package_esp32_index.json
+        fqbn: 'esp32:esp32:esp32'
+        libraries: |
+          - name: WebSockets
+          - name: WiFiManager
+          - name: MultiButton
+          - name: Arduino_JSON
+          - name: Adafruit NeoPixel
+        cli-compile-flags: |
+          - --export-binaries
+        sketch-paths: |
+          - listener_clients/esp32-neopixel-listener
+        enable-deltas-report: true
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'TallyArbiter-Listener-ESP32-NeoPixel'
+        path: 'listener_clients/esp32-neopixel-listener/build/esp32.esp32.esp32'
+
+  build_TTGO-listener:
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - fqbn: esp32:esp32:ttgo-t1
+            name: TTGO T1
+          - fqbn: esp32:esp32:ttgo-t7-v13-mini32
+            name: TTGO T7 v13 Mini32
+          - fqbn: esp32:esp32:ttgo-t7-v14-mini32
+            name: TTGO T7 v14 Mini32
+          - fqbn: esp32:esp32:twatch
+            name: TTGO T-Watch
+    name: Build ${{ matrix.board.name }} Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: arduino/compile-sketches@v1
+      with:
+        platforms: |
+          - name: esp32:esp32
+            source-url: https://dl.espressif.com/dl/package_esp32_index.json
+        fqbn: ${{ matrix.board.fqbn }}
+        libraries: |
+          - name: WebSockets
+          - name: WiFiManager
+          - name: MultiButton
+          - name: Arduino_JSON
+          - name: TFT_eSPI
+        cli-compile-flags: |
+          - --export-binaries
+        sketch-paths: |
+          - listener_clients/TTGO_T-listener
+        enable-deltas-report: true
+    - name: Get FQBN build dir for ${{ matrix.board.name }}
+      run: |
+        RAW_FQBN="${{ matrix.board.fqbn }}"
+        FQBN_REPLACED=$(echo $RAW_FQBN | sed 's/:/./g')
+        echo "FQBN_REPLACED=$FQBN_REPLACED" >> $GITHUB_ENV
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'TallyArbiter-Listener-${{ matrix.board.name }}'
+        path: 'listener_clients/TTGO_T-listener/build/${{ env.FQBN_REPLACED }}'
+
+  analyse_blink1-listener:
+    name: Analyse Blink1 Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install prosepector
+      run: pip install prospector[with_everything]
+    - name: Analyse
+      working-directory: listener_clients/blink1-listener
+      run: prospector -W pyroma -0
+
+  analyse_blinkt-listener:
+    name: Analyse Pimoroni Blinkt Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install prosepector
+      run: pip install prospector[with_everything]
+    - name: Analyse
+      working-directory: listener_clients/pimoroni-blinkt-listener
+      run: prospector -W pyroma -0
+
+  analyse_gpo-listener:
+    name: Analyse GPO Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install prosepector
+      run: pip install prospector[with_everything]
+    - name: Analyse
+      working-directory: listener_clients/gpo-listener
+      run: prospector -W pyroma -0
+
+  analyse_relay-listener:
+    name: Analyse Relay Listener
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install dependencies
+      working-directory: listener_clients/relay-listener
+      run: |
+        sudo apt install libudev-dev libusb-1.0-0 libusb-1.0-0-dev
+        npm install
+        npm install --global eslint
+    - name: Run eslint
+      working-directory: listener_clients/relay-listener
+      run: eslint index.js || exit 0
