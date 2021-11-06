@@ -32,8 +32,8 @@ const TSL5Fields: TallyInputConfigField[] = [
 
 @RegisterAction("7dcd66b5", "TSL 3.1 UDP", TSL3Fields)
 @RegisterAction("276a8dcc", "TSL 3.1 TCP", TSL3Fields)
-@RegisterAction("8b99d588", "TSL 5 UDP", TSL3Fields)
-@RegisterAction("54ae4a7e", "TSL 5 TCP", TSL3Fields)
+@RegisterAction("8b99d588", "TSL 5 UDP", TSL5Fields)
+@RegisterAction("54ae4a7e", "TSL 5 TCP", TSL5Fields)
 export class TSL extends Action {
     public run(): void {
         if (["7dcd66b5", "276a8dcc"].includes(this.action.outputTypeId)) {
@@ -89,7 +89,7 @@ export class TSL extends Action {
             // TSL 5
             try {
                 var umd = new TSLUMDv5();
-                var display_fields = ['rh_tally', 'text_tally', 'lh_tally', 'brightness',' text']
+                var display_fields = ['rh_tally', 'text_tally', 'lh_tally', 'brightness', 'text']
                 let tally: any = { display: {} };
         
                 if (!(this.action.data.ip && this.action.data.port)) {
