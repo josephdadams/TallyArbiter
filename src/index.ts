@@ -40,7 +40,9 @@ import { Addresses } from './_models/Addresses';
 import { CloudListenerSocketData } from './_models/CloudListenerSocketData';
 import { CloudDestination } from './_models/CloudDestination';
 import { CloudDestinationSocket } from './_models/CloudDestinationSocket';
+import { Config } from './_models/Config';
 import { ListenerClient } from './_models/ListenerClient';
+import { OutdatedListenerClient } from './_models/OutdatedListenerClient';
 
 //TypeScript globals
 import { TallyInputs } from './_globals/TallyInputs';
@@ -62,7 +64,6 @@ import { VMixEmulator } from './_modules/VMix';
 import { TSLListenerProvider } from './_modules/TSL';
 import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
-import { Config } from './_models/Config';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
@@ -111,7 +112,7 @@ const socketupdates_Producer: string[]  = ['sources', 'devices', 'device_sources
 const socketupdates_Companion: string[] = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
 
 var listener_clients: ListenerClient[] = []; //array of connected listener clients (web, python, relay, etc.)
-var outdated_listener_clients = []; //array of connected listener clients (web, python, relay, etc.) that uses the old API
+var outdated_listener_clients: OutdatedListenerClient[] = []; //array of connected listener clients (web, python, relay, etc.) that uses the old API
 
 let vMixEmulator: VMixEmulator;
 export let tslListenerProvider: TSLListenerProvider;
