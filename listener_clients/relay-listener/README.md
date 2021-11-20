@@ -7,6 +7,11 @@ To learn more about the Tally Arbiter project, [click here](http://github.com/jo
 
 It is not sold, authorized, or associated with any other company or product.
 
+You can buy a USB relay here:
+[2 Channel](https://www.amazon.com/NOYITO-2-Channel-Computer-Drive-free-Controller/dp/B07CFQMDJ3/),
+[4 Channel](https://www.amazon.com/Diyeeni-4-Channel-Controller-Expansion-Automation/dp/B084TNPG8T/), or 
+[8 Channel](https://www.amazon.com/Zer-one-8-Channel-Computer-Intelligent/dp/B07XPFK1ZM/).
+
 To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
 
 # Running the software
@@ -82,4 +87,5 @@ Each Relay Group will be represented as a listener client on the Tally Arbiter s
 Once your configuration file is created and you've made the physical connections to your contact closure devices, start up the Tally Arbiter Relay Listener and it will attempt to connect to the Tally Arbiter Server.
 
 # Improvements and Suggestions
-I welcome all improvements and suggestions. You can submit issues and pull requests, or contact me through [my blog](http://www.techministry.blog).
+We are welcome to improvements and suggestions.
+You can submit issues and pull requests on this repo, or contact Joseph Adams through the *"Contact"* page on the [techministry blog](http://www.techministry.blog/contact).
