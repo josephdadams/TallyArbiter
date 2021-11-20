@@ -7,6 +7,11 @@ To learn more about the Tally Arbiter project, [click here](http://github.com/jo
 
 It is not sold, authorized, or associated with any other company or product.
 
+You can buy a Raspberry Pi here:
+[Raspberry Pi4 Kit](https://www.amazon.com/CanaKit-Raspberry-8GB-Extreme-Kit/dp/B08B6F1FV5/),
+[Raspberry Pi4](https://www.amazon.com/LoveRPi-Raspberry-Computer-Heatsinks-4GB/dp/B07WHZW881/), or 
+[Raspberry Pi Zero](https://www.amazon.com/CanaKit-Raspberry-Wireless-Complete-Starter/dp/B072N3X39J/).
+
 To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
 
 # Installing Python Libraries and Script
@@ -87,4 +92,5 @@ Each GPO Group will be represented as a listener client on the Tally Arbiter ser
 Once your configuration file is created and you've made the physical connections to your outboard devices, start up the Tally Arbiter GPO Listener and it will attempt to connect to the Tally Arbiter Server.
 
 # Improvements and Suggestions
-I welcome all improvements and suggestions. You can submit issues and pull requests, or contact me through [my blog](http://www.techministry.blog).
+We are welcome to improvements and suggestions.
+You can submit issues and pull requests on this repo, or contact Joseph Adams through the *"Contact"* page on the [techministry blog](http://www.techministry.blog/contact).
