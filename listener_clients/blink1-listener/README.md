@@ -9,6 +9,13 @@ To learn more about the Tally Arbiter project, [click here](http://github.com/jo
 
 It is not sold, authorized, or associated with any other company or product.
 
+You can buy a Blink(1) here:
+[Amazon (US)](https://www.amazon.com/ThingM-Blink-USB-RGB-BLINK1MK3/dp/B07Q8944QK/ref=sr_1_1?keywords=blink+1&qid=1637449295&sr=8-1),
+[getDigital.de (EU)](https://www.getdigital.de/blink-1-mk2.html),
+[Seeed Studio (China)](https://www.seeedstudio.com/Blink-1-mk2-p-2367.html).
+
+
+
 To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
 
 ## Getting Started
@@ -67,4 +74,5 @@ Now that it is working properly, you will want to set up the script to run on bo
 The program should now launch every time the Pi boots up, and automatically connect to your Tally Arbiter server once the server is available. The blink(1) device will flash white until it successfully connects to the server.
 
 # Improvements and Suggestions
-I welcome all improvements and suggestions. You can submit issues and pull requests, or contact me through [my blog](http://www.techministry.blog).
+We are welcome to improvements and suggestions.
+You can submit issues and pull requests on this repo, or contact Joseph Adams through the *"Contact"* page on the [techministry blog](http://www.techministry.blog/contact).

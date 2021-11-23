@@ -34,17 +34,17 @@ Done! Now your board is running the latest listener client firmware version. Go 
 3. In Library Manager install FastLED, SocketIoClient, Arduino_JSON, WebSockets version 2.3.4, WifiManager (by tzapu) and MultiButton
 4. Plug your board into the computer.
 5. In the IDE go to Sketch -> Upload.
-Make sure you selected the **right serial port** and the **right board type**.
+Make sure you have selected the **right serial port** and the **right board type**.
 
-Done! Now your board is running the latest listener client firmware version. Go to the *"Setup your device"* sections to connect the board to the Tally Arbiter server.
+Done! Now your board is running the latest listener client firmware version. Go to the *"Setup your device"* section to connect the board to the Tally Arbiter server.
 
 # Setup your device
-1. Plug the device in a powersource
-2. Wait for the boot animation to finish, if there is no saved AP it will startup an Access Point where you can configure one.
-3. Connect to the 'm5Atom-1xxxxxxx' Access Point via phone and go to 192.168.4.1 (or wait a bit, a captive portal page should open).
+1. Plug the device in a power source
+2. Wait for the boot animation to finish, if there is no saved AP it will start an Access Point where you can configure one.
+3. Connect to the 'm5Atom-1xxxxxxx' access point via phone and go to 192.168.4.1 (or wait a bit, and captive portal page should open).
 4. Set your Tally Arbiter server ip by going to *"Setup"* page.
 5. Go back, then go to the "Configure WiFi" page and set your WiFi credentials. The board should reboot.
-6. If connection succesfull a WiFi animation and a green tick mark will show. If not a big red cross will be shown and you can reboot the device to try again.
+6. If the connection is successful a WiFi animation and a green tick mark will show. If not a red cross will be shown and you can reboot the device to try again.
 
 
 # Troubleshooting
