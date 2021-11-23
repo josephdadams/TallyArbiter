@@ -9,6 +9,11 @@ To learn more about the Tally Arbiter project, [click here](http://github.com/jo
 
 It is not sold, authorized, or associated with any other company or product.
 
+You can buy a Pimoroni Blinkt! here:
+https://shop.pimoroni.com/products/blinkt
+OR
+https://www.adafruit.com/product/3195 (Shipped from USA)
+
 To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
 
 ## Getting Started
@@ -66,4 +71,5 @@ Now that it is working properly, you will want to set up the script to run on bo
 The program should now launch every time the Pi boots up, and automatically connect to your Tally Arbiter server once the server is available. The blinkt! device will flash white until it successfully connects to the server.
 
 # Improvements and Suggestions
-I welcome all improvements and suggestions. You can submit issues and pull requests, or contact me through [my blog](http://www.techministry.blog).
+We are welcome to improvements and suggestions.
+You can submit issues and pull requests on this repo, or contact Joseph Adams through the *"Contact"* page on the [techministry blog](http://www.techministry.blog/contact).
