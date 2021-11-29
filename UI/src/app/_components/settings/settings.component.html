@@ -835,7 +835,7 @@
             -->
             <input type="text" class="form-control" [ngModel]="currentUser.roles">
         </div>
-        <div class="mb-3">
+        <div class="mb-3" *ngIf="!editingUser">
             <label for="userPassword" class="form-label">Password</label>
             <input type="text" class="form-control" id="userPassword" [(ngModel)]="currentUser.password" />
         </div>
