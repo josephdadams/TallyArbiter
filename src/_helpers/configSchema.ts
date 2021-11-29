@@ -7,28 +7,39 @@ export default {
             description: "Security configuration",
             type: "object",
             properties: {
-                username_producer: {
-                    description: "Username of the producer",
+                jwt_private_key: {
+                    description: "JWT Private Key",
                     type: "string",
-                    default: "producer"
-                },
-                password_producer: {
-                    description: "Password of the producer",
-                    type: "string",
-                    default: "12345"
-                },
-                username_settings: {
-                    description: "Username of the admin user",
-                    type: "string",
-                    default: "admin"
-                },
-                password_settings: {
-                    description: "Password of the admin user",
-                    type: "string",
-                    default: "12345"
                 }
             },
-            required: ["username_producer", "password_producer", "username_settings", "password_settings"]
+            required: ["jwt_private_key"]
+        },
+        users: {
+            description: "Users configuration",
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    username: {
+                        description: "Username",
+                        type: "string",
+                        default: "admin",
+                    },
+                    password: {
+                        description: "User password",
+                        type: "string",
+                        default: "12345",
+                    },
+                    roles: {
+                        description: "Comma-separated user roles",
+                        type: "string",
+                        default: "producer,settings:sources_devices,settings:testing"
+                    }
+                },
+                required: ["username", "password", "roles"]
+            },
+            minItems: 1,
+            uniqueItems: true
         },
         cloud_destinations: {
             description: "List of cloud destinations",
