@@ -313,14 +313,14 @@
                             <tbody>
                                 <tr *ngFor="let user of socketService.users">
                                     <td>{{user.username}}</td>
-                                    <td>{{user.roles}}</td>
+                                    <td>{{user.roles.toString().replaceAll(";", ", ")}}</td>
                                     <td>
                                         <button class="btn btn-outline-dark" (click)="editUser(user, userModal)">
                                             <i class="fas fa-pen"></i> Edit
                                         </button>
                                     </td>
                                     <td>
-                                        <button class="btn btn-outline-danger" (click)="deleteUserButton(user)">
+                                        <button class="btn btn-outline-danger" (click)="deleteUserButton(user)" [disabled]="socketService.users.length === 1">
                                             <i class="fas fa-trash"></i> Delete <i class="fas fa-exclamation-triangle" *ngIf="authService.profile.username === user.username"></i>
                                         </button>
                                     </td>
@@ -331,7 +331,7 @@
                 </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem *requireRole="'settings:logs'">
+        <ng-container ngbNavItem>
             <a ngbNavLink>Logs</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -819,25 +819,20 @@
     <div class="modal-body">
         <div class="mb-3">
             <label for="userUsername" class="form-label">Username</label>
-            <input type="text" class="form-control" id="userUsername" [disabled]="editingUser" [(ngModel)]="currentUser.username" />
+            <input required type="text" class="form-control" id="userUsername" [disabled]="editingUser" [(ngModel)]="currentUser.username" />
         </div>
         <div class="mb-3">
             <label for="userRoles" class="form-label">Role</label>
-            <!--
-            <select id="userRoles" class="form-select" [ngModel]="currentUser.roles">
-                <option selected value="producer">
-                    Producer
-                </option>
-                <option value="admin">
-                  Admin
+            <select id="userRoles" class="form-select" multiple  [(ngModel)]="selectedUserRoles" (ngModelChange)="userRolesSelectionChange($event)">
+                <option [value]="role" *ngFor="let role of authService.roles" [selected]="isUserRoleSelected(role)">
+                  {{ role }}
                 </option>
             </select>
-            -->
-            <input type="text" class="form-control" [ngModel]="currentUser.roles">
+            <small class="form-text">Use Ctrl to select multiple items.</small>
         </div>
         <div class="mb-3" *ngIf="!editingUser">
             <label for="userPassword" class="form-label">Password</label>
-            <input type="text" class="form-control" id="userPassword" [(ngModel)]="currentUser.password" />
+            <input required type="text" class="form-control" id="userPassword" [(ngModel)]="currentUser.password" />
         </div>
         <div class="d-flex justify-content-end">
             <button class="btn btn-outline-dark" (click)="saveCurrentUser()">

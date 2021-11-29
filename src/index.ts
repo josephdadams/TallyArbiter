@@ -345,7 +345,7 @@ function initialSetup() {
 		});
 
 		socket.on('settings', () => {
-			requireRole("admin").then((user) => {
+			requireRole("settings").then((user) => {
 				socket.join('settings');
 				socket.join('messaging');
 				socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), addresses.value, getOutputTypes(), getOutputTypeDataFields(), currentConfig.bus_options, getSources(), devices, device_sources, device_actions, getDeviceStates(), tslListenerProvider.tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
@@ -504,7 +504,7 @@ function initialSetup() {
 		});
 
 		socket.on('listener_delete', (clientId) => { // emitted by the Settings page when an inactive client is being removed manually
-			requireRole("admin").then((user) => {
+			requireRole("settings:listeners").then((user) => {
 				for (let i = listener_clients.length - 1; i >= 0; i--) {
 					if (listener_clients[i].id === clientId) {
 						logger(`Inactive Client removed: ${listener_clients[i].id}`, 'info');
@@ -761,9 +761,10 @@ function initialSetup() {
 		});
 
 		socket.on('manage', (arbiterObj: Manage) => {
-			requireRole("admin").then((user) => {
-				const response = TallyArbiter_Manage(arbiterObj);
-				io.to('settings').emit('manage_response', response);
+			requireRole("settings").then((user) => {
+				TallyArbiter_Manage(arbiterObj, tmpSocketAccessTokens[socket.id]).then((response) => {
+					io.to('settings').emit('manage_response', response);
+				});
 		    }).catch((e) => {console.error(e);});
 		});
 
@@ -792,13 +793,13 @@ function initialSetup() {
 		});
 
 		socket.on('testmode', (value: boolean) => {
-			requireRole("admin").then((user) => {
+			requireRole("settings:testing").then((user) => {
 				ToggleTestMode(value);
 			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('tslclients_1secupdate', (value: boolean) => {
-			requireRole("admin").then((user) => {
+			requireRole("settings:listeners").then((user) => {
 				currentConfig.tsl_clients_1secupdate = value;
 				SaveConfig();
 				TSLClients_1SecUpdate(value);
@@ -839,7 +840,7 @@ function initialSetup() {
 		});
 
 		socket.on('users', () => {
-			requireRole("admin").then((user) => {
+			requireRole("settings:users").then((user) => {
 				socket.emit('users', getUsersList());
 			}).catch((err) => { console.error(err); });
 		});
@@ -1259,119 +1260,141 @@ function RunAction(deviceId, busId, active) {
 	}
 }
 
-function TallyArbiter_Manage(obj: Manage): ManageResponse {
-    let result: ManageResponse;
-	switch(obj.type) {
-		case 'source':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Source(obj);
+function TallyArbiter_Manage(obj: Manage, access_token: string = ""): Promise<ManageResponse> {
+    return new Promise((resolve, reject) => {
+		validateAccessToken(access_token).then((user) => {
+			const validate_user_role = (role) => {
+				if(!user.roles.includes(role) && !user.roles.includes("admin")) {
+					resolve({ result: 'error', error: 'Access denied. You are not authorized to do this.' });
+					return false;
+				} else {
+					return true;
+				}
 			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_Source(obj);
+			let result: ManageResponse;
+			switch(obj.type) {
+				case 'source':
+					if(!validate_user_role('settings:sources_devices')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Source(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_Source(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Source(obj);
+					}
+					break;
+				case 'device':
+					if(!validate_user_role('settings:sources_devices')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Device(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_Device(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Device(obj);
+					}
+					break;
+				case 'device_source':
+					if(!validate_user_role('settings:sources_devices')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Device_Source(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_Device_Source(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Device_Source(obj);
+					}
+					break;
+				case 'device_action':
+					if(!validate_user_role('settings:sources_devices')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Device_Action(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_Device_Action(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Device_Action(obj);
+					}
+					break;
+				case 'tsl_client':
+					if(!validate_user_role('settings:listeners')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_TSL_Client(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_TSL_Client(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_TSL_Client(obj);
+					}
+					break;
+				case 'bus_option':
+					if(!validate_user_role('settings:config')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Bus_Option(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_Bus_Option(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Bus_Option(obj);
+					}
+					io.emit('bus_options', currentConfig.bus_options); //emit the new bus options array to everyone
+					break;
+				case 'cloud_destination':
+					if(!validate_user_role('settings:cloud')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Cloud_Destination(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_Cloud_Destination(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Cloud_Destination(obj);
+					}
+					break;
+				case 'cloud_key':
+					if(!validate_user_role('settings:cloud')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Cloud_Key(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Cloud_Key(obj);
+					}
+					break;
+				case 'cloud_client':
+					if(!validate_user_role('settings:cloud')) return;
+					if (obj.action === 'remove') {
+						result = TallyArbiter_Remove_Cloud_Client(obj);
+					}
+					break;
+				case 'user':
+					if(!validate_user_role('settings:users')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_User(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_User(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_User(obj);
+					}
+					break;
+				default:
+						result = {result: 'error', error: 'Invalid API request.'}
+					break;
 			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Source(obj);
-			}
-			break;
-		case 'device':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Device(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_Device(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Device(obj);
-			}
-			break;
-		case 'device_source':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Device_Source(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_Device_Source(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Device_Source(obj);
-			}
-			break;
-		case 'device_action':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Device_Action(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_Device_Action(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Device_Action(obj);
-			}
-			break;
-		case 'tsl_client':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_TSL_Client(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_TSL_Client(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_TSL_Client(obj);
-			}
-			break;
-		case 'bus_option':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Bus_Option(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_Bus_Option(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Bus_Option(obj);
-			}
-			io.emit('bus_options', currentConfig.bus_options); //emit the new bus options array to everyone
-			break;
-		case 'cloud_destination':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Cloud_Destination(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_Cloud_Destination(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Cloud_Destination(obj);
-			}
-			break;
-		case 'cloud_key':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Cloud_Key(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Cloud_Key(obj);
-			}
-			break;
-		case 'cloud_client':
-			if (obj.action === 'remove') {
-				result = TallyArbiter_Remove_Cloud_Client(obj);
-			}
-			break;
-		case 'user':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_User(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_User(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_User(obj);
-			}
-			break;
-		default:
-				result = {result: 'error', error: 'Invalid API request.'}
-			break;
-	}
-
-	SaveConfig();
-
-	return result;
+		
+			SaveConfig();
+		
+			resolve(result);
+		});
+	});
 }
 
 function StopConnection(sourceId: string) {

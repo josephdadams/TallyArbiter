@@ -78,6 +78,7 @@ export class SettingsComponent {
 	// edit User
 	public editingUser = false;
 	public currentUser: User = {} as User;
+	public selectedUserRoles: string[] = [];
 
 	public newCloudKey = "";
 
@@ -99,16 +100,20 @@ export class SettingsComponent {
 			this.filterLogs();
 			this.scrollToBottom(this.logsContainer);
 		});
-		this.socketService.socket.on('server_error', (id: string) => {
-			this.show_error(id);
-		});
-		this.socketService.socket.on('unread_error_reports', (list) => {
-			if(list.length > 0) {
-			this.show_errors_list();
-			}
-		});
-		this.socketService.socket.emit('get_unread_error_reports');
-		this.socketService.socket.emit('users');
+		if(this.authService.requireRole('admin')) {
+			this.socketService.socket.on('server_error', (id: string) => {
+				this.show_error(id);
+			});
+			this.socketService.socket.on('unread_error_reports', (list) => {
+				if(list.length > 0) {
+					this.show_errors_list();
+				}
+			});
+			this.socketService.socket.emit('get_unread_error_reports');
+		}
+		if(this.authService.requireRole('settings:users')) {
+			this.socketService.socket.emit('users');
+		}
 	}
 
 	@Confirmable("There was an unexpected error. Do you want to view the bug report?", false)
@@ -524,10 +529,25 @@ export class SettingsComponent {
 		this.socketService.socket.emit('manage', arbiterObj);
 	}
 
+	public userRolesSelectionChange(selection: string[]) {
+		this.currentUser.roles = selection.join(';');
+		console.log(selection, this.currentUser);
+	}
+
+	public isUserRoleSelected(role: string) {
+		return this.currentUser.roles && this.currentUser.roles.split(";").includes(role);
+	}
+	
 	public saveCurrentUser() {
 		const userObj = {
 			...this.currentUser,
 		} as any;
+		if(!userObj.password) {
+			userObj.password = "12345";
+		}
+		if(!userObj.roles) {
+			userObj.roles = "tally_view";
+		}
 		const arbiterObj = {
 			action: this.editingUser ? 'edit' : 'add',
 			type: 'user',
@@ -570,6 +590,7 @@ export class SettingsComponent {
 	public addUser(userModal: any) {
 		this.editingUser = false;
 		this.currentUser = { } as User;
+		this.selectedUserRoles = [];
 		this.modalService.open(userModal);
 	}
 
@@ -621,6 +642,7 @@ export class SettingsComponent {
 	public editUser(user: User, modal: any) {
 		this.editingUser = true;
 		this.currentUser = user;
+		this.selectedUserRoles = user.roles.split(';');
 		this.modalService.open(modal);
 	}
 
