@@ -1,4 +1,5 @@
 import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Confirmable } from 'src/app/_decorators/confirmable.decorator';
 import { Router } from '@angular/router';
 import { SocketService } from 'src/app/_services/socket.service';
 import { ErrorReportsListElement } from 'src/app/_models/ErrorReportsListElement';
@@ -37,6 +38,7 @@ export class ErrorReportsListComponent implements OnInit {
     this.socketService.socket.emit('mark_error_reports_as_read');
   }
 
+  @Confirmable("Are you sure you want to delete all error reports? This can not be undone.")
   public deleteEveryErrorReport() {
     this.socketService.socket.emit('delete_every_error_report');
   }

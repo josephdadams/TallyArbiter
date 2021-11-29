@@ -14,6 +14,11 @@ jobs:
         node-version: 14
     - name: Install dependencies
       run: npm i
+    - name: Create env file
+      run: |
+        touch .env
+        echo SENTRY_ENABLED=1 >> .env
+        echo SENTRY_DSN=${{ secrets.SENTRY_DSN }} >> .env
     - name: Build
       run: npm pack
     - name: NPM Publish
@@ -65,6 +70,11 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Create env file
+      run: |
+        touch .env
+        echo SENTRY_ENABLED=1 >> .env
+        echo SENTRY_DSN=${{ secrets.SENTRY_DSN }} >> .env
     - name: Build and push
       if: startsWith(github.ref, 'refs/tags/v') != true
       uses: docker/build-push-action@v2
@@ -96,6 +106,11 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: 14
+    - name: Create env file
+      run: |
+        touch .env
+        echo SENTRY_ENABLED=1 >> .env
+        echo SENTRY_DSN=${{ secrets.SENTRY_DSN }} >> .env
     - name: Install dependencies and build
       run: npm i; npm run build
     - name: Build

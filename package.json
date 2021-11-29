@@ -1,6 +1,6 @@
 {
     "name": "tallyarbiter",
-    "version": "2.0.14",
+    "version": "3.0.1",
     "description": "The flexible and customizable tally system",
     "keywords": [
         "util",
@@ -38,6 +38,7 @@
         "package-lock.json",
         "index.js",
         "bin",
+        "dist",
         "ui-dist",
         "readme.md",
         "LICENSE"
@@ -48,11 +49,15 @@
         "Matteo Gheza <me@matteogheza.it>"
     ],
     "dependencies": {
+        "@sentry/node": "^6.13.3",
         "@types/express": "^4.17.13",
+        "ajv": "^6.12.6",
         "atem-connection": "3.0.0-nightly-latest-20210530-132658-16c3cdd.0",
         "axios": "^0.21.1",
         "bcrypt": "^5.0.1",
         "bonjour": "^3.5.0",
+        "dotenv": "^10.0.0",
+        "compression": "^1.7.4",
         "electron-updater": "^4.3.9",
         "esm": "^3.2.25",
         "express": "^4.17.1",
@@ -63,7 +68,7 @@
         "jsonwebtoken": "^8.5.1",
         "jspack": "^0.0.4",
         "obs-websocket-js": "^4.0.2",
-        "osc": "^2.4.1",
+        "osc": "^2.4.2",
         "packet": "0.0.6",
         "rate-limiter-flexible": "^2.2.4",
         "reflect-metadata": "^0.1.13",
@@ -71,14 +76,14 @@
         "socket.io": "4.1.2",
         "socket.io-client": "4.1.2",
         "tsl-umd": "^1.1.2",
-        "tsl-umd-v5": "^1.0.3",
+        "tsl-umd-v5": "^1.0.4",
         "uuid": "^8.3.2",
         "winston": "^3.3.3",
         "xml2js": "^0.4.23"
     },
     "main": "main.js",
     "scripts": {
-        "start": "ts-node-dev src/index.ts",
+        "start": "ts-node-dev src/index.ts --dev",
         "prepare": "cd UI && npm i && npm run build",
         "redundancyjs": "redundancyjs",
         "build": "tsc",

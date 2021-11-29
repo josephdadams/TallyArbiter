@@ -1,0 +1,37 @@
+{
+    "server_config": {
+        "ip": "127.0.0.1",
+        "port": 4455,
+        "use_mdns": true
+    },
+    "gpo_groups": [
+        {
+            "id": "1",
+            "gpos": [
+                {
+                    "pinNumber": 9,
+                    "busType": "preview"
+                },
+                {
+                    "pinNumber": 10,
+                    "busType": "program"
+                }
+            ],
+            "deviceId": "8ec94eba"
+        },
+        {
+            "id": "2",
+            "gpos": [
+                {
+                    "pinNumber": 11,
+                    "busType": "preview"
+                },
+                {
+                    "pinNumber": 12,
+                    "busType": "program"
+                }
+            ],
+            "deviceId": "ed34bacd"
+        }
+    ]
+}
