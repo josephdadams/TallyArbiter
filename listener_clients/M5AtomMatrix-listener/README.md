@@ -12,7 +12,7 @@ OR
 https://www.adafruit.com/product/4497 (Shipped from USA)
 
 # Installation
-## 1. Using a pre-builded version
+## 1. Using a pre-built version
 
 1. Download an ESP flasher.
 You can use [esphome-flasher](https://github.com/esphome/esphome-flasher). If you want to use it, go to the [Github page](https://github.com/esphome/esphome-flasher) and download the latest release.
