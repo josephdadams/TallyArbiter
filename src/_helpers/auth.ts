@@ -1,14 +1,21 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { logger } from "../index";
-import { currentConfig } from './config';
+import { currentConfig, SaveConfig } from './config';
 import { clone } from "./clone";
 
 import { AuthenticateSuccessResponse } from '../_models/AuthenticateSuccessResponse';
 import { User } from '../_models/User';
 
 export function hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, 20);
+    return new Promise((resolve, reject) => {
+        bcrypt.hash(password, 10, (err, hash) => {
+            if (err) {
+                reject(err);
+            }
+            resolve(hash);
+        });
+    });
 }
 
 export function checkPassword(input_password: string, original_password: string): Promise<boolean> {
@@ -76,6 +83,8 @@ export function addUser(user: User): Promise<boolean> {
             hashPassword(user.password).then((hashed_password) => {
                 user.password = hashed_password;
                 currentConfig.users.push(user);
+                SaveConfig();
+                logger(`Added new user ${user.username}.`);
                 resolve(true);
             });
         } else {
@@ -92,17 +101,21 @@ export function editUser(user: User) {
             currentConfig.users[index] = user;
         }
     });
+    SaveConfig();
+    if(userFound) {
+        logger(`Edited user ${user.username}.`);
+    }
     return userFound;
 }
 
 export function deleteUser(user: User) {
-    let userFound = false;
     currentConfig.users.forEach((user_original, index) => {
         if(user_original.username === user.username) {
-            userFound = true;
             currentConfig.users.splice(index, 1);
+            SaveConfig();
+            logger(`Deleted user ${user.username}.`);
             return true;
         }
     });
-    return userFound;
+    return false;
 }

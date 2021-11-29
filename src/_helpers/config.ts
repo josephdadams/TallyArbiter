@@ -1,10 +1,11 @@
 import { logger, tslListenerProvider } from "..";
 import { Config } from "../_models/Config";
 import { ConfigTSLClient } from "../_models/ConfigTSLClient";
-import fs from "fs";
+import fs from "fs-extra";
 import path from "path";
 import { clone } from "./clone";
 import { uuidv4 } from "./uuid";
+import { addUser } from "./auth";
 
 function getConfigFilePath(): string {
 	const configFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share"), "TallyArbiter");
@@ -21,18 +22,7 @@ export const ConfigDefaults: Config = {
 	security: {
 		jwt_private_key: require('crypto').randomBytes(256).toString('base64'),
 	},
-	users: [
-		{
-			username: "producer",
-			password: "12345",
-			roles: "producer"
-		},
-		{
-			username: "admin",
-			password: "12345",
-			roles: "admin"
-		},
-	],
+	users: [],
     cloud_destinations: [],
     cloud_keys: [],
     device_actions: [],
@@ -85,22 +75,28 @@ export function SaveConfig() {
 
 export function readConfig(): void {
 	isConfigLoaded = true;
-	let loadedConfig = JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
+	const configPath = getConfigFilePath();
+	if(!fs.pathExistsSync(configPath)) {
+		try {
+			SaveConfig();
+		} catch(e) {}
+	}
+	let loadedConfig = JSON.parse(fs.readFileSync(configPath).toString());
     currentConfig = {
         ...clone(ConfigDefaults),
         ...loadedConfig,
     };
-	if(!loadedConfig.users) {
+	if(!loadedConfig.users || loadedConfig.users.length === 0) {
 		logger('Migrating user configs to the new format.', 'info-quiet');
 		currentConfig.users = [];
-		currentConfig.users.push({
-			username: (currentConfig.security.username_producer || "producer"),
-			password: (currentConfig.security.password_producer || "12345"),
+		addUser({
+			username: currentConfig.security.username_producer || "producer",
+			password: currentConfig.security.password_producer || "12345",
 			roles: "producer"
 		});
-		currentConfig.users.push({
-			username: (currentConfig.security.username_settings || "admin"),
-			password: (currentConfig.security.password_settings || "12345"),
+		addUser({
+			username: currentConfig.security.username_settings || "admin",
+			password: currentConfig.security.password_settings || "12345",
 			roles: "admin"
 		});
 		delete currentConfig.security.username_producer;
