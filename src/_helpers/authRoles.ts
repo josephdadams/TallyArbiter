@@ -6,7 +6,6 @@ export const roles = [
     "settings:testing",
     "settings:config",
     "settings:users",
-    "settings:logs",
     "producer",
     "tally_viewer"
 ];
