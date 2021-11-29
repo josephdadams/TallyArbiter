@@ -38,6 +38,7 @@
         "package-lock.json",
         "index.js",
         "bin",
+        "dist",
         "ui-dist",
         "readme.md",
         "LICENSE"
