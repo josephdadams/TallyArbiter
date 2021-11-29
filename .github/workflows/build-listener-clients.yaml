@@ -106,6 +106,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
+    - name: Setup TFT_eSPI and select User Setup
+      run: |
+        git clone https://github.com/Bodmer/TFT_eSPI/
+        cd TFT_eSPI
+        sed -i 's/#include <User_Setup.h>/\/\/#include <User_Setup.h>/g' User_Setup_Select.h
+        sed -i 's/\/\/#include <User_Setups\/Setup22_TTGO_T4.h>/#include <User_Setups\/Setup22_TTGO_T4.h>/g' User_Setup_Select.h
     - uses: arduino/compile-sketches@v1
       with:
         platforms: |
@@ -117,7 +123,7 @@ jobs:
           - name: WiFiManager
           - name: MultiButton
           - name: Arduino_JSON
-          - name: TFT_eSPI
+          - source-path: TFT_eSPI
         cli-compile-flags: |
           - --export-binaries
         sketch-paths: |
