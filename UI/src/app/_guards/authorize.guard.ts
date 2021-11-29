@@ -18,14 +18,17 @@ export class AuthorizeGuard implements CanActivate {
     let currentSection = destination[1];
     let requiredRole = "";
     switch (currentSection) {
-        case 'errors':
-        case 'settings':
-            requiredRole = 'admin';
-            break;
+      case 'errors':
+        requiredRole = "admin";
+        break;
 
-        case 'producer':
-            requiredRole = 'producer';
-            break;
+      case 'settings':
+        requiredRole = 'settings';
+        break;
+
+      case 'producer':
+        requiredRole = 'producer';
+        break;
     }
     if(this.authService.profile === undefined) {
       console.log("Not logged in. Navigating to the login page...");
