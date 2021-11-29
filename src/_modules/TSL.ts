@@ -13,7 +13,7 @@ export class TSLListenerProvider extends ListenerProvider {
 
     constructor() {
         super();
-        logger(`Initiating ${currentConfig.tsl_clients} TSL Client Connections.`, 'info');
+        logger(`Initiating ${currentConfig.tsl_clients.length} TSL Client Connections.`, 'info');
         for (const tslClient of currentConfig.tsl_clients) {
             logger(`TSL Client: ${tslClient.ip}:${tslClient.port} (${tslClient.transport})`, 'info-quiet');
             this.startTSLClientConnection(tslClient);

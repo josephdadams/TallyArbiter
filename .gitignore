@@ -98,7 +98,7 @@ dist
 .fusebox/
 
 # DynamoDB Local files
-.dynamodb/
+./
 
 # TernJS port file
 .tern-port
@@ -119,8 +119,18 @@ UI/src/app/_models
 # don't include UI versions.ts file
 UI/src/environments/versions.ts
 
-# don't include any installers
+# don't include any installer
 release
+
+#listener clients configs
+deviceid.txt
+config.ini
+config_gpo.json
+config_relays.json
+*.bin
+*.elf
+*.hex
+*.hex.bin
 
 # don't include .DS_Store file and vscode workspace file
 .DS_Store

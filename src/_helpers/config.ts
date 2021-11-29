@@ -38,6 +38,7 @@ export const ConfigDefaults: Config = {
         { id: '12c8d689', label: 'Aux 2', type: 'aux', color: '#0000FF', priority: 100}
     ],
     externalAddress: "http://0.0.0.0:4455/#/tally",
+	remoteErrorReporting: false,
 	uuid: uuidv4()
 }
 
@@ -118,7 +119,7 @@ export function readConfig(): void {
 export function getConfigRedacted(): Config {
 	let config: Config = {} as Config;
 	try {
-		config = JSON.parse(fs.readFileSync(getConfigFilePath()).toString());
+		config = JSON.parse(fs.readFileSync(config_file).toString());
 	} catch (e) {
 	}
 	config["security"] = {
@@ -129,4 +130,16 @@ export function getConfigRedacted(): Config {
 	config["cloud_keys"] = [];
 	config["uuid"] = "";
 	return config;
+}
+
+export function replaceConfig(config: Config): void {
+	logger('Replacing configuration.', 'info-quiet');
+	fs.copyFileSync(config_file, config_file + '.bak');
+	currentConfig = config;
+	SaveConfig();
+}
+
+export function rollbackConfig(): void {
+	fs.copyFileSync(config_file + '.bak', config_file);
+	readConfig();
 }

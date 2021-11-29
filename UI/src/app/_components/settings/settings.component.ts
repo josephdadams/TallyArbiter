@@ -15,13 +15,36 @@ import { SourceType } from 'src/app/_models/SourceType';
 import { TSLClient } from 'src/app/_models/TSLClient';
 import { SocketService } from 'src/app/_services/socket.service';
 import Swal from 'sweetalert2';
+import { SweetAlertOptions } from 'sweetalert2';
 import { BusOption } from 'src/app/_models/BusOption';
 import { SourceTypeBus } from 'src/app/_models/SourceTypeBus';
 import { User } from 'src/app/_models/User';
 import { AuthService } from 'src/app/_services/auth.service';
+import { JsonEditorComponent, JsonEditorOptions } from 'ang-jsoneditor';
+import { default as configSchema } from '../../../../../src/_helpers/configSchema'
 
 const globalSwalOptions = {
 	confirmButtonColor: "#2a70c7",
+};
+
+const remoteErrorText: string = 'Remote error reporting helps us keep Tally Arbiter running smoothly.';
+
+const optOutAlertOptions: SweetAlertOptions = {
+	title: 'Are you sure?',
+	text: remoteErrorText,
+	showCancelButton: true,
+	confirmButtonColor: "#2a70c7",
+	icon: 'question',
+	focusCancel: false,
+};
+
+const optInAlertOptions: SweetAlertOptions = {
+	title: 'Thank you!',
+	text: remoteErrorText,
+	showCancelButton: false,
+	confirmButtonColor: "#2a70c7",
+	icon: 'success',
+	focusCancel: false,
 };
 
 type LogLevel = { title: string; id: string };
@@ -82,6 +105,16 @@ export class SettingsComponent {
 
 	public newCloudKey = "";
 
+	public configLoaded = false;
+	public config = {};
+	public updatedConfig = {};
+	public updatedConfigValid = true;
+	public updatedRawConfig = "";
+	@ViewChild('configEditor', { static: false }) configEditor!: JsonEditorComponent;
+	public jsonEditorOptions = new JsonEditorOptions();
+
+	public activeNavTab = "sources_devices";
+
 	constructor(
 		private modalService: NgbModal,
 		public socketService: SocketService,
@@ -114,6 +147,24 @@ export class SettingsComponent {
 		if(this.authService.requireRole('settings:users')) {
 			this.socketService.socket.emit('users');
 		}
+		if(this.authService.requireRole('settings:config')) {
+			this.socketService.socket.on('config', (config) => {
+				this.config = config;
+				this.updatedConfig = config;
+				this.updatedRawConfig = JSON.stringify(config, null, 2);
+				this.configLoaded = true;
+			});
+			this.socketService.socket.emit('get_unread_error_reports');
+			this.socketService.socket.emit('get_config');
+			this.jsonEditorOptions.schema = configSchema;
+		}
+	}
+
+	public navChanged(event: any) {
+		console.log("nav changed", event);
+		if(event.nextId === "config") {
+			this.socketService.socket.emit('get_config');
+		}
 	}
 
 	@Confirmable("There was an unexpected error. Do you want to view the bug report?", false)
@@ -124,6 +175,16 @@ export class SettingsComponent {
 	@Confirmable(`There are error reports that you haven't read yet. Do you want to open the list of errors now?`, false)
 	public show_errors_list() {
 	this.router.navigate(['/errors']);
+	}
+
+	@Confirmable(remoteErrorText, false, optOutAlertOptions)
+	public optOutErrorReporting() {
+		this.socketService.socket.emit('remote_error_opt', false);
+	}
+
+	@Confirmable(remoteErrorText, false, optInAlertOptions)
+	public optInErrorReporting() {
+		this.socketService.socket.emit('remote_error_opt', true);
 	}
 
 	private portInUse(portToCheck: number, sourceId: string) {
@@ -385,9 +446,28 @@ export class SettingsComponent {
 		return this.socketService.sourceTypes.find((obj) => obj.id === sourceTypeId)?.busses as SourceTypeBus[];
 	}
 
-	public toggleTestMode() {
-		this.socketService.testModeOn = !this.socketService.testModeOn;
-		this.socketService.socket.emit('testmode', this.socketService.testModeOn);
+	public setTestMode(state: boolean) {
+		if (state == true) {
+			this.socketService.socket.emit('testmode', true);
+			this.socketService.testModeOn = true;
+		} else if (state == false) {
+			this.socketService.socket.emit('testmode', false);
+			this.socketService.testModeOn = false;
+		}
+	}
+
+	public checkTestMode() {
+		let sources = this.socketService.sources;
+		let status = false;
+		for (let i = 0; i < sources.length; i++) {
+			if (sources[i].id == 'TEST') {
+				status = true;
+				break;
+			} else {
+				status = false;
+			}
+		}
+		return status;
 	}
 
 	public getDeviceSourcesByDeviceId(deviceId: string) {
@@ -660,5 +740,73 @@ export class SettingsComponent {
 			e.nativeElement.scrollTop = e.nativeElement.scrollHeight;
 			} catch { }
 		});
+	}
+
+	public configUpdated(event: any) {
+		console.log(event, this.configEditor);
+		this.updatedConfig = event;
+		this.updatedRawConfig = JSON.stringify(event, null, 2);
+
+		const editorJson = this.configEditor.getEditor();
+		console.log(editorJson);
+		editorJson.validate();
+		const errors = editorJson.validateSchema.errors;
+		if (errors && errors.length > 0) {
+			this.updatedConfigValid = false;
+		} else {
+			this.updatedConfigValid = true;
+		}
+	}
+
+	@Confirmable("Are you sure you want to update your config? Be careful and continue only if you are absolutely sure.")
+	public saveConfig() {
+		console.log(this.updatedConfig);
+		this.config = this.updatedConfig;
+		this.socketService.socket.once("error", (message: string) => {
+			alert(message);
+		});
+		this.socketService.socket.emit('set_config', this.config);
+	}
+
+	@Confirmable("Are you sure you want to update your config? Be careful and continue only if you are absolutely sure.")
+	public saveRawConfig() {
+		console.log(this.updatedRawConfig);
+		this.config = JSON.parse(this.updatedRawConfig);
+		this.socketService.socket.once("error", (message: string) => {
+			alert(message);
+		});
+		this.socketService.socket.emit('set_config', this.config);
+	}
+
+	public exportConfig() {
+		const blob = new Blob([JSON.stringify(this.config, null, 2)], { type: 'application/json' });
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = 'config.json';
+		a.click();
+	}
+
+	public importConfig() {
+		try {
+			const input = document.createElement('input');
+			input.type = 'file';
+			input.onchange = (e) => {
+				const reader = new FileReader();
+				reader.onload = (e) => {
+					if(e?.target?.result) {
+						let result = e?.target?.result as string;
+						console.log('file contents:', result);
+						this.config = JSON.parse(result);
+						this.updatedConfig = this.config;
+						this.updatedRawConfig = JSON.stringify(this.config, null, 2);
+						this.socketService.socket.emit('set_config', this.config);
+					}
+				}
+				reader.readAsText((input.files as FileList)[0]);
+			};
+			input.click();
+		} catch (e) {
+		}
 	}
 }

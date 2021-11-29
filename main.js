@@ -8,7 +8,7 @@ let server;
 let mainWindow;
 let trayIcon;
 
-const gotTheLock = app.requestSingleInstanceLock()
+const gotTheLock = app.requestSingleInstanceLock();
 
 function processError(err) {
     if (server !== undefined) {
