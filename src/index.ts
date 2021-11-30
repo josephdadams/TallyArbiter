@@ -51,7 +51,7 @@ import { Actions } from './_globals/Actions';
 import { uuidv4 } from './_helpers/uuid';
 import { logFilePath, Logs, serverLogger, tallyDataFile } from './_helpers/logger';
 import { getNetworkInterfaces } from './_helpers/networkInterfaces';
-import { loadClassesFromFolder } from './_helpers/fileLoder';
+import { loadClassesFromFolder } from './_helpers/fileLoader';
 import { UsePort } from './_decorators/UsesPort.decorator';
 import { secondsToHms } from './_helpers/time';
 import { currentConfig, getConfigRedacted, readConfig, SaveConfig, replaceConfig } from './_helpers/config';
