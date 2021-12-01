@@ -24,6 +24,11 @@ Preferences preferences;
 char tallyarbiter_host[40] = "192.168.0.110";
 char tallyarbiter_port[6] = "4455";
 
+//Wifi SSID and password
+const char * networkSSID = "ssid";  
+const char * networkPass = "password";
+
+
 //Local Default Camera Number
 int camNumber = 1;
 
@@ -79,8 +84,6 @@ int readycolor[] = {GRB_COLOR_BLACK, GRB_COLOR_GREEN};
 int alloffcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_BLACK};
 int wificolor[] = {GRB_COLOR_BLACK, GRB_COLOR_BLUE};
 int infocolor[] = {GRB_COLOR_BLACK, GRB_COLOR_ORANGE};
-
-int currentBrightness = 40;
 
 //this is the array that stores the number layout
 int number[17][25] = {{
@@ -317,8 +320,8 @@ void evaluateMode() {
     actualColor.replace("#", "");
     String hexstring = actualColor;
     long colorNumber = (long) strtol( &hexstring[1], NULL, 16);
-    int r = colorNumber >> 16;
-    int g = colorNumber >> 8 & 0xFF;
+    int g = colorNumber >> 16;
+    int r = colorNumber >> 8 & 0xFF;
     int b = colorNumber & 0xFF;
     
     if (actualType != "") {
