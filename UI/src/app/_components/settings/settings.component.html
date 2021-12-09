@@ -46,6 +46,24 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="alert alert-info mt-3" role="alert" *ngIf="socketService.networkDiscovery.length > 0">
+                    Found {{ socketService.networkDiscovery.length }} new sources in your network.
+                    <table class="table table-hover" *ngIf="socketService.networkDiscovery.length > 0">
+                        <thead>
+                            <tr>
+                                <th>IP</th>
+                                <th>Type</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let source of socketService.networkDiscovery">
+                                <td>{{ source.ip }}</td>
+                                <td>{{ source.sourceId }}</td>
+                                <td><button class="btn btn-outline-dark"><i class="fas fa-plus"></i> Add</button></td>
+                        </tbody>
+                    </table>
+                </div>
                 <hr class="my-5" />
                 <div class="row">
                     <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: true}"></ng-container>
