@@ -297,6 +297,9 @@ export class SocketService {
       this.portsInUse = ports;
     });
     this.socket.on('networkDiscovery', (networkDiscovery: NetworkDiscovery[]) => {
+      networkDiscovery.forEach((nd: NetworkDiscovery) => {
+        if(!nd.ip) nd.ip = nd.addresses[0];
+      });
       this.networkDiscovery = networkDiscovery;
     });
     this.socket.on('error_reports', (errorReports: ErrorReportsListElement[]) => {

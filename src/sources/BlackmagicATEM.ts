@@ -16,7 +16,7 @@ import { TallyInput } from './_Source';
     }, (service) => {
         addDiscoveredDevice({
             name: service.name,
-            ip: service.addresses[0],
+            addresses: service.addresses.concat(service.fqdn)
         });
     });
 })

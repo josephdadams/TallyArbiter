@@ -2,6 +2,7 @@ export interface NetworkDiscovery {
     sourceId: string;
 
     name: string;
-    ip: string;
+    addresses: string[];
+    ip?: string;
     port?: number;
 }
