@@ -46,9 +46,9 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="alert alert-info mt-3" role="alert" *ngIf="socketService.networkDiscovery.length > 0">
-                    Found {{ socketService.networkDiscovery.length }} new sources in your network.
-                    <table class="table table-hover" *ngIf="socketService.networkDiscovery.length > 0">
+                <div class="alert alert-info mt-3" role="alert" *ngIf="getNetworkDiscoveryList().length > 0">
+                    Found {{ getNetworkDiscoveryList().length }} new sources in your network.
+                    <table class="table table-hover" *ngIf="getNetworkDiscoveryList().length > 0">
                         <thead>
                             <tr>
                                 <th>IP/Host</th>
@@ -57,7 +57,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr *ngFor="let networkDiscovery of socketService.networkDiscovery">
+                            <tr *ngFor="let networkDiscovery of getNetworkDiscoveryList()">
                                 <td>
                                     <select class="form-select" [ngModel]="networkDiscovery.ip" (ngModelChange)="changeIpSelection(networkDiscovery, $event)">
                                         <option *ngFor="let address of networkDiscovery.addresses" [value]="address">

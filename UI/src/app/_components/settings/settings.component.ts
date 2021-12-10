@@ -162,6 +162,8 @@ export class SettingsComponent {
 	}
 
 	public navChanged(event: any) {
+		console.log(this.socketService.sourceTypes);
+		(window as any).socketService = this.socketService;
 		console.log("nav changed", event);
 		if(event.nextId === "config") {
 			this.socketService.socket.emit('get_config');
@@ -681,6 +683,16 @@ export class SettingsComponent {
 
 	public getSourceTypeById(sourceTypeId: string) {
 		return this.socketService.sourceTypes.find((sourceType) => sourceType.id === sourceTypeId);
+	}
+
+	public getNetworkDiscoveryList() {
+		return this.socketService.networkDiscovery.filter((el) => this.checkIfNetworkDiscoveryAlreadyAdded(el));
+	}
+
+	public checkIfNetworkDiscoveryAlreadyAdded(networkDiscovery: NetworkDiscovery) {
+		return this.socketService.sources.every((source) => {
+			return !(networkDiscovery.sourceId === source.sourceTypeId && networkDiscovery.addresses.includes(source.data.ip));
+		});
 	}
 
 	public changeIpSelection(networkDiscovery: NetworkDiscovery, ip: string) {
