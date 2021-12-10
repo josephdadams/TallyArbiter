@@ -4,6 +4,7 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { Confirmable } from 'src/app/_decorators/confirmable.decorator';
 import { CloudClient } from 'src/app/_models/CloudClient';
 import { CloudDestination } from 'src/app/_models/CloudDestination';
+import { NetworkDiscovery } from "src/app/_models/NetworkDiscovery";
 import { Device } from 'src/app/_models/Device';
 import { DeviceAction } from 'src/app/_models/DeviceAction';
 import { DeviceSource } from 'src/app/_models/DeviceSource';
@@ -676,6 +677,25 @@ export class SettingsComponent {
 
 	public getOutputTypeById(outputTypeId: string) {
 		return this.socketService.outputTypes.find(({id}) => id === outputTypeId);
+	}
+
+	public getSourceTypeById(sourceTypeId: string) {
+		return this.socketService.sourceTypes.find((sourceType) => sourceType.id === sourceTypeId);
+	}
+
+	public addSourceByNetworkDiscovery(discovered: NetworkDiscovery, modal: any) {
+		this.editingSource = false;
+		this.currentSourceSelectedTypeIdx = this.socketService.sourceTypes.findIndex((t) => t.id == discovered.sourceId);
+		this.currentSource = {
+			name: discovered.name,
+			data: {
+				...discovered,
+			},
+		} as unknown as Source;
+		delete this.currentSource.data.sourceId;
+		delete this.currentSource.data.name;
+		
+		this.modalService.open(modal);
 	}
 
 	public editSource(source: Source, modal: any) {
