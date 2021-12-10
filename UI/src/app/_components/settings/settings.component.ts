@@ -683,6 +683,10 @@ export class SettingsComponent {
 		return this.socketService.sourceTypes.find((sourceType) => sourceType.id === sourceTypeId);
 	}
 
+	public changeIpSelection(networkDiscovery: NetworkDiscovery, ip: string) {
+		networkDiscovery.ip = ip;
+	}
+
 	public addSourceByNetworkDiscovery(discovered: NetworkDiscovery, modal: any) {
 		this.editingSource = false;
 		this.currentSourceSelectedTypeIdx = this.socketService.sourceTypes.findIndex((t) => t.id == discovered.sourceId);

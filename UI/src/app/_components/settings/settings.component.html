@@ -51,14 +51,20 @@
                     <table class="table table-hover" *ngIf="socketService.networkDiscovery.length > 0">
                         <thead>
                             <tr>
-                                <th>IP</th>
+                                <th>IP/Host</th>
                                 <th>Type</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr *ngFor="let networkDiscovery of socketService.networkDiscovery">
-                                <td>{{ networkDiscovery.ip }}</td>
+                                <td>
+                                    <select class="form-select" [ngModel]="networkDiscovery.ip" (ngModelChange)="changeIpSelection(networkDiscovery, $event)">
+                                        <option *ngFor="let address of networkDiscovery.addresses" [value]="address">
+                                            {{ address }}
+                                        </option>
+                                    </select>
+                                </td>
                                 <td>{{ getSourceTypeById(networkDiscovery.sourceId)?.label || "Source type not found" }}</td>
                                 <td><button class="btn btn-outline-dark" (click)="addSourceByNetworkDiscovery(networkDiscovery, sourceModal)"><i class="fas fa-plus"></i> Add</button></td>
                             </tr>
