@@ -162,9 +162,6 @@ export class SettingsComponent {
 	}
 
 	public navChanged(event: any) {
-		console.log(this.socketService.sourceTypes);
-		(window as any).socketService = this.socketService;
-		console.log("nav changed", event);
 		if(event.nextId === "config") {
 			this.socketService.socket.emit('get_config');
 		}
@@ -172,7 +169,7 @@ export class SettingsComponent {
 
 	@Confirmable("There was an unexpected error. Do you want to view the bug report?", false)
 	public show_error(id: string) {
-	this.router.navigate(['/errors', id]);
+	        this.router.navigate(['/errors', id]);
 	}
 
 	@Confirmable(`There are error reports that you haven't read yet. Do you want to open the list of errors now?`, false)
