@@ -46,6 +46,31 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="alert alert-info mt-3" role="alert" *ngIf="getNetworkDiscoveryList().length > 0">
+                    Found {{ getNetworkDiscoveryList().length }} new sources in your network.
+                    <table class="table table-hover" *ngIf="getNetworkDiscoveryList().length > 0">
+                        <thead>
+                            <tr>
+                                <th>IP/Host</th>
+                                <th>Type</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let networkDiscovery of getNetworkDiscoveryList()">
+                                <td>
+                                    <select class="form-select" [ngModel]="networkDiscovery.ip" (ngModelChange)="changeIpSelection(networkDiscovery, $event)">
+                                        <option *ngFor="let address of networkDiscovery.addresses" [value]="address">
+                                            {{ address }}
+                                        </option>
+                                    </select>
+                                </td>
+                                <td>{{ getSourceTypeById(networkDiscovery.sourceId)?.label || "Source type not found" }}</td>
+                                <td><button class="btn btn-outline-dark" (click)="addSourceByNetworkDiscovery(networkDiscovery, sourceModal)"><i class="fas fa-plus"></i> Add</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
                 <hr class="my-5" />
                 <div class="row">
                     <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: true}"></ng-container>

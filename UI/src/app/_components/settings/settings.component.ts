@@ -4,6 +4,7 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { Confirmable } from 'src/app/_decorators/confirmable.decorator';
 import { CloudClient } from 'src/app/_models/CloudClient';
 import { CloudDestination } from 'src/app/_models/CloudDestination';
+import { NetworkDiscovery } from "src/app/_models/NetworkDiscovery";
 import { Device } from 'src/app/_models/Device';
 import { DeviceAction } from 'src/app/_models/DeviceAction';
 import { DeviceSource } from 'src/app/_models/DeviceSource';
@@ -161,7 +162,6 @@ export class SettingsComponent {
 	}
 
 	public navChanged(event: any) {
-		console.log("nav changed", event);
 		if(event.nextId === "config") {
 			this.socketService.socket.emit('get_config');
 		}
@@ -169,7 +169,7 @@ export class SettingsComponent {
 
 	@Confirmable("There was an unexpected error. Do you want to view the bug report?", false)
 	public show_error(id: string) {
-	this.router.navigate(['/errors', id]);
+	        this.router.navigate(['/errors', id]);
 	}
 
 	@Confirmable(`There are error reports that you haven't read yet. Do you want to open the list of errors now?`, false)
@@ -676,6 +676,39 @@ export class SettingsComponent {
 
 	public getOutputTypeById(outputTypeId: string) {
 		return this.socketService.outputTypes.find(({id}) => id === outputTypeId);
+	}
+
+	public getSourceTypeById(sourceTypeId: string) {
+		return this.socketService.sourceTypes.find((sourceType) => sourceType.id === sourceTypeId);
+	}
+
+	public getNetworkDiscoveryList() {
+		return this.socketService.networkDiscovery.filter((el) => this.checkIfNetworkDiscoveryAlreadyAdded(el));
+	}
+
+	public checkIfNetworkDiscoveryAlreadyAdded(networkDiscovery: NetworkDiscovery) {
+		return this.socketService.sources.every((source) => {
+			return !(networkDiscovery.sourceId === source.sourceTypeId && networkDiscovery.addresses.includes(source.data.ip));
+		});
+	}
+
+	public changeIpSelection(networkDiscovery: NetworkDiscovery, ip: string) {
+		networkDiscovery.ip = ip;
+	}
+
+	public addSourceByNetworkDiscovery(discovered: NetworkDiscovery, modal: any) {
+		this.editingSource = false;
+		this.currentSourceSelectedTypeIdx = this.socketService.sourceTypes.findIndex((t) => t.id == discovered.sourceId);
+		this.currentSource = {
+			name: discovered.name,
+			data: {
+				...discovered,
+			},
+		} as unknown as Source;
+		delete this.currentSource.data.sourceId;
+		delete this.currentSource.data.name;
+		
+		this.modalService.open(modal);
 	}
 
 	public editSource(source: Source, modal: any) {
