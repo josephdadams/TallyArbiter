@@ -14,6 +14,7 @@ import { LogItem } from '../_models/LogItem';
 import { OutputType } from '../_models/OutputType';
 import { OutputTypeDataFields } from '../_models/OutputTypeDataFields';
 import { Port } from '../_models/Port';
+import { NetworkDiscovery } from '../_models/NetworkDiscovery';
 import { Source } from '../_models/Source';
 import { TSLTallyData } from '../_models/TSLTallyData';
 import { SourceType } from '../_models/SourceType';
@@ -61,6 +62,7 @@ export class SocketService {
   public cloudKeys: string[] = [];
   public cloudClients: CloudClient[] = [];
   public portsInUse: Port[] = [];
+  public networkDiscovery: NetworkDiscovery[] = [];
   public messages: Message[] = [];
   public errorReports: ErrorReportsListElement[] = [] as ErrorReportsListElement[];
   public users: User[] = [];
@@ -293,6 +295,12 @@ export class SocketService {
     });
     this.socket.on('PortsInUse', (ports: Port[]) => {
       this.portsInUse = ports;
+    });
+    this.socket.on('networkDiscovery', (networkDiscovery: NetworkDiscovery[]) => {
+      networkDiscovery.forEach((nd: NetworkDiscovery) => {
+        if(!nd.ip) nd.ip = nd.addresses[0];
+      });
+      this.networkDiscovery = networkDiscovery;
     });
     this.socket.on('error_reports', (errorReports: ErrorReportsListElement[]) => {
       this.errorReports = errorReports;

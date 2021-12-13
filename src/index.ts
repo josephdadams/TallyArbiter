@@ -45,6 +45,7 @@ import { ListenerClient } from './_models/ListenerClient';
 //TypeScript globals
 import { TallyInputs } from './_globals/TallyInputs';
 import { PortsInUse } from './_globals/PortsInUse';
+import { RegisteredNetworkDiscoveryServices } from './_globals/RegisteredNetworkDiscoveryServices';
 import { Actions } from './_globals/Actions';
 
 // Helpers
@@ -107,7 +108,7 @@ const app = express();
 const httpServer = new http.Server(app);
 
 const io = new socketio.Server(httpServer, { allowEIO3: true });
-const socketupdates_Settings: string[]  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations', 'cloud_keys', 'cloud_clients', 'PortsInUse', 'vmix_clients', "addresses"];
+const socketupdates_Settings: string[]  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations', 'cloud_keys', 'cloud_clients', 'PortsInUse', 'networkDiscovery', 'vmix_clients', "addresses"];
 const socketupdates_Producer: string[]  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients'];
 const socketupdates_Companion: string[] = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
 
@@ -135,6 +136,10 @@ addresses.subscribe(() => {
 
 PortsInUse.subscribe(() => {
 	UpdateSockets('PortsInUse');
+})
+
+RegisteredNetworkDiscoveryServices.subscribe(() => {
+	UpdateSockets('networkDiscovery');
 })
 
 var sources: Source[]						= []; // the configured tally sources
@@ -384,6 +389,7 @@ function initialSetup() {
 				socket.emit('listener_clients', listener_clients);
 				socket.emit('logs', Logs);
 				socket.emit('PortsInUse', PortsInUse.value);
+				socket.emit('networkDiscovery', RegisteredNetworkDiscoveryServices.value);
 				socket.emit('tslclients_1secupdate', currentConfig.tsl_clients_1secupdate);
 			}).catch((e) => {console.error(e);});
 		});
@@ -1563,7 +1569,7 @@ function SetCloudDestinationStatus(cloudId, status) {
 	UpdateSockets('cloud_destinations');
 }
 
-function UpdateCloud(dataType: 'sources' | 'devices' | 'device_sources' | 'device_states' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse") {
+function UpdateCloud(dataType: 'sources' | 'devices' | 'device_sources' | 'device_states' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse" | "networkDiscovery") {
 	for (let i = 0; i < cloud_destinations_sockets.length; i++) {
 		if (cloud_destinations_sockets[i].connected === true) {
 			try {
@@ -1591,11 +1597,12 @@ function UpdateCloud(dataType: 'sources' | 'devices' | 'device_sources' | 'devic
 	}
 }
 
-type SocketUpdateDataType = 'sources' | 'devices' | 'device_sources' | 'device_states' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse" | "addresses";
+type SocketUpdateDataType = 'sources' | 'devices' | 'device_sources' | 'device_states' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse" | "networkDiscovery" | "addresses";
 
 function UpdateSockets(dataType: SocketUpdateDataType) {
 	const data: Record<SocketUpdateDataType, () => any> = {
 		PortsInUse: () => PortsInUse.value,
+		networkDiscovery: () => RegisteredNetworkDiscoveryServices.value,
 		addresses: () => addresses.value,
 		sources: () => getSources(),
 		devices: () => devices,
