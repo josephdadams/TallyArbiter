@@ -66,6 +66,8 @@ export class SocketService {
   public messages: Message[] = [];
   public errorReports: ErrorReportsListElement[] = [] as ErrorReportsListElement[];
   public users: User[] = [];
+  
+  public accessToken = undefined;
 
   public dataLoaded = new Promise<void>((resolve) => this._resolveDataLoadedPromise = resolve);
   private _resolveDataLoadedPromise!: () => void;
@@ -79,6 +81,11 @@ export class SocketService {
 
   constructor() {
     this.socket = io();
+    this.socket.on("reconnect", (attempt) => {
+      if(this.accessToken) {
+        this.socket.emit('access_token', this.accessToken);
+      }
+    });
     this.socket.on('sources', (sources: Source[]) => {
       this.sources = this.prepareSources(sources);
     });
@@ -379,6 +386,7 @@ export class SocketService {
   }
 
   public sendAccessToken(accessToken: string) {
+    this.accessToken = accessToken;
     this.socket.emit('access_token', accessToken);
   }
 }
