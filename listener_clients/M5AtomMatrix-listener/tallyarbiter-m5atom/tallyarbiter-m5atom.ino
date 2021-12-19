@@ -28,6 +28,10 @@ char tallyarbiter_port[6] = "4455";
 const char * networkSSID = "ssid";  
 const char * networkPass = "password";
 
+//local static IP config:
+IPAddress stationIP = IPAddress(192, 168, 1, 195);
+IPAddress stationGW = IPAddress(192, 168, 1, 1);
+IPAddress stationMask = IPAddress(255, 255, 255, 0);
 
 //Local Default Camera Number
 int camNumber = 1;
@@ -595,6 +599,12 @@ void processTallyData() {
 }
 
 void connectToNetwork() {
+  // allow for static IP assignment instead of DHCP if stationIP is defined as something other than 0.0.0.0
+  if (stationIP != IPAddress(0, 0, 0, 0))
+  {
+    wm.setSTAStaticIPConfig(stationIP, stationGW, stationMask); // optional DNS 4th argument 
+  }
+  
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
 
   logger("Connecting to SSID: " + String(WiFi.SSID()), "info");
