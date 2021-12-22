@@ -18,20 +18,20 @@ jobs:
         issue-message: |
           Hello there ${{ github.actor }} 👋
 
-          Welcome to TallyArbiter!! 💖🥳
+          Welcome to TallyArbiter!
 
-          Thank you and congratulations 🎉 for opening your very first issue in this project. TallyArbiter fosters an open and welcoming environment for all our contributors.🌸 Please adhere to our [Code Of Conduct](https://github.com/josephdadams/TallyArbiter/blob/master/CODE_OF_CONDUCT.md).
+          Thank you for opening your first issue for the Tally Arbiter project. TallyArbiter fosters an open and welcoming environment for all our contributors. Please adhere to our [Code Of Conduct](https://github.com/josephdadams/TallyArbiter/blob/master/CODE_OF_CONDUCT.md).
 
-          Incase you want to claim this issue, please comment down below! We will try to get back to you as soon as we can.👀
+          Incase you want to claim this issue, please comment down below! We will try to get back to you as soon as we can.
 
-          Feel free to contact the author or for any other information, please visit [www.techministry.blog](www.techministry.blog). 👩‍💻 We would love to hear your interesting ideas and engage in discussions.💖
+          Feel free to contact the author or for any other information, please visit [www.techministry.blog](www.techministry.blog). We would love to hear your interesting ideas and engage in discussions.
 
         pr-message: |
           Hello there ${{ github.actor }} 👋
 
-          Thank you and congrats 🎉 for opening your first PR on this project.✨
+          Thank you for opening your first PR for the Tally Arbiter project!
 
           We will review it soon!
 
-          TallyArbiter fosters an open and welcoming environment for all our contributors.🌸 Please adhere to our [Code Of Conduct](https://github.com/josephdadams/TallyArbiter/blob/master/CODE_OF_CONDUCT.md).
+          TallyArbiter fosters an open and welcoming environment for all our contributors. Please adhere to our [Code Of Conduct](https://github.com/josephdadams/TallyArbiter/blob/master/CODE_OF_CONDUCT.md).
 
