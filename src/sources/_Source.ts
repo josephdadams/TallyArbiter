@@ -24,25 +24,54 @@ export class TallyInput extends EventEmitter {
         logger(`Source: ${this.source.name} Creating connection.`, 'info-quiet');
         this.connected.subscribe((connected) => {
             if (connected) {
+                // Connected, no more reconnects for now
+                console.log("status: connected", this.source.name);
                 this.tryReconnecting = true;
                 this.reconnectFailureCounter = 0;
             } else {
                 if (!this.tryReconnecting) {
-                    // ignore the first one
+                    // Connection attempt at startup
+                    console.log("Source:", this.source.name, "connect triggered at startup");
+                    
+                    if (this.source.unlimited_reconnects) {
+                        console.log("Source:", this.source.name, "infinite reconnect attempts");
+                    } else {
+                        console.log("Source:", this.source.name, "max default reconnect attempts", MAX_FAILED_RECONNECTS);
+                    }
                     this.tryReconnecting = true;
                     return;
                 }
-                console.log("not connected")
-                if (this.tryReconnecting && this.reconnectFailureCounter < MAX_FAILED_RECONNECTS) {
+
+                // Reconnect if number of reconnects less than max number of reconnects or
+                // if infinite reconnects are configured
+                if ((this.tryReconnecting && this.reconnectFailureCounter < MAX_FAILED_RECONNECTS) ||
+                    (this.tryReconnecting && this.source.unlimited_reconnects)) {
                     if (this.reconnectTimeout) {
+                        console.log("Source:", this.source.name, "reconnect timeout not set")
                         return;
                     }
-                    console.log("try reconnecting", this.reconnectFailureCounter);
+
                     this.reconnectFailureCounter++;
-                    this.reconnectTimeout = setTimeout(() => {
-                        this.reconnectTimeout = undefined;
-                        this.reconnect();
-                    }, RECONNECT_INTERVAL);
+                    console.log("Source:", this.source.name, "reconnect attempt:", this.reconnectFailureCounter);
+
+                    // Use configured timeout only if larger then tally arbiter default
+                    if (this.source.reconnect_intervall > RECONNECT_INTERVAL) {
+                        console.log("Source:", this.source.name, "specific reconnect timeout", this.source.reconnect_intervall);
+                        this.reconnectTimeout = setTimeout(() => {
+                            this.reconnectTimeout = undefined;
+                            this.reconnect();
+                        }, this.source.reconnect_intervall);
+                    } else {
+                        console.log("Source:", this.source.name, "default reconnect timeout", RECONNECT_INTERVAL);
+                        this.reconnectTimeout = setTimeout(() => {
+                            console.log("Source:", this.source.name, "default timeout");
+                            this.reconnectTimeout = undefined;
+                            this.reconnect();
+                        }, RECONNECT_INTERVAL);
+
+                    }
+                } else {
+                    console.log("Source:", this.source.name, "no more reconnects");
                 }
             }
         });
