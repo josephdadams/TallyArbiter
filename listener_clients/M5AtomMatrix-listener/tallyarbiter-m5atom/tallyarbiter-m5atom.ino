@@ -25,6 +25,8 @@ char tallyarbiter_host[40] = "TALLYARBITERSERVERIP";
 char tallyarbiter_port[6] = "4455";
 
 //Uncomment these lines if you want the client to use a static IP address. Default is DHCP.
+//Note that addresses entered here will need to be confirmed when WiFi Manager runs on client.
+//
 //local static IP config:
 //IPAddress stationIP = IPAddress(192, 168, 1, 195);
 //IPAddress stationGW = IPAddress(192, 168, 1, 1);
@@ -273,7 +275,7 @@ int icons[13][25] = {
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0
-  }, // none
+  }, // no icon
 };
 
 // Logger - logs to serial number
@@ -329,6 +331,7 @@ void evaluateMode() {
     actualColor.replace("#", "");
     String hexstring = actualColor;
     long colorNumber = (long) strtol( &hexstring[1], NULL, 16);
+ // This is to compensate for Matrix needing grb. Is there a better fix?
     int g = colorNumber >> 16;
     int r = colorNumber >> 8 & 0xFF;
     int b = colorNumber & 0xFF;
@@ -338,7 +341,9 @@ void evaluateMode() {
       int currColor[] = {backgroundColor, numbercolor};
       logger("Current color: " + String(backgroundColor), "info");
       //logger("Current camNumber: " + String(camNumber), "info");
-      drawNumber(number[camNumber], currColor);
+      // If you want the camera number displayed over Pgm and Pvw, uncomment the following line and comment the line after.
+      // drawNumber(number[camNumber], currColor);
+      drawNumber(icons[12], currColor);
     } else {
       drawNumber(number[camNumber], offcolor);
     }
@@ -363,7 +368,8 @@ void evaluateMode() {
     }
     #endif
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
-    logger(" r: " + String(r) + " g: " + String(g) + " b: " + String(b), "info");
+    // This is a hack to compensate for the Matrix needing GRB. There must be a better way.
+    logger(" r: " + String(g) + " g: " + String(r) + " b: " + String(b), "info");
 
     prevType = actualType;
   }  
