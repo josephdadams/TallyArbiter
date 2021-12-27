@@ -22,6 +22,28 @@ export class TallyInput extends EventEmitter {
         super();
         this.source = source;
         logger(`Source: ${this.source.name} Creating connection.`, 'info-quiet');
+
+        // Set max_reconnect to MAX_FAILED_RECONNECTS if not included in config.
+        if (this.source.max_reconnects == undefined) {
+            this.source.max_reconnects = MAX_FAILED_RECONNECTS;
+            logger(`Source: ${this.source.name} Set max reconnect.`, 'info-quiet');
+        }
+
+        // Log number of reconnect attempts
+        if (this.source.max_reconnects == -1) {
+            logger(`Source: ${this.source.name} Inifinite reconnect attempts.`, 'info-quiet');
+        } else {
+            logger(`Source: ${this.source.name} Reconnect attempts ${this.source.max_reconnects}.`, 'info-quiet');
+        }
+
+        // Log reconnect timeout
+        // Configured timeout only used if larger then RECONNECT_INTERVAL
+        if (this.source.reconnect_intervall > RECONNECT_INTERVAL) {
+            logger(`Source: ${this.source.name} Configured reconnect timeout: ${this.source.reconnect_intervall}.`, 'info-quiet');
+        } else {
+            logger(`Source: ${this.source.name} Default reconnect timeout: ${RECONNECT_INTERVAL}.`, 'info-quiet');
+        }
+
         this.connected.subscribe((connected) => {
             if (connected) {
                 // Connected, no more reconnects for now
@@ -31,21 +53,14 @@ export class TallyInput extends EventEmitter {
             } else {
                 if (!this.tryReconnecting) {
                     // Connection attempt at startup
-                    logger(`Source: ${this.source.name} Connect triggered at startup.`, 'info-quiet');
-                    
-                    if (this.source.unlimited_reconnects) {
-                        logger(`Source: ${this.source.name} Inifinite reconnect attempts.`, 'info-quiet');
-                    } else {
-                        logger(`Source: ${this.source.name} Max default reconnect attempts ${MAX_FAILED_RECONNECTS}.`, 'info-quiet');
-                    }
+                    logger(`Source: ${this.source.name} Connect triggered at startup.`, 'info-quiet');           
                     this.tryReconnecting = true;
                     return;
                 }
 
                 // Reconnect if number of reconnects less than max number of reconnects or
-                // if infinite reconnects are configured
-                if ((this.tryReconnecting && this.reconnectFailureCounter < MAX_FAILED_RECONNECTS) ||
-                    (this.tryReconnecting && this.source.unlimited_reconnects)) {
+                // if infinite reconnects are configured (-1)
+                if (this.tryReconnecting && (this.source.max_reconnects == -1) || (this.reconnectFailureCounter < this.source.max_reconnects)) {
                     if (this.reconnectTimeout) {
                         logger(`Source: ${this.source.name} Reconnect timeout not set.`, 'info-quiet');
                         return;
@@ -54,21 +69,18 @@ export class TallyInput extends EventEmitter {
                     this.reconnectFailureCounter++;
                     logger(`Source: ${this.source.name} Reconnect attempt: ${this.reconnectFailureCounter}.`, 'info-quiet');
 
-                    // Use configured timeout only if larger then tally arbiter default
+                    // Use configured timeout only if larger then RECONNECT_INTERVAL
                     if (this.source.reconnect_intervall > RECONNECT_INTERVAL) {
-                        logger(`Source: ${this.source.name} Specific reconnect timeout: ${this.source.reconnect_intervall}.`, 'info-quiet');
                         this.reconnectTimeout = setTimeout(() => {
                             this.reconnectTimeout = undefined;
                             this.reconnect();
                         }, this.source.reconnect_intervall);
                     } else {
-                        logger(`Source: ${this.source.name} Default reconnect timeout ${RECONNECT_INTERVAL}.`, 'info-quiet');
                         this.reconnectTimeout = setTimeout(() => {
                             logger(`Source: ${this.source.name} Default timeout.`, 'info-quiet');
                             this.reconnectTimeout = undefined;
                             this.reconnect();
                         }, RECONNECT_INTERVAL);
-
                     }
                 } else {
                     logger(`Source: ${this.source.name} No more reconnects.`, 'info-quiet');
