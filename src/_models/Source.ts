@@ -7,7 +7,7 @@ export interface Source {
     sourceTypeId: string;
     data: Record<string, any>;
     reconnect_intervall: number;
-    unlimited_reconnects: boolean;
+    max_reconnects: number;
 
     // Volatile
 	cloudClientId?: any;

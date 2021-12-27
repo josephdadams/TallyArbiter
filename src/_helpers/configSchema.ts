@@ -142,12 +142,12 @@ export default {
                         description: "Configure reconnect intervall",
                         type: "number"
                     },
-                    unlimited_reconnects: {
-                        description: "Enables unlimited reconnect attemps",
-                        type: "boolean"
+                    max_reconnects: {
+                        description: "Configured number of reconnects",
+                        type: "number"
                     }
                 },
-                required: ["deviceId", "address", "id", "sourceId", "bus", "rename", "reconnect_intervall", "unlimted_reconnects"]
+                required: ["deviceId", "address", "id", "sourceId", "bus", "rename", "reconnect_intervall", "max_reconnects"]
             },
             uniqueItems: true
         },

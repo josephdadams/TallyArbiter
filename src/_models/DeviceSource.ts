@@ -6,7 +6,7 @@ export interface DeviceSource {
 	bus: string;
     rename: boolean;
     reconnect_intervall: number;
-    unlimited_reconnects: boolean;
+    max_reconnects: number;
     
     // Volatile
 	cloudConnection?: any;
