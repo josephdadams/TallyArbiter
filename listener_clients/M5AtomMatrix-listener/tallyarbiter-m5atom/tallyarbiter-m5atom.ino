@@ -24,14 +24,11 @@ Preferences preferences;
 char tallyarbiter_host[40] = "TALLYARBITERSERVERIP";
 char tallyarbiter_port[6] = "4455";
 
-//Wifi SSID and password
-const char * networkSSID = "ssid";  
-const char * networkPass = "password";
-
+//Uncomment these lines if you want the client to use a static IP address. Default is DHCP.
 //local static IP config:
-IPAddress stationIP = IPAddress(192, 168, 1, 195);
-IPAddress stationGW = IPAddress(192, 168, 1, 1);
-IPAddress stationMask = IPAddress(255, 255, 255, 0);
+//IPAddress stationIP = IPAddress(192, 168, 1, 195);
+//IPAddress stationGW = IPAddress(192, 168, 1, 1);
+//IPAddress stationMask = IPAddress(255, 255, 255, 0);
 
 //Local Default Camera Number
 int camNumber = 1;
@@ -198,7 +195,7 @@ int number[17][25] = {{
 };
 
 // this array stores all the icons for the display
-int icons[12][25] = {
+int icons[13][25] = {
   { 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1,
     1, 1, 1, 1, 1,
@@ -271,6 +268,12 @@ int icons[12][25] = {
     0, 0, 0, 0, 1,
     0, 0, 0, 1, 0
   }, // good
+  { 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0
+  }, // none
 };
 
 // Logger - logs to serial number
