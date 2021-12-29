@@ -71,7 +71,7 @@ function saveConfig() {
 	try {
 		if(!server_config.ip) server_config.ip = '127.0.0.1';
 		if(!server_config.port) server_config.port = '4455';
-		if(!server_config.useMDNS) server_config.useMDNS = true;
+		if(server_config.useMDNS == null || undefined) server_config.useMDNS = true;
 		
 		if(!configJson.clientUUID) configJson.clientUUID = uuidv4();
 
