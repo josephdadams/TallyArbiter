@@ -46,6 +46,8 @@ function loadConfig() {
 		}
 		if (configJson.server_config) {
 			server_config = configJson.server_config;
+			console.log(JSON.stringify(server_config));
+			console.log(server_config.useMDNS);
 			logger('Tally Arbiter Server Config loaded.', 'info');
 		}
 		else {
@@ -71,7 +73,7 @@ function saveConfig() {
 	try {
 		if(!server_config.ip) server_config.ip = '127.0.0.1';
 		if(!server_config.port) server_config.port = '4455';
-		if(!server_config.useMDNS) server_config.useMDNS = true;
+		if(server_config.useMDNS == null || undefined) server_config.useMDNS = true;
 		
 		if(!configJson.clientUUID) configJson.clientUUID = uuidv4();
 
