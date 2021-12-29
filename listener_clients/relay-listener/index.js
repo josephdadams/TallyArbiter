@@ -46,8 +46,6 @@ function loadConfig() {
 		}
 		if (configJson.server_config) {
 			server_config = configJson.server_config;
-			console.log(JSON.stringify(server_config));
-			console.log(server_config.useMDNS);
 			logger('Tally Arbiter Server Config loaded.', 'info');
 		}
 		else {
