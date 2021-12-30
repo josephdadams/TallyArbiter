@@ -5,7 +5,7 @@ export interface DeviceSource {
     sourceId: string;
 	bus: string;
     rename: boolean;
-    reconnect_intervall: number;
+    reconnect_interval: number;
     max_reconnects: number;
     
     // Volatile
