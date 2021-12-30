@@ -33,9 +33,9 @@ char tallyarbiter_port[6] = "4455";
 //IPAddress stationMask = IPAddress(255, 255, 255, 0);
 
 //Local Default Camera Number
-int camNumber = 1;
+int camNumber = 0;
 
-// Name of the device
+// Name of the device - the serial number of the listener hardware will be appended to create a unique identifier for the server.
 String listenerDeviceName = "m5Atom-1";
 
 // Enables the GPIO pinout
@@ -331,7 +331,7 @@ void evaluateMode() {
     actualColor.replace("#", "");
     String hexstring = actualColor;
     long colorNumber = (long) strtol( &hexstring[1], NULL, 16);
- // This is to compensate for Matrix needing grb. Is there a better fix?
+ // This order is to compensate for Matrix needing grb.
     int g = colorNumber >> 16;
     int r = colorNumber >> 8 & 0xFF;
     int b = colorNumber & 0xFF;
@@ -341,7 +341,7 @@ void evaluateMode() {
       int currColor[] = {backgroundColor, numbercolor};
       logger("Current color: " + String(backgroundColor), "info");
       //logger("Current camNumber: " + String(camNumber), "info");
-      // If you want the camera number displayed over Pgm and Pvw, uncomment the following line and comment the line after.
+      // If you want the camera number displayed during Pgm and Pvw, uncomment the following line and comment the line after.
       // drawNumber(number[camNumber], currColor);
       drawNumber(icons[12], currColor);
     } else {
@@ -368,7 +368,7 @@ void evaluateMode() {
     }
     #endif
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
-    // This is a hack to compensate for the Matrix needing GRB. There must be a better way.
+    // This is a hack to compensate for the Matrix needing GRB.
     logger(" r: " + String(g) + " g: " + String(r) + " b: " + String(b), "info");
 
     prevType = actualType;
