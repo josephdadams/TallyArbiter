@@ -67,7 +67,7 @@ export class SocketService {
   public errorReports: ErrorReportsListElement[] = [] as ErrorReportsListElement[];
   public users: User[] = [];
   
-  public accessToken = undefined;
+  public accessToken: string | undefined;
 
   public dataLoaded = new Promise<void>((resolve) => this._resolveDataLoadedPromise = resolve);
   private _resolveDataLoadedPromise!: () => void;
@@ -82,7 +82,7 @@ export class SocketService {
   constructor() {
     this.socket = io();
     this.socket.on("reconnect", (attempt) => {
-      if(this.accessToken) {
+      if(typeof this.accessToken !== "undefined") {
         this.socket.emit('access_token', this.accessToken);
       }
     });
