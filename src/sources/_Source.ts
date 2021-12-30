@@ -38,8 +38,8 @@ export class TallyInput extends EventEmitter {
 
         // Log reconnect timeout
         // Configured timeout only used if larger then RECONNECT_INTERVAL
-        if (this.source.reconnect_intervall > RECONNECT_INTERVAL) {
-            logger(`Source: ${this.source.name} Configured reconnect timeout: ${this.source.reconnect_intervall}.`, 'info-quiet');
+        if (this.source.reconnect_interval > RECONNECT_INTERVAL) {
+            logger(`Source: ${this.source.name} Configured reconnect timeout: ${this.source.reconnect_interval}.`, 'info-quiet');
         } else {
             logger(`Source: ${this.source.name} Default reconnect timeout: ${RECONNECT_INTERVAL}.`, 'info-quiet');
         }
@@ -70,11 +70,11 @@ export class TallyInput extends EventEmitter {
                     logger(`Source: ${this.source.name} Reconnect attempt: ${this.reconnectFailureCounter}.`, 'info-quiet');
 
                     // Use configured timeout only if larger then RECONNECT_INTERVAL
-                    if (this.source.reconnect_intervall > RECONNECT_INTERVAL) {
+                    if (this.source.reconnect_interval > RECONNECT_INTERVAL) {
                         this.reconnectTimeout = setTimeout(() => {
                             this.reconnectTimeout = undefined;
                             this.reconnect();
-                        }, this.source.reconnect_intervall);
+                        }, this.source.reconnect_interval);
                     } else {
                         this.reconnectTimeout = setTimeout(() => {
                             logger(`Source: ${this.source.name} Default timeout.`, 'info-quiet');

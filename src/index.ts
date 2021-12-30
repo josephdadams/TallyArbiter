@@ -973,7 +973,7 @@ function ToggleTestMode(enabled: boolean) {
 				data: {
 					addressesNumber: devices.length,
 				},
-				reconnect_intervall: 5000,
+				reconnect_interval: 5000,
 				max_reconnects: 5,
 			};
 			//turn on test mode
@@ -988,7 +988,7 @@ function ToggleTestMode(enabled: boolean) {
 					sourceId: testModeSource.id,
 					bus: "",
 					rename: false,
-					reconnect_intervall: 5000,
+					reconnect_interval: 5000,
 					max_reconnects: 5,
 				});
 			}
@@ -1565,7 +1565,7 @@ function TallyArbiter_Edit_Source(obj: Manage): ManageResponse {
 			sources[i].data = sourceObj.data;
 			sourceTypeId = sources[i].sourceTypeId;
 			connected = sources[i].connected;
-			sources[i].reconnect_intervall = sourceObj.reconnect_intervall;
+			sources[i].reconnect_interval = sourceObj.reconnect_interval;
 			sources[i].max_reconnects = sourceObj.max_reconnects;
 		}
 	}
@@ -1728,7 +1728,7 @@ function TallyArbiter_Edit_Device_Source(obj: Manage): ManageResponse {
 			device_sources[i].bus = deviceSourceObj.bus;
 		}
 		device_sources[i].rename = deviceSourceObj.rename;
-		device_sources[i].reconnect_intervall = deviceSourceObj.reconnect_intervall;
+		device_sources[i].reconnect_interval = deviceSourceObj.reconnect_interval;
 		device_sources[i].max_reconnects = deviceSourceObj.max_reconnects;
 	}
 

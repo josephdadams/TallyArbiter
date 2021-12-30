@@ -138,8 +138,8 @@ export default {
                         description: "Enables renaming",
                         type: "boolean"
                     },
-                    reconnect_intervall: {
-                        description: "Configure reconnect intervall",
+                    reconnect_interval: {
+                        description: "Configure reconnect interval",
                         type: "number"
                     },
                     max_reconnects: {
@@ -147,7 +147,7 @@ export default {
                         type: "number"
                     }
                 },
-                required: ["deviceId", "address", "id", "sourceId", "bus", "rename", "reconnect_intervall", "max_reconnects"]
+                required: ["deviceId", "address", "id", "sourceId", "bus", "rename", "reconnect_interval", "max_reconnects"]
             },
             uniqueItems: true
         },
