@@ -122,6 +122,12 @@ except ImportError:
         exit(1)
 
 
+def getOutputValue(state):
+    if configJson["output_invert"]:
+        return not state
+    else:
+        return state
+
 def setStates():
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
@@ -129,7 +135,7 @@ def setStates():
     for gpo_group in gpo_groups:
         for gpo in gpo_group["gpos"]:
             GPIO.setup(gpo["pinNumber"], GPIO.OUT)
-            GPIO.output(gpo["pinNumber"], False)
+            GPIO.output(gpo["pinNumber"], getGPIOOutputValue(False))
             gpo["lastState"] = False
 
     atexit.register(GPO_off)
@@ -140,7 +146,7 @@ def GPO_off():
     for gpo_group in gpo_groups:
         for gpo in gpo_group["gpos"]:
             GPIO.setup(gpo["pinNumber"], GPIO.OUT)
-            GPIO.output(gpo["pinNumber"], False)
+            GPIO.output(gpo["pinNumber"], getOutputValue(False))
             gpo["lastState"] = False
 
 
@@ -213,13 +219,13 @@ def on_flash(gpoGroupId):
     for gpo_group in gpo_groups:
         if str(gpo_group["id"]) == str(gpoGroupId):
             for gpo in gpo_group["gpos"]:
-                GPIO.output(gpo["pinNumber"], True)
+                GPIO.output(gpo["pinNumber"], getOutputValue(True))
                 time.sleep(0.5)
-                GPIO.output(gpo["pinNumber"], False)
+                GPIO.output(gpo["pinNumber"], getOutputValue(False))
                 time.sleep(0.5)
-                GPIO.output(gpo["pinNumber"], True)
+                GPIO.output(gpo["pinNumber"], getOutputValue(True))
                 time.sleep(0.5)
-                GPIO.output(gpo["pinNumber"], False)
+                GPIO.output(gpo["pinNumber"], getOutputValue(False))
                 time.sleep(0.5)
                 GPIO.output(gpo["pinNumber"], gpo["lastState"])
     print()
@@ -266,14 +272,14 @@ def processTallyData():
                         for gpo in gpo_group["gpos"]:
                             if gpo["busType"] == getBusTypeById(device_state["busId"]):
                                 print("Turning on pin " + str(gpo["pinNumber"]))
-                                GPIO.output(gpo["pinNumber"], True)
+                                GPIO.output(gpo["pinNumber"], getOutputValue(True))
                                 gpo["lastState"] = True
                                 powered_pins.append(gpo["pinNumber"])
         for gpo_group in gpo_groups:
             for gpo in gpo_group["gpos"]:
                 if gpo["pinNumber"] not in powered_pins:
                     print("Turning off pin " + str(gpo["pinNumber"]))
-                    GPIO.output(gpo["pinNumber"], False)
+                    GPIO.output(gpo["pinNumber"], getOutputValue(False))
                     gpo["lastState"] = False
         print()
 
