@@ -32,7 +32,7 @@ char tallyarbiter_port[6] = "4455";
 //IPAddress stationGW = IPAddress(192, 168, 1, 1);
 //IPAddress stationMask = IPAddress(255, 255, 255, 0);
 
-//Local Default Camera Number
+//Local Default Camera Number. Used for local display only - does not impact function. Zero results in a single dot displayed.
 int camNumber = 0;
 
 // Name of the device - the serial number of the listener hardware will be appended to create a unique identifier for the server.
