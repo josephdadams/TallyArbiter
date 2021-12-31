@@ -253,7 +253,6 @@ def on_reassign(oldDeviceId, newDeviceId, gpoGroupId):
             gpo_group["deviceId"] = newDeviceId
 
     config_file = open(configFileName, "w")
-    configJson = {}
     configJson["server_config"] = server_config
     configJson["gpo_groups"] = gpo_groups
     config_file.write(json.dumps(configJson, indent=4))
