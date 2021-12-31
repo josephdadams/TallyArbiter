@@ -5,7 +5,7 @@ import { TallyInput } from './_Source';
 import net from "net";
 
 //Based on https://github.com/bitfocus/companion-module-vimeo-livestreamstudio6/blob/main/src/index.js
-//Thanks to @ChgoChad
+//Thanks to @ChgoChad (https://github.com/ChgoChad)
 
 @RegisterTallyInput("934b5102", "Livestream Studio6", "", [
     { fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }
