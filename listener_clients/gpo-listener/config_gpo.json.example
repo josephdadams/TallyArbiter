@@ -1,5 +1,5 @@
 {
-    "output_invert": false
+    "output_invert": false,
     "server_config": {
         "ip": "127.0.0.1",
         "port": 4455,
