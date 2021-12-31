@@ -139,7 +139,7 @@ def setStates():
     for gpo_group in gpo_groups:
         for gpo in gpo_group["gpos"]:
             GPIO.setup(gpo["pinNumber"], GPIO.OUT)
-            GPIO.output(gpo["pinNumber"], getGPIOOutputValue(False))
+            GPIO.output(gpo["pinNumber"], getOutputValue(False))
             gpo["lastState"] = False
 
     atexit.register(GPO_off)
