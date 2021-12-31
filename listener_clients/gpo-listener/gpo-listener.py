@@ -307,10 +307,10 @@ class TallyArbiterServerListener:
                 print("Tally Arbiter GPO Listener Running. Press CTRL-C to exit.")
                 print(
                     "Attempting to connect to Tally Arbiter server: {}:{} (UUID {}, server version {})".format(
-                        info.server, str(info.port), server_uuid, server_version
+                        info.parsed_addresses()[0], str(info.port), server_uuid, server_version
                     )
                 )
-                sio.connect("http://" + info.server + ":" + str(info.port))
+                sio.connect("http://" + info.parsed_addresses()[0] + ":" + str(info.port))
                 sio.wait()
             except socketio.exceptions.ConnectionError:
                 time.sleep(15)
