@@ -62,11 +62,12 @@ export class LivestreamStudio6Source extends TallyInput {
             }
         });
 
-        this.client.connect(this.ip, this.port);
+        //TODO: fix this (see ATEM Videohub source)
+        //this.client.connect(this.ip, this.port);
     }
 
     public reconnect() {
-        this.client.connect(this.ip, this.port);
+        //this.client.connect(this.ip, this.port);
     }
 
     public exit(): void {
