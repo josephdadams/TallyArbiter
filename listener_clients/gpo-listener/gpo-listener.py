@@ -63,6 +63,10 @@ try:
     config_file.close()
     if config != "":
         configJson = json.loads(config)
+        if not "output_invert" in configJson:
+            configJson["output_invert"] = False
+            with open("config_gpo.json", "w") as outfile:
+                json.dump(configJson, outfile, indent=4)
         if not "clientUUID" in configJson:
             configJson["clientUUID"] = str(uuid4())
             with open("config_gpo.json", "w") as outfile:
