@@ -1,5 +1,5 @@
 import { default as ObsWebSocket4 } from 'obs-websocket-js';
-import ObsWebSocket5 from 'obs-websocket-js-5';
+import { default as ObsWebSocket5Module } from 'obs-websocket-js-5';
 import { logger } from '..';
 import { RegisterTallyInput } from "../_decorators/RegisterTallyInput.decorator";
 import { Source } from '../_models/Source';
@@ -19,12 +19,14 @@ import { TallyInput } from './_Source';
 export class OBSSource extends TallyInput {
     private version: "4" | "5";
 
-    private obsClient: ObsWebSocket4;
+    private obsClient4: ObsWebSocket4;
     private scenes: ObsWebSocket4.Scene[] = [];
     private isTransitionFinished = true;
     private currentTransitionFromScene: ObsWebSocket4.Scene = undefined;
     private currentPreviewScene: string = "";
     private currentProgramScene: string = "";
+
+    private obsClient5: ObsWebSocket5Module;
 
     constructor(source: Source) {
         super(source);
@@ -36,22 +38,22 @@ export class OBSSource extends TallyInput {
         }
 
         if (this.version === "4") {
-            this.initialize_v4(source);
+            this.initialize_v4();
         } else {
-            this.initialize_v5(source);
+            this.initialize_v5();
         }
     }
 
-    private checkIfStudioModeEnabled(source: Source) {
+    private checkIfStudioModeEnabled() {
         return new Promise((resolve, reject) => {
             if (this.version === "4") {
-                this.obsClient.send('GetStudioModeStatus').then((data) => {
+                this.obsClient4.send('GetStudioModeStatus').then((data) => {
                     if (!data["studio-mode"]) {
-                        logger(`Source: ${source.name}  Enabling OBS Studio Mode...`, 'info-quiet');
-                        this.obsClient.send('EnableStudioMode').then(() => {
+                        logger(`Source: ${this.source.name}  Enabling OBS Studio Mode...`, 'info-quiet');
+                        this.obsClient4.send('EnableStudioMode').then(() => {
                             resolve(true);
                         }).catch((error) => {
-                            logger(`Source: ${source.name}  OBS Error (enabling studio mode) ${error.error}.`, 'error');
+                            logger(`Source: ${this.source.name}  OBS Error (enabling studio mode) ${error.error}.`, 'error');
                             reject();
                         });
                     } else {
@@ -62,20 +64,66 @@ export class OBSSource extends TallyInput {
         });
     }
 
-    private initialize_v4(source: Source) {
-        this.obsClient = new ObsWebSocket4();
+    private connect() {
+        if(this.version === "4") {
+            this.obsClient4.connect({ address: this.source.data.ip + ':' + this.source.data.port, password: this.source.data.password })
+            .catch((error) => {
+                if (error.code === 'CONNECTION_ERROR') {
+                    logger(`Source: ${this.source.name}  OBS websocket connection error. Is OBS running?`, 'error');
+                    this.connected.next(false);
+                }
+            });
+        } else {
+            this.obsClient5.connect(`ws://${this.source.data.ip}:${this.source.data.port}`, this.source.data.password, {
+                rpcVersion: 1
+            })
+            .then(() => {
+                this.connected.next(true);
+            })
+            .catch((error) => {
+                console.log(error, error.code);
+                switch (error.code) {
+                    case 4009:
+                        logger(`Source: ${this.source.name}  OBS Authentication failed`, 'error');
+                        this.exit();
+                        this.connected.next(false);
+                        break;
+                    
+                    case 4010:
+                        logger(`Source: ${this.source.name}  OBS Websocket client is uncompatible with this version of TallyArbiter. Please, update TA or fill a bug report.`, 'error');
+                        this.exit();
+                        this.connected.next(false);
+                        break;
 
-        this.obsClient.on('ConnectionClosed', () => {
+                    case 4011:
+                        logger(`Source: ${this.source.name}  TallyArbiter was kicked out by OBS Websocket clicking on the button in the connections list.`, 'error');
+                        this.exit();
+                        this.connected.next(false);
+                        break;
+
+                    default:
+                        logger(`Source: ${this.source.name}  OBS websocket connection error (error code ${error.code}). Is OBS Websocket version 5 installed?`, 'error');
+                        this.connected.next(false);
+                        break;
+                }
+            });
+        }
+    }
+
+    private initialize_v4() {
+        this.obsClient4 = new ObsWebSocket4();
+
+        this.obsClient4.on('ConnectionClosed', () => {
             this.connected.next(false);
         });
 
-        this.obsClient.on('AuthenticationSuccess', async () => {
-            logger(`Source: ${source.name}  OBS Authenticated.`, 'info-quiet');
+        this.obsClient4.on('AuthenticationSuccess', async () => {
+            logger(`Source: ${this.source.name}  OBS Authenticated.`, 'info-quiet');
 
             this.saveSceneList();
 
-            let sourcesListPromise = this.obsClient.send('GetSourcesList');
-            let sourceTypesListPromise = this.obsClient.send('GetSourceTypesList');
+            let sourcesListPromise = this.obsClient4.send('GetSourcesList');
+            let sourceTypesListPromise = this.obsClient4.send('GetSourceTypesList');
             Promise.all([sourceTypesListPromise, sourcesListPromise]).then((data) => {
                 let [sourceTypesList, sourcesList]: any = data;
                 let sourceTypesWithAudio: string[] = [];
@@ -90,7 +138,7 @@ export class OBSSource extends TallyInput {
                 for (const source of sourcesList.sources) {
                     this.addAddress(source.name, source.name);
                     if (sourceTypesWithAudio.includes(source.typeId)) {
-                        this.obsClient.send('GetMute', {
+                        this.obsClient4.send('GetMute', {
                             source: source.name
                         }).then((data) => {
                             this.processMutedState(data.name, data.muted);
@@ -99,11 +147,11 @@ export class OBSSource extends TallyInput {
                 }
             });
 
-            this.checkIfStudioModeEnabled(source).then((enabled) => {
-                let previewScenePromise = this.obsClient.send('GetPreviewScene');
-                let programScenePromise = this.obsClient.send('GetCurrentScene');
-                let streamingAndRecordingStatusPromise = this.obsClient.send('GetStreamingStatus');
-                let replayBufferStatusPromise = this.obsClient.send('GetReplayBufferStatus');
+            this.checkIfStudioModeEnabled().then((enabled) => {
+                let previewScenePromise = this.obsClient4.send('GetPreviewScene');
+                let programScenePromise = this.obsClient4.send('GetCurrentScene');
+                let streamingAndRecordingStatusPromise = this.obsClient4.send('GetStreamingStatus');
+                let replayBufferStatusPromise = this.obsClient4.send('GetReplayBufferStatus');
                 Promise.all([
                     previewScenePromise, programScenePromise, streamingAndRecordingStatusPromise, replayBufferStatusPromise
                 ]).then((data) => {
@@ -130,22 +178,23 @@ export class OBSSource extends TallyInput {
                     this.sendTallyData();
                     this.connected.next(true);
                 }).catch((error) => {
-                    logger(`Source: ${source.name}  OBS Error (message-id ${error.messageId}) ${error.error}.`, 'error');
+                    logger(`Source: ${this.source.name}  OBS Error (message-id ${error.messageId}) ${error.error}.`, 'error');
                 });
             });
         });
 
-        this.obsClient.on('AuthenticationFailure', () => {
-            logger(`Source: ${source.name}  Invalid OBS Password.`, 'info');
+        this.obsClient4.on('AuthenticationFailure', () => {
+            logger(`Source: ${this.source.name}  Invalid OBS Password.`, 'info');
+            this.exit();
             this.connected.next(false);
         });
 
-        this.obsClient.on('PreviewSceneChanged', (data) => {
+        this.obsClient4.on('PreviewSceneChanged', (data) => {
             if (this.isTransitionFinished) {
                 this.currentPreviewScene = data["scene-name"];
                 //We need to execute this only when the transition is finished
                 //since preview scene changes during a transition end are processed in 'TransitionEnd' event
-                logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
+                logger(`Source: ${this.source.name}  Preview Scene Changed.`, 'info-quiet');
                 if (data?.sources) {
                     this.removeBusFromAllAddresses("preview");
                     this.processSceneChange(data?.sources, "preview");
@@ -154,7 +203,7 @@ export class OBSSource extends TallyInput {
             }
         });
 
-        this.obsClient.on('TransitionBegin', (data) => {
+        this.obsClient4.on('TransitionBegin', (data) => {
             this.isTransitionFinished = false;
             let toScene = this.scenes.find(scene => scene.name === data["to-scene"]);
             if (toScene && data["type"] !== "cut_transition") { //Don't add the transition scene to program bus if it's a cut transition
@@ -166,51 +215,51 @@ export class OBSSource extends TallyInput {
             this.currentTransitionFromScene = this.scenes.find(scene => scene.name === data["from-scene"]);
         });
 
-        this.obsClient.on('TransitionEnd', (data) => {
+        this.obsClient4.on('TransitionEnd', (data) => {
             let scene = this.scenes.find(scene => scene.name === data["to-scene"]);
             this.currentProgramScene = data["to-scene"];
             if (scene?.sources) {
                 this.removeBusFromAllAddresses("program");
                 this.processSceneChange(scene?.sources, "program");
-                logger(`Source: ${source.name}  Program Scene Changed.`, 'info-quiet');
+                logger(`Source: ${this.source.name}  Program Scene Changed.`, 'info-quiet');
 
                 this.removeBusFromAllAddresses("preview");
                 this.processSceneChange(this.currentTransitionFromScene?.sources, "preview"); //'TransitionEnd' has no "from-scene", so use currentTransitionFromScene
-                logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
+                logger(`Source: ${this.source.name}  Preview Scene Changed.`, 'info-quiet');
 
                 this.sendTallyData();
             }
             this.isTransitionFinished = true;
         });
 
-        this.obsClient.on('SourceMuteStateChanged', (data) => {
+        this.obsClient4.on('SourceMuteStateChanged', (data) => {
             this.processMutedState(data.sourceName, data.muted);
             this.sendTallyData();
         });
 
-        this.obsClient.on('SourceCreated', (data) => {
-            logger(`Source: ${source.name}  New source created`, 'info-quiet');
+        this.obsClient4.on('SourceCreated', (data) => {
+            logger(`Source: ${this.source.name}  New source created`, 'info-quiet');
             this.addAddress(data.sourceName, data.sourceName);
             this.saveSceneList();
         });
 
-        this.obsClient.on('SourceDestroyed', (data) => {
-            logger(`Source: ${source.name} Deleted source: ${data.sourceName}`, 'info-quiet');
+        this.obsClient4.on('SourceDestroyed', (data) => {
+            logger(`Source: ${this.source.name} Deleted source: ${data.sourceName}`, 'info-quiet');
             this.removeAddress(data.sourceName);
             this.saveSceneList();
         });
 
-        this.obsClient.on('SourceRenamed', (data) => {
-            logger(`Source: ${source.name}  Source renamed`, 'info-quiet');
+        this.obsClient4.on('SourceRenamed', (data) => {
+            logger(`Source: ${this.source.name}  Source renamed`, 'info-quiet');
             this.renameAddress(data.previousName, data.newName, data.newName);
             this.saveSceneList();
         });
 
-        this.obsClient.on('SceneCollectionChanged', (data) => {
+        this.obsClient4.on('SceneCollectionChanged', (data) => {
             this.saveSceneList();
         });
 
-        this.obsClient.on('SceneItemVisibilityChanged', (data) => {
+        this.obsClient4.on('SceneItemVisibilityChanged', (data) => {
             this.saveSceneList();
             if (data["item-visible"]) {
                 let itemScene = this.scenes.find(scene => scene.name === data["scene-name"]);
@@ -231,52 +280,52 @@ export class OBSSource extends TallyInput {
             }
         });
 
-        this.obsClient.on('StreamStarted', () => {
+        this.obsClient4.on('StreamStarted', () => {
             this.setBussesForAddress("{{STREAMING}}", ["program"]);
             this.sendTallyData();
         });
 
-        this.obsClient.on('StreamStopped', () => {
+        this.obsClient4.on('StreamStopped', () => {
             this.setBussesForAddress("{{STREAMING}}", []);
             this.sendTallyData();
         });
 
-        this.obsClient.on('RecordingStarted', () => {
+        this.obsClient4.on('RecordingStarted', () => {
             this.setBussesForAddress("{{RECORDING}}", ["program"]);
             this.sendTallyData();
         });
 
-        this.obsClient.on('RecordingPaused', () => {
+        this.obsClient4.on('RecordingPaused', () => {
             this.setBussesForAddress("{{RECORDING}}", ["preview"]);
             this.sendTallyData();
         });
 
-        this.obsClient.on('RecordingResumed', () => {
+        this.obsClient4.on('RecordingResumed', () => {
             this.setBussesForAddress("{{RECORDING}}", ["program"]);
             this.sendTallyData();
         });
 
-        this.obsClient.on('RecordingStopped', () => {
+        this.obsClient4.on('RecordingStopped', () => {
             this.setBussesForAddress("{{RECORDING}}", []);
             this.sendTallyData();
         });
 
-        this.obsClient.on('VirtualCamStarted', () => {
+        this.obsClient4.on('VirtualCamStarted', () => {
             this.setBussesForAddress("{{VIRTUALCAM}}", ["program"]);
             this.sendTallyData();
         });
 
-        this.obsClient.on('VirtualCamStopped', () => {
+        this.obsClient4.on('VirtualCamStopped', () => {
             this.setBussesForAddress("{{VIRTUALCAM}}", []);
             this.sendTallyData();
         });
 
-        this.obsClient.on('ReplayStarted', () => {
+        this.obsClient4.on('ReplayStarted', () => {
             this.setBussesForAddress("{{REPLAY}}", ["program"]);
             this.sendTallyData();
         });
 
-        this.obsClient.on('ReplayStopped', () => {
+        this.obsClient4.on('ReplayStopped', () => {
             this.setBussesForAddress("{{REPLAY}}", []);
             this.sendTallyData();
         });
@@ -285,7 +334,7 @@ export class OBSSource extends TallyInput {
     }
 
     private saveSceneList() {
-        this.obsClient.send('GetSceneList').then((data) => {
+        this.obsClient4.send('GetSceneList').then((data) => {
             this.scenes = data.scenes;
         });
     }
@@ -314,27 +363,23 @@ export class OBSSource extends TallyInput {
         }
     }
 
-    private connect() {
-        this.obsClient.connect({ address: this.source.data.ip + ':' + this.source.data.port, password: this.source.data.password })
-            .catch((error) => {
-                if (error.code === 'CONNECTION_ERROR') {
-                    logger(`Source: ${this.source.name}  OBS websocket connection error. Is OBS running?`, 'error');
-                    this.connected.next(false);
-                }
-            });
-    }
+    private initialize_v5() {
+        //hacky fix for obs-websocket-js-5 exported as default => default => function
+        this.obsClient5 = new (ObsWebSocket5Module as any).default();
 
-    private initialize_v5(source: Source) {
-
+        this.connect();
     }
 
     public reconnect() {
         this.connect();
     }
 
-
     public exit(): void {
         super.exit();
-        this.obsClient.disconnect();
+        if(this.version === "4") {
+            this.obsClient4.disconnect();
+        } else {
+            this.obsClient5.disconnect();
+        }
     }
 }
