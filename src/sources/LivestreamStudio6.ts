@@ -41,18 +41,18 @@ export class LivestreamStudio6Source extends TallyInput {
             let i = 0;
             let line = '';
             let offset = 0;
-            this.receiveBuffer += chunk
+            this.receiveBuffer += chunk;
             while ((i = this.receiveBuffer.indexOf('\n', offset)) !== -1) {
-                line = this.receiveBuffer.substr(offset, i - offset)
+                line = this.receiveBuffer.substr(offset, i - offset);
                 offset = i + 1
-                this.client.emit('receiveline', line.toString())
+                this.client.emit('receiveline', line.toString());
             }
-            this.receiveBuffer = this.receiveBuffer.substr(offset)
+            this.receiveBuffer = this.receiveBuffer.substr(offset);
         });
 
         this.client.on('receiveline', (line) => {
             if (line !== undefined || line !== '') {
-                // If verbose send received string to the log, except in the case of TrMSp & AVC
+                // Send received string to the log, except in the case of TrMSp & AVC
                 // both of which return large amounts of data that would be excessive for the log
                 logger(`Source: ${source.name}  Data received: ${line}`, 'info-quiet');
                 this.parseIncomingAPI(line);
