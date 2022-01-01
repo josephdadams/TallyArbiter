@@ -9,10 +9,12 @@ import { TallyInput } from './_Source';
     { fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
     { fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
     { fieldName: 'password', fieldLabel: 'Password', fieldType: 'text', optional: true },
-    { fieldName: 'version', fieldLabel: 'OBS Websocket plugin version', fieldType: 'dropdown', options: [
-        { id: '4', label: 'v4.x.x' },
-        { id: '5', label: 'v5.x.x' }
-    ]}
+    {
+        fieldName: 'version', fieldLabel: 'OBS Websocket plugin version', fieldType: 'dropdown', options: [
+            { id: '4', label: 'v4.x.x' },
+            { id: '5', label: 'v5.x.x' }
+        ]
+    }
 ])
 export class OBSSource extends TallyInput {
     private version: "4" | "5";
@@ -23,20 +25,41 @@ export class OBSSource extends TallyInput {
     private currentTransitionFromScene: ObsWebSocket4.Scene = undefined;
     private currentPreviewScene: string = "";
     private currentProgramScene: string = "";
+
     constructor(source: Source) {
         super(source);
 
-        if(typeof source.data.version === "undefined") {
+        if (typeof source.data.version === "undefined") {
             this.version = "4";
         } else {
             this.version = source.data.version;
         }
 
-        if(this.version === "4") {
+        if (this.version === "4") {
             this.initialize_v4(source);
         } else {
             this.initialize_v5(source);
         }
+    }
+
+    private checkIfStudioModeEnabled(source: Source) {
+        return new Promise((resolve, reject) => {
+            if (this.version === "4") {
+                this.obsClient.send('GetStudioModeStatus').then((data) => {
+                    if (!data["studio-mode"]) {
+                        logger(`Source: ${source.name}  Enabling OBS Studio Mode...`, 'info-quiet');
+                        this.obsClient.send('EnableStudioMode').then(() => {
+                            resolve(true);
+                        }).catch((error) => {
+                            logger(`Source: ${source.name}  OBS Error (enabling studio mode) ${error.error}.`, 'error');
+                            reject();
+                        });
+                    } else {
+                        resolve(true);
+                    }
+                });
+            }
+        });
     }
 
     private initialize_v4(source: Source) {
@@ -48,12 +71,6 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('AuthenticationSuccess', async () => {
             logger(`Source: ${source.name}  OBS Authenticated.`, 'info-quiet');
-            this.obsClient.send('EnableStudioMode').then(() => {
-            }).catch((error) => {
-                if(error.error !== 'studio mode already active') {
-                    logger(`Source: ${source.name}  OBS Studio Mode Error ${error.error}.`, 'error');
-                }
-            });
 
             this.saveSceneList();
 
@@ -64,15 +81,15 @@ export class OBSSource extends TallyInput {
                 let sourceTypesWithAudio: string[] = [];
 
                 sourceTypesList.types.forEach((type) => {
-                    if(type.caps.hasAudio){
+                    if (type.caps.hasAudio) {
                         sourceTypesWithAudio.push(type.typeId);
-                    }    
+                    }
                 });
 
                 if (!Array.isArray(sourcesList.sources)) return;
                 for (const source of sourcesList.sources) {
                     this.addAddress(source.name, source.name);
-                    if(sourceTypesWithAudio.includes(source.typeId)){
+                    if (sourceTypesWithAudio.includes(source.typeId)) {
                         this.obsClient.send('GetMute', {
                             source: source.name
                         }).then((data) => {
@@ -82,37 +99,39 @@ export class OBSSource extends TallyInput {
                 }
             });
 
-            let previewScenePromise = this.obsClient.send('GetPreviewScene');
-            let programScenePromise = this.obsClient.send('GetCurrentScene');
-            let streamingAndRecordingStatusPromise = this.obsClient.send('GetStreamingStatus');
-            let replayBufferStatusPromise = this.obsClient.send('GetReplayBufferStatus');
-            Promise.all([
-                previewScenePromise, programScenePromise, streamingAndRecordingStatusPromise, replayBufferStatusPromise
-            ]).then((data) => {
-                let [previewScene, programScene, streamingAndRecordingStatus, replayBufferStatus]: any = data;
+            this.checkIfStudioModeEnabled(source).then((enabled) => {
+                let previewScenePromise = this.obsClient.send('GetPreviewScene');
+                let programScenePromise = this.obsClient.send('GetCurrentScene');
+                let streamingAndRecordingStatusPromise = this.obsClient.send('GetStreamingStatus');
+                let replayBufferStatusPromise = this.obsClient.send('GetReplayBufferStatus');
+                Promise.all([
+                    previewScenePromise, programScenePromise, streamingAndRecordingStatusPromise, replayBufferStatusPromise
+                ]).then((data) => {
+                    let [previewScene, programScene, streamingAndRecordingStatus, replayBufferStatus]: any = data;
 
-                this.processSceneChange(previewScene.sources, 'preview');
-                this.processSceneChange(programScene.sources, 'program');
-                
-                this.addAddress('{{STREAMING}}', '{{STREAMING}}');
-                this.addAddress('{{RECORDING}}', '{{RECORDING}}');
-                this.addAddress('{{VIRTUALCAM}}', '{{VIRTUALCAM}}');
-                this.addAddress('{{REPLAY}}', '{{REPLAY}}');
-                if(streamingAndRecordingStatus.streaming) this.setBussesForAddress("{{STREAMING}}", ["program"]);
-                if(streamingAndRecordingStatus.recording) {
-                    if(streamingAndRecordingStatus.recordingPaused) {
-                        this.setBussesForAddress("{{RECORDING}}", ["preview"]);
-                    } else {
-                        this.setBussesForAddress("{{RECORDING}}", ["program"]);
+                    this.processSceneChange(previewScene.sources, 'preview');
+                    this.processSceneChange(programScene.sources, 'program');
+
+                    this.addAddress('{{STREAMING}}', '{{STREAMING}}');
+                    this.addAddress('{{RECORDING}}', '{{RECORDING}}');
+                    this.addAddress('{{VIRTUALCAM}}', '{{VIRTUALCAM}}');
+                    this.addAddress('{{REPLAY}}', '{{REPLAY}}');
+                    if (streamingAndRecordingStatus.streaming) this.setBussesForAddress("{{STREAMING}}", ["program"]);
+                    if (streamingAndRecordingStatus.recording) {
+                        if (streamingAndRecordingStatus.recordingPaused) {
+                            this.setBussesForAddress("{{RECORDING}}", ["preview"]);
+                        } else {
+                            this.setBussesForAddress("{{RECORDING}}", ["program"]);
+                        }
                     }
-                }
-                if(streamingAndRecordingStatus.virtualcam) this.setBussesForAddress("{{VIRTUALCAM}}", ["program"]);
-                if(replayBufferStatus.isReplayBufferActive) this.setBussesForAddress("{{REPLAY}}", ["program"]);
+                    if (streamingAndRecordingStatus.virtualcam) this.setBussesForAddress("{{VIRTUALCAM}}", ["program"]);
+                    if (replayBufferStatus.isReplayBufferActive) this.setBussesForAddress("{{REPLAY}}", ["program"]);
 
-                this.sendTallyData();
-                this.connected.next(true);
-            }).catch((error) => {
-                logger(`Source: ${source.name}  OBS Error (message-id ${error.messageId}) ${error.error}.`, 'error');
+                    this.sendTallyData();
+                    this.connected.next(true);
+                }).catch((error) => {
+                    logger(`Source: ${source.name}  OBS Error (message-id ${error.messageId}) ${error.error}.`, 'error');
+                });
             });
         });
 
@@ -122,7 +141,7 @@ export class OBSSource extends TallyInput {
         });
 
         this.obsClient.on('PreviewSceneChanged', (data) => {
-            if(this.isTransitionFinished){
+            if (this.isTransitionFinished) {
                 this.currentPreviewScene = data["scene-name"];
                 //We need to execute this only when the transition is finished
                 //since preview scene changes during a transition end are processed in 'TransitionEnd' event
@@ -138,7 +157,7 @@ export class OBSSource extends TallyInput {
         this.obsClient.on('TransitionBegin', (data) => {
             this.isTransitionFinished = false;
             let toScene = this.scenes.find(scene => scene.name === data["to-scene"]);
-            if(toScene && data["type"] !== "cut_transition") { //Don't add the transition scene to program bus if it's a cut transition
+            if (toScene && data["type"] !== "cut_transition") { //Don't add the transition scene to program bus if it's a cut transition
                 this.processSceneChange(toScene.sources, "program");
                 this.sendTallyData();
             }
@@ -193,14 +212,14 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('SceneItemVisibilityChanged', (data) => {
             this.saveSceneList();
-            if(data["item-visible"]) {
+            if (data["item-visible"]) {
                 let itemScene = this.scenes.find(scene => scene.name === data["scene-name"]);
-                if(itemScene.name === this.currentPreviewScene) {
+                if (itemScene.name === this.currentPreviewScene) {
                     let source = itemScene.sources.find((source) => source.name === data["item-name"]);
                     source.render = true;
                     this.processSceneChange([source], "preview");
                     this.sendTallyData();
-                } else if(itemScene.name === this.currentProgramScene) {
+                } else if (itemScene.name === this.currentProgramScene) {
                     let source = itemScene.sources.find((source) => source.name === data["item-name"]);
                     source.render = true;
                     this.processSceneChange([source], "program");
@@ -262,7 +281,6 @@ export class OBSSource extends TallyInput {
             this.sendTallyData();
         });
 
-        
         this.connect();
     }
 
@@ -273,7 +291,7 @@ export class OBSSource extends TallyInput {
     }
 
     private processMutedState(sourceName: string, muted: boolean) {
-        if(muted) {
+        if (muted) {
             this.setBussesForAddress(sourceName, []);
         } else {
             this.setBussesForAddress(sourceName, ["program"]);
@@ -283,11 +301,11 @@ export class OBSSource extends TallyInput {
     private processSceneChange(sources: ObsWebSocket4.SceneItem[], bus: string) {
         if (sources) {
             for (const source of sources) {
-                if(source.render) {
+                if (source.render) {
                     this.addBusToAddress(source.name, bus);
-                    if(source.type === "scene"){
+                    if (source.type === "scene") {
                         let nested_scene = this.scenes.find(scene => scene.name === source.name);
-                        if(nested_scene) {
+                        if (nested_scene) {
                             this.processSceneChange(nested_scene.sources, bus);
                         }
                     }
