@@ -60,54 +60,74 @@ export class OBSSource extends TallyInput {
                         resolve(true);
                     }
                 });
+            } else {
+                this.obsClient5.call('GetStudioModeEnabled').then((data) => {
+                    if (!data.studioModeEnabled) {
+                        logger(`Source: ${this.source.name}  Enabling OBS Studio Mode...`, 'info-quiet');
+                        this.obsClient5.call('SetStudioModeEnabled', {
+                            studioModeEnabled: true
+                        }).then(() => {
+                            resolve(true);
+                        });
+                    } else {
+                        resolve(true);
+                    }
+                });
             }
         });
     }
 
     private connect() {
-        if(this.version === "4") {
-            this.obsClient4.connect({ address: this.source.data.ip + ':' + this.source.data.port, password: this.source.data.password })
-            .catch((error) => {
-                if (error.code === 'CONNECTION_ERROR') {
-                    logger(`Source: ${this.source.name}  OBS websocket connection error. Is OBS running?`, 'error');
-                    this.connected.next(false);
-                }
-            });
-        } else {
-            this.obsClient5.connect(`ws://${this.source.data.ip}:${this.source.data.port}`, this.source.data.password, {
-                rpcVersion: 1
-            })
-            .then(() => {
-                this.connected.next(true);
-            })
-            .catch((error) => {
-                console.log(error, error.code);
-                switch (error.code) {
-                    case 4009:
-                        logger(`Source: ${this.source.name}  OBS Authentication failed`, 'error');
-                        this.exit();
+        return new Promise((resolve, reject) => {
+            if(this.version === "4") {
+                this.obsClient4.connect({ address: this.source.data.ip + ':' + this.source.data.port, password: this.source.data.password })
+                .then(() => {
+                    resolve(true);
+                })
+                .catch((error) => {
+                    if (error.code === 'CONNECTION_ERROR') {
+                        logger(`Source: ${this.source.name}  OBS websocket connection error. Is OBS running?`, 'error');
                         this.connected.next(false);
-                        break;
-                    
-                    case 4010:
-                        logger(`Source: ${this.source.name}  OBS Websocket client is uncompatible with this version of TallyArbiter. Please, update TA or fill a bug report.`, 'error');
-                        this.exit();
-                        this.connected.next(false);
-                        break;
+                    }
+                    reject();
+                });
+            } else {
+                this.obsClient5.connect(`ws://${this.source.data.ip}:${this.source.data.port}`, this.source.data.password, {
+                    rpcVersion: 1
+                })
+                .then(() => {
+                    resolve(true);
+                })
+                .catch((error) => {
+                    console.log(error, error.code);
+                    switch (error.code) {
+                        case 4009:
+                            logger(`Source: ${this.source.name}  OBS Authentication failed`, 'error');
+                            this.exit();
+                            this.connected.next(false);
+                            break;
 
-                    case 4011:
-                        logger(`Source: ${this.source.name}  TallyArbiter was kicked out by OBS Websocket clicking on the button in the connections list.`, 'error');
-                        this.exit();
-                        this.connected.next(false);
-                        break;
+                        case 4010:
+                            logger(`Source: ${this.source.name}  OBS Websocket client is uncompatible with this version of TallyArbiter. Please, update TA or fill a bug report.`, 'error');
+                            this.exit();
+                            this.connected.next(false);
+                            break;
 
-                    default:
-                        logger(`Source: ${this.source.name}  OBS websocket connection error (error code ${error.code}). Is OBS Websocket version 5 installed?`, 'error');
-                        this.connected.next(false);
-                        break;
-                }
-            });
-        }
+                        case 4011:
+                            logger(`Source: ${this.source.name}  TallyArbiter was kicked out by OBS Websocket clicking on the button in the connections list.`, 'error');
+                            this.exit();
+                            this.connected.next(false);
+                            break;
+
+                        default:
+                            logger(`Source: ${this.source.name}  OBS websocket connection error (error code ${error.code}). Is OBS Websocket version 5 installed?`, 'error');
+                            this.connected.next(false);
+                            break;
+                    }
+                    reject();
+                });
+            }
+        });
     }
 
     private initialize_v4() {
@@ -367,7 +387,72 @@ export class OBSSource extends TallyInput {
         //hacky fix for obs-websocket-js-5 exported as default => default => function
         this.obsClient5 = new (ObsWebSocket5Module as any).default();
 
-        this.connect();
+        this.obsClient5.on("StreamStateChanged", (data) => {
+            if (data.outputActive) {
+                this.setBussesForAddress("{{STREAMING}}", ["program"]);
+            } else {
+                this.setBussesForAddress("{{STREAMING}}", []);
+            }
+            this.sendTallyData();
+        });
+
+        this.obsClient5.on("RecordStateChanged", (data) => {
+            if (data.outputActive) {
+                this.setBussesForAddress("{{RECORDING}}", ["program"]);
+            } else {
+                this.setBussesForAddress("{{RECORDING}}", []);
+            }
+            this.sendTallyData();
+        });
+
+        this.obsClient5.on("VirtualcamStateChanged", (data) => {
+            if (data.outputActive) {
+                this.setBussesForAddress("{{VIRTUALCAM}}", ["program"]);
+            } else {
+                this.setBussesForAddress("{{VIRTUALCAM}}", []);
+            }
+            this.sendTallyData();
+        });
+
+        this.obsClient5.on("ReplayBufferStateChanged", (data) => {
+            if (data.outputActive) {
+                this.setBussesForAddress("{{REPLAY}}", ["program"]);
+            } else {
+                this.setBussesForAddress("{{REPLAY}}", []);
+            }
+            this.sendTallyData();
+        });
+
+        this.connect().then(() => {
+            this.checkIfStudioModeEnabled().then((enabled) => {
+                let previewScenePromise = this.obsClient5.call('GetCurrentPreviewScene');
+                let programScenePromise = this.obsClient5.call('GetCurrentProgramScene');
+                let streamStatusPromise = this.obsClient5.call('GetStreamStatus');
+                let recordStatusPromise = this.obsClient5.call('GetRecordStatus');
+                Promise.all([
+                    previewScenePromise, programScenePromise, streamStatusPromise, recordStatusPromise
+                ]).then((data) => {
+                    let [previewScene, programScene, streamStatus, recordStatus]: any = data;
+    
+                    //processSceneChange(previewScene.sources, 'preview');
+                    //processSceneChange(programScene.sources, 'program');
+    
+                    this.addAddress('{{STREAMING}}', '{{STREAMING}}');
+                    this.addAddress('{{RECORDING}}', '{{RECORDING}}');
+                    this.addAddress('{{VIRTUALCAM}}', '{{VIRTUALCAM}}');
+                    this.addAddress('{{REPLAY}}', '{{REPLAY}}');
+                    
+                    if (streamStatus.outputActive) this.setBussesForAddress("{{STREAMING}}", ["program"]);
+                    if (recordStatus.outputActive) this.setBussesForAddress("{{RECORDING}}", ["program"]);
+                    if (recordStatus.outputPaused) this.setBussesForAddress("{{RECORDING}}", ["preview"]);
+    
+                    this.sendTallyData();
+                    this.connected.next(true);
+                }).catch((error) => {
+                    logger(`Source: ${this.source.name}  OBS Error (message-id ${error.messageId}) ${error.error}.`, 'error');
+                });
+            });
+        });
     }
 
     public reconnect() {
