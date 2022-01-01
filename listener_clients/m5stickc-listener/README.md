@@ -40,11 +40,12 @@ Done! Now your board is running the latest listener client firmware version. Go 
 
 # Setup your device
 1. Plug the device in a power source
-2. Wait for the boot animation to finish, if there is no saved AP it will startup an Access Point where you can configure one.
-3. Connect to the 'm5Stick-1xxxxxxx' Access Point via phone and go to 192.168.4.1 (or wait a bit, a captive portal page should open).
+2. Wait for the boot up to finish, if there is no saved AP it will startup an Access Point where you can configure one.
+3. Connect to the 'm5StickC-1xxxxxxx' Access Point via phone and go to 192.168.4.1 (or wait a bit, a captive portal page should open). NB: The portal times out after 120 sec of inactivity.
 4. Set your Tally Arbiter server ip by going to *"Setup"* page.
 5. Go back, then go to the "Configure WiFi" page and set your WiFi credentials. The board should reboot.
-6. If the connection is successful a WiFi animation and a green tick mark will show. If not a red cross will be shown and you can reboot the device to try again.
+6. If the connection is successful a settings page will shown. If not reconnect to 'm5StickC-1xxxxxxx' Access Point.
+NB: The captive portal page is accessible on the device when the settings screen is shown.
 
 
 # Troubleshooting
