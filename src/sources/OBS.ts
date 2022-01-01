@@ -1,4 +1,5 @@
-import ObsWebSocket from 'obs-websocket-js';
+import { default as ObsWebSocket4 } from 'obs-websocket-js';
+import ObsWebSocket5 from 'obs-websocket-js-5';
 import { logger } from '..';
 import { RegisterTallyInput } from "../_decorators/RegisterTallyInput.decorator";
 import { Source } from '../_models/Source';
@@ -7,16 +8,39 @@ import { TallyInput } from './_Source';
 @RegisterTallyInput("4eb73542", "OBS", "The OBS Websocket plugin must be installed on the source.", [
     { fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
     { fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
-    { fieldName: 'password', fieldLabel: 'Password', fieldType: 'text', optional: true }
+    { fieldName: 'password', fieldLabel: 'Password', fieldType: 'text', optional: true },
+    { fieldName: 'version', fieldLabel: 'OBS Websocket plugin version', fieldType: 'dropdown', options: [
+        { id: '4', label: 'v4.x.x' },
+        { id: '5', label: 'v5.x.x' }
+    ]}
 ])
 export class OBSSource extends TallyInput {
-    private obsClient: ObsWebSocket;
-    private scenes: ObsWebSocket.Scene[] = [];
+    private version: "4" | "5";
+
+    private obsClient: ObsWebSocket4;
+    private scenes: ObsWebSocket4.Scene[] = [];
     private isTransitionFinished = true;
-    private currentTransitionFromScene: ObsWebSocket.Scene = undefined;
+    private currentTransitionFromScene: ObsWebSocket4.Scene = undefined;
+    private currentPreviewScene: string = "";
+    private currentProgramScene: string = "";
     constructor(source: Source) {
         super(source);
-        this.obsClient = new ObsWebSocket();
+
+        if(typeof source.data.version === "undefined") {
+            this.version = "4";
+        } else {
+            this.version = source.data.version;
+        }
+
+        if(this.version === "4") {
+            this.initialize_v4(source);
+        } else {
+            this.initialize_v5(source);
+        }
+    }
+
+    private initialize_v4(source: Source) {
+        this.obsClient = new ObsWebSocket4();
 
         this.obsClient.on('ConnectionClosed', () => {
             this.connected.next(false);
@@ -24,6 +48,13 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('AuthenticationSuccess', async () => {
             logger(`Source: ${source.name}  OBS Authenticated.`, 'info-quiet');
+            this.obsClient.send('EnableStudioMode').then(() => {
+            }).catch((error) => {
+                if(error.error !== 'studio mode already active') {
+                    logger(`Source: ${source.name}  OBS Studio Mode Error ${error.error}.`, 'error');
+                }
+            });
+
             this.saveSceneList();
 
             let sourcesListPromise = this.obsClient.send('GetSourcesList');
@@ -81,7 +112,7 @@ export class OBSSource extends TallyInput {
                 this.sendTallyData();
                 this.connected.next(true);
             }).catch((error) => {
-                console.error(error);
+                logger(`Source: ${source.name}  OBS Error (message-id ${error.messageId}) ${error.error}.`, 'error');
             });
         });
 
@@ -92,6 +123,7 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('PreviewSceneChanged', (data) => {
             if(this.isTransitionFinished){
+                this.currentPreviewScene = data["scene-name"];
                 //We need to execute this only when the transition is finished
                 //since preview scene changes during a transition end are processed in 'TransitionEnd' event
                 logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
@@ -117,6 +149,7 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('TransitionEnd', (data) => {
             let scene = this.scenes.find(scene => scene.name === data["to-scene"]);
+            this.currentProgramScene = data["to-scene"];
             if (scene?.sources) {
                 this.removeBusFromAllAddresses("program");
                 this.processSceneChange(scene?.sources, "program");
@@ -156,6 +189,27 @@ export class OBSSource extends TallyInput {
 
         this.obsClient.on('SceneCollectionChanged', (data) => {
             this.saveSceneList();
+        });
+
+        this.obsClient.on('SceneItemVisibilityChanged', (data) => {
+            this.saveSceneList();
+            if(data["item-visible"]) {
+                let itemScene = this.scenes.find(scene => scene.name === data["scene-name"]);
+                if(itemScene.name === this.currentPreviewScene) {
+                    let source = itemScene.sources.find((source) => source.name === data["item-name"]);
+                    source.render = true;
+                    this.processSceneChange([source], "preview");
+                    this.sendTallyData();
+                } else if(itemScene.name === this.currentProgramScene) {
+                    let source = itemScene.sources.find((source) => source.name === data["item-name"]);
+                    source.render = true;
+                    this.processSceneChange([source], "program");
+                    this.sendTallyData();
+                }
+            } else {
+                this.setBussesForAddress(data["item-name"], []);
+                this.sendTallyData();
+            }
         });
 
         this.obsClient.on('StreamStarted', () => {
@@ -226,14 +280,16 @@ export class OBSSource extends TallyInput {
         }
     }
 
-    private processSceneChange(sources: ObsWebSocket.SceneItem[], bus: string) {
+    private processSceneChange(sources: ObsWebSocket4.SceneItem[], bus: string) {
         if (sources) {
             for (const source of sources) {
-                this.addBusToAddress(source.name, bus);
-                if(source.type === "scene"){
-                    let nested_scene = this.scenes.find(scene => scene.name === source.name);
-                    if(nested_scene) {
-                        this.processSceneChange(nested_scene.sources, bus);
+                if(source.render) {
+                    this.addBusToAddress(source.name, bus);
+                    if(source.type === "scene"){
+                        let nested_scene = this.scenes.find(scene => scene.name === source.name);
+                        if(nested_scene) {
+                            this.processSceneChange(nested_scene.sources, bus);
+                        }
                     }
                 }
             }
@@ -248,6 +304,10 @@ export class OBSSource extends TallyInput {
                     this.connected.next(false);
                 }
             });
+    }
+
+    private initialize_v5(source: Source) {
+
     }
 
     public reconnect() {
