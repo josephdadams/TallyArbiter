@@ -130,13 +130,38 @@ export class OBSSource extends TallyInput {
         });
     }
 
-    private initialize_v4() {
-        function saveSceneList() {
-            this.obsClient4.send('GetSceneList').then((data) => {
-                this.scenes = data.scenes;
-            });
+    private processMutedState(sourceName: string, muted: boolean) {
+        if (muted) {
+            this.setBussesForAddress(sourceName, []);
+        } else {
+            this.setBussesForAddress(sourceName, ["program"]);
         }
+    }
 
+    private saveSceneList() {
+        return new Promise((resolve, reject) => {
+            if (this.version === "4") {
+                this.obsClient4.send('GetSceneList').then((data) => {
+                    this.scenes = data.scenes;
+                    resolve(this.scenes);
+                }).catch((error) => {
+                    reject();
+                });
+            } else {
+                this.obsClient5.call('GetSceneList').then((data) => {
+                    console.log(data);
+                    //TODO: update when sources in scenes list and transitions are implemented
+
+                    //this.scenes = data.scenes;
+                    resolve(this.scenes);
+                }).catch((error) => {
+                    reject();
+                });
+            }
+        });
+    }
+
+    private initialize_v4() {
         function processSceneChange(sources: ObsWebSocket4.SceneItem[], bus: string) {
             if (sources) {
                 for (const source of sources) {
@@ -153,14 +178,6 @@ export class OBSSource extends TallyInput {
             }
         }
 
-        function processMutedState(sourceName: string, muted: boolean) {
-            if (muted) {
-                this.setBussesForAddress(sourceName, []);
-            } else {
-                this.setBussesForAddress(sourceName, ["program"]);
-            }
-        }
-
         this.obsClient4 = new ObsWebSocket4();
 
         this.obsClient4.on('ConnectionClosed', () => {
@@ -170,7 +187,7 @@ export class OBSSource extends TallyInput {
         this.obsClient4.on('AuthenticationSuccess', async () => {
             logger(`Source: ${this.source.name}  OBS Authenticated.`, 'info-quiet');
 
-            saveSceneList();
+            this.saveSceneList();
 
             let sourcesListPromise = this.obsClient4.send('GetSourcesList');
             let sourceTypesListPromise = this.obsClient4.send('GetSourceTypesList');
@@ -191,7 +208,7 @@ export class OBSSource extends TallyInput {
                         this.obsClient4.send('GetMute', {
                             source: source.name
                         }).then((data) => {
-                            processMutedState(data.name, data.muted);
+                            this.processMutedState(data.name, data.muted);
                         });
                     }
                 }
@@ -283,34 +300,34 @@ export class OBSSource extends TallyInput {
         });
 
         this.obsClient4.on('SourceMuteStateChanged', (data) => {
-            processMutedState(data.sourceName, data.muted);
+            this.processMutedState(data.sourceName, data.muted);
             this.sendTallyData();
         });
 
         this.obsClient4.on('SourceCreated', (data) => {
             logger(`Source: ${this.source.name}  New source created`, 'info-quiet');
             this.addAddress(data.sourceName, data.sourceName);
-            saveSceneList();
+            this.saveSceneList();
         });
 
         this.obsClient4.on('SourceDestroyed', (data) => {
             logger(`Source: ${this.source.name} Deleted source: ${data.sourceName}`, 'info-quiet');
             this.removeAddress(data.sourceName);
-            saveSceneList();
+            this.saveSceneList();
         });
 
         this.obsClient4.on('SourceRenamed', (data) => {
             logger(`Source: ${this.source.name}  Source renamed`, 'info-quiet');
             this.renameAddress(data.previousName, data.newName, data.newName);
-            saveSceneList();
+            this.saveSceneList();
         });
 
         this.obsClient4.on('SceneCollectionChanged', (data) => {
-            saveSceneList();
+            this.saveSceneList();
         });
 
         this.obsClient4.on('SceneItemVisibilityChanged', (data) => {
-            saveSceneList();
+            this.saveSceneList();
             if (data["item-visible"]) {
                 let itemScene = this.scenes.find(scene => scene.name === data["scene-name"]);
                 if (itemScene.name === this.currentPreviewScene) {
@@ -424,6 +441,8 @@ export class OBSSource extends TallyInput {
         });
 
         this.connect().then(() => {
+            this.saveSceneList();
+
             this.checkIfStudioModeEnabled().then((enabled) => {
                 let previewScenePromise = this.obsClient5.call('GetCurrentPreviewScene');
                 let programScenePromise = this.obsClient5.call('GetCurrentProgramScene');
