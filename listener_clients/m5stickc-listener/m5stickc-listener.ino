@@ -22,7 +22,7 @@
 //#define RED   0xF700 // 255  0  0
 //#define maxTextSize 5 //larger sourceName text
 
-String listenerDeviceName = "m5StickC-1";
+String listenerDeviceName = "m5StickC-"; // s/n is added in runtime future improvement to only use part of MAC address
 
 
 /* USER CONFIG VARIABLES
@@ -85,9 +85,13 @@ void setup() {
   setCpuFrequencyMhz(80);   //Save battery by turning down the CPU clock
   btStop();                 //Save battery by turning off BlueTooth
 
-  // Adding ESP32 serial number to dev name
-  uint64_t chipid = ESP.getEfuseMac();
-  listenerDeviceName = listenerDeviceName + String((uint16_t)(chipid >> 32)) + String((uint32_t)chipid);
+  // Append last three pairs of MAC to listenerDeviceName to make it some what unique
+  byte mac[6];              // the MAC address of your Wifi shield
+  WiFi.macAddress(mac);
+  listenerDeviceName = listenerDeviceName + String(mac[3], HEX) + String(mac[4], HEX) + String(mac[5], HEX);
+
+  // Set WiFi hostname
+  wm.setHostname ((const char *) listenerDeviceName.c_str());
 
   M5.begin();
   M5.Lcd.setRotation(3);
@@ -205,7 +209,7 @@ void loop() {
 
 void showSettings() {
   currentScreen = 1;
-  
+
   wm.startWebPortal();
   portalRunning = true;
 
@@ -233,6 +237,7 @@ void showSettings() {
 
 void showDeviceInfo() {
   currentScreen = 0;
+
   
   if (portalRunning) {
     wm.stopWebPortal();
@@ -270,7 +275,6 @@ void logger(String strLog, String strType) {
 
 void connectToNetwork() {
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
-
   logger("Connecting to SSID: " + String(WiFi.SSID()), "info");
 
   //reset settings - wipe credentials for testing
@@ -281,6 +285,14 @@ void connectToNetwork() {
 
   wm.addParameter(&custom_taServer);
   wm.addParameter(&custom_taPort);
+
+  // If no saved WiFi we assume that configuration is needed via the captive portal
+  if (wm.getWiFiIsSaved()) {
+    M5.Lcd.println("connecting...");
+  } else {
+    M5.Lcd.println("Configure on");
+    M5.Lcd.println("SSID: " + listenerDeviceName);
+  }
 
   wm.setSaveParamsCallback(saveParamCallback);
 
@@ -298,8 +310,8 @@ void connectToNetwork() {
 
   if (!res) {
     logger("Failed to connect", "error");
-    M5.Lcd.println("Configuration timeout.");
-    M5.Lcd.println("Restart to configure on SSID: " + listenerDeviceName);
+    M5.Lcd.println("Configuration timeout");
+    M5.Lcd.println("Restart device to configure");
     // ESP.restart();
   } else {
     //if you get here you have connected to the WiFi
@@ -545,7 +557,7 @@ void processTallyData() {
       actualPriority = getBusPriorityById(JSON.stringify(DeviceStates[i]["busId"]));
     }
   }
-  
+
   if (!typeChanged) {
     actualType = "";
     actualColor = "";
@@ -664,7 +676,7 @@ void checkReset() {
       M5.Lcd.setTextColor(WHITE, BLACK);
       M5.Lcd.println("Reset button pushed....");
       logger("Button Pressed", "info");
-      
+
       // still holding button for 3000 ms, reset settings, code not ideal for production
       delay(3000); // reset delay hold
       if ( digitalRead(TRIGGER_PIN) == LOW ) {
