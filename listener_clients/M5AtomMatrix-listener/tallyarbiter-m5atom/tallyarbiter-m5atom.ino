@@ -320,8 +320,9 @@ void evaluateMode() {
     actualColor.replace("#", "");
     String hexstring = actualColor;
     long colorNumber = (long) strtol( &hexstring[1], NULL, 16);
-    int g = colorNumber >> 16;
-    int r = colorNumber >> 8 & 0xFF;
+
+    int r = colorNumber >> 16;
+    int g = colorNumber >> 8 & 0xFF;
     int b = colorNumber & 0xFF;
     
     if (actualType != "") {
@@ -488,6 +489,7 @@ void socket_Flash() {
   drawNumber(icons[1], alloffcolor);
   delay(100);
   //then resume normal operation
+  prevType = "";
   evaluateMode();
 }
 
@@ -689,7 +691,7 @@ void setup() {
   while (!Serial);
   logger("Initializing M5-Atom.", "info-quiet");
   
-  //Save battery by turning off BlueTooth
+  // Save battery by turning off Bluetooth
   btStop();
 
   uint64_t chipid = ESP.getEfuseMac();
@@ -706,11 +708,11 @@ void setup() {
 
   //do startup animation
   drawNumber(icons[7], infocolor);
-  delay(400);
+  delay(200);
   drawNumber(icons[8], infocolor);
-  delay(400);
+  delay(200);
   drawNumber(icons[9], infocolor);
-  delay(400);
+  delay(200);
   
   connectToNetwork(); //starts Wifi connection
 

@@ -206,6 +206,7 @@ void loop() {
 void showSettings() {
   wm.startWebPortal();
   portalRunning = true;
+  prevType = "menu";
   
   //displays the current network connection and Tally Arbiter server data
   M5.Lcd.setCursor(0, 20);
