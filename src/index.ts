@@ -40,7 +40,9 @@ import { Addresses } from './_models/Addresses';
 import { CloudListenerSocketData } from './_models/CloudListenerSocketData';
 import { CloudDestination } from './_models/CloudDestination';
 import { CloudDestinationSocket } from './_models/CloudDestinationSocket';
+import { Config } from './_models/Config';
 import { ListenerClient } from './_models/ListenerClient';
+import { OutdatedListenerClient } from './_models/OutdatedListenerClient';
 
 //TypeScript globals
 import { TallyInputs } from './_globals/TallyInputs';
@@ -62,7 +64,6 @@ import { VMixEmulator } from './_modules/VMix';
 import { TSLListenerProvider } from './_modules/TSL';
 import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
-import { Config } from './_models/Config';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
@@ -110,7 +111,9 @@ const socketupdates_Settings: string[]  = ['sources', 'devices', 'device_sources
 const socketupdates_Producer: string[]  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients'];
 const socketupdates_Companion: string[] = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
 
-var listener_clients = []; //array of connected listener clients (web, python, relay, etc.)
+var listener_clients: ListenerClient[] = []; //array of connected listener clients (web, python, relay, etc.)
+var outdated_listener_clients: OutdatedListenerClient[] = []; //array of connected listener clients (web, python, relay, etc.) that uses the old API
+
 let vMixEmulator: VMixEmulator;
 export let tslListenerProvider: TSLListenerProvider;
 let tsl_clients_interval: NodeJS.Timer | null = null;
@@ -324,8 +327,8 @@ function initialSetup() {
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info');
 
 			let ipAddress = socket.handshake.address;
-			let datetimeConnected = new Date().getTime();
-			let clientId = AddListenerClient(socket.id, deviceId, obj.internalId, listenerType, ipAddress, datetimeConnected, canBeReassigned, canBeFlashed, supportsChat);
+			let datetime_connected = new Date().getTime();
+			let clientId = AddListenerClient(socket.id, deviceId, obj.internalId, listenerType, ipAddress, datetime_connected, canBeReassigned, canBeFlashed, supportsChat);
 			
 			if (supportsChat) {
 				socket.join('messaging');
@@ -384,13 +387,6 @@ function initialSetup() {
 			FlashListenerClient(clientId);
 		});
 
-		socket.on('messaging_client', (clientId: {
-			relayGroupId?: string;
-			gpoGroupId?: string;
-		}, type: string, socketid: string, message: string) => {
-			MessageListenerClient(clientId, type, socketid, message);
-		});
-
 		socket.on('reassign', (clientId: string, oldDeviceId: string, deviceId: string) => {
 			ReassignListenerClient(clientId, oldDeviceId, deviceId);
 		});
@@ -414,72 +410,6 @@ function initialSetup() {
 			UpdateSockets('listener_clients');
 			UpdateCloud('listener_clients');
 			socket.emit('device_states', getDeviceStates());
-		});
-
-		socket.on('listener_reassign_relay', (relayGroupId, oldDeviceId, deviceId) => {
-			let canRemove = true;
-			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].socketId === socket.id) {
-					if (listener_clients[i].deviceId === oldDeviceId) {
-						if (listener_clients[i].relayGroupId !== relayGroupId) {
-							canRemove = false;
-							break;
-						}
-					}
-				}
-			}
-			if (canRemove) {
-				//no other relay groups on this socket are using the old device ID, so we can safely leave that room
-				socket.leave('device-' + oldDeviceId);
-			}
-
-			socket.join('device-' + deviceId);
-
-			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].relayGroupId === relayGroupId) {
-					listener_clients[i].deviceId = deviceId;
-				}
-			}
-
-			let oldDeviceName = GetDeviceByDeviceId(oldDeviceId).name;
-			let deviceName = GetDeviceByDeviceId(deviceId).name;
-
-			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info');
-			UpdateSockets('listener_clients');
-			UpdateCloud('listener_clients');
-		});
-
-		socket.on('listener_reassign_gpo', (gpoGroupId, oldDeviceId, deviceId) => {
-			let canRemove = true;
-			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].socketId === socket.id) {
-					if (listener_clients[i].deviceId === oldDeviceId) {
-						if (listener_clients[i].gpoGroupId !== gpoGroupId) {
-							canRemove = false;
-							break;
-						}
-					}
-				}
-			}
-			if (canRemove) {
-				//no other gpo groups on this socket are using the old device ID, so we can safely leave that room
-				socket.leave('device-' + oldDeviceId);
-			}
-
-			socket.join('device-' + deviceId);
-
-			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].gpoGroupId === gpoGroupId) {
-					listener_clients[i].deviceId = deviceId;
-				}
-			}
-
-			let oldDeviceName = GetDeviceByDeviceId(oldDeviceId).name;
-			let deviceName = GetDeviceByDeviceId(deviceId).name;
-
-			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info');
-			UpdateSockets('listener_clients');
-			UpdateCloud('listener_clients');
 		});
 
 		socket.on('listener_reassign_object', (reassignObj) => {
@@ -527,9 +457,9 @@ function initialSetup() {
 			let ipAddress = socket.handshake.address;
 
 			if (cloud_keys.includes(key)) {
-				let datetimeConnected = new Date().getTime();
+				let datetime_connected = new Date().getTime();
 				logger(`Cloud Client Connected: ${ipAddress}`, 'info');
-				AddCloudClient(socket.id, key, ipAddress, datetimeConnected);
+				AddCloudClient(socket.id, key, ipAddress, datetime_connected);
 			}
 			else {
 				socket.emit('invalidkey');
@@ -707,7 +637,7 @@ function initialSetup() {
 							listener_clients[j].internalId = data[i].id;
 							listener_clients[j].listenerType = data[i].listenerType;
 							listener_clients[j].ipAddress = data[i].ipAddress;
-							listener_clients[j].datetimeConnected = data[i].datetimeConnected;
+							listener_clients[j].datetime_connected = data[i].datetime_connected;
 							listener_clients[j].inactive = data[i].inactive;
 							listener_clients[j].cloudConnection = true;
 							listener_clients[j].cloudClientId = cloudClientId;
@@ -845,7 +775,55 @@ function initialSetup() {
 			currentConfig.remoteErrorReporting = optStatus;
 			SaveConfig();
 			socket.emit('remote_error_opt', currentConfig.remoteErrorReporting);
-		})
+		});
+
+		/* Outdated events starts here */
+		socket.on('device_listen', function(deviceId, listenerType) { // emitted by an old listener client page
+			outdated_listener_clients[socket.id] = {
+				ip: ipAddr,
+				type: listenerType,
+				notes: `Device ID ${deviceId}`
+			};
+		});
+		socket.on('device_listen_blink', function(obj) { // emitted by the old Python blink(1) client
+			outdated_listener_clients[socket.id] = {
+				ip: ipAddr,
+				type: "blink(1)",
+				notes: `Device ID ${obj.deviceId}`
+			};
+		});
+		socket.on('device_listen_relay', function(relayGroupId, deviceId) { // emitted by the old Relay Controller accessory program
+			outdated_listener_clients[socket.id] = {
+				ip: ipAddr,
+				type: "relay",
+				notes: `Device ID ${deviceId} - Relay group ID ${relayGroupId}`
+			};
+		});
+		socket.on('device_listen_gpo', function(obj) { // emitted by the old Python GPO Controller client
+			outdated_listener_clients[socket.id] = {
+				ip: ipAddr,
+				type: "gpo",
+				notes: `Device ID ${obj.deviceId} - GPO group ID ${obj.gpoGroupId}`
+			};
+		});
+		socket.on('device_listen_m5', function(obj) { // emitted by old M5 Arduino clients (Atom, Stick C, Stick C Plus, etc.)
+			outdated_listener_clients[socket.id] = {
+				ip: ipAddr,
+				type: "m5",
+				notes: `Device ID ${obj.deviceId}`
+			};
+		});
+		socket.on('listener_reassign_relay', (relayGroupId, oldDeviceId, deviceId) => {
+			if(outdated_listener_clients[socket.id] !== undefined) {
+				outdated_listener_clients[socket.id].notes = `Device ID ${deviceId} - Relay group ID ${relayGroupId}`;
+			}
+		});
+		socket.on('listener_reassign_gpo', (gpoGroupId, oldDeviceId, deviceId) => {
+			if(outdated_listener_clients[socket.id] !== undefined) {
+				outdated_listener_clients[socket.id].notes = `Device ID ${deviceId} - GPO group ID ${gpoGroupId}`;
+			}
+		});
+		/* Outdated events finish here */
 	});
 
 	logger('Socket.IO Setup Complete.', 'info-quiet');
@@ -1409,11 +1387,11 @@ function StartCloudDestination(cloudDestinationId) {
 			cloud_destinations_sockets[i].socket.on('flash', (listenerClientId) => {
 				FlashListenerClient(listenerClientId);
 			});
-
+			/*
 			cloud_destinations_sockets[i].socket.on('messaging_client', (listenerClientId, type, socketid, message) => {
 				MessageListenerClient(listenerClientId, type, socketid, message);
 			});
-
+			*/
 			cloud_destinations_sockets[i].socket.on('error', (error) => {
 				logger(`An error occurred with the connection to ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port}  ${error}`, 'error');
 				cloud_destinations[i].error = true;
@@ -2072,7 +2050,7 @@ function GetCloudClientBySocketId(socket: string): CloudClient {
 	return cloud_clients.find( ({ socketId }) => socketId === socket);
 }
 
-function AddListenerClient(socketId: string, deviceId: string, internalId: string, listenerType: string, ipAddress: string, datetimeConnected: number, canBeReassigned = true, canBeFlashed = true, supportsChat = false): string {
+function AddListenerClient(socketId: string, deviceId: string, internalId: string, listenerType: string, ipAddress: string, datetime_connected: number, canBeReassigned = true, canBeFlashed = true, supportsChat = false): string {
     let id = uuidv4();
 	if(!internalId) internalId = id;
 	
@@ -2083,7 +2061,7 @@ function AddListenerClient(socketId: string, deviceId: string, internalId: strin
 		internalId: internalId,
         listenerType: listenerType,
         ipAddress: ipAddress,
-        datetime_connected: datetimeConnected,
+        datetime_connected: datetime_connected,
         canBeReassigned: canBeReassigned,
         canBeFlashed: canBeFlashed,
         supportsChat: supportsChat,
@@ -2212,7 +2190,7 @@ function FlashListenerClient(listenerClientId): FlashListenerClientResponse | vo
 		return {result: 'flash-not-sent', listenerClientId: listenerClientId, error: 'listener-client-not-found'};
 	}
 }
-
+/*
 function MessageListenerClient(listenerClientId: { relayGroupId?: string; gpoGroupId?: string }, type: string, socketid: string, message: string): MessageListenerClientResponse | void {
 	let listenerClientObj = listener_clients.find( ({ id }) => id === listenerClientId);
 
@@ -2243,14 +2221,14 @@ function MessageListenerClient(listenerClientId: { relayGroupId?: string; gpoGro
 		return {result: 'message-not-sent', listenerClientId: listenerClientId, error: 'listener-client-not-found'};
 	}
 }
-
-function AddCloudClient(socketId, key, ipAddress, datetimeConnected) {
+*/
+function AddCloudClient(socketId: string, key: string, ipAddress: string, datetime_connected: number) {
     const cloudClientObj: CloudClient = {
         id: uuidv4(),
         socketId: socketId,
         key: key,
         ipAddress: ipAddress,
-        datetimeConnected: datetimeConnected,
+        datetime_connected: datetime_connected,
         inactive: false,
     };
 
