@@ -55,7 +55,7 @@ These will have to be installed on the Pi in order for the script to function co
 
     *If `pip3` is not installed, you can get it by running `sudo apt-get install python3-pip`.*
 
-1. Now that all the necessary libraries are installed and compiled, you need to copy the `tallyarbiter-pimoroni-blinkt-listener.py` file to your Pi. You can do this a number of ways, but one simple way is to execute this command through your SSH connection: `wget https://raw.githubusercontent.com/josephdadams/TallyArbiter-Pimoroni-Blinkt-listener/master/tallyarbiter-pimoroni-blinkt-listener.py`. This will copy the file into your current folder (you should still be the home folder for the `pi` account).
+1. Now that all the necessary libraries are installed and compiled, you need to copy the `tallyarbiter-pimoroni-blinkt-listener.py` file to your Pi. You can do this a number of ways, but one simple way is to execute this command through your SSH connection: `wget https://raw.githubusercontent.com/josephdadams/TallyArbiter/master/listener_clients/pimoroni-blinkt-listener/pimoroni-blinkt-listener.py`. This will copy the file into your current folder (you should still be the home folder for the `pi` account).
 1. Once the Python script has been copied over, go ahead and test it out to make sure everything is working properly. Run this in the SSH session: `sudo python3 tallyarbiter-pimoroni-blinkt-listener.py 192.168.1.6 4455`
     
     Be sure to replace the IP address `192.168.1.6` with the IP of your Tally Arbiter server. If you leave off the port, it will attempt to connect using port `4455`.
