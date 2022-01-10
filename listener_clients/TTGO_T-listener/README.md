@@ -1,5 +1,5 @@
 # Tally Arbiter TTGO_T Listener
-Tally Arbiter TTGO_T Listener is a modified Version of the Tally Arbiter M5Stick-C Listener, written by Joseph Adams (https://github.com/josephdadams/TallyArbiter-M5StickCListener), with support for a TTGO_T-Display device.
+Tally Arbiter TTGO_T Listener is a modified Version of the Tally Arbiter M5Stick-C Listener, written by Joseph Adams (https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/m5stickc-listener), with support for a TTGO_T-Display device.
 
 To learn more about the Tally Arbiter project, [click here](http://github.com/josephdadams/tallyarbiter).
 
