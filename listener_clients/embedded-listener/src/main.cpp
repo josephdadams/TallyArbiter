@@ -168,7 +168,8 @@ void setup()
   // event handler
   socketIO.onEvent(socketIOConnEvent);
 
-  if (!MDNS.begin("ta_listener_" + deviceCode)) {
+  String MDNS_name = "ta_listener_" + deviceCode;
+  if (!MDNS.begin(MDNS_name.c_str())) {
     Serial.println("Error setting up MDNS responder!");
     while(1){
       delay(1000);
