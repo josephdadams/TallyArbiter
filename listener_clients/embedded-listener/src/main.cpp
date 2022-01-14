@@ -14,6 +14,10 @@ WiFiManager wm;
 
 String deviceCode;
 
+DynamicJsonDocument bus_options(1024);
+DynamicJsonDocument devices(2048);
+DynamicJsonDocument device_states(3072);
+
 void sendSocketEvent(String event_name, DynamicJsonDocument params)
 {
   // create JSON message for Socket.IO (event)
@@ -39,18 +43,21 @@ void event_error(String error)
   Serial.println("Server reported an error: " + error);
 }
 
-void event_bus_options(DynamicJsonDocument bus_options)
+void event_bus_options(DynamicJsonDocument new_bus_options)
 {
+  bus_options = new_bus_options;
   Serial.println("Bus options received");
 }
 
-void event_devices(DynamicJsonDocument devices)
+void event_devices(DynamicJsonDocument new_devices)
 {
+  devices = new_devices;
   Serial.println("Devices received");
 }
 
-void event_device_states(DynamicJsonDocument device_states)
+void event_device_states(DynamicJsonDocument new_device_states)
 {
+  device_states = new_device_states;
   Serial.println("New device states received");
 }
 
