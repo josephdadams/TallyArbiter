@@ -14,9 +14,9 @@ WiFiManager wm;
 
 String deviceCode;
 
-DynamicJsonDocument bus_options(1024);
+DynamicJsonDocument bus_options(800);
 DynamicJsonDocument devices(2048);
-DynamicJsonDocument device_states(3072);
+DynamicJsonDocument device_states(1024);
 
 void sendSocketEvent(String event_name, DynamicJsonDocument params)
 {
