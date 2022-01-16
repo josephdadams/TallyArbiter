@@ -9,7 +9,7 @@ import compression from 'compression';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import bodyParser from 'body-parser';
 import http from 'http';
-import bonjour from 'bonjour';
+import ciao from '@homebridge/ciao';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
 import { BehaviorSubject } from 'rxjs';
@@ -143,6 +143,17 @@ var device_actions: DeviceAction[]			= []; // the configured device output actio
 var currentDeviceTallyData: DeviceTallyData = {}; // tally data (=bus array) per device id (linked busses taken into account)
 var currentSourceTallyData: SourceTallyData = {}; // tally data (=bus array) per device source id
 
+const responder = ciao.getResponder();
+const service = responder.createService({
+		name: 'tallyarbiter-'+currentConfig["uuid"],
+		type: 'tally-arbiter',
+		port: 4455,
+		txt: {
+			version: version,
+			uuid: currentConfig["uuid"]
+		}
+	});
+
 
 function startUp() {
 	loadClassesFromFolder("actions");
@@ -201,16 +212,9 @@ function initialSetup() {
 
 	logger('Main HTTP Server Complete.', 'info-quiet');
 
-	bonjour().publish({
-		name: 'tallyarbiter-'+currentConfig["uuid"],
-		type: 'tally-arbiter',
-		port: 4455,
-		txt: {
-			version: version,
-			uuid: currentConfig["uuid"]
-		}
+	service.advertise().then(() => {
+		logger('TallyArbiter advertised over MDNS.', 'info-quiet');
 	});
-	logger('TallyArbiter advertised over MDNS.', 'info-quiet');
 
 	logger('Starting socket.IO Setup.', 'info-quiet');
 
