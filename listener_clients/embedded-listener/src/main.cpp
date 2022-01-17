@@ -8,9 +8,16 @@
 #include <DNSServer.h>
 #include <ESPmDNS.h>
 #include <WiFiManager.h>
+#include <Preferences.h>
 
 SocketIOclient socketIO;
+
 WiFiManager wm;
+Preferences preferences;
+WiFiManagerParameter ta_host_param("host", "TallyArbiter server host", "", 60);
+WiFiManagerParameter ta_port_param("port", "TallyArbiter port", "4455", 8);
+char ta_host[60] = "";
+char ta_port[8] = "4455";
 
 String deviceCode;
 
@@ -135,6 +142,29 @@ void socketIOConnEvent(socketIOmessageType_t type, uint8_t *payload, size_t leng
   }
 }
 
+String getParam(String name) {
+  String value;
+  if (wm.server->hasArg(name)) {
+    value = wm.server->arg(name);
+  }
+  return value;
+}
+
+void saveParamCallback() {
+  String str_taHost = getParam("host");
+  String str_taPort = getParam("port");
+
+  Serial.println("Saving new TallyArbiter host");
+  
+  preferences.begin("tally-arbiter", false);
+  preferences.putString("ta_host", str_taHost);
+  preferences.putString("ta_port", str_taPort);
+  preferences.end();
+
+  str_taHost.toCharArray(ta_host, 60);
+  str_taPort.toCharArray(ta_port, 8);
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -154,9 +184,26 @@ void setup()
   Serial.println("Initializing...");
   Serial.setDebugOutput(true);
 
+  preferences.begin("tally-arbiter", false);
+  Serial.println("Reading preferences");
+  if(preferences.getString("ta_host").length() > 0){
+    String newHost = preferences.getString("taHost");
+    newHost.toCharArray(ta_host, 60);
+  }
+  if(preferences.getString("ta_port").length() > 0){
+    String newPort = preferences.getString("taPort");
+    newPort.toCharArray(ta_port, 8);
+  }
+  preferences.end();
+
   Serial.println();
   Serial.println();
   Serial.println();
+
+  wm.addParameter(&ta_host_param);
+  wm.addParameter(&ta_port_param);
+
+  wm.setSaveParamsCallback(saveParamCallback);
 
   bool res;
   res = wm.autoConnect();
@@ -167,10 +214,10 @@ void setup()
     Serial.println("Connected to the WiFi... yeey :)");
   }
 
-  //TODO: replace hard-coded credentials for connecting to my dev-env with reading WifiManager settings
   //TODO: automatic TA server discovery via MDNS (actually, doesn't working in setup, works only in loop, and doesn't report the server ip and port)
   // server address, port and URL
-  socketIO.begin("192.168.1.133", 4455);
+  Serial.println("Connecting to " + String(ta_host) + ":" + String(ta_port));
+  socketIO.begin(ta_host, atol(ta_port));
 
   // event handler
   socketIO.onEvent(socketIOConnEvent);
