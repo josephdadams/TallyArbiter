@@ -27,6 +27,7 @@
     "ang-jsoneditor": "^1.10.5",
     "bootstrap": "^5.0.1",
     "darkreader": "^4.9.39",
+    "jwt-decode": "^3.1.2",
     "jsoneditor": "^9.5.6",
     "ng-qrcode": "^4.2.0",
     "nosleep.js": "^0.12.0",

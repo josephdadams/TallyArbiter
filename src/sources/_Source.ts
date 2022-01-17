@@ -65,7 +65,6 @@ export class TallyInput extends EventEmitter {
                         logger(`Source: ${this.source.name} Reconnect timeout not set.`, 'info-quiet');
                         return;
                     }
-
                     this.reconnectFailureCounter++;
                     logger(`Source: ${this.source.name} Reconnect attempt: ${this.reconnectFailureCounter}.`, 'info-quiet');
 
