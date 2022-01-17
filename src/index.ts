@@ -52,7 +52,7 @@ import { Actions } from './_globals/Actions';
 import { uuidv4 } from './_helpers/uuid';
 import { logFilePath, Logs, serverLogger, tallyDataFile } from './_helpers/logger';
 import { getNetworkInterfaces } from './_helpers/networkInterfaces';
-import { loadClassesFromFolder } from './_helpers/fileLoder';
+import { loadClassesFromFolder } from './_helpers/fileLoader';
 import { UsePort } from './_decorators/UsesPort.decorator';
 import { secondsToHms } from './_helpers/time';
 import { currentConfig, getConfigRedacted, readConfig, SaveConfig, replaceConfig } from './_helpers/config';
@@ -1036,6 +1036,8 @@ function ToggleTestMode(enabled: boolean) {
 				data: {
 					addressesNumber: devices.length,
 				},
+				reconnect_interval: 5000,
+				max_reconnects: 5,
 			};
 			//turn on test mode
             sources.push(testModeSource);
@@ -1049,6 +1051,8 @@ function ToggleTestMode(enabled: boolean) {
 					sourceId: testModeSource.id,
 					bus: "",
 					rename: false,
+					reconnect_interval: 5000,
+					max_reconnects: 5,
 				});
 			}
 
@@ -1658,6 +1662,8 @@ function TallyArbiter_Edit_Source(obj: Manage): ManageResponse {
 			sources[i].data = sourceObj.data;
 			sourceTypeId = sources[i].sourceTypeId;
 			connected = sources[i].connected;
+			sources[i].reconnect_interval = sourceObj.reconnect_interval;
+			sources[i].max_reconnects = sourceObj.max_reconnects;
 		}
 	}
 
@@ -1819,6 +1825,8 @@ function TallyArbiter_Edit_Device_Source(obj: Manage): ManageResponse {
 			device_sources[i].bus = deviceSourceObj.bus;
 		}
 		device_sources[i].rename = deviceSourceObj.rename;
+		device_sources[i].reconnect_interval = deviceSourceObj.reconnect_interval;
+		device_sources[i].max_reconnects = deviceSourceObj.max_reconnects;
 	}
 
 	let deviceName = GetDeviceByDeviceId(deviceId).name;

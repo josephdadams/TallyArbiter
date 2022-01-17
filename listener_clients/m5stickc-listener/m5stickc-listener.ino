@@ -73,6 +73,7 @@ int currentScreen = 0; //0 = Tally Screen, 1 = Settings Screen
 int currentBrightness = 11; //12 is Max level
 
 WiFiManager wm; // global wm instance
+bool portalRunning = false;
 
 void setup() {
   pinMode(TRIGGER_PIN, INPUT_PULLUP);
@@ -174,6 +175,10 @@ void setup() {
 }
 
 void loop() {
+  if(portalRunning){
+    wm.process();
+  }
+  
   checkReset(); //check for reset pin
   ArduinoOTA.handle();
   socket.loop();
@@ -199,6 +204,9 @@ void loop() {
 }
 
 void showSettings() {
+  wm.startWebPortal();
+  portalRunning = true;
+  
   //displays the current network connection and Tally Arbiter server data
   M5.Lcd.setCursor(0, 20);
   M5.Lcd.fillScreen(TFT_BLACK);
@@ -222,6 +230,11 @@ void showSettings() {
 }
 
 void showDeviceInfo() {
+  if(portalRunning) {
+    wm.stopWebPortal();
+    portalRunning = false;
+  }
+  
   M5.Lcd.setTextColor(GREY, BLACK);
   M5.Lcd.fillScreen(TFT_BLACK);
   M5.Lcd.println(DeviceName);

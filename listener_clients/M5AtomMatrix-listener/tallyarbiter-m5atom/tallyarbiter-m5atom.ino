@@ -21,13 +21,21 @@ Preferences preferences;
 */
 
 //Tally Arbiter Server
-char tallyarbiter_host[40] = "192.168.0.110";
+char tallyarbiter_host[40] = "TALLYARBITERSERVERIP";
 char tallyarbiter_port[6] = "4455";
 
-//Local Default Camera Number
-int camNumber = 1;
+//Uncomment these lines if you want the client to use a static IP address. Default is DHCP.
+//Note that addresses entered here will need to be confirmed when WiFi Manager runs on client.
+//
+//local static IP config:
+//IPAddress stationIP = IPAddress(192, 168, 1, 195);
+//IPAddress stationGW = IPAddress(192, 168, 1, 1);
+//IPAddress stationMask = IPAddress(255, 255, 255, 0);
 
-// Name of the device
+//Local Default Camera Number. Used for local display only - does not impact function. Zero results in a single dot displayed.
+int camNumber = 0;
+
+// Name of the device - the serial number of the listener hardware will be appended to create a unique identifier for the server.
 String listenerDeviceName = "m5Atom-1";
 
 // Enables the GPIO pinout
@@ -47,7 +55,9 @@ JSONVar DeviceStates;
 String DeviceId = "unassigned";
 String DeviceName = "unassigned";
 String ListenerType = "m5";
-
+const unsigned long reconnectInterval = 5000;
+unsigned long currentReconnectTime = 0;
+bool isReconnecting = false;
 
 #if TALLY_EXTRA_OUTPUT
 const int led_program = 10;
@@ -79,8 +89,6 @@ int readycolor[] = {GRB_COLOR_BLACK, GRB_COLOR_GREEN};
 int alloffcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_BLACK};
 int wificolor[] = {GRB_COLOR_BLACK, GRB_COLOR_BLUE};
 int infocolor[] = {GRB_COLOR_BLACK, GRB_COLOR_ORANGE};
-
-int currentBrightness = 40;
 
 //this is the array that stores the number layout
 int number[17][25] = {{
@@ -189,7 +197,7 @@ int number[17][25] = {{
 };
 
 // this array stores all the icons for the display
-int icons[12][25] = {
+int icons[13][25] = {
   { 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1,
     1, 1, 1, 1, 1,
@@ -262,6 +270,12 @@ int icons[12][25] = {
     0, 0, 0, 0, 1,
     0, 0, 0, 1, 0
   }, // good
+  { 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0
+  }, // no icon
 };
 
 // Logger - logs to serial number
@@ -317,8 +331,9 @@ void evaluateMode() {
     actualColor.replace("#", "");
     String hexstring = actualColor;
     long colorNumber = (long) strtol( &hexstring[1], NULL, 16);
-    int r = colorNumber >> 16;
-    int g = colorNumber >> 8 & 0xFF;
+ // This order is to compensate for Matrix needing grb.
+    int g = colorNumber >> 16;
+    int r = colorNumber >> 8 & 0xFF;
     int b = colorNumber & 0xFF;
     
     if (actualType != "") {
@@ -326,7 +341,9 @@ void evaluateMode() {
       int currColor[] = {backgroundColor, numbercolor};
       logger("Current color: " + String(backgroundColor), "info");
       //logger("Current camNumber: " + String(camNumber), "info");
-      drawNumber(number[camNumber], currColor);
+      // If you want the camera number displayed during Pgm and Pvw, uncomment the following line and comment the line after.
+      // drawNumber(number[camNumber], currColor);
+      drawNumber(icons[12], currColor);
     } else {
       drawNumber(number[camNumber], offcolor);
     }
@@ -351,10 +368,19 @@ void evaluateMode() {
     }
     #endif
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
-    logger(" r: " + String(r) + " g: " + String(g) + " b: " + String(b), "info");
+    // This is a hack to compensate for the Matrix needing GRB.
+    logger(" r: " + String(g) + " g: " + String(r) + " b: " + String(b), "info");
 
     prevType = actualType;
   }  
+}
+
+void startReconnect() {
+  if (!isReconnecting)
+  {
+    isReconnecting = true;
+    currentReconnectTime = millis();
+  }
 }
 
 void connectToServer() {
@@ -366,6 +392,12 @@ void connectToServer() {
 }
 
 // Here are all the socket listen events - messages sent from Tally Arbiter to the M5
+
+void socket_Disconnected(const char * payload, size_t length) {
+  logger("Disconnected from server, will try to re-connect: " + String(payload), "info-quiet");
+  Serial.println("disconnected, going to try to reconnect");
+  startReconnect();
+}
 
 void ws_emit(String event, const char *payload = NULL) {
   if (payload) {
@@ -400,6 +432,8 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
       break;
 
     case sIOtype_DISCONNECT:
+      socket_Disconnected((char*)payload, length);
+      break;
     case sIOtype_ACK:
     case sIOtype_ERROR:
     case sIOtype_BINARY_EVENT:
@@ -491,6 +525,7 @@ void socket_Flash() {
 void socket_Connected(const char * payload, size_t length) {
   logger("---------------------------------", "info-quiet");
   logger("Connected to Tally Arbiter host: " + String(tallyarbiter_host), "info-quiet");
+  isReconnecting = false;
   String deviceObj = "{\"deviceId\": \"" + DeviceId + "\", \"listenerType\": \"" + listenerDeviceName.c_str() + "\", \"canBeReassigned\": true, \"canBeFlashed\": true, \"supportsChat\": false }";
   logger("deviceObj = " + String(deviceObj), "info-quiet");
   logger("DeviceId = " + String(DeviceId), "info-quiet");
@@ -573,6 +608,12 @@ void processTallyData() {
 }
 
 void connectToNetwork() {
+  // allow for static IP assignment instead of DHCP if stationIP is defined as something other than 0.0.0.0
+  if (stationIP != IPAddress(0, 0, 0, 0))
+  {
+    wm.setSTAStaticIPConfig(stationIP, stationGW, stationMask); // optional DNS 4th argument 
+  }
+  
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
 
   logger("Connecting to SSID: " + String(WiFi.SSID()), "info");
@@ -805,6 +846,20 @@ void loop(){
     logger("---------------------------------", "info-quiet");
     logger("", "info-quiet");
   }
+
+  // handle reconnecting if disconnected
+  if (isReconnecting)
+  {
+  unsigned long currentTime = millis();
+    
+    if (currentTime - currentReconnectTime >= reconnectInterval)
+    {
+      Serial.println("trying to re-connect with server");
+      connectToServer();
+      currentReconnectTime = millis();
+    }
+  }
+  
   delay(50);
   M5.update();
 }

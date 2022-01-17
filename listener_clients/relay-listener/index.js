@@ -18,6 +18,8 @@ var server_config =	{};
 
 var socket = 		null;
 
+var currentRelayGroup;
+
 var device_states =	[];
 var bus_options =	[];
 
@@ -71,7 +73,7 @@ function saveConfig() {
 	try {
 		if(!server_config.ip) server_config.ip = '127.0.0.1';
 		if(!server_config.port) server_config.port = '4455';
-		if(!server_config.useMDNS) server_config.useMDNS = true;
+		if(server_config.useMDNS == null || undefined) server_config.useMDNS = true;
 		
 		if(!configJson.clientUUID) configJson.clientUUID = uuidv4();
 
@@ -184,7 +186,7 @@ function connectToServer(ip, port) {
 	socket.on('device_states', function(Device_states) {
 		//process the data received and determine if it's in preview or program and adjust the relays accordingly
 		device_states = Device_states;
-		ProcessTallyData();
+		ProcessTallyData(device_states);
 	});
 
 	socket.on('bus_options', function(Bus_options) {
@@ -254,34 +256,49 @@ function getBusTypeById(busId) {
 	return bus.type;
 }
 
-function ProcessTallyData() {
+function getRelayGroupById(deviceId) {
+	let groupIndex;
+	for (i = 0; i <= relay_groups.length; i++) {
+		if (relay_groups[i].deviceId == deviceId) {
+			groupIndex = i;
+			break;
+		}
+	}
+	currentRelayGroup = relay_groups[groupIndex];
+	return relay_groups[groupIndex];
+}
+
+function ProcessTallyData(states) {
 	if(bus_options.length > 0) {
 		let powered_relays = [];
-		device_states.forEach(function(device_state) {
+		let deviceId;
+		states.forEach((device_state) => {
+			deviceId = device_state.deviceId;
 			if (device_state.sources.length > 0) {
-				//logger(device_state.deviceId + " " + getBusTypeById(device_state.busId), 'debug');
-				relay_groups.forEach(function(relay_group) {
-					if(device_state.deviceId === relay_group.deviceId) {
-						relay_group.relays.forEach(function(currentRelay) {
-							if(currentRelay.busType === getBusTypeById(device_state.busId)) {
-								logger("Relay " + currentRelay.relayNumber + " is on", 'debug');
-								relay.setState(currentRelay.relayNumber, true);
-								powered_relays.push(currentRelay.relayNumber);
-							}
-						});
+				logger(device_state.deviceId + " " + getBusTypeById(device_state.busId), 'debug');
+				let relay_group = getRelayGroupById(device_state.deviceId);
+				if (device_state.deviceId === relay_group.deviceId) {
+					relay_group.relays.forEach((currentRelay) => {
+						if (currentRelay.busType === getBusTypeById(device_state.busId)) {
+							logger("Relay " + currentRelay.relayNumber + " is on", 'debug');
+							relay.setState(currentRelay.relayNumber, true);
+							powered_relays.push(currentRelay.relayNumber);
+						};
+					});
+				};
+			};
+		});
+		relay_groups.forEach(function(relay_group) {
+			if(relay_group.deviceId === deviceId) {
+				relay_group.relays.forEach(function(currentRelay) {
+					if(!powered_relays.includes(currentRelay.relayNumber)) {
+						logger("Relay " + currentRelay.relayNumber + " is off", 'debug');
+						relay.setState(currentRelay.relayNumber, false);
 					}
 				});
 			}
 		});
-		relay_groups.forEach(function(relay_group) {
-			relay_group.relays.forEach(function(currentRelay) {
-				if(!powered_relays.includes(currentRelay.relayNumber)) {
-					logger("Relay " + currentRelay.relayNumber + " is off", 'debug');
-					relay.setState(currentRelay.relayNumber, false);
-				}
-			});
-		});
-	}
+	};
 }
 
 function FlashRelayGroup(relayGroupId) {

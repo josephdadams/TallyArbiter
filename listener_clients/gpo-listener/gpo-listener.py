@@ -63,6 +63,10 @@ try:
     config_file.close()
     if config != "":
         configJson = json.loads(config)
+        if not "output_invert" in configJson:
+            configJson["output_invert"] = False
+            with open("config_gpo.json", "w") as outfile:
+                json.dump(configJson, outfile, indent=4)
         if not "clientUUID" in configJson:
             configJson["clientUUID"] = str(uuid4())
             with open("config_gpo.json", "w") as outfile:
@@ -122,6 +126,12 @@ except ImportError:
         exit(1)
 
 
+def getOutputValue(state):
+    if configJson["output_invert"]:
+        return not state
+    else:
+        return state
+
 def setStates():
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
@@ -129,7 +139,7 @@ def setStates():
     for gpo_group in gpo_groups:
         for gpo in gpo_group["gpos"]:
             GPIO.setup(gpo["pinNumber"], GPIO.OUT)
-            GPIO.output(gpo["pinNumber"], False)
+            GPIO.output(gpo["pinNumber"], getOutputValue(False))
             gpo["lastState"] = False
 
     atexit.register(GPO_off)
@@ -140,7 +150,7 @@ def GPO_off():
     for gpo_group in gpo_groups:
         for gpo in gpo_group["gpos"]:
             GPIO.setup(gpo["pinNumber"], GPIO.OUT)
-            GPIO.output(gpo["pinNumber"], False)
+            GPIO.output(gpo["pinNumber"], getOutputValue(False))
             gpo["lastState"] = False
 
 
@@ -213,13 +223,13 @@ def on_flash(gpoGroupId):
     for gpo_group in gpo_groups:
         if str(gpo_group["id"]) == str(gpoGroupId):
             for gpo in gpo_group["gpos"]:
-                GPIO.output(gpo["pinNumber"], True)
+                GPIO.output(gpo["pinNumber"], getOutputValue(True))
                 time.sleep(0.5)
-                GPIO.output(gpo["pinNumber"], False)
+                GPIO.output(gpo["pinNumber"], getOutputValue(False))
                 time.sleep(0.5)
-                GPIO.output(gpo["pinNumber"], True)
+                GPIO.output(gpo["pinNumber"], getOutputValue(True))
                 time.sleep(0.5)
-                GPIO.output(gpo["pinNumber"], False)
+                GPIO.output(gpo["pinNumber"], getOutputValue(False))
                 time.sleep(0.5)
                 GPIO.output(gpo["pinNumber"], gpo["lastState"])
     print()
@@ -243,7 +253,6 @@ def on_reassign(oldDeviceId, newDeviceId, gpoGroupId):
             gpo_group["deviceId"] = newDeviceId
 
     config_file = open(configFileName, "w")
-    configJson = {}
     configJson["server_config"] = server_config
     configJson["gpo_groups"] = gpo_groups
     config_file.write(json.dumps(configJson, indent=4))
@@ -266,14 +275,14 @@ def processTallyData():
                         for gpo in gpo_group["gpos"]:
                             if gpo["busType"] == getBusTypeById(device_state["busId"]):
                                 print("Turning on pin " + str(gpo["pinNumber"]))
-                                GPIO.output(gpo["pinNumber"], True)
+                                GPIO.output(gpo["pinNumber"], getOutputValue(True))
                                 gpo["lastState"] = True
                                 powered_pins.append(gpo["pinNumber"])
         for gpo_group in gpo_groups:
             for gpo in gpo_group["gpos"]:
                 if gpo["pinNumber"] not in powered_pins:
                     print("Turning off pin " + str(gpo["pinNumber"]))
-                    GPIO.output(gpo["pinNumber"], False)
+                    GPIO.output(gpo["pinNumber"], getOutputValue(False))
                     gpo["lastState"] = False
         print()
 
@@ -307,10 +316,10 @@ class TallyArbiterServerListener:
                 print("Tally Arbiter GPO Listener Running. Press CTRL-C to exit.")
                 print(
                     "Attempting to connect to Tally Arbiter server: {}:{} (UUID {}, server version {})".format(
-                        info.server, str(info.port), server_uuid, server_version
+                        info.parsed_addresses()[0], str(info.port), server_uuid, server_version
                     )
                 )
-                sio.connect("http://" + info.server + ":" + str(info.port))
+                sio.connect("http://" + info.parsed_addresses()[0] + ":" + str(info.port))
                 sio.wait()
             except socketio.exceptions.ConnectionError:
                 time.sleep(15)
