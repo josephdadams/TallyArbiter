@@ -10,6 +10,8 @@
 #include <WiFiManager.h>
 #include <Preferences.h>
 
+#include <user_config.h>
+
 SocketIOclient socketIO;
 
 WiFiManager wm;
@@ -207,6 +209,11 @@ void setup()
 
   bool res;
   res = wm.autoConnect();
+
+#if USE_STATIC_IP
+//TODO: add in config and in config override and test
+  wm.setSTAStaticIPConfig(STATIC_IP_ADDR, GATEWAY_IP_ADDR, SUBNET_ADDR, DNS_ADDR); // optional DNS 4th argument
+#endif
 
   if (!res) {
     Serial.println("Failed to connect");

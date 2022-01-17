@@ -1,3 +1,4 @@
 .pio
 .vscode/*
 !.vscode/extensions.json
+src/user_config_override.h
