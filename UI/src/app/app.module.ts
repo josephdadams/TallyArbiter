@@ -19,6 +19,7 @@ import { ChatComponent } from './_components/chat/chat.component';
 import { ThemeSelectorComponent } from './_components/theme-selector/theme-selector.component';
 import { ErrorReportComponent } from './_components/error-report/error-report.component';
 import { ErrorReportsListComponent } from './_components/error-reports-list/error-reports-list.component';
+import { RequireRoleDirective } from './_directives/requireRole';
 
 @NgModule({
   declarations: [
@@ -32,7 +33,8 @@ import { ErrorReportsListComponent } from './_components/error-reports-list/erro
     ChatComponent,
     ThemeSelectorComponent,
     ErrorReportComponent,
-    ErrorReportsListComponent
+    ErrorReportsListComponent,
+    RequireRoleDirective
   ],
   imports: [
     BrowserModule,

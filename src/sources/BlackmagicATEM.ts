@@ -2,9 +2,24 @@
 import { Atem, listVisibleInputs } from 'atem-connection';
 import { RecordingStatus, StreamingStatus } from 'atem-connection/dist/enums';
 import { RegisterTallyInput } from "../_decorators/RegisterTallyInput.decorator";
+import { RegisterNetworkDiscovery } from '../_decorators/RegisterNetworkDiscovery.decorator';
+import bonjour from 'bonjour';
 import { Source } from '../_models/Source';
 import { TallyInput } from './_Source';
 
+@RegisterNetworkDiscovery((addDiscoveredDevice) => {
+    bonjour().find({
+        "type": "blackmagic",
+        "txt": {
+          "class": "AtemSwitcher"
+        }
+    }, (service) => {
+        addDiscoveredDevice({
+            name: service.name,
+            addresses: service.addresses.concat(service.fqdn)
+        });
+    });
+})
 @RegisterTallyInput("44b8bc4f", "Blackmagic ATEM", "Uses Port 9910.", [
     { fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
     {
