@@ -22,6 +22,7 @@ char ta_host[60] = "";
 char ta_port[8] = "4455";
 
 String deviceCode;
+String selectedDeviceId;
 
 DynamicJsonDocument bus_options(800);
 DynamicJsonDocument devices(2048);
@@ -73,6 +74,11 @@ void event_device_states(DynamicJsonDocument new_device_states)
 void event_reassign(String old_device, String new_device)
 {
   Serial.println("Reassign device");
+  selectedDeviceId = new_device;
+
+  preferences.begin("tally-arbiter");
+  preferences.putString("ta_deviceId", new_device);
+  preferences.end();
 }
 
 void event_flash()
@@ -113,7 +119,7 @@ void socketIOConnEvent(socketIOmessageType_t type, uint8_t *payload, size_t leng
       socketIO.send(sIOtype_CONNECT, "/");
 
       DynamicJsonDocument listenerClientConnect(1024);
-      listenerClientConnect["deviceId"] = "test"; //TODO: read from WiFiManager settings (so its saved with connection params and can be erased easily)
+      listenerClientConnect["deviceId"] = selectedDeviceId;
       listenerClientConnect["listenerType"] = "embedded listener_"+deviceCode; //TODO: read device type from build envs;
       listenerClientConnect["canBeReassigned"] = true;
       listenerClientConnect["canBeFlashed"] = true;
@@ -158,7 +164,7 @@ void saveParamCallback() {
 
   Serial.println("Saving new TallyArbiter host");
   
-  preferences.begin("tally-arbiter", false);
+  preferences.begin("tally-arbiter");
   preferences.putString("ta_host", str_taHost);
   preferences.putString("ta_port", str_taPort);
   preferences.end();
@@ -186,7 +192,7 @@ void setup()
   Serial.println("Initializing...");
   Serial.setDebugOutput(true);
 
-  preferences.begin("tally-arbiter", false);
+  preferences.begin("tally-arbiter");
   Serial.println("Reading preferences");
   if(preferences.getString("ta_host").length() > 0){
     String newHost = preferences.getString("taHost");
@@ -195,6 +201,9 @@ void setup()
   if(preferences.getString("ta_port").length() > 0){
     String newPort = preferences.getString("taPort");
     newPort.toCharArray(ta_port, 8);
+  }
+  if(preferences.getString("ta_deviceId").length() > 0){
+    selectedDeviceId = preferences.getString("ta_deviceId");
   }
   preferences.end();
 
