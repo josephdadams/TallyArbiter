@@ -48,6 +48,20 @@ void sendSocketEvent(String event_name, DynamicJsonDocument params)
   Serial.println(output);
 }
 
+int* convertColorToRGB(String hexstring)
+{
+  int rgb[3] = {0, 0, 0};
+
+  hexstring.replace("#", "");
+  long number = (long) strtol( &hexstring[1], NULL, 16);
+
+  rgb[0] = number >> 16;
+  rgb[1] = number >> 8 & 0xFF;
+  rgb[2] = number & 0xFF;
+
+  return rgb;
+} 
+
 void event_error(String error)
 {
   Serial.println("Server reported an error: " + error);
@@ -56,7 +70,16 @@ void event_error(String error)
 void event_bus_options(DynamicJsonDocument new_bus_options)
 {
   bus_options = new_bus_options;
+  JsonArray bus_options_array = bus_options.as<JsonArray>();
   Serial.println("Bus options received");
+  serializeJson(bus_options, Serial);
+
+  int index = 0;
+  for (JsonObject bus : bus_options_array) {
+    Serial.println("Bus " + String(index) + ": " + bus["id"].as<String>());
+
+    index++;
+  }
 }
 
 void event_devices(DynamicJsonDocument new_devices)
@@ -195,11 +218,11 @@ void setup()
   preferences.begin("tally-arbiter");
   Serial.println("Reading preferences");
   if(preferences.getString("ta_host").length() > 0){
-    String newHost = preferences.getString("taHost");
+    String newHost = preferences.getString("ta_host");
     newHost.toCharArray(ta_host, 60);
   }
   if(preferences.getString("ta_port").length() > 0){
-    String newPort = preferences.getString("taPort");
+    String newPort = preferences.getString("ta_port");
     newPort.toCharArray(ta_port, 8);
   }
   if(preferences.getString("ta_deviceId").length() > 0){
