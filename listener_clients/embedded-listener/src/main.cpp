@@ -39,7 +39,7 @@ void event_bus_options(DynamicJsonDocument new_bus_options)
   bus_options = new_bus_options;
   JsonArray bus_options_array = bus_options.as<JsonArray>();
   Serial.println("Bus options received");
-  serializeJson(bus_options, Serial);
+  serializeJson(bus_options, Serial); Serial.println();
 
   int index = 0;
   for (JsonObject bus : bus_options_array) {
@@ -60,7 +60,73 @@ void event_devices(DynamicJsonDocument new_devices)
 void event_device_states(DynamicJsonDocument new_device_states)
 {
   device_states = new_device_states;
+  JsonArray device_states_array = device_states.as<JsonArray>();
   Serial.println("New device states received");
+  serializeJson(device_states, Serial); Serial.println();
+
+  if(bus_options.isNull()) {
+    Serial.println("No bus options received yet, skipping tally update.");
+    return;
+  }
+
+  int index = 0;
+  for (JsonObject state : device_states_array) {
+    if(state["deviceId"].as<String>() == selectedDeviceId && state["sources"].as<JsonArray>().size() > 0) {
+      JsonObject bus = getBusOptionById(state["busId"].as<String>());
+      if(bus.isNull()) {
+        Serial.println("No bus option found for device " + state["deviceId"].as<String>() + " busId: " + state["busId"].as<String>());
+        continue;
+      }
+
+      Serial.println("Device " + state["deviceId"].as<String>() + " busId: " + state["busId"].as<String>());
+
+      //TODO: refactor this
+      //TODO: fix this
+      if(bus["type"].as<String>() == "preview") {
+        #ifdef PREVIEW_TALLY_STATUS_PIN
+        writeOutput(PREVIEW_TALLY_STATUS_PIN, HIGH);
+        #endif
+        #ifdef PROGRAM_TALLY_STATUS_PIN
+        writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
+        #endif
+        #ifdef AUX_TALLY_STATUS_PIN
+        writeOutput(AUX_TALLY_STATUS_PIN, LOW);
+        #endif
+      } else if(bus["type"].as<String>() == "program") {
+        #ifdef PREVIEW_TALLY_STATUS_PIN
+        writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
+        #endif
+        #ifdef PROGRAM_TALLY_STATUS_PIN
+        writeOutput(PROGRAM_TALLY_STATUS_PIN, HIGH);
+        #endif
+        #ifdef AUX_TALLY_STATUS_PIN
+        writeOutput(AUX_TALLY_STATUS_PIN, LOW);
+        #endif
+      } else if(bus["type"].as<String>() == "aux") {
+        #ifdef PREVIEW_TALLY_STATUS_PIN
+        writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
+        #endif
+        #ifdef PROGRAM_TALLY_STATUS_PIN
+        writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
+        #endif
+        #ifdef AUX_TALLY_STATUS_PIN
+        writeOutput(AUX_TALLY_STATUS_PIN, HIGH);
+        #endif
+      } else {
+        #ifdef PREVIEW_TALLY_STATUS_PIN
+        writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
+        #endif
+        #ifdef PROGRAM_TALLY_STATUS_PIN
+        writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
+        #endif
+        #ifdef AUX_TALLY_STATUS_PIN
+        writeOutput(AUX_TALLY_STATUS_PIN, LOW);
+        #endif
+      }
+    }
+
+    index++;
+  }
 }
 
 void event_reassign(String old_device, String new_device)
@@ -228,6 +294,20 @@ void setup()
       delay(1000);
     }
   }
+
+#ifdef PROGRAM_TALLY_STATUS_PIN
+  pinMode(PROGRAM_TALLY_STATUS_PIN, OUTPUT);
+  writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
+#endif
+#ifdef PREVIEW_TALLY_STATUS_PIN
+  pinMode(PREVIEW_TALLY_STATUS_PIN, OUTPUT);
+  writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
+#endif
+#ifdef AUX_TALLY_STATUS_PIN
+  pinMode(AUX_TALLY_STATUS_PIN, OUTPUT);
+  writeOutput(AUX_TALLY_STATUS_PIN, LOW);
+#endif
+
 }
 
 void loop()

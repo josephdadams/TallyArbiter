@@ -1,5 +1,6 @@
 extern SocketIOclient socketIO;
 extern WiFiManager wm;
+extern DynamicJsonDocument bus_options;
 
 void convertColorToRGB(String hexstring, int & r, int & g, int & b)
 {
@@ -37,4 +38,27 @@ String getSettingsPageParam(String name) {
     value = wm.server->arg(name);
   }
   return value;
+}
+
+JsonObject getBusOptionById(String bus_id) {
+  JsonArray bus_options_array = bus_options.as<JsonArray>();
+  for (JsonObject bus : bus_options_array) {
+    if (bus["id"].as<String>() == bus_id) {
+      return bus;
+    }
+  }
+
+  StaticJsonDocument<1> empty_doc;
+  JsonObject empty_object = empty_doc.to<JsonObject>();
+  return empty_object;
+}
+
+void writeOutput(int pin, bool value) {
+  #ifdef INVERT_OUTPUT_LOGIC
+    #if INVERT_OUTPUT_LOGIC
+      value = !value;
+    #endif
+  #endif
+  Serial.println("writeOutput " + String(value) + " to pin " + String(pin));
+  digitalWrite(pin, value);
 }
