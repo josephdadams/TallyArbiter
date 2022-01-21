@@ -142,14 +142,6 @@ void socketIOConnEvent(socketIOmessageType_t type, uint8_t *payload, size_t leng
   }
 }
 
-String getSettingsPageParam(String name) {
-  String value;
-  if (wm.server->hasArg(name)) {
-    value = wm.server->arg(name);
-  }
-  return value;
-}
-
 void saveParamCallback() {
   String str_taHost = getSettingsPageParam("host");
   String str_taPort = getSettingsPageParam("port");

@@ -1,4 +1,5 @@
 extern SocketIOclient socketIO;
+extern WiFiManager wm;
 
 void convertColorToRGB(String hexstring, int & r, int & g, int & b)
 {
@@ -28,4 +29,12 @@ void sendSocketEvent(String event_name, DynamicJsonDocument params)
 
   // Print JSON for debugging
   Serial.println(output);
+}
+
+String getSettingsPageParam(String name) {
+  String value;
+  if (wm.server->hasArg(name)) {
+    value = wm.server->arg(name);
+  }
+  return value;
 }
