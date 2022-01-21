@@ -10,6 +10,7 @@
 #include <WiFiManager.h>
 #include <Preferences.h>
 
+#include <utils.h>
 #include <user_config.h>
 
 SocketIOclient socketIO;
@@ -28,40 +29,6 @@ DynamicJsonDocument bus_options(800);
 DynamicJsonDocument devices(2048);
 DynamicJsonDocument device_states(1024);
 
-void sendSocketEvent(String event_name, DynamicJsonDocument params)
-{
-  // create JSON message for Socket.IO (event)
-  DynamicJsonDocument doc(1024);
-  JsonArray array = doc.to<JsonArray>();
-
-  array.add(event_name);
-  array.add(params);
-
-  // JSON to String (serializion)
-  String output;
-  serializeJson(doc, output);
-
-  // Send event
-  socketIO.sendEVENT(output);
-
-  // Print JSON for debugging
-  Serial.println(output);
-}
-
-int* convertColorToRGB(String hexstring)
-{
-  int rgb[3] = {0, 0, 0};
-
-  hexstring.replace("#", "");
-  long number = (long) strtol( &hexstring[1], NULL, 16);
-
-  rgb[0] = number >> 16;
-  rgb[1] = number >> 8 & 0xFF;
-  rgb[2] = number & 0xFF;
-
-  return rgb;
-} 
-
 void event_error(String error)
 {
   Serial.println("Server reported an error: " + error);
@@ -76,7 +43,9 @@ void event_bus_options(DynamicJsonDocument new_bus_options)
 
   int index = 0;
   for (JsonObject bus : bus_options_array) {
-    Serial.println("Bus " + String(index) + ": " + bus["id"].as<String>());
+    int r, g, b;
+    convertColorToRGB(bus["color"].as<String>(), r, g, b);
+    Serial.println("Bus " + String(index) + ": " + bus["id"].as<String>() + " r: " + String(r) + " g: " + String(g) + " b: " + String(b));
 
     index++;
   }
@@ -173,7 +142,7 @@ void socketIOConnEvent(socketIOmessageType_t type, uint8_t *payload, size_t leng
   }
 }
 
-String getParam(String name) {
+String getSettingsPageParam(String name) {
   String value;
   if (wm.server->hasArg(name)) {
     value = wm.server->arg(name);
@@ -182,8 +151,8 @@ String getParam(String name) {
 }
 
 void saveParamCallback() {
-  String str_taHost = getParam("host");
-  String str_taPort = getParam("port");
+  String str_taHost = getSettingsPageParam("host");
+  String str_taPort = getSettingsPageParam("port");
 
   Serial.println("Saving new TallyArbiter host");
   
@@ -243,7 +212,6 @@ void setup()
   res = wm.autoConnect();
 
 #if USE_STATIC_IP
-//TODO: add in config and in config override and test
   wm.setSTAStaticIPConfig(STATIC_IP_ADDR, GATEWAY_IP_ADDR, SUBNET_ADDR, DNS_ADDR); // optional DNS 4th argument
 #endif
 

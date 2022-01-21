@@ -1,7 +1,8 @@
 #ifndef _USER_CONFIG_H_
 #define _USER_CONFIG_H_
 
-//#define USE_CONFIG_OVERRIDE
+//If you want to load custom build config, uncomment the following line and edit the file user_config_override.h
+//#define USE_CONFIG_OVERRIDE true
 
 #define USE_STATIC_IP false
 
