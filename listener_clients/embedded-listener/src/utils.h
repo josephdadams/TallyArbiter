@@ -1,6 +1,6 @@
 extern SocketIOclient socketIO;
 extern WiFiManager wm;
-extern DynamicJsonDocument bus_options;
+extern String bus_options;
 
 void convertColorToRGB(String hexstring, int & r, int & g, int & b)
 {
@@ -40,17 +40,19 @@ String getSettingsPageParam(String name) {
   return value;
 }
 
-JsonObject getBusOptionById(String bus_id) {
-  JsonArray bus_options_array = bus_options.as<JsonArray>();
-  for (JsonObject bus : bus_options_array) {
-    if (bus["id"].as<String>() == bus_id) {
-      return bus;
+JsonObject getBusOptionById(String busId) {
+  DynamicJsonDocument bus(1024);
+  deserializeJson(bus, bus_options);
+
+  JsonArray bus_options_array = bus.as<JsonArray>();
+
+  for (JsonObject bus_option : bus_options_array) {
+    if(bus_option["id"].as<String>() == busId) {
+      return bus_option;
     }
   }
 
-  StaticJsonDocument<1> empty_doc;
-  JsonObject empty_object = empty_doc.to<JsonObject>();
-  return empty_object;
+  return JsonObject();
 }
 
 void writeOutput(int pin, bool value) {
