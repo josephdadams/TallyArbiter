@@ -20,7 +20,7 @@
 #include <Preferences.h>
 #endif
 #ifdef PLATFORM_ARCH_ESP8266
-#warning "ESP8266 EEPROM not supported yet. Can't save WiFi credentials." //TODO: implement esp32 datasaving
+#warning "ESP8266 EEPROM not supported yet. Can't save WiFi credentials." //TODO: implement esp32 data saving
 #endif
 
 #include <utils.h>
