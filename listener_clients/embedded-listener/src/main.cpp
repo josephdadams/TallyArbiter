@@ -187,7 +187,7 @@ void socketIOConnEvent(socketIOmessageType_t type, uint8_t *payload, size_t leng
 
       DynamicJsonDocument listenerClientConnect(1024);
       listenerClientConnect["deviceId"] = selectedDeviceId;
-      listenerClientConnect["listenerType"] = "embedded listener_"+deviceCode; //TODO: read device type from build envs;
+      listenerClientConnect["listenerType"] = String(PLATFORM_NAME)+"-"+deviceCode;
       listenerClientConnect["canBeReassigned"] = true;
       listenerClientConnect["canBeFlashed"] = true;
       listenerClientConnect["supportsChat"] = true;
