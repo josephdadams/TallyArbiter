@@ -26,6 +26,7 @@ String deviceCode;
 String selectedDeviceId;
 
 String bus_options;
+String last_bus_type;
 
 void event_error(String error)
 {
@@ -38,12 +39,12 @@ void event_bus_options(DynamicJsonDocument new_bus_options)
   Serial.println("Bus options received");
 }
 
-void event_devices(DynamicJsonDocument new_devices)
+void event_devices(DynamicJsonDocument devices)
 {
   Serial.println("Devices received");
 }
 
-void event_device_states(DynamicJsonDocument new_device_states)
+void event_device_states(DynamicJsonDocument device_states)
 {
   JsonArray device_states_array = device_states.as<JsonArray>();
   Serial.println("New device states received");
@@ -55,6 +56,13 @@ void event_device_states(DynamicJsonDocument new_device_states)
   }
 
   int index = 0;
+
+  bool state_changed = false;
+
+  bool preview_led_output = false;
+  bool program_led_output = false;
+  bool aux_led_output = false;
+
   for (JsonObject state : device_states_array) {
     if(state["deviceId"].as<String>() == selectedDeviceId && state["sources"].as<JsonArray>().size() > 0) {
       JsonObject bus = getBusOptionById(state["busId"].as<String>());
@@ -63,65 +71,54 @@ void event_device_states(DynamicJsonDocument new_device_states)
         continue;
       }
 
-      Serial.println("Found bus option: " + bus["id"].as<String>() + " (type: " + bus["type"].as<String>() + ")");
-
-      //TODO: refactor this
-      if(bus["type"].as<String>().equals("preview")) {
-        #ifdef PREVIEW_TALLY_STATUS_PIN
-        writeOutput(PREVIEW_TALLY_STATUS_PIN, HIGH);
-        #endif
-        #ifdef PROGRAM_TALLY_STATUS_PIN
-        writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
-        #endif
-        #ifdef AUX_TALLY_STATUS_PIN
-        writeOutput(AUX_TALLY_STATUS_PIN, LOW);
-        #endif
-      } else if(bus["type"].as<String>().equals("program")) {
-        #ifdef PREVIEW_TALLY_STATUS_PIN
-        writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
-        #endif
-        #ifdef PROGRAM_TALLY_STATUS_PIN
-        writeOutput(PROGRAM_TALLY_STATUS_PIN, HIGH);
-        #endif
-        #ifdef AUX_TALLY_STATUS_PIN
-        writeOutput(AUX_TALLY_STATUS_PIN, LOW);
-        #endif
-      } else if(bus["type"].as<String>().equals("aux")) {
-        #ifdef PREVIEW_TALLY_STATUS_PIN
-        writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
-        #endif
-        #ifdef PROGRAM_TALLY_STATUS_PIN
-        writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
-        #endif
-        #ifdef AUX_TALLY_STATUS_PIN
-        writeOutput(AUX_TALLY_STATUS_PIN, HIGH);
-        #endif
-      } else {
-        #ifdef PREVIEW_TALLY_STATUS_PIN
-        writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
-        #endif
-        #ifdef PROGRAM_TALLY_STATUS_PIN
-        writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
-        #endif
-        #ifdef AUX_TALLY_STATUS_PIN
-        writeOutput(AUX_TALLY_STATUS_PIN, LOW);
-        #endif
+      String bus_type = bus["type"].as<String>();
+      if(bus_type.equals(last_bus_type)) {
+        Serial.println("Skipping tally update for device " + state["deviceId"].as<String>() + " busId: " + state["busId"].as<String>() + " because bus type is the same as last time.");
+        continue;
       }
-      return;
+
+      Serial.println("Found bus option: " + bus["id"].as<String>() + " (type: " + bus_type + ")");
+      Serial.println(last_bus_type + " -> " + bus_type);
+
+      state_changed = true;
+
+      if(bus_type.equals("preview")) {
+        preview_led_output = true;
+      } else if(bus_type.equals("program")) {
+        program_led_output = true;
+      } else if(bus_type.equals("aux")) {
+        aux_led_output = true;
+      }
+      
+      #ifdef PREVIEW_TALLY_STATUS_PIN
+      writeOutput(PREVIEW_TALLY_STATUS_PIN, preview_led_output);
+      #endif
+      #ifdef PROGRAM_TALLY_STATUS_PIN
+      writeOutput(PROGRAM_TALLY_STATUS_PIN, program_led_output);
+      #endif
+      #ifdef AUX_TALLY_STATUS_PIN
+      writeOutput(AUX_TALLY_STATUS_PIN, aux_led_output);
+      #endif
+
+      last_bus_type = bus_type;
     }
 
     index++;
   }
 
-  #ifdef PREVIEW_TALLY_STATUS_PIN
-  writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
-  #endif
-  #ifdef PROGRAM_TALLY_STATUS_PIN
-  writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
-  #endif
-  #ifdef AUX_TALLY_STATUS_PIN
-  writeOutput(AUX_TALLY_STATUS_PIN, LOW);
-  #endif
+  if(!state_changed) {
+    #ifdef PREVIEW_TALLY_STATUS_PIN
+    writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
+    #endif
+    #ifdef PROGRAM_TALLY_STATUS_PIN
+    writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
+    #endif
+    #ifdef AUX_TALLY_STATUS_PIN
+    writeOutput(AUX_TALLY_STATUS_PIN, LOW);
+    #endif
+
+    last_bus_type = "";
+  }
 }
 
 void event_reassign(String old_device, String new_device)
