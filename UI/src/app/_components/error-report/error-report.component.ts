@@ -109,7 +109,6 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
   generateBugReportUrl(bugTitle: string, version: string, config: object, logs: string, stacktrace: string) {
     return new Promise<string>((resolve, reject) => {
       this.checkIfIssuesEnabled(versions.remote_url).then((issuesEnabled) => {
-        console.log(issuesEnabled);
         let repo_url: string = "";
         if(issuesEnabled) {
           repo_url = versions.remote_url;
@@ -117,6 +116,7 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
           repo_url = "https://github.com/josephdadams/TallyArbiter";
           this.bugReportShowForkWarning = true;
         }
+        console.log(`Issues ${issuesEnabled ? "enabled" : "disabled"} for the repo ${repo_url}.`);
         resolve(`${repo_url}${this.generateBugReportUrlParams(bugTitle, version, config, logs, stacktrace)}`);
       });
     });

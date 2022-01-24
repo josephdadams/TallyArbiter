@@ -9,10 +9,9 @@ import { AuthService, LoginResponse } from 'src/app/_services/auth.service';
 })
 export class LoginComponent {
   public loading = false;
-  public loginResponse: LoginResponse = {loginOk: false, message: ''};
+  public loginResponse: LoginResponse = {loginOk: false, message: '', accessToken: ''};
   public username = "";
   public password = "";
-  private type!: "producer" | "settings";
   private redirectParam = "";
   private extraParam = "";
   @ViewChild("inputPassword") public inputPassword!: ElementRef;
@@ -30,27 +29,24 @@ export class LoginComponent {
         this.extraParam = params.extraParam;
       }
     });
-    console.log(this.redirectParam);
-    console.log(this.extraParam);
+    //console.log(this.redirectParam);
+    //console.log(this.extraParam);
     switch (this.redirectParam) {
       case "producer":
-        this.type = "producer";
-        break;
-
       case "errors":
       case "settings":
-        this.type = "settings";
         break;
 
       default:
-        this.router.navigate(["/home"]);
+        this.redirectParam = "home";
+        this.extraParam = "";
         break;
     }
   }
   
   login(): void {
     this.loading = true;
-    this.authService.login(this.type, this.username, this.password).then((response: LoginResponse) => {
+    this.authService.login(this.username, this.password).then((response: LoginResponse) => {
       this.loginResponse = response;
       this.loading = false;
       if (response.loginOk === true) {

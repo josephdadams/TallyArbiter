@@ -37,7 +37,7 @@ jobs:
         node-version: 14
 
     - name: Install dependencies
-      run: npm i
+      run: npm i -f
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
@@ -69,7 +69,7 @@ jobs:
 
     - name: Install dependencies and build
       run: |
-        npm i
+        npm i -f
         npm run build; cd UI; npm run build
 
     - name: Build an image from Dockerfile

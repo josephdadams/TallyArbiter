@@ -14,6 +14,7 @@ import { LogItem } from '../_models/LogItem';
 import { OutputType } from '../_models/OutputType';
 import { OutputTypeDataFields } from '../_models/OutputTypeDataFields';
 import { Port } from '../_models/Port';
+import { NetworkDiscovery } from '../_models/NetworkDiscovery';
 import { Source } from '../_models/Source';
 import { TSLTallyData } from '../_models/TSLTallyData';
 import { SourceType } from '../_models/SourceType';
@@ -24,6 +25,7 @@ import { ErrorReportsListElement } from '../_models/ErrorReportsListElement';
 import { DeviceTallyData } from "../_models/TallyData";
 import { Addresses } from '../_models/Addresses';
 import { DeviceState } from '../_models/DeviceState';
+import { User } from '../_models/User';
 
 @Injectable({
   providedIn: 'root'
@@ -60,8 +62,12 @@ export class SocketService {
   public cloudKeys: string[] = [];
   public cloudClients: CloudClient[] = [];
   public portsInUse: Port[] = [];
+  public networkDiscovery: NetworkDiscovery[] = [];
   public messages: Message[] = [];
   public errorReports: ErrorReportsListElement[] = [] as ErrorReportsListElement[];
+  public users: User[] = [];
+  
+  public accessToken: string | undefined;
 
   public dataLoaded = new Promise<void>((resolve) => this._resolveDataLoadedPromise = resolve);
   private _resolveDataLoadedPromise!: () => void;
@@ -75,6 +81,11 @@ export class SocketService {
 
   constructor() {
     this.socket = io();
+    this.socket.on("reconnect", (attempt) => {
+      if(typeof this.accessToken !== "undefined") {
+        this.socket.emit('access_token', this.accessToken);
+      }
+    });
     this.socket.on('sources', (sources: Source[]) => {
       this.sources = this.prepareSources(sources);
     });
@@ -176,7 +187,6 @@ export class SocketService {
       this.cloudClients = clients;
     });
     this.socket.on('addresses', (addresses: Addresses) => {
-      console.log("new addresses", addresses);
       this.addresses = addresses;
     });
     this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], addresses: Addresses, outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], device_states: DeviceState[], tslClients: TSLClient[], cloudDestinations: CloudDestination[], cloudKeys: string[], cloudClients: CloudClient[]) => {
@@ -197,7 +207,6 @@ export class SocketService {
       this.cloudDestinations = cloudDestinations;
       this.cloudKeys = cloudKeys;
       this.cloudClients = cloudClients;
-      console.log("initial", device_states);
       this.deviceStateChanged.next(this.device_states);
     });
     this.socket.on('listener_clients', (listenerClients: ListenerClient[]) => {
@@ -271,6 +280,12 @@ export class SocketService {
           alert(response.error);
           this.closeModals.next();
           break;
+        case 'user-added-successfully':
+        case 'user-edited-successfully':
+        case 'user-deleted-successfully':
+          this.closeModals.next();
+          this.socket.emit('users');
+          break;
         case 'error':
           alert('Unexpected Error Occurred: ' + response.error);
           break;
@@ -288,9 +303,25 @@ export class SocketService {
     this.socket.on('PortsInUse', (ports: Port[]) => {
       this.portsInUse = ports;
     });
+    this.socket.on('networkDiscovery', (networkDiscovery: NetworkDiscovery[]) => {
+      networkDiscovery.forEach((nd: NetworkDiscovery) => {
+        if(!nd.ip) nd.ip = nd.addresses[0];
+      });
+      this.networkDiscovery = networkDiscovery;
+    });
     this.socket.on('error_reports', (errorReports: ErrorReportsListElement[]) => {
       this.errorReports = errorReports;
     });
+    this.socket.on('users', (users: User[]) => {
+      this.users = users;
+    });
+    this.socket.on('error', (message: string) => {
+      console.error(message);
+      if(message.includes("Access") || message.includes("JWT") || message.includes("jwt")) {
+        alert(message);
+      }
+    });
+
     this.socket.on('remote_error_opt', (optStatus: boolean) => {
       this.remoteErrorOpt = optStatus;
     });
@@ -300,6 +331,7 @@ export class SocketService {
     this.socket.emit('version');
     this.socket.emit('externalAddress');
     this.socket.emit('interfaces');
+    this.socket.emit('get_error_reports');
   }
 
   private prepareSources(sources: Source[]): Source[] {
@@ -351,5 +383,10 @@ export class SocketService {
         }
       });
     });
+  }
+
+  public sendAccessToken(accessToken: string) {
+    this.accessToken = accessToken;
+    this.socket.emit('access_token', accessToken);
   }
 }

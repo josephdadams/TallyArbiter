@@ -1,6 +1,6 @@
 <div class="container pt-4" *ngIf="socketService.initialDataLoaded">
     <nav ngbNav #nav="ngbNav" class="nav-tabs" [animation]="false" (navChange)="navChanged($event)" [(activeId)]="activeNavTab">
-        <ng-container ngbNavItem="sources_devices">
+        <ng-container ngbNavItem="sources_devices" *requireRole="'settings:sources_devices'">
             <a ngbNavLink>Sources & Devices</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -46,13 +46,38 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="alert alert-info mt-3" role="alert" *ngIf="getNetworkDiscoveryList().length > 0">
+                    Found {{ getNetworkDiscoveryList().length }} new sources in your network.
+                    <table class="table table-hover" *ngIf="getNetworkDiscoveryList().length > 0">
+                        <thead>
+                            <tr>
+                                <th>IP/Host</th>
+                                <th>Type</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let networkDiscovery of getNetworkDiscoveryList()">
+                                <td>
+                                    <select class="form-select" [ngModel]="networkDiscovery.ip" (ngModelChange)="changeIpSelection(networkDiscovery, $event)">
+                                        <option *ngFor="let address of networkDiscovery.addresses" [value]="address">
+                                            {{ address }}
+                                        </option>
+                                    </select>
+                                </td>
+                                <td>{{ getSourceTypeById(networkDiscovery.sourceId)?.label || "Source type not found" }}</td>
+                                <td><button class="btn btn-outline-dark" (click)="addSourceByNetworkDiscovery(networkDiscovery, sourceModal)"><i class="fas fa-plus"></i> Add</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
                 <hr class="my-5" />
                 <div class="row">
                     <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: true}"></ng-container>
                 </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem="listeners">
+        <ng-container ngbNavItem="listeners" *requireRole="'settings:listeners'">
             <a ngbNavLink>Listeners</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -149,7 +174,7 @@
                 </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem="cloud">
+        <ng-container ngbNavItem="cloud" *requireRole="'settings:cloud'">
             <a ngbNavLink>Cloud</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -246,7 +271,7 @@
                 </div>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem="testing">
+        <ng-container ngbNavItem="testing" *requireRole="'settings:testing'">
             <a ngbNavLink>Testing</a>
             <ng-template ngbNavContent>
                 <div *ngIf="checkTestMode() == false; else testModeOffButton">
@@ -259,7 +284,7 @@
                 <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: false}"></ng-container>
             </ng-template>
         </ng-container>
-        <ng-container ngbNavItem="config">
+        <ng-container ngbNavItem="config" *requireRole="'settings:config'">
             <a ngbNavLink>Config</a>
             <ng-template ngbNavContent>
                 <div class="row">
@@ -320,6 +345,48 @@
                         <div style="display: flex; justify-content: flex-end;">
                             <button class="btn btn-primary m-1" (click)="saveRawConfig()">Save config</button>
                         </div>
+                    </div>
+                </div>
+            </ng-template>
+        </ng-container>
+        <ng-container ngbNavItem *requireRole="'settings:users'">
+            <a ngbNavLink>Users</a>
+            <ng-template ngbNavContent>
+                <div class="row">
+                    <h2>
+                        Users
+                        <button class="btn btn-outline-success me-2" (click)="addUser(userModal)">
+                            <i class="fas fa-plus"></i> Add 
+                        </button>
+                    </h2>
+                    <div>
+                        <span class="text-muted mt-3 d-block" *ngIf="socketService.users.length == 0">No user found. This should not happen... Please, open a bug report on Github.</span>
+                        <table class="table table-hover" *ngIf="socketService.users.length > 0">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Roles</th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let user of socketService.users">
+                                    <td>{{user.username}}</td>
+                                    <td>{{user.roles.toString().replaceAll(";", ", ")}}</td>
+                                    <td>
+                                        <button class="btn btn-outline-dark" (click)="editUser(user, userModal)">
+                                            <i class="fas fa-pen"></i> Edit
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-outline-danger" (click)="deleteUserButton(user)" [disabled]="socketService.users.length === 1">
+                                            <i class="fas fa-trash"></i> Delete <i class="fas fa-exclamation-triangle" *ngIf="authService.profile.username === user.username"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </ng-template>
@@ -805,6 +872,39 @@
         <div class="d-flex justify-content-end">
             <button class="btn btn-outline-dark" (click)="saveCurrentBusOption()">
           <i class="fas fa-save"></i> {{ editingBusOption ? "Save Changes" : "Add Bus Option" }}
+        </button>
+        </div>
+    </div>
+</ng-template>
+
+<ng-template #userModal let-modal>
+    <div class="modal-header">
+        <h4 class="modal-title" id="modal-basic-title">
+            {{ editingUser ? "Edit" : "Add" }} User
+        </h4>
+        <button class="btn" (click)="modal.dismiss()"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+        <div class="mb-3">
+            <label for="userUsername" class="form-label">Username</label>
+            <input required type="text" class="form-control" id="userUsername" [disabled]="editingUser" [(ngModel)]="currentUser.username" />
+        </div>
+        <div class="mb-3">
+            <label for="userRoles" class="form-label">Role</label>
+            <select id="userRoles" class="form-select" multiple  [(ngModel)]="selectedUserRoles" (ngModelChange)="userRolesSelectionChange($event)">
+                <option [value]="role" *ngFor="let role of authService.roles" [selected]="isUserRoleSelected(role)">
+                  {{ role }}
+                </option>
+            </select>
+            <small class="form-text">Use Ctrl to select multiple items.</small>
+        </div>
+        <div class="mb-3" *ngIf="!editingUser">
+            <label for="userPassword" class="form-label">Password</label>
+            <input required type="text" class="form-control" id="userPassword" [(ngModel)]="currentUser.password" />
+        </div>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-outline-dark" (click)="saveCurrentUser()">
+            <i class="fas fa-save"></i> {{ editingUser ? "Save Changes" : "Add User" }}
         </button>
         </div>
     </div>
