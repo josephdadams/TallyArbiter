@@ -6,9 +6,22 @@
 #include <SocketIOclient.h>
 
 #include <DNSServer.h>
+
+#ifdef PLATFORM_ARCH_ESP32
 #include <ESPmDNS.h>
+#endif
+#ifdef PLATFORM_ARCH_ESP8266
+#include <ESP8266mDNS.h>
+#endif
+
 #include <WiFiManager.h>
+
+#ifdef PLATFORM_ARCH_ESP32
 #include <Preferences.h>
+#endif
+#ifdef PLATFORM_ARCH_ESP8266
+#warning "ESP8266 EEPROM not supported yet. Can't save WiFi credentials." //TODO: implement esp32 datasaving
+#endif
 
 #include <utils.h>
 #include <user_config.h>
@@ -16,7 +29,9 @@
 SocketIOclient socketIO;
 
 WiFiManager wm;
+#ifdef PLATFORM_ARCH_ESP32
 Preferences preferences;
+#endif
 WiFiManagerParameter ta_host_param("host", "TallyArbiter server host", "", 60);
 WiFiManagerParameter ta_port_param("port", "TallyArbiter port", "4455", 8);
 char ta_host[60] = "";
@@ -126,9 +141,11 @@ void event_reassign(String old_device, String new_device)
   Serial.println("Reassign device");
   selectedDeviceId = new_device;
 
+  #ifdef PLATFORM_ARCH_ESP32
   preferences.begin("tally-arbiter");
   preferences.putString("ta_deviceId", new_device);
   preferences.end();
+  #endif
 }
 
 void event_flash()
@@ -206,10 +223,12 @@ void saveParamCallback() {
 
   Serial.println("Saving new TallyArbiter host");
   
+  #ifdef PLATFORM_ARCH_ESP32
   preferences.begin("tally-arbiter");
   preferences.putString("ta_host", str_taHost);
   preferences.putString("ta_port", str_taPort);
   preferences.end();
+  #endif
 
   str_taHost.toCharArray(ta_host, 60);
   str_taPort.toCharArray(ta_port, 8);
@@ -234,6 +253,7 @@ void setup()
   Serial.println("Initializing...");
   Serial.setDebugOutput(true);
 
+  #ifdef PLATFORM_ARCH_ESP32
   preferences.begin("tally-arbiter");
   Serial.println("Reading preferences");
   if(preferences.getString("ta_host").length() > 0){
@@ -248,6 +268,7 @@ void setup()
     selectedDeviceId = preferences.getString("ta_deviceId");
   }
   preferences.end();
+  #endif
 
   Serial.println();
   Serial.println();
