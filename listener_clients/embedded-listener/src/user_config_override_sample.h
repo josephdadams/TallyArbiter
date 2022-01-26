@@ -22,3 +22,21 @@
 /*
 #define INVERT_OUTPUT_LOGIC true
 */
+
+// Uncomment if you want to use Adafruit NeoPixel
+/*
+#include <Adafruit_NeoPixel.h>
+
+#define ENABLE_ADAFRUIT_NEOPIXEL true
+
+#define ADAFRUIT_NEOPIXEL_LED_PIN 5
+#define ADAFRUIT_NEOPIXEL_BRIGHTNESS 50 // Set BRIGHTNESS to about 1/5 (max = 255)
+#define ADAFRUIT_NEOPIXEL_LED_COUNT 2
+
+#define ADAFRUIT_NEOPIXEL_TYPE NEO_RGB + NEO_KHZ800
+//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
+//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
+//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
+//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
+//   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
+*/

@@ -6,6 +6,10 @@
 #include <SocketIOclient.h>
 
 #include <DNSServer.h>
+#include <WiFiManager.h>
+
+#include <utils.h>
+#include <user_config.h>
 
 #ifdef PLATFORM_ARCH_ESP32
 #include <ESPmDNS.h>
@@ -14,17 +18,28 @@
 #include <ESP8266mDNS.h>
 #endif
 
-#include <WiFiManager.h>
-
 #ifdef PLATFORM_ARCH_ESP32
 #include <Preferences.h>
 #endif
 #ifdef PLATFORM_ARCH_ESP8266
-#warning "ESP8266 EEPROM not supported yet. Can't save WiFi credentials." //TODO: implement esp32 data saving
+#warning "ESP8266 EEPROM not supported yet. Can't save WiFi credentials."
+//TODO: implement esp32 data saving
 #endif
 
-#include <utils.h>
-#include <user_config.h>
+#ifdef ENABLE_ADAFRUIT_NEOPIXEL
+#include <Adafruit_NeoPixel.h>
+
+Adafruit_NeoPixel strip(ADAFRUIT_NEOPIXEL_LED_COUNT, ADAFRUIT_NEOPIXEL_LED_PIN, ADAFRUIT_NEOPIXEL_TYPE);
+#define ADAFRUIT_NEOPIXEL_WHITE strip.Color(255, 255, 255)
+#define ADAFRUIT_NEOPIXEL_BLACK strip.Color(0, 0, 0)
+
+void setAdafruitNeoPixelColor(uint32_t color) {
+  for(int i=0; i<strip.numPixels(); i++) { // For each pixel in strip...
+    strip.setPixelColor(i, color);         //  Set pixel's color (in RAM)
+    strip.show();                          //  Update strip to match
+  }
+}
+#endif
 
 SocketIOclient socketIO;
 
@@ -42,6 +57,19 @@ String selectedDeviceId;
 
 String bus_options;
 String last_bus_type;
+
+void flashLed(int r, int g, int b, int iterations, int delay_ms = 500) {
+  for(int i=0; i<iterations; i++) {
+    #ifdef ENABLE_ADAFRUIT_NEOPIXEL
+    setAdafruitNeoPixelColor(strip.Color(r, g, b));
+    #endif
+    delay(delay_ms);
+    #ifdef ENABLE_ADAFRUIT_NEOPIXEL
+    setAdafruitNeoPixelColor(ADAFRUIT_NEOPIXEL_BLACK);
+    #endif
+    delay(delay_ms);
+  }
+}
 
 void event_error(String error)
 {
@@ -115,6 +143,13 @@ void event_device_states(DynamicJsonDocument device_states)
       writeOutput(AUX_TALLY_STATUS_PIN, aux_led_output);
       #endif
 
+      #ifdef ENABLE_ADAFRUIT_NEOPIXEL
+      int r, g, b;
+      convertColorToRGB(bus["color"].as<String>(), r, g, b);
+      Serial.println("Setting color to " + bus["color"].as<String>() + " (" + String(r) + ", " + String(g) + ", " + String(b) + ")");
+      setAdafruitNeoPixelColor(strip.Color(r, g, b));
+      #endif
+
       last_bus_type = bus_type;
     }
 
@@ -130,6 +165,10 @@ void event_device_states(DynamicJsonDocument device_states)
     #endif
     #ifdef AUX_TALLY_STATUS_PIN
     writeOutput(AUX_TALLY_STATUS_PIN, LOW);
+    #endif
+
+    #ifdef ENABLE_ADAFRUIT_NEOPIXEL
+    setAdafruitNeoPixelColor(strip.Color(0, 0, 0));
     #endif
 
     last_bus_type = "";
@@ -151,6 +190,13 @@ void event_reassign(String old_device, String new_device)
 void event_flash()
 {
   Serial.println("Flashing device");
+
+  #ifdef ENABLE_ADAFRUIT_NEOPIXEL
+  strip.setBrightness(255);
+  flashLed(255, 255, 255, 3);
+  strip.setBrightness(ADAFRUIT_NEOPIXEL_BRIGHTNESS);
+  #endif
+  
 }
 
 void event_messaging(String type, String socketId, String message)
@@ -319,6 +365,13 @@ void setup()
 #ifdef AUX_TALLY_STATUS_PIN
   pinMode(AUX_TALLY_STATUS_PIN, OUTPUT);
   writeOutput(AUX_TALLY_STATUS_PIN, LOW);
+#endif
+
+#ifdef ENABLE_ADAFRUIT_NEOPIXEL
+  strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
+  strip.show();            // Turn OFF all pixels ASAP
+  strip.setBrightness(ADAFRUIT_NEOPIXEL_BRIGHTNESS);
+  setAdafruitNeoPixelColor(strip.Color(0, 0, 255));
 #endif
 
 }
