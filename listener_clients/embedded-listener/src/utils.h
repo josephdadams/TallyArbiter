@@ -1,6 +1,16 @@
 extern SocketIOclient socketIO;
 extern WiFiManager wm;
 extern String bus_options;
+extern String devices;
+
+#ifdef PLATFORM_M5STICKC
+extern void m5stickFillScreen(int r, int g, int b);
+extern void m5stickcUpdateBrightness(uint8_t brightness);
+
+#ifndef M5STICKC_BRIGHTNESS
+#define M5STICKC_BRIGHTNESS 11
+#endif
+#endif
 
 void convertColorToRGB(String hexstring, int & r, int & g, int & b)
 {
@@ -55,6 +65,21 @@ JsonObject getBusOptionById(String busId) {
   return JsonObject();
 }
 
+String getDeviceNameById(String deviceId) {
+  DynamicJsonDocument devices_parsed(1024);
+  deserializeJson(devices_parsed, devices);
+
+  JsonArray devices_options_array = devices_parsed.as<JsonArray>();
+
+  for (JsonObject device_option : devices_options_array) {
+    if(device_option["id"].as<String>() == deviceId) {
+      return device_option["name"].as<String>();
+    }
+  }
+
+  return "";
+}
+
 void writeOutput(int pin, bool value) {
   #ifdef INVERT_OUTPUT_LOGIC
     #if INVERT_OUTPUT_LOGIC
@@ -66,11 +91,14 @@ void writeOutput(int pin, bool value) {
 }
 
 void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool change_brightness = false) {
-  #ifdef ENABLE_ADAFRUIT_NEOPIXEL
   if(change_brightness) {
+    #ifdef ENABLE_ADAFRUIT_NEOPIXEL
     strip.setBrightness(255);
+    #endif
+    #ifdef PLATFORM_M5STICKC
+    m5stickcUpdateBrightness(12);
+    #endif
   }
-  #endif
   
   for(int i=0; i<iterations || iterations == -1; i++) {
     #ifdef PREVIEW_TALLY_STATUS_PIN
@@ -84,6 +112,9 @@ void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool chan
     #endif
     #ifdef ENABLE_ADAFRUIT_NEOPIXEL
     setAdafruitNeoPixelColor(strip.Color(r, g, b));
+    #endif
+    #ifdef PLATFORM_M5STICKC
+    m5stickFillScreen(r, g, b);
     #endif
 
     delay(delay_ms);
@@ -100,13 +131,19 @@ void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool chan
     #ifdef ENABLE_ADAFRUIT_NEOPIXEL
     setAdafruitNeoPixelColor(ADAFRUIT_NEOPIXEL_BLACK);
     #endif
+    #ifdef PLATFORM_M5STICKC
+    m5stickFillScreen(0, 0, 0);
+    #endif
 
     delay(delay_ms);
   }
 
-  #ifdef ENABLE_ADAFRUIT_NEOPIXEL
   if(change_brightness) {
+    #ifdef ENABLE_ADAFRUIT_NEOPIXEL
     strip.setBrightness(ADAFRUIT_NEOPIXEL_BRIGHTNESS);
+    #endif
+    #ifdef PLATFORM_M5STICKC
+    m5stickcUpdateBrightness(M5STICKC_BRIGHTNESS);
+    #endif
   }
-  #endif
 }

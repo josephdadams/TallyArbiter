@@ -40,3 +40,9 @@
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 */
+
+// Uncomment to configure M5StickC
+/*
+#undef M5STICKC_BRIGHTNESS
+#define M5STICKC_BRIGHTNESS 11 // 12 is the max
+*/

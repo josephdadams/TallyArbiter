@@ -41,6 +41,10 @@ void setAdafruitNeoPixelColor(uint32_t color) {
 }
 #endif
 
+#ifdef PLATFORM_M5STICKC
+#include <platform_M5StickC.h>
+#endif
+
 SocketIOclient socketIO;
 
 WiFiManager wm;
@@ -56,6 +60,7 @@ String deviceCode;
 String selectedDeviceId;
 
 String bus_options;
+String devices;
 String last_bus_type;
 
 void event_error(String error)
@@ -69,8 +74,9 @@ void event_bus_options(DynamicJsonDocument new_bus_options)
   Serial.println("Bus options received");
 }
 
-void event_devices(DynamicJsonDocument devices)
+void event_devices(DynamicJsonDocument new_devices)
 {
+  serializeJson(new_devices, devices);
   Serial.println("Devices received");
 }
 
@@ -107,7 +113,11 @@ void event_device_states(DynamicJsonDocument device_states)
         continue;
       }
 
-      Serial.println("Found bus option: " + bus["id"].as<String>() + " (type: " + bus_type + ")");
+      int r, g, b;
+      convertColorToRGB(bus["color"].as<String>(), r, g, b);
+
+      Serial.print("Found bus option: " + bus["id"].as<String>() + " (type: " + bus_type + ") ");
+      Serial.println(" color " + bus["color"].as<String>() + " (" + String(r) + ", " + String(g) + ", " + String(b) + ")");
       Serial.println(last_bus_type + " -> " + bus_type);
 
       state_changed = true;
@@ -131,10 +141,11 @@ void event_device_states(DynamicJsonDocument device_states)
       #endif
 
       #ifdef ENABLE_ADAFRUIT_NEOPIXEL
-      int r, g, b;
-      convertColorToRGB(bus["color"].as<String>(), r, g, b);
-      Serial.println("Setting color to " + bus["color"].as<String>() + " (" + String(r) + ", " + String(g) + ", " + String(b) + ")");
       setAdafruitNeoPixelColor(strip.Color(r, g, b));
+      #endif
+
+      #ifdef PLATFORM_M5STICKC
+      m5stickcEvaluateTally(bus_type, r, g, b);
       #endif
 
       last_bus_type = bus_type;
@@ -294,6 +305,10 @@ void setup()
   strip.show();            // Turn OFF all pixels ASAP
   strip.setBrightness(ADAFRUIT_NEOPIXEL_BRIGHTNESS);
   setAdafruitNeoPixelColor(strip.Color(0, 0, 255));
+#endif
+
+#ifdef PLATFORM_M5STICKC
+  m5stickcInitialize();
 #endif
 
   byte mac[6];
