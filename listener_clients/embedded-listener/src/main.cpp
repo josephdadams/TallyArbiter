@@ -58,19 +58,6 @@ String selectedDeviceId;
 String bus_options;
 String last_bus_type;
 
-void flashLed(int r, int g, int b, int iterations, int delay_ms = 500) {
-  for(int i=0; i<iterations; i++) {
-    #ifdef ENABLE_ADAFRUIT_NEOPIXEL
-    setAdafruitNeoPixelColor(strip.Color(r, g, b));
-    #endif
-    delay(delay_ms);
-    #ifdef ENABLE_ADAFRUIT_NEOPIXEL
-    setAdafruitNeoPixelColor(ADAFRUIT_NEOPIXEL_BLACK);
-    #endif
-    delay(delay_ms);
-  }
-}
-
 void event_error(String error)
 {
   Serial.println("Server reported an error: " + error);
@@ -185,17 +172,14 @@ void event_reassign(String old_device, String new_device)
   preferences.putString("ta_deviceId", new_device);
   preferences.end();
   #endif
+
+  flashLed(255, 255, 255, 2, 200);
 }
 
 void event_flash()
 {
   Serial.println("Flashing device");
-
-  #ifdef ENABLE_ADAFRUIT_NEOPIXEL
-  strip.setBrightness(255);
-  flashLed(255, 255, 255, 3);
-  strip.setBrightness(ADAFRUIT_NEOPIXEL_BRIGHTNESS);
-  #endif
+  flashLed(255, 255, 255, 3, 500, true);
   
 }
 
@@ -225,6 +209,7 @@ void socketIOConnEvent(socketIOmessageType_t type, uint8_t *payload, size_t leng
   {
     case sIOtype_DISCONNECT:
       Serial.printf("[IOc] Disconnected!\n");
+      flashLed(255, 0, 0, -1, 3000);
       break;
     case sIOtype_CONNECT:{
       Serial.printf("[IOc] Connected to url: %s\n", payload);
@@ -290,6 +275,27 @@ void setup()
   btStop();
 #endif
 
+
+#ifdef PROGRAM_TALLY_STATUS_PIN
+  pinMode(PROGRAM_TALLY_STATUS_PIN, OUTPUT);
+  writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
+#endif
+#ifdef PREVIEW_TALLY_STATUS_PIN
+  pinMode(PREVIEW_TALLY_STATUS_PIN, OUTPUT);
+  writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
+#endif
+#ifdef AUX_TALLY_STATUS_PIN
+  pinMode(AUX_TALLY_STATUS_PIN, OUTPUT);
+  writeOutput(AUX_TALLY_STATUS_PIN, LOW);
+#endif
+
+#ifdef ENABLE_ADAFRUIT_NEOPIXEL
+  strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
+  strip.show();            // Turn OFF all pixels ASAP
+  strip.setBrightness(ADAFRUIT_NEOPIXEL_BRIGHTNESS);
+  setAdafruitNeoPixelColor(strip.Color(0, 0, 255));
+#endif
+
   byte mac[6];
   WiFi.macAddress(mac);
 
@@ -334,6 +340,7 @@ void setup()
 
   if (!res) {
     Serial.println("Failed to connect");
+    flashLed(255, 0, 0, -1, 300);
   } else {
     Serial.println("Connected to the WiFi... yeey :)");
   }
@@ -353,27 +360,6 @@ void setup()
       delay(1000);
     }
   }
-
-#ifdef PROGRAM_TALLY_STATUS_PIN
-  pinMode(PROGRAM_TALLY_STATUS_PIN, OUTPUT);
-  writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
-#endif
-#ifdef PREVIEW_TALLY_STATUS_PIN
-  pinMode(PREVIEW_TALLY_STATUS_PIN, OUTPUT);
-  writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
-#endif
-#ifdef AUX_TALLY_STATUS_PIN
-  pinMode(AUX_TALLY_STATUS_PIN, OUTPUT);
-  writeOutput(AUX_TALLY_STATUS_PIN, LOW);
-#endif
-
-#ifdef ENABLE_ADAFRUIT_NEOPIXEL
-  strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
-  strip.show();            // Turn OFF all pixels ASAP
-  strip.setBrightness(ADAFRUIT_NEOPIXEL_BRIGHTNESS);
-  setAdafruitNeoPixelColor(strip.Color(0, 0, 255));
-#endif
-
 }
 
 void loop()

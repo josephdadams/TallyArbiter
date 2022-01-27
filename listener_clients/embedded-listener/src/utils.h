@@ -64,3 +64,49 @@ void writeOutput(int pin, bool value) {
   Serial.println("writeOutput " + String(value) + " to pin " + String(pin));
   digitalWrite(pin, value);
 }
+
+void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool change_brightness = false) {
+  #ifdef ENABLE_ADAFRUIT_NEOPIXEL
+  if(change_brightness) {
+    strip.setBrightness(255);
+  }
+  #endif
+  
+  for(int i=0; i<iterations || iterations == -1; i++) {
+    #ifdef PREVIEW_TALLY_STATUS_PIN
+    writeOutput(PREVIEW_TALLY_STATUS_PIN, HIGH);
+    #endif
+    #ifdef PROGRAM_TALLY_STATUS_PIN
+    writeOutput(PROGRAM_TALLY_STATUS_PIN, HIGH);
+    #endif
+    #ifdef AUX_TALLY_STATUS_PIN
+    writeOutput(AUX_TALLY_STATUS_PIN, HIGH);
+    #endif
+    #ifdef ENABLE_ADAFRUIT_NEOPIXEL
+    setAdafruitNeoPixelColor(strip.Color(r, g, b));
+    #endif
+
+    delay(delay_ms);
+
+    #ifdef PREVIEW_TALLY_STATUS_PIN
+    writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
+    #endif
+    #ifdef PROGRAM_TALLY_STATUS_PIN
+    writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
+    #endif
+    #ifdef AUX_TALLY_STATUS_PIN
+    writeOutput(AUX_TALLY_STATUS_PIN, LOW);
+    #endif
+    #ifdef ENABLE_ADAFRUIT_NEOPIXEL
+    setAdafruitNeoPixelColor(ADAFRUIT_NEOPIXEL_BLACK);
+    #endif
+
+    delay(delay_ms);
+  }
+
+  #ifdef ENABLE_ADAFRUIT_NEOPIXEL
+  if(change_brightness) {
+    strip.setBrightness(ADAFRUIT_NEOPIXEL_BRIGHTNESS);
+  }
+  #endif
+}
