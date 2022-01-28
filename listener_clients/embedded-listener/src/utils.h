@@ -15,7 +15,7 @@ extern void m5stickcUpdateBrightness(uint8_t brightness);
 void convertColorToRGB(String hexstring, int & r, int & g, int & b)
 {
   hexstring.replace("#", "");
-  long number = (long) strtol( &hexstring[1], NULL, 16);
+  long number = (long) strtol( &hexstring[0], NULL, 16);
 
   r = number >> 16;
   g = number >> 8 & 0xFF;
