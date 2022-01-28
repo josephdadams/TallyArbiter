@@ -59,9 +59,9 @@ void m5stickcDisplaySettingsPage() {
     //M5.Lcd.setTextSize(1);
     M5.Lcd.setTextColor(M5STICKC_WHITE, M5STICKC_BLACK);
     M5.Lcd.println("SSID: " + String(WiFi.SSID()));
-    M5.Lcd.println("Network ip address: " + String(WiFi.localIP()));
+    M5.Lcd.println("Network ip address: " + WiFi.localIP().toString());
     M5.Lcd.println();
-    M5.Lcd.println("Settings mode enabled. Go to http://" + String(WiFi.localIP()) + " to configure or update \"Over The Air\" this device.");
+    M5.Lcd.println("Settings mode enabled. Go to http://" + WiFi.localIP().toString() + " to configure or update \"Over The Air\" this device.");
     M5.Lcd.println();
     M5.Lcd.println("To disable this mode, press the menu button one time to go to the info page.");
 }
@@ -74,7 +74,7 @@ void m5stickcDisplayInfoPage() {
     //M5.Lcd.setTextSize(1);
     M5.Lcd.setTextColor(M5STICKC_WHITE, M5STICKC_BLACK);
     M5.Lcd.println("SSID: " + String(WiFi.SSID()));
-    M5.Lcd.println("Network ip address: " + String(WiFi.localIP()));
+    M5.Lcd.println("Network ip address: " + WiFi.localIP().toString());
 
     M5.Lcd.println("Tally Arbiter Server:");
     M5.Lcd.println(String(ta_host) + ":" + String(ta_port));

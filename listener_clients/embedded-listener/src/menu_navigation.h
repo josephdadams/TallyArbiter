@@ -12,7 +12,7 @@ unsigned long resetRequestedClickTime;
 void showSettingsScreen() {
     Serial.println("Activated screen 'settings'");
     Serial.println("SSID: " + String(WiFi.SSID()));
-    Serial.println("Network ip address: " + String(WiFi.localIP()));
+    Serial.println("Network ip address: " + WiFi.localIP().toString());
     wm.startWebPortal();
 
     portalRunning = true;
