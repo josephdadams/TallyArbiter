@@ -329,6 +329,7 @@ void setup()
   WiFi.macAddress(mac);
 
   deviceCode = String(mac[3], HEX) + String(mac[4], HEX) + String(mac[5], HEX);
+  String MDNS_name = "ta_listener_" + deviceCode;
   Serial.println("Device code: " + deviceCode);
 
   Serial.println("Initializing...");
@@ -360,12 +361,14 @@ void setup()
 
   wm.setSaveParamsCallback(saveParamCallback);
 
-  bool res;
-  res = wm.autoConnect();
+  WiFi.hostname(MDNS_name.c_str());
 
 #if USE_STATIC_IP
   wm.setSTAStaticIPConfig(STATIC_IP_ADDR, GATEWAY_IP_ADDR, SUBNET_ADDR, DNS_ADDR); // optional DNS 4th argument
 #endif
+
+  bool res;
+  res = wm.autoConnect(MDNS_name.c_str());
 
   if (!res) {
     Serial.println("Failed to connect");
@@ -382,7 +385,6 @@ void setup()
   // event handler
   socketIO.onEvent(socketIOConnEvent);
 
-  String MDNS_name = "ta_listener_" + deviceCode;
   if (!MDNS.begin(MDNS_name.c_str())) {
     Serial.println("Error setting up MDNS responder!");
     while(1){
