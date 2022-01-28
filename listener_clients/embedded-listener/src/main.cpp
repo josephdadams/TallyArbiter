@@ -45,6 +45,10 @@ void setAdafruitNeoPixelColor(uint32_t color) {
 #include <platform_M5StickC.h>
 #endif
 
+#ifdef PLATFORM_TTGO
+#include <platform_TTGO.h>
+#endif
+
 #ifdef MENU_BUTTON_PIN
 #include <menu_navigation.h>
 #endif
@@ -152,6 +156,10 @@ void event_device_states(DynamicJsonDocument device_states)
       m5stickcEvaluateTally(bus_type, r, g, b);
       #endif
 
+      #ifdef PLATFORM_TTGO
+      TTGOEvaluateTally(bus_type, r, g, b);
+      #endif
+
       last_bus_type = bus_type;
     }
 
@@ -171,6 +179,14 @@ void event_device_states(DynamicJsonDocument device_states)
 
     #ifdef ENABLE_ADAFRUIT_NEOPIXEL
     setAdafruitNeoPixelColor(strip.Color(0, 0, 0));
+    #endif
+
+    #ifdef PLATFORM_M5STICKC
+    m5stickcEvaluateTally("", 0, 0, 0);
+    #endif
+
+    #ifdef PLATFORM_TTGO
+    TTGOEvaluateTally("", 0, 0, 0);
     #endif
 
     last_bus_type = "";
@@ -323,6 +339,10 @@ void setup()
 
 #ifdef PLATFORM_M5STICKC
   m5stickcInitialize();
+#endif
+
+#ifdef PLATFORM_TTGO
+  TTGOInitialize();
 #endif
 
   byte mac[6];
