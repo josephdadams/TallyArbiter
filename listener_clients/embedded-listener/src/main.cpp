@@ -45,6 +45,10 @@ void setAdafruitNeoPixelColor(uint32_t color) {
 #include <platform_M5StickC.h>
 #endif
 
+#ifdef MENU_BUTTON_PIN
+#include <menu_navigation.h>
+#endif
+
 SocketIOclient socketIO;
 
 WiFiManager wm;
@@ -276,6 +280,16 @@ void saveParamCallback() {
   str_taPort.toCharArray(ta_port, 8);
 }
 
+void resetDevice() {
+  Serial.println("Resetting device");
+  wm.resetSettings();
+  #ifdef PLATFORM_ARCH_ESP32
+  preferences.clear();
+  #endif
+  flashLed(128, 0, 0, 3, 200, true);
+  ESP.restart();
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -380,4 +394,8 @@ void setup()
 void loop()
 {
   socketIO.loop();
+
+  #ifdef MENU_BUTTON_PIN
+  menuLoop();
+  #endif
 }
