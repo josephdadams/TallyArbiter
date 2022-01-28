@@ -11,9 +11,16 @@ unsigned long resetRequestedClickTime;
 
 void showSettingsScreen() {
     Serial.println("Activated screen 'settings'");
+    Serial.println("SSID: " + String(WiFi.SSID()));
+    Serial.println("Network ip address: " + String(WiFi.localIP()));
     wm.startWebPortal();
+
     portalRunning = true;
     currentScreen = "settings";
+
+    #ifdef PLATFORM_M5STICKC
+    m5stickcDisplaySettingsPage();
+    #endif
 }
 
 void showInfoScreen() {
@@ -24,6 +31,10 @@ void showInfoScreen() {
     }
 
     currentScreen = "info";
+
+    #ifdef PLATFORM_M5STICKC
+    m5stickcDisplayInfoPage();
+    #endif
 }
 
 void menuLoop() {

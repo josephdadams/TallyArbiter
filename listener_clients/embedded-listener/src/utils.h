@@ -4,7 +4,7 @@ extern String bus_options;
 extern String devices;
 
 #ifdef PLATFORM_M5STICKC
-extern void m5stickFillScreen(int r, int g, int b);
+extern void m5stickcFillScreen(int r, int g, int b);
 extern void m5stickcUpdateBrightness(uint8_t brightness);
 
 #ifndef M5STICKC_BRIGHTNESS
@@ -114,7 +114,7 @@ void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool chan
     setAdafruitNeoPixelColor(strip.Color(r, g, b));
     #endif
     #ifdef PLATFORM_M5STICKC
-    m5stickFillScreen(r, g, b);
+    m5stickcFillScreen(r, g, b);
     #endif
 
     delay(delay_ms);
@@ -132,7 +132,7 @@ void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool chan
     setAdafruitNeoPixelColor(ADAFRUIT_NEOPIXEL_BLACK);
     #endif
     #ifdef PLATFORM_M5STICKC
-    m5stickFillScreen(0, 0, 0);
+    m5stickcFillScreen(0, 0, 0);
     #endif
 
     delay(delay_ms);
