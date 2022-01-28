@@ -1,8 +1,5 @@
 extern SocketIOclient socketIO;
 extern WiFiManager wm;
-#ifdef PLATFORM_ARCH_ESP32
-extern Preferences preferences;
-#endif
 extern String bus_options;
 extern String devices;
 
@@ -81,16 +78,6 @@ String getDeviceNameById(String deviceId) {
   }
 
   return "";
-}
-
-void resetDevice() {
-  Serial.println("Resetting device");
-  wm.resetSettings();
-  #ifdef PLATFORM_ARCH_ESP32
-  preferences.clear();
-  #endif
-  flashLed(128, 0, 0, 3, 200, true);
-  ESP.restart();
 }
 
 void writeOutput(int pin, bool value) {

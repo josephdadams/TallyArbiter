@@ -280,6 +280,16 @@ void saveParamCallback() {
   str_taPort.toCharArray(ta_port, 8);
 }
 
+void resetDevice() {
+  Serial.println("Resetting device");
+  wm.resetSettings();
+  #ifdef PLATFORM_ARCH_ESP32
+  preferences.clear();
+  #endif
+  flashLed(128, 0, 0, 3, 200, true);
+  ESP.restart();
+}
+
 void setup()
 {
   Serial.begin(115200);
