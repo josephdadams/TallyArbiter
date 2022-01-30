@@ -420,4 +420,8 @@ void loop()
   #ifdef MENU_BUTTON_PIN
   menuLoop();
   #endif
+
+  #ifdef PLATFORM_TTGO
+  TTGOCheckBatteryLevel();
+  #endif
 }

@@ -3,6 +3,7 @@
 extern String selectedDeviceId;
 extern char ta_host[60];
 extern char ta_port[8];
+extern void initializeSleepMode();
 
 #include <TFT_eSPI.h> // Graphics and font library for ST7735 driver chip
 #include <SPI.h>
@@ -14,16 +15,56 @@ TFT_eSPI tft = TFT_eSPI();
 void TTGOInitialize() {
     tft.init();
     tft.setRotation(TTGO_SCREEN_ROTATION);
-    tft.setCursor(0, 0);
     tft.fillScreen(TFT_BLACK);
     tft.setTextColor(TFT_WHITE);
-    tft.setTextSize(2);
     tft.setSwapBytes(TTGO_SWAP_BYTES);
     tft.pushImage(0, 0,  240, 135, TallyArbiterLogo);
 }
 
+float battery_voltage;
+int vref = 1100;
+int batteryLevel = 100;
+int barLevel = 0;
+bool charingDevice = false; // true if we are the device is powered via cable (ex. via USB)
+
+void TTGOCheckBatteryLevel() {
+    uint16_t v = analogRead(TTGO_ADC_PIN);
+    battery_voltage = ((float)v / 4095.0) * 2.0 * 3.3 * (vref / 1000.0);
+    if(battery_voltage < 4.5) {
+        charingDevice = false;
+
+        batteryLevel = floor(100.0 * (((battery_voltage * 1.1) - 3.0) / (4.07 - 3.0))); //100%=3.7V, Vmin = 2.8V
+        batteryLevel = batteryLevel > 100 ? 100 : batteryLevel;
+        barLevel = 133 - (batteryLevel * 133/100);
+
+        if(TTGO_ENABLE_BATTERY_INDICATOR) {
+            int LevelColor = TTGO_BATTERY_INDICATOR_COLOR;
+            if (battery_voltage < 3){
+                LevelColor = TTGO_BATTERY_LOW_INDICATOR_COLOR;
+            }
+            tft.fillRect(232, 0, 8, 135, LevelColor);
+            tft.fillRect(233, 1, 6, barLevel, TFT_BLACK);
+        }
+
+        if (battery_voltage < 2.8){
+            tft.setCursor(0, 0);
+            tft.fillScreen(TFT_BLACK);
+            tft.setTextColor(TFT_WHITE);
+            tft.setTextSize(2);
+            tft.println("Battery level low");
+            tft.println("Going into sleepmode");
+            delay(5000);
+            tft.writecommand(TFT_DISPOFF);
+            tft.writecommand(TFT_SLPIN);
+            initializeSleepMode();
+        }
+    } else {
+        charingDevice = true;
+    }
+}
+
 void TTGOEvaluateTally(String type, int r, int g, int b) {
-    tft.setTextSize(1);
+    tft.setTextSize(2);
     tft.setCursor(0, 0);
     if (type != "") {
         tft.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -37,45 +78,35 @@ void TTGOEvaluateTally(String type, int r, int g, int b) {
 }
 
 void TTGODisplaySettingsPage() {
-    /*
     //displays the current network connection and Tally Arbiter server data
-    M5.Lcd.setCursor(0, 20);
-    M5.Lcd.fillScreen(TFT_BLACK);
-    //M5.Lcd.setFreeFont(FSS9);
-    //M5.Lcd.setTextSize(1);
-    M5.Lcd.setTextColor(WHITE, BLACK);
-    M5.Lcd.println("SSID: " + String(WiFi.SSID()));
-    M5.Lcd.println("Network ip address: " + WiFi.localIP().toString());
-    M5.Lcd.println();
-    M5.Lcd.println("Settings mode enabled. Go to http://" + WiFi.localIP().toString() + " to configure or update \"Over The Air\" this device.");
-    M5.Lcd.println();
-    M5.Lcd.println("To disable this mode, press the menu button one time to go to the info page.");
-    */
+    tft.setCursor(0, 0);
+    tft.setTextSize(2);
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setTextSize(1);
+    tft.setTextSize(1);
+    tft.println("SSID: " + WiFi.SSID()); tft.println();
+    tft.print("IP Addr: "); tft.setTextSize(2); tft.println(WiFi.localIP().toString()); tft.println(); tft.setTextSize(1);
+    tft.println("Settings mode enabled.");
+    tft.println();
+    tft.println("To disable this mode, press the menu");
+    tft.println("button one time to go to the info page.");
 }
 
 void TTGODisplayInfoPage() {
-    /*
     //displays the current network connection and Tally Arbiter server data
-    M5.Lcd.setCursor(0, 20);
-    M5.Lcd.fillScreen(TFT_BLACK);
-    //M5.Lcd.setFreeFont(FSS9);
-    //M5.Lcd.setTextSize(1);
-    M5.Lcd.setTextColor(WHITE, BLACK);
-    M5.Lcd.println("SSID: " + String(WiFi.SSID()));
-    M5.Lcd.println("Network ip address: " + WiFi.localIP().toString());
-
-    M5.Lcd.println("Tally Arbiter Server:");
-    M5.Lcd.println(String(ta_host) + ":" + String(ta_port));
-    M5.Lcd.println();
-    M5.Lcd.print("Battery: ");
-    int batteryLevel = floor(100.0 * (((M5.Axp.GetVbatData() * 1.1 / 1000) - 3.0) / (4.07 - 3.0)));
-    batteryLevel = batteryLevel > 100 ? 100 : batteryLevel;
-    if(batteryLevel >= 100){
-        M5.Lcd.println("Charging...");   // show when M5 is plugged in
-    } else {
-        M5.Lcd.println(String(batteryLevel) + "%");
+    tft.setCursor(0, 0);
+    tft.setTextSize(2);
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setTextSize(1);
+    tft.println("SSID: " + WiFi.SSID()); tft.println();
+    tft.print("IP Addr: "); tft.setTextSize(2); tft.println(WiFi.localIP().toString()); tft.println(); tft.setTextSize(1);
+    tft.print("TA Server:"); tft.setTextSize(2); tft.println(String(ta_host)); tft.println(); tft.setTextSize(1);
+    tft.print("Battery: "); tft.setTextSize(2); tft.print(String(batteryLevel) + "% - " + String(battery_voltage, 2) + "V"); tft.println(); tft.setTextSize(1);
+    if(charingDevice) {
+        tft.print("Device powered via cable");
     }
-    */
 }
 
 #endif
