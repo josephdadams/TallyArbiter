@@ -32,7 +32,7 @@ void showSettingsScreen() {
 
 void showInfoScreen() {
     Serial.println("Activated screen 'info'");
-    if(currentScreen = "settings") {
+    if(portalRunning) {
         wm.stopWebPortal();
         portalRunning = false;
     }
@@ -67,15 +67,18 @@ void menuLoop() {
     if(resetRequestedClickTime > 0 && millis() - resetRequestedClickTime > 10000) {
         resetRequestedClickTime = 0;
         Serial.println("Reset confirm timeout expired. Please long-press the button again to reset.");
-        #ifdef PLATFORM_TTGO
-        tft.setCursor(0, 0);
-        tft.fillScreen(TFT_BLACK);
-        tft.setTextColor(TFT_WHITE);
-        tft.setTextSize(2); tft.println("Confirm timeout exp.");
-        tft.setTextSize(1); tft.println("Please long-press the button again to reset.");
-        #endif
-        delay(5000);
-        showInfoScreen();
+
+        if(currentScreen == "reset") {
+            #ifdef PLATFORM_TTGO
+            tft.setCursor(0, 0);
+            tft.fillScreen(TFT_BLACK);
+            tft.setTextColor(TFT_WHITE);
+            tft.setTextSize(2); tft.println("Confirm timeout exp.");
+            tft.setTextSize(1); tft.println("Please long-press the button again to reset.");
+            #endif
+            delay(5000);
+            showInfoScreen();
+        }
     }
 
     menuButton.update();
@@ -95,6 +98,8 @@ void menuLoop() {
             tft.setTextSize(2); tft.println("Longpress to confirm");
             tft.setTextSize(1); tft.println("(you have 10 seconds to confirm)");
             #endif
+
+            currentScreen = "reset";
         } else if(millis() - resetRequestedClickTime < 10000) {
             resetDevice();
         }
