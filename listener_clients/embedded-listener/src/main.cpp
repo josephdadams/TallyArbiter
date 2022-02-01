@@ -69,7 +69,7 @@ String selectedDeviceId;
 
 String bus_options;
 String devices;
-String last_bus_type;
+String last_bus_type = "not_set";
 
 void event_error(String error)
 {
@@ -180,7 +180,7 @@ void event_device_states(DynamicJsonDocument device_states)
     index++;
   }
 
-  if(!state_changed) {
+  if(!state_changed && last_bus_type != "") {
     #ifdef PREVIEW_TALLY_STATUS_PIN
     writeOutput(PREVIEW_TALLY_STATUS_PIN, LOW);
     #endif
@@ -223,6 +223,8 @@ void event_reassign(String old_device, String new_device)
   preferences.end();
   #endif
 
+  flashLed(255, 255, 255, 2, 200);
+
   //Refresh screen for devices that have it
   #ifdef PLATFORM_M5STICKC
   m5stickcEvaluateTally("", 0, 0, 0);
@@ -230,8 +232,6 @@ void event_reassign(String old_device, String new_device)
   #ifdef PLATFORM_TTGO
   TTGOEvaluateTally("", 0, 0, 0);
   #endif
-
-  flashLed(255, 255, 255, 2, 200);
 }
 
 void event_flash()
