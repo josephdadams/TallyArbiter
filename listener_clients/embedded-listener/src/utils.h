@@ -11,6 +11,9 @@ extern void m5stickcUpdateBrightness(uint8_t brightness);
 #define M5STICKC_BRIGHTNESS 11
 #endif
 #endif
+#ifdef PLATFORM_TTGO
+extern void TTGOFillScreen(int r, int g, int b);
+#endif
 
 void convertColorToRGB(String hexstring, int & r, int & g, int & b)
 {
@@ -90,13 +93,15 @@ void writeOutput(int pin, bool value) {
   digitalWrite(pin, value);
 }
 
-void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool change_brightness = false) {
+void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool change_brightness = false, bool skip_if_has_screen = false) {
   if(change_brightness) {
     #ifdef ENABLE_ADAFRUIT_NEOPIXEL
     strip.setBrightness(255);
     #endif
     #ifdef PLATFORM_M5STICKC
-    m5stickcUpdateBrightness(12);
+    if(!skip_if_has_screen) {
+      m5stickcUpdateBrightness(12);
+    }
     #endif
   }
   
@@ -114,7 +119,14 @@ void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool chan
     setAdafruitNeoPixelColor(strip.Color(r, g, b));
     #endif
     #ifdef PLATFORM_M5STICKC
-    m5stickcFillScreen(r, g, b);
+    if(!skip_if_has_screen) {
+      m5stickcFillScreen(r, g, b);
+    }
+    #endif
+    #ifdef PLATFORM_TTGO
+    if(!skip_if_has_screen) {
+      TTGOFillScreen(r, g, b);
+    }
     #endif
 
     delay(delay_ms);
@@ -132,7 +144,14 @@ void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool chan
     setAdafruitNeoPixelColor(ADAFRUIT_NEOPIXEL_BLACK);
     #endif
     #ifdef PLATFORM_M5STICKC
-    m5stickcFillScreen(0, 0, 0);
+    if(!skip_if_has_screen) {
+      m5stickcFillScreen(0, 0, 0);
+    }
+    #endif
+    #ifdef PLATFORM_TTGO
+    if(!skip_if_has_screen) {
+      TTGOFillScreen(0, 0, 0);
+    }
     #endif
 
     delay(delay_ms);
@@ -143,7 +162,9 @@ void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool chan
     strip.setBrightness(ADAFRUIT_NEOPIXEL_BRIGHTNESS);
     #endif
     #ifdef PLATFORM_M5STICKC
-    m5stickcUpdateBrightness(M5STICKC_BRIGHTNESS);
+    if(!skip_if_has_screen) {
+      m5stickcUpdateBrightness(M5STICKC_BRIGHTNESS);
+    }
     #endif
   }
 }

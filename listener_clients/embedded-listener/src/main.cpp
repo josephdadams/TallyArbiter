@@ -212,10 +212,23 @@ void event_reassign(String old_device, String new_device)
   Serial.println("Reassign device");
   selectedDeviceId = new_device;
 
+  DynamicJsonDocument reassign(256);
+  reassign["oldDeviceId"] = old_device;
+  reassign["newDeviceId"] = new_device;
+  sendSocketEvent("listener_reassign_object", reassign);
+
   #ifdef PLATFORM_ARCH_ESP32
   preferences.begin("tally-arbiter");
   preferences.putString("ta_deviceId", new_device);
   preferences.end();
+  #endif
+
+  //Refresh screen for devices that have it
+  #ifdef PLATFORM_M5STICKC
+  m5stickcEvaluateTally("", 0, 0, 0);
+  #endif
+  #ifdef PLATFORM_TTGO
+  TTGOEvaluateTally("", 0, 0, 0);
   #endif
 
   flashLed(255, 255, 255, 2, 200);
@@ -225,7 +238,14 @@ void event_flash()
 {
   Serial.println("Flashing device");
   flashLed(255, 255, 255, 3, 500, true);
-  
+
+  //Refresh screen for devices that have it
+  #ifdef PLATFORM_M5STICKC
+  m5stickcEvaluateTally("", 0, 0, 0);
+  #endif
+  #ifdef PLATFORM_TTGO
+  TTGOEvaluateTally("", 0, 0, 0);
+  #endif
 }
 
 void event_messaging(String type, String socketId, String message)
@@ -257,7 +277,7 @@ void socketIOConnEvent(socketIOmessageType_t type, uint8_t *payload, size_t leng
       #ifdef PLATFORM_TTGO
       TTGODisplayMessage("TA disconnected", "alert");
       #endif
-      flashLed(255, 0, 0, -1, 3000);
+      flashLed(255, 0, 0, -1, 3000, false, true);
       break;
     case sIOtype_CONNECT:{
       Serial.printf("[IOc] Connected to url: %s\n", payload);
@@ -317,13 +337,13 @@ void resetDevice() {
   Serial.println("Resetting device");
   #ifdef PLATFORM_TTGO
   TTGODisplayMessage("Resetting device", "info");
-  delay(1000);
+  delay(2000);
   #endif
   wm.resetSettings();
   #ifdef PLATFORM_ARCH_ESP32
   preferences.clear();
   #endif
-  flashLed(128, 0, 0, 3, 200, true);
+  flashLed(128, 0, 0, 3, 200, false, true);
   ESP.restart();
 }
 
@@ -416,7 +436,7 @@ void setup()
     #ifdef PLATFORM_TTGO
     TTGODisplayMessage("WiFi conn. error", "alert");
     #endif
-    flashLed(255, 0, 0, -1, 300);
+    flashLed(255, 0, 0, -1, 300, false, true);
   } else {
     Serial.println("Connected to the WiFi... yeey :)");
   }

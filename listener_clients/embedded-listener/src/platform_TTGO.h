@@ -78,6 +78,10 @@ void TTGOEvaluateTally(String type, int r, int g, int b) {
     }
 }
 
+void TTGOFillScreen(int r, int g, int b) {
+    tft.fillScreen(tft.color565(r, g, b));
+}
+
 void TTGODisplaySettingsPage() {
     //displays the current network connection and Tally Arbiter server data
     tft.setCursor(0, 0);
