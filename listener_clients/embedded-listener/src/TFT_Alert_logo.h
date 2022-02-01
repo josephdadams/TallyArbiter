@@ -1,6 +1,12 @@
 //https://github.com/Bodmer/TFT_eSPI/blob/master/examples/Generic/TFT_Flash_Bitmap/Alert.h
 
-// We need this header file to use FLASH as storage with PROGMEM directive:
+#if defined(__AVR__)
+    #include <avr/pgmspace.h>
+#elif defined(__PIC32MX__)
+    #define PROGMEM
+#elif defined(__arm__)
+    #define PROGMEM
+#endif
 
 // Icon width and height
 const uint16_t AlertLogoWidth = 32;

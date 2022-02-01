@@ -20,7 +20,7 @@ void TTGOInitialize() {
     tft.fillScreen(TFT_BLACK);
     tft.setTextColor(TFT_WHITE);
     tft.setSwapBytes(TTGO_SWAP_BYTES);
-    tft.pushImage(0, 0,  240, 135, TallyArbiterLogo);
+    tft.pushImage(0, 0, TallyArbiterLogoWidth, TallyArbiterLogoHeight, TallyArbiterLogo);
 }
 
 float battery_voltage;
