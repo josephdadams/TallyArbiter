@@ -24,20 +24,19 @@ void TTGOInitialize() {
 }
 
 float battery_voltage;
-int vref = 1100;
 int batteryLevel = 100;
 int barLevel = 0;
 bool charingDevice = false; // true if we are the device is powered via cable (ex. via USB)
 
 void TTGOCheckBatteryLevel() {
     uint16_t v = analogRead(TTGO_ADC_PIN);
-    battery_voltage = ((float)v / 4095.0) * 2.0 * 3.3 * (vref / 1000.0);
+    battery_voltage = ((float)v / 4095.0) * 2.0 * 3.3 * (TTGO_BATTERY_VREF / 1000.0);
     if(battery_voltage < 4.5) {
         charingDevice = false;
 
-        batteryLevel = floor(100.0 * (((battery_voltage * 1.1) - 3.0) / (4.07 - 3.0))); //100%=3.7V, Vmin = 2.8V
+        batteryLevel = floor(100.0 * (((battery_voltage * 1.1) - TTGO_BATTERY_MIN_VOLTAGE) / (TTGO_BATTERY_MAX_VOLTAGE - TTGO_BATTERY_MIN_VOLTAGE))); //100%=3.7V, Vmin = 2.8V
         batteryLevel = batteryLevel > 100 ? 100 : batteryLevel;
-        barLevel = 133 - (batteryLevel * 133/100);
+        barLevel = tft.height() - (batteryLevel * tft.height()/100);
 
         if(TTGO_ENABLE_BATTERY_INDICATOR) {
             int LevelColor = TTGO_BATTERY_INDICATOR_COLOR;
@@ -48,7 +47,7 @@ void TTGOCheckBatteryLevel() {
             tft.fillRect(233, 1, 6, barLevel, TFT_BLACK);
         }
 
-        if (battery_voltage < 2.8){
+        if (battery_voltage < (TTGO_BATTERY_MIN_VOLTAGE - 0.2)){
             tft.setCursor(0, 0);
             tft.fillScreen(TFT_BLACK);
             tft.setTextColor(TFT_WHITE);

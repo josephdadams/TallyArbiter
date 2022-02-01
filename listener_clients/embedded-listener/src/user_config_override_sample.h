@@ -41,8 +41,10 @@
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 */
 
-// Uncomment to configure M5StickC
+// Do you want to update a custom config key? Do something like this (uncommenting and updating the following lines of code):
 /*
-#undef M5STICKC_BRIGHTNESS
-#define M5STICKC_BRIGHTNESS 11 // 12 is the max
+#undef VALUE_NAME
+#define VALUE_NAME "new value"
 */
+
+// For updating TTGO or M5StickC config, see the configurations keys in user_config.h and update them following the instructions above.
