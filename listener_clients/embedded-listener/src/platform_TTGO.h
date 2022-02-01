@@ -9,6 +9,8 @@ extern void initializeSleepMode();
 #include <SPI.h>
 
 #include "TFT_TallyArbiter_logo.h"
+#include "TFT_Alert_logo.h"
+#include "TFT_Info_logo.h"
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -107,6 +109,24 @@ void TTGODisplayInfoPage() {
     if(charingDevice) {
         tft.print("Device powered via cable");
     }
+}
+
+void TTGODisplayMessage(String message, String type="info") {
+    tft.setCursor(0, 0);
+    tft.fillScreen(TFT_BLACK);
+    if(message.length() <= 18) {
+        tft.setTextSize(2);
+    } else {
+        tft.setTextSize(1);
+    }
+    if(type == "info") {
+        tft.pushImage((tft.width()-InfoLogoWidth)/2, 0, InfoLogoWidth, InfoLogoHeight, InfoLogo);
+        tft.setCursor(0, InfoLogoHeight + 50);
+    } else if(type == "alert") {
+        tft.pushImage((tft.width()-AlertLogoWidth)/2, 0, AlertLogoWidth, AlertLogoHeight, AlertLogo);
+        tft.setCursor(0, AlertLogoHeight + 50);
+    }
+    tft.print(message.c_str());
 }
 
 #endif

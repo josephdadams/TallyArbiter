@@ -103,9 +103,15 @@ void event_device_states(DynamicJsonDocument device_states)
 
   bool state_changed = false;
 
+  #ifdef PREVIEW_TALLY_STATUS_PIN
   bool preview_led_output = false;
-  bool program_led_output = false;
+  #endif
+  #ifdef PREVIEW_TALLY_STATUS_PIN
+  bool preview_led_output = false;
+  #endif
+  #ifdef AUX_TALLY_STATUS_PIN
   bool aux_led_output = false;
+  #endif
 
   for (JsonObject state : device_states_array) {
     if(state["deviceId"].as<String>() == selectedDeviceId && state["sources"].as<JsonArray>().size() > 0) {
@@ -130,13 +136,21 @@ void event_device_states(DynamicJsonDocument device_states)
 
       state_changed = true;
 
+      #ifdef PREVIEW_TALLY_STATUS_PIN
       if(bus_type.equals("preview")) {
         preview_led_output = true;
-      } else if(bus_type.equals("program")) {
+      }
+      #endif
+      #ifdef PREVIEW_TALLY_STATUS_PIN
+      if(bus_type.equals("program")) {
         program_led_output = true;
-      } else if(bus_type.equals("aux")) {
+      }
+      #endif
+      #ifdef AUX_TALLY_STATUS_PIN
+      if(bus_type.equals("aux")) {
         aux_led_output = true;
       }
+      #endif
       
       #ifdef PREVIEW_TALLY_STATUS_PIN
       writeOutput(PREVIEW_TALLY_STATUS_PIN, preview_led_output);
@@ -240,6 +254,9 @@ void socketIOConnEvent(socketIOmessageType_t type, uint8_t *payload, size_t leng
   {
     case sIOtype_DISCONNECT:
       Serial.printf("[IOc] Disconnected!\n");
+      #ifdef PLATFORM_TTGO
+      TTGODisplayMessage("TA disconnected", "alert");
+      #endif
       flashLed(255, 0, 0, -1, 3000);
       break;
     case sIOtype_CONNECT:{
@@ -298,6 +315,10 @@ void saveParamCallback() {
 
 void resetDevice() {
   Serial.println("Resetting device");
+  #ifdef PLATFORM_TTGO
+  TTGODisplayMessage("Resetting device", "info");
+  delay(1000);
+  #endif
   wm.resetSettings();
   #ifdef PLATFORM_ARCH_ESP32
   preferences.clear();
@@ -392,6 +413,9 @@ void setup()
 
   if (!res) {
     Serial.println("Failed to connect");
+    #ifdef PLATFORM_TTGO
+    TTGODisplayMessage("WiFi conn. error", "alert");
+    #endif
     flashLed(255, 0, 0, -1, 300);
   } else {
     Serial.println("Connected to the WiFi... yeey :)");
@@ -405,12 +429,7 @@ void setup()
   // event handler
   socketIO.onEvent(socketIOConnEvent);
 
-  if (!MDNS.begin(MDNS_name.c_str())) {
-    Serial.println("Error setting up MDNS responder!");
-    while(1){
-      delay(1000);
-    }
-  }
+  MDNS.begin(MDNS_name.c_str());
 }
 
 void loop()
