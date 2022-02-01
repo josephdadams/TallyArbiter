@@ -72,4 +72,4 @@ The program should now launch every time the Pi boots up, and automatically conn
 
 # Improvements and Suggestions
 We are welcome to improvements and suggestions.
-You can submit issues and pull requests on this repo, or contact Joseph Adams through the *"Contact"* page on the [techministry blog](http://www.techministry.blog/contact).
+You can submit issues and pull requests on this repo.
