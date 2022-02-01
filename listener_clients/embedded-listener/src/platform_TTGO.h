@@ -123,10 +123,10 @@ void TTGODisplayMessage(String message, String type="info") {
         tft.setTextSize(1);
     }
     if(type == "info") {
-        tft.pushImage((tft.width()-InfoLogoWidth)/2, 0, InfoLogoWidth, InfoLogoHeight, InfoLogo);
+        tft.pushImage((tft.width()-InfoLogoWidth)/2, 20, InfoLogoWidth, InfoLogoHeight, InfoLogo);
         tft.setCursor(0, InfoLogoHeight + 50);
     } else if(type == "alert") {
-        tft.pushImage((tft.width()-AlertLogoWidth)/2, 0, AlertLogoWidth, AlertLogoHeight, AlertLogo);
+        tft.pushImage((tft.width()-AlertLogoWidth)/2, 20, AlertLogoWidth, AlertLogoHeight, AlertLogo);
         tft.setCursor(0, AlertLogoHeight + 50);
     }
     tft.print(message.c_str());
