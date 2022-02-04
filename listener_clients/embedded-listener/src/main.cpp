@@ -22,8 +22,7 @@
 #include <Preferences.h>
 #endif
 #ifdef PLATFORM_ARCH_ESP8266
-#warning "ESP8266 EEPROM not supported yet. Can't save WiFi credentials."
-//TODO: implement esp32 data saving
+#include <esp8266_preferences.h>
 #endif
 
 #ifdef ENABLE_ADAFRUIT_NEOPIXEL
@@ -60,9 +59,7 @@ void setAdafruitNeoPixelColor(uint32_t color) {
 SocketIOclient socketIO;
 
 WiFiManager wm;
-#ifdef PLATFORM_ARCH_ESP32
 Preferences preferences;
-#endif
 WiFiManagerParameter ta_host_param("host", "TallyArbiter server host", "", 60);
 WiFiManagerParameter ta_port_param("port", "TallyArbiter port", "4455", 8);
 char ta_host[60] = "";
@@ -229,11 +226,9 @@ void event_reassign(String old_device, String new_device)
   reassign["newDeviceId"] = new_device;
   sendSocketEvent("listener_reassign_object", reassign);
 
-  #ifdef PLATFORM_ARCH_ESP32
-  preferences.begin("tally-arbiter");
+  preferences.begin("ta");
   preferences.putString("ta_deviceId", new_device);
   preferences.end();
-  #endif
 
   #ifdef PLATFORM_M5ATOM
   //On the M5Atom, we display a custom icon for reassign
@@ -339,12 +334,10 @@ void saveParamCallback() {
 
   Serial.println("Saving new TallyArbiter host");
   
-  #ifdef PLATFORM_ARCH_ESP32
-  preferences.begin("tally-arbiter");
+  preferences.begin("ta");
   preferences.putString("ta_host", str_taHost);
   preferences.putString("ta_port", str_taPort);
   preferences.end();
-  #endif
 
   str_taHost.toCharArray(ta_host, 60);
   str_taPort.toCharArray(ta_port, 8);
@@ -357,9 +350,7 @@ void resetDevice() {
   delay(2000);
   #endif
   wm.resetSettings();
-  #ifdef PLATFORM_ARCH_ESP32
   preferences.clear();
-  #endif
   flashLed(128, 0, 0, 3, 200, false, true);
   ESP.restart();
 }
@@ -417,8 +408,7 @@ void setup()
   Serial.println("Initializing...");
   Serial.setDebugOutput(true);
 
-  #ifdef PLATFORM_ARCH_ESP32
-  preferences.begin("tally-arbiter");
+  preferences.begin("ta");
   Serial.println("Reading preferences");
   if(preferences.getString("ta_host").length() > 0){
     String newHost = preferences.getString("ta_host");
@@ -432,7 +422,6 @@ void setup()
     selectedDeviceId = preferences.getString("ta_deviceId");
   }
   preferences.end();
-  #endif
 
   Serial.println();
   Serial.println();
