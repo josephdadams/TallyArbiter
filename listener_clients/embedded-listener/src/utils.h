@@ -11,6 +11,9 @@ extern void m5stickcUpdateBrightness(uint8_t brightness);
 #define M5STICKC_BRIGHTNESS 11
 #endif
 #endif
+#ifdef PLATFORM_M5ATOM
+extern void m5atomFillScreen(int r, int g, int b);
+#endif
 #ifdef PLATFORM_TTGO
 extern void TTGOFillScreen(int r, int g, int b);
 #endif
@@ -123,6 +126,9 @@ void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool chan
       m5stickcFillScreen(r, g, b);
     }
     #endif
+    #ifdef PLATFORM_M5ATOM
+    m5atomFillScreen(r, g, b);
+    #endif
     #ifdef PLATFORM_TTGO
     if(!skip_if_has_screen) {
       TTGOFillScreen(r, g, b);
@@ -147,6 +153,9 @@ void flashLed(int r, int g, int b, int iterations, int delay_ms = 500, bool chan
     if(!skip_if_has_screen) {
       m5stickcFillScreen(0, 0, 0);
     }
+    #endif
+    #ifdef PLATFORM_M5ATOM
+    m5atomFillScreen(0, 0, 0);
     #endif
     #ifdef PLATFORM_TTGO
     if(!skip_if_has_screen) {

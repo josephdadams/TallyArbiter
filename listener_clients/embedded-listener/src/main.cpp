@@ -45,6 +45,10 @@ void setAdafruitNeoPixelColor(uint32_t color) {
 #include <platform_M5StickC.h>
 #endif
 
+#ifdef PLATFORM_M5ATOM
+#include <platform_M5Atom.h>
+#endif
+
 #ifdef PLATFORM_TTGO
 #include <platform_TTGO.h>
 #endif
@@ -170,6 +174,10 @@ void event_device_states(DynamicJsonDocument device_states)
       m5stickcEvaluateTally(bus_type, r, g, b);
       #endif
 
+      #ifdef PLATFORM_M5ATOM
+      m5atomEvaluateTally(bus_type, r, g, b);
+      #endif
+
       #ifdef PLATFORM_TTGO
       TTGOEvaluateTally(bus_type, r, g, b);
       #endif
@@ -199,6 +207,10 @@ void event_device_states(DynamicJsonDocument device_states)
     m5stickcEvaluateTally("", 0, 0, 0);
     #endif
 
+    #ifdef PLATFORM_M5ATOM
+    m5atomEvaluateTally("", 0, 0, 0);
+    #endif
+
     #ifdef PLATFORM_TTGO
     TTGOEvaluateTally("", 0, 0, 0);
     #endif
@@ -223,7 +235,12 @@ void event_reassign(String old_device, String new_device)
   preferences.end();
   #endif
 
+  #ifdef PLATFORM_M5ATOM
+  //On the M5Atom, we display a custom icon for reassign
+  m5atomReassign();
+  #else
   flashLed(255, 255, 255, 2, 200);
+  #endif
 
   //Refresh screen for devices that have it
   #ifdef PLATFORM_M5STICKC
@@ -382,6 +399,10 @@ void setup()
   m5stickcInitialize();
 #endif
 
+#ifdef PLATFORM_M5ATOM
+  m5atomInitialize();
+#endif
+
 #ifdef PLATFORM_TTGO
   TTGOInitialize();
 #endif
@@ -433,12 +454,18 @@ void setup()
 
   if (!res) {
     Serial.println("Failed to connect");
+    #ifdef PLATFORM_M5ATOM
+    m5atomDisplayFailMark();
+    #endif
     #ifdef PLATFORM_TTGO
     TTGODisplayMessage("WiFi conn. error", "alert");
     #endif
     flashLed(255, 0, 0, -1, 300, false, true);
   } else {
     Serial.println("Connected to the WiFi... yeey :)");
+    #ifdef PLATFORM_M5ATOM
+    m5atomDisplayWiFiConnected();
+    #endif
   }
 
   //TODO: automatic TA server discovery via MDNS (actually, doesn't working in setup, works only in loop, and doesn't report the server ip and port)
