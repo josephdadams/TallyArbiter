@@ -11,19 +11,6 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
-    
-    #- name: Cache pip
-    #  uses: actions/cache@v2
-    #  with:
-    #    path: ~/.cache/pip
-    #    key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-    #    restore-keys: |
-    #      ${{ runner.os }}-pip-
-    #- name: Cache PlatformIO
-    #  uses: actions/cache@v2
-    #  with:
-    #    path: ~/.platformio
-    #    key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
 
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -38,6 +25,12 @@ jobs:
       run: |
         cd listener_clients/embedded-listener
         pio run -e "${{ matrix.env }}" -v
+  
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2.3.1
+      with:
+        name: embedded-listener_${{ matrix.env }}
+        path: listener_clients/embedded-listener/.pio/build/${{ matrix.env }}
   
   analyse_blink1-listener:
     name: Analyse Blink1 Listener
