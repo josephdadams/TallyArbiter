@@ -178,12 +178,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Install dependencies
-      working-directory: listener_clients/relay-listener
-      run: |
-        sudo apt install libudev-dev libusb-1.0-0 libusb-1.0-0-dev
-        npm install
-        npm install --global eslint
-    - name: Run eslint
-      working-directory: listener_clients/relay-listener
-      run: eslint index.js || exit 0
+    #- name: Install dependencies
+    #  working-directory: listener_clients/relay-listener
+    #  run: |
+    #    sudo apt install libudev-dev libusb-1.0-0 libusb-1.0-0-dev
+    #    npm install
+    #    npm install --global eslint
+    #- name: Run eslint
+    #  working-directory: listener_clients/relay-listener
+    #  run: eslint index.js || exit 0
