@@ -8,9 +8,9 @@ extern void initializeSleepMode();
 #include <TFT_eSPI.h> // Graphics and font library for ST7735 driver chip
 #include <SPI.h>
 
-#include "TFT_TallyArbiter_logo.h"
-#include "TFT_Alert_logo.h"
-#include "TFT_Info_logo.h"
+#include <TFT_TallyArbiter_logo.h>
+#include <TFT_Alert_logo.h>
+#include <TFT_Info_logo.h>
 
 TFT_eSPI tft = TFT_eSPI();
 
