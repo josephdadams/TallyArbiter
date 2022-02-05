@@ -35,7 +35,9 @@ jobs:
         ls listener_clients/embedded-listener -R
 
     - name: Run PlatformIO
-      run: pio run -e "${{ matrix.env }}" -d "listener_clients/embedded-listener" -v
+      run: |
+        cd listener_clients/embedded-listener
+        pio run -e "${{ matrix.env }}" -v
   
   analyse_blink1-listener:
     name: Analyse Blink1 Listener
