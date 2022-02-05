@@ -33,7 +33,7 @@ jobs:
         pip install --upgrade platformio
 
     - name: Run PlatformIO
-      run: pio run --env="${{ matrix.env }}"
+      run: pio run -e "${{ matrix.env }}"
       working-directory: "listener_clients/embedded-listener"
   
   analyse_blink1-listener:
