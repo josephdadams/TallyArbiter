@@ -41,15 +41,15 @@ void setAdafruitNeoPixelColor(uint32_t color) {
 #endif
 
 #ifdef PLATFORM_M5STICKC
-#include <platform_M5StickC.h>
+#include "platform_M5StickC.h"
 #endif
 
 #ifdef PLATFORM_M5ATOM
-#include <platform_M5Atom.h>
+#include "platform_M5Atom.h"
 #endif
 
 #ifdef PLATFORM_TTGO
-#include <platform_TTGO.h>
+#include "platform_TTGO.h"
 #endif
 
 #ifdef MENU_BUTTON_PIN
