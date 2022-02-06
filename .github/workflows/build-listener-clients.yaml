@@ -1,6 +1,15 @@
 name: Build Listener Clients
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    paths:
+      - '.github/**'
+      - 'listener_clients/**'
+  pull_request:
+    paths:
+      - '.github/**'
+      - 'listener_clients/**'
+  workflow_dispatch:
 
 jobs:
   build_embedded-listener:
@@ -30,7 +39,7 @@ jobs:
       uses: actions/upload-artifact@v2.3.1
       with:
         name: embedded-listener_${{ matrix.env }}
-        path: listener_clients/embedded-listener/.pio/build/${{ matrix.env }}
+        path: listener_clients/embedded-listener/.pio/build/${{ matrix.env }}/firmware.bin
   
   analyse_blink1-listener:
     name: Analyse Blink1 Listener
