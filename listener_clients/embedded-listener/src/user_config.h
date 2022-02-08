@@ -9,6 +9,8 @@ To update a configuration value, follow the instructions in the "user_config_ove
 
 #define USE_STATIC_IP false
 
+#define RESET_DURING_BOOT_IF_BUTTON_PRESSED true
+
 #ifdef PLATFORM_M5STICKC
 #define M5STICKC_BRIGHTNESS 11
 #endif

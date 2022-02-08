@@ -365,7 +365,6 @@ void setup()
   btStop();
 #endif
 
-
 #ifdef PROGRAM_TALLY_STATUS_PIN
   pinMode(PROGRAM_TALLY_STATUS_PIN, OUTPUT);
   writeOutput(PROGRAM_TALLY_STATUS_PIN, LOW);
@@ -396,6 +395,17 @@ void setup()
 
 #ifdef PLATFORM_TTGO
   TTGOInitialize();
+#endif
+
+#if defined(RESET_DURING_BOOT_IF_BUTTON_PRESSED) && RESET_DURING_BOOT_IF_BUTTON_PRESSED == true && defined(MENU_BUTTON_PIN)
+  pinMode(MENU_BUTTON_PIN, INPUT);
+  if (digitalRead(MENU_BUTTON_PIN) == LOW) {
+    Serial.print("Menu button pressed, waiting two seconds...");
+    delay(2000);
+    if (digitalRead(MENU_BUTTON_PIN) == LOW) {
+      resetDevice();
+    }
+  }
 #endif
 
   byte mac[6];
