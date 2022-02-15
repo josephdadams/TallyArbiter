@@ -46,6 +46,8 @@ Done! Now your board is running the latest listener client firmware version. Go 
 5. Go back, then go to the "Configure WiFi" page and set your WiFi credentials. The board should reboot.
 6. If the connection is successful a WiFi animation and a green tick mark will show. If not a red cross will be shown and you can reboot the device to try again.
 
+* If you need to reset WI-FI credentials. Press Atom button for 5 seconds.
+
 
 # Troubleshooting
 ### macOS build error

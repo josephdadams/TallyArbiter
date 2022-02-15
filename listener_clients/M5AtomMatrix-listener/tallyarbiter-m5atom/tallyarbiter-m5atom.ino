@@ -846,6 +846,11 @@ void loop(){
     logger("---------------------------------", "info-quiet");
     logger("", "info-quiet");
   }
+    
+  if (M5.Btn.pressedFor(5000)){
+    wm.resetSettings();
+    ESP.restart();
+  }
 
   // handle reconnecting if disconnected
   if (isReconnecting)
