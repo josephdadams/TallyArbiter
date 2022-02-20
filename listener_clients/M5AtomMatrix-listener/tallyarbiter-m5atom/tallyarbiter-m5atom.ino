@@ -608,11 +608,12 @@ void processTallyData() {
 }
 
 void connectToNetwork() {
-  // allow for static IP assignment instead of DHCP if stationIP is defined as something other than 0.0.0.0
-  if (stationIP != IPAddress(0, 0, 0, 0))
-  {
-    wm.setSTAStaticIPConfig(stationIP, stationGW, stationMask); // optional DNS 4th argument 
-  }
+  // allow for static IP assignment instead of DHCP if stationIP is defined as something other than 0.0.0.0.
+  // Uncomment (together with local static IP config above) to enable static IP.
+  // if (stationIP != IPAddress(0, 0, 0, 0))
+  // {
+  // wm.setSTAStaticIPConfig(stationIP, stationGW, stationMask); // optional DNS 4th argument 
+  // }
   
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
 
