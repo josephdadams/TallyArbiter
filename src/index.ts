@@ -65,6 +65,7 @@ import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
 import { authenticate, validateAccessToken, getUsersList, addUser, editUser, deleteUser } from './_helpers/auth';
 import { Config } from './_models/Config';
+import { Console } from 'console';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
@@ -330,6 +331,9 @@ function initialSetup() {
 			canBeFlashed (bool)
 			supportsChat (bool)
 			*/
+			obj = JSON.parse(String(obj)); //Re-parse JSON
+
+			logger(`Received JSON object: ${obj}`); //To make it easier for devs to verify the JSON objects they're sending
 
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
