@@ -352,15 +352,15 @@ void evaluateMode() {
     }
 
     #if TALLY_EXTRA_OUTPUT
-    if (actualType == "preview") {
+    if (actualType == "\"program\"") {
       digitalWrite(led_program, HIGH);
       digitalWrite (led_preview, LOW);
       digitalWrite (led_aux, LOW);
-    } else if (actualType == "preview") {
+    } else if (actualType == "\"preview\"") {
       digitalWrite(led_program, LOW);
       digitalWrite (led_preview, HIGH);
       digitalWrite (led_aux, LOW);
-    } else if (actualType == "aux") {
+    } else if (actualType == "\"aux\"") {
       digitalWrite(led_program, LOW);
       digitalWrite (led_preview, LOW);
       digitalWrite (led_aux, HIGH);
