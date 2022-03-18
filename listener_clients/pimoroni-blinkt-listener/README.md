@@ -14,7 +14,7 @@ https://shop.pimoroni.com/products/blinkt
 OR
 https://www.adafruit.com/product/3195 (Shipped from USA)
 
-To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
+To open a bug report or feature request, please visit [the TallyArbiter GitHub repo](https://github.com/josephdadams/TallyArbiter/issues/new/choose).
 
 ## Getting Started
 A lot of these instructions on getting started are available all over the internet. Some highlights are listed here that should cover it from a top-level:
@@ -46,17 +46,21 @@ A lot of these instructions on getting started are available all over the intern
 The Tally Arbiter Python Listener Client uses the following libraries:
 * `blinkt`
 * `python-socketio[client]`
+* `zeroconf`
+* `requests`
 
 These will have to be installed on the Pi in order for the script to function correctly.
 
 1. In your SSH terminal session, run the following:
     * `curl https://get.pimoroni.com/blinkt | bash`L This library is used to communicate with a blinkt! device connected to the GPIO pins.
     * `sudo pip3 install "python-socketio[client]<5"`: This library is used to communicate with a Tally Arbiter server over websockets.
+	* `sudo pip3 install zeroconf`: This library is used to capture command line arguments and reference them as variables.
+	* `sudo pip3 install requests`: This library is used to handle the initial communication with the TallyArbiter server
 
     *If `pip3` is not installed, you can get it by running `sudo apt-get install python3-pip`.*
 
 1. Now that all the necessary libraries are installed and compiled, you need to copy the `tallyarbiter-pimoroni-blinkt-listener.py` file to your Pi. You can do this a number of ways, but one simple way is to execute this command through your SSH connection: `wget https://raw.githubusercontent.com/josephdadams/TallyArbiter/master/listener_clients/pimoroni-blinkt-listener/pimoroni-blinkt-listener.py`. This will copy the file into your current folder (you should still be the home folder for the `pi` account).
-1. Once the Python script has been copied over, go ahead and test it out to make sure everything is working properly. Run this in the SSH session: `sudo python3 tallyarbiter-pimoroni-blinkt-listener.py 192.168.1.6 4455`
+1. Once the Python script has been copied over, go ahead and test it out to make sure everything is working properly. Run this in the SSH session: `sudo python3 tallyarbiter-pimoroni-blinkt-listener.py --host 192.168.1.6 --port 4455`
     
     Be sure to replace the IP address `192.168.1.6` with the IP of your Tally Arbiter server. If you leave off the port, it will attempt to connect using port `4455`.
 
@@ -65,7 +69,7 @@ These will have to be installed on the Pi in order for the script to function co
 ## Setting up the script to start at boot
 Now that it is working properly, you will want to set up the script to run on boot so that all you have to do is turn on the Pi and wait for it to launch and connect to the server. There are several different methods in the Raspberry Pi OS to do this. The following describes how to do it using the `rc.local` file.
 1. In your SSH session, type `sudo nano /etc/rc.local`.
-1. Just before the last line of this file (`exit 0`), add the following: `sudo python3 /home/pi/tallyarbiter-pimoroni-blinkt-listener.py 192.168.1.6 4455 &`. The `&` is important because it allows the script to launch in a separate thread since we want the program to continue running in the background.
+1. Just before the last line of this file (`exit 0`), add the following: `sudo python3 /home/pi/tallyarbiter-pimoroni-blinkt-listener.py --host 192.168.1.6 --port 4455 &`. The `&` is important because it allows the script to launch in a separate thread since we want the program to continue running in the background.
 1. Now reboot the Pi to test that the script runs on boot: `sudo reboot`. This will end your SSH session.
 
 The program should now launch every time the Pi boots up, and automatically connect to your Tally Arbiter server once the server is available. The blinkt! device will flash white until it successfully connects to the server.

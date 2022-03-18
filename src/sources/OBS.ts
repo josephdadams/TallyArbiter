@@ -25,6 +25,7 @@ export class OBSSource extends TallyInput {
         this.obsClient.on('AuthenticationSuccess', async () => {
             logger(`Source: ${source.name}  OBS Authenticated.`, 'info-quiet');
             this.saveSceneList();
+            this.connected.next(true);
 
             let sourcesListPromise = this.obsClient.send('GetSourcesList');
             let sourceTypesListPromise = this.obsClient.send('GetSourceTypesList');
@@ -79,7 +80,6 @@ export class OBSSource extends TallyInput {
                 if(replayBufferStatus.isReplayBufferActive) this.setBussesForAddress("{{REPLAY}}", ["program"]);
 
                 this.sendTallyData();
-                this.connected.next(true);
             }).catch((error) => {
                 console.error(error);
             });

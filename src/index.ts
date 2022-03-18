@@ -65,7 +65,6 @@ import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
 import { authenticate, validateAccessToken, getUsersList, addUser, editUser, deleteUser } from './_helpers/auth';
 import { Config } from './_models/Config';
-import { Console } from 'console';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
@@ -335,7 +334,7 @@ function initialSetup() {
 			if(typeof obj !== 'object' && obj !== null) {
 				logger(`Received JSON object: ${obj}`, 'info-quiet'); //Log the raw JSON to console
 				obj = JSON.parse(String(obj)); //Re-parse JSON
-		   	}
+		  }
 
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
