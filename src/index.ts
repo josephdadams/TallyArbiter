@@ -249,10 +249,9 @@ function initialSetup() {
 
 		socket.on('login', (username: string, password: string) => {
 			authenticate(username, password).then((result) => {
-                socket.emit('login_result', true); //old response, for compatibility with old UI clients
 				socket.emit('login_response', { loginOk: true, message: "", accessToken: result.access_token });
 			}).catch((error) => {
-				logger(`User ${username} (ip addr ${ipAddr}) has attempted a login: wrong username or password.`);
+				logger(`User ${username} (ip addr ${ipAddr}) has attempted a login (${error})`);
                 //wrong credentials
 				Promise.all([
 					limiterConsecutiveFailsByUsernameAndIP.consume(ipAddr),
@@ -264,11 +263,9 @@ function initialSetup() {
 					if(points < 4) {
 						message += " Remaining attemps:"+points;
 					}
-					socket.emit('login_result', false); //old response, for compatibility with old UI clients
 					socket.emit('login_response', { loginOk: false, message: message, access_token: "" });
 				}).catch((error) => {
 					//rate limits exceeded
-                    socket.emit('login_result', false); //old response, for compatibility with old UI clients
                     let retrySecs = 1;
 					try{
 						retrySecs = Math.round(error.msBeforeNext / 1000) || 1;
