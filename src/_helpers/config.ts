@@ -91,13 +91,13 @@ export function readConfig(): void {
 		logger('Migrating user configs to the new format.', 'info-quiet');
 		currentConfig.users = [];
 		addUser({
-			username: currentConfig.security.username_producer || "producer",
-			password: currentConfig.security.password_producer || "12345",
+			username: loadedConfig.security.username_producer || "producer",
+			password: loadedConfig.security.password_producer || "12345",
 			roles: "producer"
 		});
 		addUser({
-			username: currentConfig.security.username_settings || "admin",
-			password: currentConfig.security.password_settings || "12345",
+			username: loadedConfig.security.username_settings || "admin",
+			password: loadedConfig.security.password_settings || "12345",
 			roles: "admin"
 		});
 		delete currentConfig.security.username_producer;
