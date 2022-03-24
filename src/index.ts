@@ -331,6 +331,11 @@ function initialSetup() {
 			supportsChat (bool)
 			*/
 
+			if(typeof obj !== 'object' && obj !== null) {
+				logger(`Received JSON object: ${obj}`, 'info-quiet'); //Log the raw JSON to console
+				obj = JSON.parse(String(obj)); //Re-parse JSON
+		  }
+
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
 			let oldDeviceId = null;
