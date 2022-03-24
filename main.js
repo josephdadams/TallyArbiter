@@ -22,8 +22,8 @@ process.on('uncaughtException', processError);
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 850,
+        height: 1260,
         minHeight: 850,
         minWidth: 1260,
         webPreferences: {},
@@ -172,8 +172,8 @@ function checkForUpdates() {
 </html>
         `;
         releaseNotesWindow = new BrowserWindow({
-            width: 800,
-            height: 600,
+            width: 850,
+            height: 1260,
             minHeight: 850,
             minWidth: 1260,
             webPreferences: {
