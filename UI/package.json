@@ -1,6 +1,6 @@
 {
   "name": "tallyarbiter-ui",
-  "version": "2.0.14",
+  "version": "3.0.3",
   "scripts": {
     "prestart": "node git.version.js && cd .. && npm run redundancyjs",
     "prebuild": "node git.version.js && cd .. && npm run redundancyjs",
