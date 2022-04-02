@@ -3,6 +3,7 @@ import { Config } from "../_models/Config";
 import { ConfigTSLClient } from "../_models/ConfigTSLClient";
 import fs from "fs-extra";
 import path from "path";
+import { randomBytes } from "crypto";
 import { clone } from "./clone";
 import { uuidv4 } from "./uuid";
 import { addUser } from "./auth";
@@ -20,7 +21,7 @@ const config_file = getConfigFilePath();
 
 export const ConfigDefaults: Config = {
 	security: {
-		jwt_private_key: require('crypto').randomBytes(256).toString('base64'),
+		jwt_private_key: "",
 	},
 	users: [],
     cloud_destinations: [],
@@ -39,7 +40,7 @@ export const ConfigDefaults: Config = {
     ],
     externalAddress: "http://0.0.0.0:4455/#/tally",
 	remoteErrorReporting: false,
-	uuid: uuidv4()
+	uuid: ""
 }
 
 export let currentConfig: Config = clone(ConfigDefaults);
@@ -87,17 +88,17 @@ export function readConfig(): void {
         ...clone(ConfigDefaults),
         ...loadedConfig,
     };
-	if(!loadedConfig.users || loadedConfig.users.length === 0) {
+	if(!loadedConfig.users || typeof loadedConfig.users !== "object" || loadedConfig.users.length === 0) {
 		logger('Migrating user configs to the new format.', 'info-quiet');
 		currentConfig.users = [];
 		addUser({
-			username: currentConfig.security.username_producer || "producer",
-			password: currentConfig.security.password_producer || "12345",
+			username: loadedConfig.security.username_producer || "producer",
+			password: loadedConfig.security.password_producer || "12345",
 			roles: "producer"
 		});
 		addUser({
-			username: currentConfig.security.username_settings || "admin",
-			password: currentConfig.security.password_settings || "12345",
+			username: loadedConfig.security.username_settings || "admin",
+			password: loadedConfig.security.password_settings || "12345",
 			roles: "admin"
 		});
 		delete currentConfig.security.username_producer;
@@ -106,12 +107,14 @@ export function readConfig(): void {
 		delete currentConfig.security.password_settings;
 		SaveConfig();
 	}
-	if(!loadedConfig.uuid) {
+	if(!loadedConfig.uuid || typeof loadedConfig.uuid !== "string") {
 		logger('Adding an uuid identifier to this server for using MDNS.', 'info-quiet');
+		currentConfig.uuid = uuidv4();
 		SaveConfig(); //uuid added if missing on config save
 	}
-	if(!loadedConfig.security.jwt_private_key) {
+	if(!loadedConfig.security.jwt_private_key || typeof loadedConfig.security.jwt_private_key !== "string") {
 		logger('Adding a private key for JWT authentication.', 'info-quiet');
+		currentConfig.security.jwt_private_key = randomBytes(256).toString('base64');
 		SaveConfig(); //uuid added if missing on config save
 	}
 }

@@ -318,7 +318,8 @@ export class SocketService {
     this.socket.on('error', (message: string) => {
       console.error(message);
       if(message.includes("Access") || message.includes("JWT") || message.includes("jwt")) {
-        alert(message);
+        console.error("JWT requested after server reconnection. This should not happen.");
+        window.location.reload(); //tmp fix while we figure out how to handle server reconnection
       }
     });
 
