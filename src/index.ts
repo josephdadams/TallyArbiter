@@ -72,9 +72,9 @@ const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'deve
 if(devmode) logger('TallyArbiter running in Development Mode.', 'info');
 
 //Rate limiter configurations
-const maxWrongAttemptsByIPperDay = 100;
-const maxConsecutiveFailsByUsernameAndIP = 10;
-const maxPageRequestPerMinute = 100;
+const maxWrongAttemptsByIPperDay = 1000;
+const maxConsecutiveFailsByUsernameAndIP = 200;
+const maxPageRequestPerMinute = 1000;
 const limiterSlowBruteByIP = new RateLimiterMemory({
   keyPrefix: 'login_fail_ip_per_day',
   points: maxWrongAttemptsByIPperDay,
@@ -260,7 +260,7 @@ function initialSetup() {
 					//rate limits not exceeded
 					let points = values[0].remainingPoints;
 					let message = "Wrong username or password!";
-					if(points < 4) {
+					if(points < 10) {
 						message += " Remaining attemps:"+points;
 					}
 					socket.emit('login_response', { loginOk: false, message: message, access_token: "" });
