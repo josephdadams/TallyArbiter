@@ -340,7 +340,7 @@ void evaluateMode() {
     int b = colorNumber & 0xFF;
     
     if (actualType != "") {
-      int backgroundColor = 0x10000 * r + 0x100 * g + b;
+      int backgroundColor = 0x10000 * g + 0x100 * r + b;
       int currColor[] = {backgroundColor, numbercolor};
       logger("Current color: " + String(backgroundColor), "info");
       //logger("Current camNumber: " + String(camNumber), "info");
