@@ -278,7 +278,7 @@ def processTallyData():
                     if device_state["deviceId"] == gpo_group["deviceId"]:
                         for gpo in gpo_group["gpos"]:
                             if gpo["busType"] == getBusTypeById(device_state["busId"]):
-                                print("Turning on pin " + str(gpo["pinNumber"]))
+                                #print("Turning on pin " + str(gpo["pinNumber"]))
                                 GPIO.output(gpo["pinNumber"], getOutputValue(True))
                                 gpo["lastState"] = True
                                 powered_pins.append(gpo["pinNumber"])
@@ -288,7 +288,7 @@ def processTallyData():
                     if device_state["deviceId"] == gpo_group["deviceId"]:
                         for gpo in gpo_group["gpos"]:
                             if gpo["pinNumber"] not in powered_pins:
-                                print("Turning off pin " + str(gpo["pinNumber"]))
+                                #print("Turning off pin " + str(gpo["pinNumber"]))
                                 GPIO.output(gpo["pinNumber"], getOutputValue(False))
                                 gpo["lastState"] = False
         #print(powered_pins, datetime.now().time())
