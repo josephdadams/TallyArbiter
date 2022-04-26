@@ -41,6 +41,11 @@ int camNumber = 0;
 // Name of the device - the serial number of the listener hardware will be appended to create a unique identifier for the server.
 String listenerDeviceName = "m5Atom-1";
 
+//M5atom Access Point Password
+//minimum of 8 characters
+//leave empty for open Access Point
+const char* AP_password ="";
+
 // Enables the GPIO pinout
 #define TALLY_EXTRA_OUTPUT false
 
@@ -646,7 +651,7 @@ void connectToNetwork() {
 
   bool res;
   
-  res = wm.autoConnect(listenerDeviceName.c_str());
+  res = wm.autoConnect(listenerDeviceName.c_str(),AP_password);
 
   if (!res) {
     logger("Failed to connect", "error");
