@@ -836,12 +836,12 @@ void loop(){
   socket.loop();
   if (M5.Btn.wasPressed()){
     // Switch action below
-    if (camNumber < 17){
+    if (camNumber < 16){
+      camNumber++;
       drawNumber(number[camNumber], offcolor);
-    }
-    camNumber++;
-    if (camNumber > 16){
+    } else {
       camNumber = 0;
+      drawNumber(number[camNumber], offcolor);
     }
     
     // Lets get some info sent out the serial connection for debugging
