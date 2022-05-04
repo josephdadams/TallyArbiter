@@ -14,6 +14,8 @@ export class OBSSource extends TallyInput {
     private scenes: ObsWebSocket.Scene[] = [];
     private isTransitionFinished = true;
     private currentTransitionFromScene: ObsWebSocket.Scene = undefined;
+    private studioModeEnabled: boolean;
+
     constructor(source: Source) {
         super(source);
         this.obsClient = new ObsWebSocket();
@@ -56,13 +58,16 @@ export class OBSSource extends TallyInput {
             let programScenePromise = this.obsClient.send('GetCurrentScene');
             let streamingAndRecordingStatusPromise = this.obsClient.send('GetStreamingStatus');
             let replayBufferStatusPromise = this.obsClient.send('GetReplayBufferStatus');
+            let studioModePromise = this.obsClient.send('GetStudioModeStatus');
             Promise.all([
-                previewScenePromise, programScenePromise, streamingAndRecordingStatusPromise, replayBufferStatusPromise
+                previewScenePromise, programScenePromise, streamingAndRecordingStatusPromise, replayBufferStatusPromise, studioModePromise
             ]).then((data) => {
-                let [previewScene, programScene, streamingAndRecordingStatus, replayBufferStatus] = data;
+                let [previewScene, programScene, streamingAndRecordingStatus, replayBufferStatus, studioModeStatus] = data;
 
                 this.processSceneChange(previewScene.name, previewScene.sources, 'preview');
                 this.processSceneChange(programScene.name, programScene.sources, 'program');
+
+                this.studioModeEnabled = studioModeStatus['studio-mode'];
                 
                 this.addAddress('{{STREAMING}}', '{{STREAMING}}');
                 this.addAddress('{{RECORDING}}', '{{RECORDING}}');
@@ -136,6 +141,10 @@ export class OBSSource extends TallyInput {
             this.sendTallyData();
         });
 
+        this.obsClient.on("StudioModeSwitched", (data) => {
+            this.studioModeEnabled = data['new-state'];
+        });
+
         this.obsClient.on('SourceCreated', (data) => {
             logger(`Source: ${source.name}  New source created`, 'info-quiet');
             this.addAddress(data.sourceName, data.sourceName);
@@ -152,6 +161,25 @@ export class OBSSource extends TallyInput {
             logger(`Source: ${source.name}  Source renamed`, 'info-quiet');
             this.renameAddress(data.previousName, data.newName, data.newName);
             this.saveSceneList();
+        });
+
+        this.obsClient.on("SceneItemVisibilityChanged", (data) => {
+            const parentSceneBusses = this.tally.value[data['scene-name']];
+            console.log(parentSceneBusses);
+            if (data['item-visible']) {
+                if (parentSceneBusses.includes("program") && !this.studioModeEnabled) {
+                    this.addBusToAddress(data['item-name'], "program");
+                }
+                if (parentSceneBusses.includes("preview")) {
+                    this.addBusToAddress(data['item-name'], "preview");
+                }
+            } else {
+                this.removeBusFromAddress(data['item-name'], "preview");
+                if (!this.studioModeEnabled) {
+                    this.removeBusFromAddress(data['item-name'], "program");
+                }
+            }
+            this.sendTallyData();
         });
 
         this.obsClient.on('SceneCollectionChanged', (data) => {
@@ -228,7 +256,7 @@ export class OBSSource extends TallyInput {
 
     private processSceneChange(sceneName: string, sources: ObsWebSocket.SceneItem[], bus: string) {
         if (sources) {
-            for (const source of sources) {
+            for (const source of sources.filter((s) => s.render)) {
                 this.addBusToAddress(source.name, bus);
                 if(source.type === "scene"){
                     let nested_scene = this.scenes.find(scene => scene.name === source.name);
