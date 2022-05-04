@@ -72,10 +72,10 @@ export class SocketService {
   public dataLoaded = new Promise<void>((resolve) => this._resolveDataLoadedPromise = resolve);
   private _resolveDataLoadedPromise!: () => void;
 
-  public newLogsSubject = new Subject();
-  public scrollTallyDataSubject = new Subject();
-  public scrollChatSubject = new Subject();
-  public closeModals = new Subject();
+  public newLogsSubject = new Subject<void>();
+  public scrollTallyDataSubject = new Subject<void>();
+  public scrollChatSubject = new Subject<void>();
+  public closeModals = new Subject<void>();
   public deviceStateChanged = new Subject<DeviceState[]>();
 
 
