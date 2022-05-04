@@ -59,7 +59,7 @@ export class OBSSource extends TallyInput {
             Promise.all([
                 previewScenePromise, programScenePromise, streamingAndRecordingStatusPromise, replayBufferStatusPromise
             ]).then((data) => {
-                let [previewScene, programScene, streamingAndRecordingStatus, replayBufferStatus]: any = data;
+                let [previewScene, programScene, streamingAndRecordingStatus, replayBufferStatus] = data;
 
                 this.processSceneChange(previewScene.sources, 'preview');
                 this.processSceneChange(programScene.sources, 'program');
@@ -70,7 +70,7 @@ export class OBSSource extends TallyInput {
                 this.addAddress('{{REPLAY}}', '{{REPLAY}}');
                 if(streamingAndRecordingStatus.streaming) this.setBussesForAddress("{{STREAMING}}", ["program"]);
                 if(streamingAndRecordingStatus.recording) {
-                    if(streamingAndRecordingStatus.recordingPaused) {
+                    if(streamingAndRecordingStatus["recording-paused"]) {
                         this.setBussesForAddress("{{RECORDING}}", ["preview"]);
                     } else {
                         this.setBussesForAddress("{{RECORDING}}", ["program"]);
