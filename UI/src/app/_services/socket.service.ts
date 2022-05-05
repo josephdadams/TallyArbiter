@@ -155,15 +155,13 @@ export class SocketService {
       this.logs.push(log);
       this.newLogsSubject.next();
     });
-    this.socket.on('tally_data', (sourceId: string, tallyObj: TSLTallyData) => {
+    this.socket.on('tally_data', (sourceId: string, address: string, busses: string[]) => {
       if (this.tallyData.length > 1000) {
         this.tallyData.shift();
       }
-      let tallyPreview = (tallyObj.tally1 === 1 ? 'True' : 'False');
-      let tallyProgram = (tallyObj.tally2 === 1 ? 'True' : 'False');
       this.tallyData.push({
         datetime: Date.now().toString(),
-        log: `Source: ${this.getSourceById(sourceId)?.name}  Address: ${tallyObj.address}  Label: ${tallyObj.label}  PVW: ${tallyPreview}  PGM: ${tallyProgram}`,
+        log: `Source: ${this.getSourceById(sourceId)?.name}  Address: ${address} ${busses.length === 0 ? "No busses" : `Bus${busses.length > 1 ? "ses" : ""}: ${busses.map((b) => `${b[0].toUpperCase()}${b.slice(1)}`)}`}`,
         type: 'info',
       });
       this.scrollTallyDataSubject.next();
