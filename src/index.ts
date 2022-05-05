@@ -1287,7 +1287,9 @@ function processSourceTallyData(sourceId: string, tallyData: SourceTallyData)
 {
 	writeTallyDataFile(tallyData);
 
-	io.to('settings').emit('tally_data', sourceId, tallyData);
+	for (const [address, busses] of Object.entries(tallyData)) {
+		io.to('settings').emit('tally_data', sourceId, address, busses);
+	}
 	
 	currentSourceTallyData = {
 		...currentSourceTallyData,
