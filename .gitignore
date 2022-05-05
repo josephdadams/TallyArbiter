@@ -139,3 +139,6 @@ env
 # don't include .DS_Store file and vscode workspace file
 .DS_Store
 TallyArbiter.code-workspace
+
+# Angular Cache
+UI/.angular/cache
