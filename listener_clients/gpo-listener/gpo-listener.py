@@ -283,14 +283,13 @@ def processTallyData():
                                 gpo["lastState"] = True
                                 powered_pins.append(gpo["pinNumber"])
         for device_state in device_states:
-            if len(device_state["sources"]) > 0:
-                for gpo_group in config_object["gpo_groups"]:
-                    if device_state["deviceId"] == gpo_group["deviceId"]:
-                        for gpo in gpo_group["gpos"]:
-                            if gpo["pinNumber"] not in powered_pins:
-                                #print("Turning off pin " + str(gpo["pinNumber"]))
-                                GPIO.output(gpo["pinNumber"], getOutputValue(False))
-                                gpo["lastState"] = False
+            for gpo_group in config_object["gpo_groups"]:
+                if device_state["deviceId"] == gpo_group["deviceId"]:
+                    for gpo in gpo_group["gpos"]:
+                        if gpo["pinNumber"] not in powered_pins:
+                            #print("Turning off pin " + str(gpo["pinNumber"]))
+                            GPIO.output(gpo["pinNumber"], getOutputValue(False))
+                            gpo["lastState"] = False
         #print(powered_pins, datetime.now().time())
 
 class TallyArbiterServerListener:
