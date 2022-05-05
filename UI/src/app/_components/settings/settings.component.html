@@ -53,6 +53,7 @@
                             <tr>
                                 <th>IP/Host</th>
                                 <th>Type</th>
+                                <th>Name</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -66,6 +67,7 @@
                                     </select>
                                 </td>
                                 <td>{{ getSourceTypeById(networkDiscovery.sourceId)?.label || "Source type not found" }}</td>
+                                <td>{{ networkDiscovery.name }}</td>
                                 <td><button class="btn btn-outline-dark" (click)="addSourceByNetworkDiscovery(networkDiscovery, sourceModal)"><i class="fas fa-plus"></i> Add</button></td>
                             </tr>
                         </tbody>

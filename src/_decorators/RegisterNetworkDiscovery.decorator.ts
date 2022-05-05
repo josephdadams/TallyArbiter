@@ -5,6 +5,10 @@ import { ListenerProviderType } from '../_types/ListenerProviderType';
 import { NetworkDiscovery } from '../_models/NetworkDiscovery';
 import { logger } from '..';
 
+interface DeviceData {
+    name: string;
+    addresses: string[];
+}
 
 function addDiscoveredDevice(service: NetworkDiscovery, cls: TallyInputType | ListenerProviderType) {
     let sourceId = Reflect.getMetadata("sourceId", cls);
@@ -13,7 +17,7 @@ function addDiscoveredDevice(service: NetworkDiscovery, cls: TallyInputType | Li
     RegisteredNetworkDiscoveryServices.next(RegisteredNetworkDiscoveryServices.value.concat(service));
 }
 
-export function RegisterNetworkDiscovery(callback: (addDiscoveredDevice) => void): (cls: TallyInputType | ListenerProviderType) => void {
+export function RegisterNetworkDiscovery(callback: (addDiscoveredDevice: (deviceData: DeviceData) => void) => void): (cls: TallyInputType | ListenerProviderType) => void {
     return (cls: TallyInputType | ListenerProviderType) => {
         callback((service: NetworkDiscovery) => { addDiscoveredDevice(service, cls); });
         return cls;
