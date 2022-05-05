@@ -14,6 +14,8 @@ export class OBSSource extends TallyInput {
     private scenes: ObsWebSocket.Scene[] = [];
     private isTransitionFinished = true;
     private currentTransitionFromScene: ObsWebSocket.Scene = undefined;
+    private studioModeEnabled: boolean;
+
     constructor(source: Source) {
         super(source);
         this.obsClient = new ObsWebSocket();
@@ -56,13 +58,16 @@ export class OBSSource extends TallyInput {
             let programScenePromise = this.obsClient.send('GetCurrentScene');
             let streamingAndRecordingStatusPromise = this.obsClient.send('GetStreamingStatus');
             let replayBufferStatusPromise = this.obsClient.send('GetReplayBufferStatus');
+            let studioModePromise = this.obsClient.send('GetStudioModeStatus');
             Promise.all([
-                previewScenePromise, programScenePromise, streamingAndRecordingStatusPromise, replayBufferStatusPromise
+                previewScenePromise, programScenePromise, streamingAndRecordingStatusPromise, replayBufferStatusPromise, studioModePromise
             ]).then((data) => {
-                let [previewScene, programScene, streamingAndRecordingStatus, replayBufferStatus]: any = data;
+                let [previewScene, programScene, streamingAndRecordingStatus, replayBufferStatus, studioModeStatus] = data;
 
-                this.processSceneChange(previewScene.sources, 'preview');
-                this.processSceneChange(programScene.sources, 'program');
+                this.processSceneChange(previewScene.name, previewScene.sources, 'preview');
+                this.processSceneChange(programScene.name, programScene.sources, 'program');
+
+                this.studioModeEnabled = studioModeStatus['studio-mode'];
                 
                 this.addAddress('{{STREAMING}}', '{{STREAMING}}');
                 this.addAddress('{{RECORDING}}', '{{RECORDING}}');
@@ -70,7 +75,7 @@ export class OBSSource extends TallyInput {
                 this.addAddress('{{REPLAY}}', '{{REPLAY}}');
                 if(streamingAndRecordingStatus.streaming) this.setBussesForAddress("{{STREAMING}}", ["program"]);
                 if(streamingAndRecordingStatus.recording) {
-                    if(streamingAndRecordingStatus.recordingPaused) {
+                    if(streamingAndRecordingStatus["recording-paused"]) {
                         this.setBussesForAddress("{{RECORDING}}", ["preview"]);
                     } else {
                         this.setBussesForAddress("{{RECORDING}}", ["program"]);
@@ -97,7 +102,7 @@ export class OBSSource extends TallyInput {
                 logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
                 if (data?.sources) {
                     this.removeBusFromAllAddresses("preview");
-                    this.processSceneChange(data?.sources, "preview");
+                    this.processSceneChange(data?.['scene-name'], data?.sources, "preview");
                     this.sendTallyData();
                 }
             }
@@ -107,7 +112,7 @@ export class OBSSource extends TallyInput {
             this.isTransitionFinished = false;
             let toScene = this.scenes.find(scene => scene.name === data["to-scene"]);
             if(toScene && data["type"] !== "cut_transition") { //Don't add the transition scene to program bus if it's a cut transition
-                this.processSceneChange(toScene.sources, "program");
+                this.processSceneChange(data?.['scene-name'], toScene.sources, "program");
                 this.sendTallyData();
             }
 
@@ -119,11 +124,11 @@ export class OBSSource extends TallyInput {
             let scene = this.scenes.find(scene => scene.name === data["to-scene"]);
             if (scene?.sources) {
                 this.removeBusFromAllAddresses("program");
-                this.processSceneChange(scene?.sources, "program");
+                this.processSceneChange(data?.['scene-name'], scene?.sources, "program");
                 logger(`Source: ${source.name}  Program Scene Changed.`, 'info-quiet');
 
                 this.removeBusFromAllAddresses("preview");
-                this.processSceneChange(this.currentTransitionFromScene?.sources, "preview"); //'TransitionEnd' has no "from-scene", so use currentTransitionFromScene
+                this.processSceneChange(data?.['scene-name'], this.currentTransitionFromScene?.sources, "preview"); //'TransitionEnd' has no "from-scene", so use currentTransitionFromScene
                 logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
 
                 this.sendTallyData();
@@ -134,6 +139,10 @@ export class OBSSource extends TallyInput {
         this.obsClient.on('SourceMuteStateChanged', (data) => {
             this.processMutedState(data.sourceName, data.muted);
             this.sendTallyData();
+        });
+
+        this.obsClient.on("StudioModeSwitched", (data) => {
+            this.studioModeEnabled = data['new-state'];
         });
 
         this.obsClient.on('SourceCreated', (data) => {
@@ -152,6 +161,25 @@ export class OBSSource extends TallyInput {
             logger(`Source: ${source.name}  Source renamed`, 'info-quiet');
             this.renameAddress(data.previousName, data.newName, data.newName);
             this.saveSceneList();
+        });
+
+        this.obsClient.on("SceneItemVisibilityChanged", (data) => {
+            const parentSceneBusses = this.tally.value[data['scene-name']];
+            console.log(parentSceneBusses);
+            if (data['item-visible']) {
+                if (parentSceneBusses.includes("program") && !this.studioModeEnabled) {
+                    this.addBusToAddress(data['item-name'], "program");
+                }
+                if (parentSceneBusses.includes("preview")) {
+                    this.addBusToAddress(data['item-name'], "preview");
+                }
+            } else {
+                this.removeBusFromAddress(data['item-name'], "preview");
+                if (!this.studioModeEnabled) {
+                    this.removeBusFromAddress(data['item-name'], "program");
+                }
+            }
+            this.sendTallyData();
         });
 
         this.obsClient.on('SceneCollectionChanged', (data) => {
@@ -226,18 +254,19 @@ export class OBSSource extends TallyInput {
         }
     }
 
-    private processSceneChange(sources: ObsWebSocket.SceneItem[], bus: string) {
+    private processSceneChange(sceneName: string, sources: ObsWebSocket.SceneItem[], bus: string) {
         if (sources) {
-            for (const source of sources) {
+            for (const source of sources.filter((s) => s.render)) {
                 this.addBusToAddress(source.name, bus);
                 if(source.type === "scene"){
                     let nested_scene = this.scenes.find(scene => scene.name === source.name);
                     if(nested_scene) {
-                        this.processSceneChange(nested_scene.sources, bus);
+                        this.processSceneChange(nested_scene.name, nested_scene.sources, bus);
                     }
                 }
             }
         }
+        this.addBusToAddress(sceneName, bus);
     }
 
     private connect() {
