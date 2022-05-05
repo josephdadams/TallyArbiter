@@ -9,7 +9,6 @@ import compression from 'compression';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import bodyParser from 'body-parser';
 import http from 'http';
-import bonjour from 'bonjour';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
 import { BehaviorSubject } from 'rxjs';
@@ -65,6 +64,7 @@ import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
 import { authenticate, validateAccessToken, getUsersList, addUser, editUser, deleteUser } from './_helpers/auth';
 import { Config } from './_models/Config';
+import { bonjour } from './_helpers/mdns';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
@@ -207,7 +207,7 @@ function initialSetup() {
 
 	logger('Main HTTP Server Complete.', 'info-quiet');
 
-	bonjour().publish({
+	bonjour.publish({
 		name: 'tallyarbiter-'+(currentConfig["uuid"] || "unknown"),
 		type: 'tally-arbiter',
 		port: 4455,
@@ -1287,7 +1287,9 @@ function processSourceTallyData(sourceId: string, tallyData: SourceTallyData)
 {
 	writeTallyDataFile(tallyData);
 
-	io.to('settings').emit('tally_data', sourceId, tallyData);
+	for (const [address, busses] of Object.entries(tallyData)) {
+		io.to('settings').emit('tally_data', sourceId, address, busses);
+	}
 	
 	currentSourceTallyData = {
 		...currentSourceTallyData,
