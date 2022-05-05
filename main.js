@@ -8,6 +8,11 @@ let server;
 let mainWindow;
 let trayIcon;
 
+const WindowProperties = {
+    width: 1260,
+    height: 850,
+}
+
 const gotTheLock = app.requestSingleInstanceLock();
 
 function processError(err) {
@@ -22,10 +27,10 @@ process.on('uncaughtException', processError);
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 850,
-        height: 1260,
-        minHeight: 850,
-        minWidth: 1260,
+        width: WindowProperties.width,
+        height: WindowProperties.height,
+        minWidth: WindowProperties.width,
+        minHeight: WindowProperties.height,
         webPreferences: {},
         show: false,
     });
