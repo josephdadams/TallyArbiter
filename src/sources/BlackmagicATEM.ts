@@ -98,7 +98,7 @@ export class BlackmagicATEMSource extends TallyInput {
         this.pgmList = new Set();
         this.prvList = new Set();
         for (let i = 0; i < state.video.mixEffects.length; i++) {
-            if (this.source.data.me_onair.includes((i + 1).toString())) {
+            if (this.source.data.me_onair?.includes((i + 1).toString())) {
                 listVisibleInputs("program", state, i).forEach(n => this.pgmList.add(n));
                 listVisibleInputs("preview", state, i).forEach(n => this.prvList.add(n));
             }
