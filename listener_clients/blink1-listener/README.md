@@ -16,7 +16,8 @@ You can buy a Blink(1) here:
 
 
 
-To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
+To [report a bug](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=bug&template=bug.yaml&title=%5BBug%5D%3A+) or open a [feature request](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=feature&template=feature.yaml&title=%5BFeature+Request%5D%3A+), please go to our [issues](https://github.com/josephdadams/TallyArbiter/issues/new/choose) page.
+If you would like to see more of @josephdadams's projects or send a word of encouragement his way, please visit [techministry.blog](https://techministry.blog/).
 
 ## Getting Started
 A lot of these instructions on getting started are available all over the internet. Some highlights are listed here that should cover it from a top-level:
@@ -75,4 +76,4 @@ The program should now launch every time the Pi boots up, and automatically conn
 
 # Improvements and Suggestions
 We are welcome to improvements and suggestions.
-You can submit issues and pull requests on this repo, or contact Joseph Adams through the *"Contact"* page on the [techministry blog](http://www.techministry.blog/contact).
+Feel free to contact us on Github Discussions or open a PR.
