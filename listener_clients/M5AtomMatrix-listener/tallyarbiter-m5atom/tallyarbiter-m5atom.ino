@@ -523,6 +523,7 @@ void socket_Flash() {
   }
   //Matrix Off
   drawNumber(icons[1], alloffcolor);
+  delay(100);
   //then resume normal operation
   evaluateMode();
 }
