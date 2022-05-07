@@ -1,6 +1,6 @@
 tasks:
   - name: Server
-    init: npm i -g npm redundancyjs; cd UI; npm i --ignore-scripts; npm run build; cd ..; npm i --ignore-scripts; gp sync-done server
+    init: npm i -g npm redundancyjs; cd UI; npm i --ignore-scripts; npm run build; cd ..; npm i --ignore-scripts; npm rebuild bcrypt; gp sync-done server
     command: npm start
   - name: Angular serve
     init: gp sync-await server

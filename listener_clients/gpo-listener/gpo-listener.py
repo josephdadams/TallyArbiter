@@ -13,89 +13,19 @@ import socketio
 import json
 import atexit
 import argparse
+#from datetime import datetime # Used for debugging device_states
 
-parser = argparse.ArgumentParser(description="Tally Arbiter Blink(1) Listener")
-parser.add_argument(
-    "--ip",
-    help="Hostname or IP address of the server. Adding this flag, MDNS discovery will be disabled.",
-)
-parser.add_argument(
-    "--port",
-    help="Port of the server. Adding this flag, MDNS discovery will be disabled.",
-)
-parser.add_argument(
-    "--config", default="config_gpo.json", help="Load with custom device id"
-)
-parser.add_argument(
-    "--disable-reassign",
-    action="store_true",
-    help="Disable device reassignmend from UI",
-)
-parser.add_argument(
-    "--disable-flash", action="store_true", help="Disable client listener flash"
-)
-parser.add_argument(
-    "--skip-gpio",
-    action="store_true",
-    help="Skip the Rpi.GPIO requirment and simulate it (only for debugging)",
-)
-args = parser.parse_args()
-
-configFileName = args.config
-
-server_config = []
-gpo_groups = []
-
-server_use_mdns = True
-server_uuid = False
-server_version = "3.0.0"
-
-device_states = []
-bus_options = []
-
-try:
-    if configFileName == "config_gpo.json" and not os.path.isfile("config_gpo.json"):
-        shutil.copyfile(configFileName + ".example", configFileName)
-        print("config_gpo.json does not exist, creating a new one.")
-
-    config_file = open(configFileName)
-    config = config_file.read()
-    config_file.close()
-    if config != "":
-        configJson = json.loads(config)
-        if not "output_invert" in configJson:
-            configJson["output_invert"] = False
-            with open("config_gpo.json", "w") as outfile:
-                json.dump(configJson, outfile, indent=4)
-        if not "clientUUID" in configJson:
-            configJson["clientUUID"] = str(uuid4())
-            with open("config_gpo.json", "w") as outfile:
-                json.dump(configJson, outfile, indent=4)
-        if not "server_config" in configJson:
-            configJson["server_config"] = {
-                "ip": "127.0.0.1",
-                "port": "4455",
-                "use_mdns": True,
-            }
-            with open("config_gpo.json", "w") as outfile:
-                json.dump(configJson, outfile, indent=4)
-        server_config = configJson["server_config"]
-        gpo_groups = configJson["gpo_groups"]
-    else:
-        print("Config data could not be loaded.")
-        exit(0)
-except IOError:
-    print("Config file could not be located.")
-    exit(0)
-
-if args.ip:
-    server_config["ip"] = args.ip
-    server_config["use_mdns"] = False
-
-if args.port:
-    server_config["port"] = args.port
-    server_config["use_mdns"] = False
-
+# Copied from https://svn.blender.org/svnroot/bf-blender/trunk/blender/build_files/scons/tools/bcolors.py
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 class GPIOsimulator:
     BCM = "BCM"
@@ -114,20 +44,110 @@ class GPIOsimulator:
         print("Setting GPIO pin {} to state {}".format(pin, state))
 
 
-try:
-    import RPi.GPIO as GPIO  # pyright: reportMissingImports=false
-except ImportError:
-    GPIO = GPIOsimulator()
-    if not args.skip_gpio:
-        print("Rpi.GPIO is not found. Please install it and try again.")
-        print(
-            "If you want to try this program simulating GPIO add the flag --skip-gpio"
-        )
-        exit(1)
+config_object = []
+
+server_connected = False
+
+device_states = []
+bus_options = []
+
+sio = socketio.Client()
+zeroconf = Zeroconf()
+
+
+def parseArgs():
+    global args
+    global configFileName
+    parser = argparse.ArgumentParser(description="Tally Arbiter GPO Listener")
+    parser.add_argument(
+        "--ip",
+        help="Hostname or IP address of the server. Adding this flag, MDNS discovery will be disabled.",
+    )
+    parser.add_argument(
+        "--port",
+        help="Port of the server. Adding this flag, MDNS discovery will be disabled.",
+    )
+    parser.add_argument(
+        "--config",
+        default="config_gpo.json",
+        help="Load config from other path"
+    )
+    parser.add_argument(
+        "--disable-reassign",
+        action="store_true",
+        help="Disable device reassignmend from UI",
+    )
+    parser.add_argument(
+        "--disable-flash",
+        action="store_true",
+        help="Disable client listener flash"
+    )
+    parser.add_argument(
+        "--skip-gpio",
+        action="store_true",
+        help="Skip the Rpi.GPIO requirement and simulate it (only for debugging)",
+    )
+    args = parser.parse_args()
+    configFileName = args.config
+
+def saveConfig():
+    global config_object
+    with open(configFileName, "w") as outfile:
+        json.dump(config_object, outfile, indent=4)
+
+def loadConfig():
+    global config_object
+    global GPIO
+
+    try:
+        if configFileName == "config_gpo.json" and not os.path.isfile("config_gpo.json"):
+            shutil.copyfile(configFileName + ".example", configFileName)
+            print("config_gpo.json does not exist, creating a new one.")
+
+        config_file = open(configFileName)
+        config = config_file.read()
+        config_file.close()
+        if config != "":
+            config_object = json.loads(config)
+            if not "output_invert" in config_object:
+                config_object["output_invert"] = False
+                saveConfig()
+            if not "clientUUID" in config_object:
+                config_object["clientUUID"] = str(uuid4())
+                saveConfig()
+            if not "server_config" in config_object:
+                config_object["server_config"] = {
+                    "ip": "127.0.0.1",
+                    "port": "4455",
+                    "use_mdns": True,
+                }
+                saveConfig()
+        else:
+            print(bcolors.FAIL + "Config data could not be loaded." + bcolors.ENDC)
+            exit(0)
+    except IOError:
+        print(bcolors.FAIL + "Config file could not be located." + bcolors.ENDC)
+        exit(0)
+
+    if args.ip:
+        config_object["server_config"]["ip"] = args.ip
+        config_object["server_config"]["use_mdns"] = False
+    if args.port:
+        config_object["server_config"]["port"] = args.port
+        config_object["server_config"]["use_mdns"] = False
+
+    try:
+        import RPi.GPIO as GPIO  # pyright: reportMissingImports=false
+    except ImportError:
+        GPIO = GPIOsimulator()
+        if not args.skip_gpio:
+            print(bcolors.FAIL + "Rpi.GPIO is not found. Please install it and try again." + bcolors.ENDC)
+            print("If you want to try this program simulating GPIO add the flag --skip-gpio")
+            exit(1)
 
 
 def getOutputValue(state):
-    if configJson["output_invert"]:
+    if config_object["output_invert"]:
         return not state
     else:
         return state
@@ -136,43 +156,35 @@ def setStates():
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
 
-    for gpo_group in gpo_groups:
+    for gpo_group in config_object["gpo_groups"]:
         for gpo in gpo_group["gpos"]:
             GPIO.setup(gpo["pinNumber"], GPIO.OUT)
             GPIO.output(gpo["pinNumber"], getOutputValue(False))
             gpo["lastState"] = False
-
-    atexit.register(GPO_off)
-
 
 def GPO_off():
     print("Setting all GPOs to low before exiting.")
-    for gpo_group in gpo_groups:
+    for gpo_group in config_object["gpo_groups"]:
         for gpo in gpo_group["gpos"]:
             GPIO.setup(gpo["pinNumber"], GPIO.OUT)
             GPIO.output(gpo["pinNumber"], getOutputValue(False))
             gpo["lastState"] = False
-
-
-# SocketIO Connections
-sio = socketio.Client()
-
-# ZeroConf instance
-zeroconf = Zeroconf()
 
 
 @sio.event
 def connect():
-    print("Connected to Tally Arbiter server")
+    global server_connected
+    server_connected = True
+    print(bcolors.OKGREEN + "Connected to Tally Arbiter server." + bcolors.ENDC)
     setStates()
-    for gpo_group in gpo_groups:
+    for gpo_group in config_object["gpo_groups"]:
         sio.emit(
             "listenerclient_connect",
             {  # start listening for the device
                 "deviceId": gpo_group["deviceId"],
                 "internalId": gpo_group["id"],
                 "listenerType": "gpo_"
-                + configJson["clientUUID"]
+                + config_object["clientUUID"]
                 + "_"
                 + gpo_group["id"],
                 "canBeReassigned": not args.disable_reassign,
@@ -181,46 +193,44 @@ def connect():
             },
         )
 
-
 @sio.event
 def connect_error(data):
-    print("Unable to connect to Tally Arbiter server.")
-
+    print(bcolors.FAIL + "Unable to connect to Tally Arbiter server." + bcolors.ENDC)
 
 @sio.event
 def disconnect():
-    print("Disconnected from Tally Arbiter server.")
-
+    global server_connected
+    server_connected = False
+    print(bcolors.WARNING + "Disconnected from Tally Arbiter server." + bcolors.ENDC)
 
 @sio.event
 def reconnect():
-    print("Reconnected to Tally Arbiter server.")
-
+    global server_connected
+    server_connected = True
+    print(bcolors.OKGREEN + "Reconnected to Tally Arbiter server." + bcolors.ENDC)
 
 @sio.on("error")
 def on_error(error):
     print(error)
 
-
 @sio.on("device_states")
 def on_device_states(data):
     global device_states
     device_states = data
+    #print(data, datetime.now().time())
     processTallyData()
-
 
 @sio.on("bus_options")
 def on_bus_options(data):
     global bus_options
     bus_options = data
 
-
 @sio.on("flash")
 def on_flash(gpoGroupId):
     print("Flash request received for gpo group {}".format(gpoGroupId))
     if args.disable_flash:
         return
-    for gpo_group in gpo_groups:
+    for gpo_group in config_object["gpo_groups"]:
         if str(gpo_group["id"]) == str(gpoGroupId):
             for gpo in gpo_group["gpos"]:
                 GPIO.output(gpo["pinNumber"], getOutputValue(True))
@@ -232,31 +242,26 @@ def on_flash(gpoGroupId):
                 GPIO.output(gpo["pinNumber"], getOutputValue(False))
                 time.sleep(0.5)
                 GPIO.output(gpo["pinNumber"], gpo["lastState"])
-    print()
-
 
 @sio.on("reassign")
 def on_reassign(oldDeviceId, newDeviceId, gpoGroupId):
     if args.disable_reassign:
         return
     print(
-        "Reassigning GPO Group "
+        bcolors.OKCYAN
+        + "Reassigning GPO Group "
         + gpoGroupId
         + " from DeviceID: "
         + oldDeviceId
         + " to Device ID: "
         + newDeviceId
+        + bcolors.ENDC
     )
-    print()
-    for gpo_group in gpo_groups:
+    for gpo_group in config_object["gpo_groups"]:
         if gpo_group["id"] == gpoGroupId:
             gpo_group["deviceId"] = newDeviceId
 
-    config_file = open(configFileName, "w")
-    configJson["server_config"] = server_config
-    configJson["gpo_groups"] = gpo_groups
-    config_file.write(json.dumps(configJson, indent=4))
-    config_file.close()
+    saveConfig()
 
 
 def getBusTypeById(busId):
@@ -264,28 +269,28 @@ def getBusTypeById(busId):
         if bus["id"] == busId:
             return bus["type"]
 
-
 def processTallyData():
     if len(bus_options) > 0:
         powered_pins = []
         for device_state in device_states:
             if len(device_state["sources"]) > 0:
-                for gpo_group in gpo_groups:
+                for gpo_group in config_object["gpo_groups"]:
                     if device_state["deviceId"] == gpo_group["deviceId"]:
                         for gpo in gpo_group["gpos"]:
                             if gpo["busType"] == getBusTypeById(device_state["busId"]):
-                                print("Turning on pin " + str(gpo["pinNumber"]))
+                                #print("Turning on pin " + str(gpo["pinNumber"]))
                                 GPIO.output(gpo["pinNumber"], getOutputValue(True))
                                 gpo["lastState"] = True
                                 powered_pins.append(gpo["pinNumber"])
-        for gpo_group in gpo_groups:
-            for gpo in gpo_group["gpos"]:
-                if gpo["pinNumber"] not in powered_pins:
-                    print("Turning off pin " + str(gpo["pinNumber"]))
-                    GPIO.output(gpo["pinNumber"], getOutputValue(False))
-                    gpo["lastState"] = False
-        print()
-
+        for device_state in device_states:
+            for gpo_group in config_object["gpo_groups"]:
+                if device_state["deviceId"] == gpo_group["deviceId"]:
+                    for gpo in gpo_group["gpos"]:
+                        if gpo["pinNumber"] not in powered_pins:
+                            #print("Turning off pin " + str(gpo["pinNumber"]))
+                            GPIO.output(gpo["pinNumber"], getOutputValue(False))
+                            gpo["lastState"] = False
+        #print(powered_pins, datetime.now().time())
 
 class TallyArbiterServerListener:
     def remove_service(self, zeroconf, type, name):
@@ -295,62 +300,58 @@ class TallyArbiterServerListener:
         pass
 
     def add_service(self, zeroconf, type, name):
-        global server_uuid
-        if server_uuid:
+        if server_connected:
             return
         info = zeroconf.get_service_info(type, name)
         server_uuid = info.properties.get(b"uuid").decode("utf-8")
         server_version = info.properties.get(b"version").decode("utf-8")
         if not server_version.startswith("3."):
             print(
-                "Found Tally Arbiter Server version "
+                bcolors.FAIL
+                + "Found Tally Arbiter Server version "
                 + server_version
-                + " but only version 3.x.x is supported."
+                + " but only version " + bcolors.BOLD + "3.x.x" + bcolors.ENDC + " is supported."
+                + bcolors.ENDC
             )
             print(
                 "Please update Tally Arbiter to latest version or use an older version of this client."
             )
             return
-        while 1:
-            try:
-                print("Tally Arbiter GPO Listener Running. Press CTRL-C to exit.")
-                print(
-                    "Attempting to connect to Tally Arbiter server: {}:{} (UUID {}, server version {})".format(
-                        info.parsed_addresses()[0], str(info.port), server_uuid, server_version
-                    )
-                )
-                sio.connect("http://" + info.parsed_addresses()[0] + ":" + str(info.port))
-                sio.wait()
-            except socketio.exceptions.ConnectionError:
-                time.sleep(15)
+        print("Found Tally Arbiter Server (version " + bcolors.OKCYAN + server_version + bcolors.ENDC + " server UUID " + bcolors.OKCYAN + server_uuid + bcolors.ENDC + ")")
+        server_connect("http://" + info.parsed_addresses()[0] + ":" + str(info.port))
 
+def server_connect(url):
+    try:
+        print("Attempting to connect to Tally Arbiter server: " + bcolors.OKCYAN + url + bcolors.ENDC)
+        sio.connect(url)
+        sio.wait()
+    except socketio.exceptions.ConnectionError:
+        print(bcolors.FAIL + "Connection error: retrying in 15 seconds." + bcolors.ENDC)
+        time.sleep(15)
+        server_connect(url)
 
-try:
-    if server_config["use_mdns"]:
-        zeroconf = Zeroconf()
-        listener = TallyArbiterServerListener()
-        browser = ServiceBrowser(zeroconf, "_tally-arbiter._tcp.local.", listener)
-        while True:
-            time.sleep(0.1)
-    else:
-        while 1:
-            try:
-                print("Tally Arbiter GPO Listener Running. Press CTRL-C to exit.")
-                print(
-                    "Attempting to connect to Tally Arbiter server: {}:{}".format(
-                        server_config["ip"], str(server_config["port"])
-                    )
-                )
-                sio.connect(
-                    "http://" + server_config["ip"] + ":" + str(server_config["port"])
-                )
-                sio.wait()
-            except socketio.exceptions.ConnectionError:
-                time.sleep(15)
-except KeyboardInterrupt:
-    print("Exiting Tally Arbiter GPO Listener.")
-    exit(0)
-except:
-    print("Unexpected error:", sys.exc_info()[0])
-    print("An error occurred internally.")
-    exit(0)
+def main():
+    global server_connected
+    print(bcolors.HEADER + "Tally Arbiter GPO Listener Running. Press CTRL-C to exit." + bcolors.ENDC)
+    parseArgs()
+    loadConfig()
+    atexit.register(GPO_off)
+    try:
+        if config_object["server_config"]["use_mdns"]:
+            zeroconf = Zeroconf()
+            listener = TallyArbiterServerListener()
+            browser = ServiceBrowser(zeroconf, "_tally-arbiter._tcp.local.", listener)
+            while True:
+                time.sleep(0.1)
+        else:
+            server_connect(str(config_object["server_config"]["ip"]), str(config_object["server_config"]["port"]))
+    except KeyboardInterrupt:
+        print(bcolors.OKBLUE + "Exiting Tally Arbiter GPO Listener." + bcolors.ENDC)
+        exit(0)
+    except:
+        print("Unexpected error:", sys.exc_info()[0])
+        print(bcolors.FAIL + "An error occurred internally. Please open an issue report on TallyArbiter Github." + bcolors.ENDC)
+        exit(0)
+
+if __name__ == "__main__":
+    main()

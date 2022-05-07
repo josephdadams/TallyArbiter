@@ -24,13 +24,16 @@ Preferences preferences;
 char tallyarbiter_host[40] = "TALLYARBITERSERVERIP";
 char tallyarbiter_port[6] = "4455";
 
-//Uncomment these lines if you want the client to use a static IP address. Default is DHCP.
+//Set staticIP to 1 if you want the client to use a static IP address. Default is DHCP.
 //Note that addresses entered here will need to be confirmed when WiFi Manager runs on client.
 //
 //local static IP config:
-//IPAddress stationIP = IPAddress(192, 168, 1, 195);
-//IPAddress stationGW = IPAddress(192, 168, 1, 1);
-//IPAddress stationMask = IPAddress(255, 255, 255, 0);
+#define staticIP 0
+#if staticIP == 1
+IPAddress stationIP = IPAddress(192, 168, 1, 195);
+IPAddress stationGW = IPAddress(192, 168, 1, 1);
+IPAddress stationMask = IPAddress(255, 255, 255, 0);
+#endif
 
 //Local Default Camera Number. Used for local display only - does not impact function. Zero results in a single dot displayed.
 int camNumber = 0;
@@ -337,7 +340,7 @@ void evaluateMode() {
     int b = colorNumber & 0xFF;
     
     if (actualType != "") {
-      int backgroundColor = 0x10000 * r + 0x100 * g + b;
+      int backgroundColor = 0x10000 * g + 0x100 * r + b;
       int currColor[] = {backgroundColor, numbercolor};
       logger("Current color: " + String(backgroundColor), "info");
       //logger("Current camNumber: " + String(camNumber), "info");
@@ -349,15 +352,15 @@ void evaluateMode() {
     }
 
     #if TALLY_EXTRA_OUTPUT
-    if (actualType == "preview") {
+    if (actualType == "\"program\"") {
       digitalWrite(led_program, HIGH);
       digitalWrite (led_preview, LOW);
       digitalWrite (led_aux, LOW);
-    } else if (actualType == "preview") {
+    } else if (actualType == "\"preview\"") {
       digitalWrite(led_program, LOW);
       digitalWrite (led_preview, HIGH);
       digitalWrite (led_aux, LOW);
-    } else if (actualType == "aux") {
+    } else if (actualType == "\"aux\"") {
       digitalWrite(led_program, LOW);
       digitalWrite (led_preview, LOW);
       digitalWrite (led_aux, HIGH);
@@ -609,10 +612,12 @@ void processTallyData() {
 
 void connectToNetwork() {
   // allow for static IP assignment instead of DHCP if stationIP is defined as something other than 0.0.0.0
+  #if staticIP == 1
   if (stationIP != IPAddress(0, 0, 0, 0))
   {
     wm.setSTAStaticIPConfig(stationIP, stationGW, stationMask); // optional DNS 4th argument 
   }
+  #endif
   
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
 
@@ -806,7 +811,7 @@ void setup() {
   ArduinoOTA.begin();
 
   #if TALLY_EXTRA_OUTPUT
-  // Enable interal led for program trigger
+  // Enable external led for program trigger
   pinMode(led_program, OUTPUT);
   digitalWrite(led_program, HIGH);
   pinMode(led_preview, OUTPUT);
@@ -845,6 +850,11 @@ void loop(){
     logger("Cam Number: " + String(camNumber), "info-quiet");
     logger("---------------------------------", "info-quiet");
     logger("", "info-quiet");
+  }
+    
+  if (M5.Btn.pressedFor(5000)){
+    wm.resetSettings();
+    ESP.restart();
   }
 
   // handle reconnecting if disconnected

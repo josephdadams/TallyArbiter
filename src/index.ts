@@ -9,7 +9,6 @@ import compression from 'compression';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import bodyParser from 'body-parser';
 import http from 'http';
-import bonjour from 'bonjour';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
 import { BehaviorSubject } from 'rxjs';
@@ -65,6 +64,7 @@ import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
 import { authenticate, validateAccessToken, getUsersList, addUser, editUser, deleteUser } from './_helpers/auth';
 import { Config } from './_models/Config';
+import { bonjour } from './_helpers/mdns';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
@@ -72,9 +72,9 @@ const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'deve
 if(devmode) logger('TallyArbiter running in Development Mode.', 'info');
 
 //Rate limiter configurations
-const maxWrongAttemptsByIPperDay = 100;
-const maxConsecutiveFailsByUsernameAndIP = 10;
-const maxPageRequestPerMinute = 100;
+const maxWrongAttemptsByIPperDay = 1000;
+const maxConsecutiveFailsByUsernameAndIP = 200;
+const maxPageRequestPerMinute = 1000;
 const limiterSlowBruteByIP = new RateLimiterMemory({
   keyPrefix: 'login_fail_ip_per_day',
   points: maxWrongAttemptsByIPperDay,
@@ -207,7 +207,7 @@ function initialSetup() {
 
 	logger('Main HTTP Server Complete.', 'info-quiet');
 
-	bonjour().publish({
+	bonjour.publish({
 		name: 'tallyarbiter-'+(currentConfig["uuid"] || "unknown"),
 		type: 'tally-arbiter',
 		port: 4455,
@@ -249,10 +249,9 @@ function initialSetup() {
 
 		socket.on('login', (username: string, password: string) => {
 			authenticate(username, password).then((result) => {
-                socket.emit('login_result', true); //old response, for compatibility with old UI clients
 				socket.emit('login_response', { loginOk: true, message: "", accessToken: result.access_token });
 			}).catch((error) => {
-				logger(`User ${username} (ip addr ${ipAddr}) has attempted a login: wrong username or password.`);
+				logger(`User ${username} (ip addr ${ipAddr}) has attempted a login (${error})`);
                 //wrong credentials
 				Promise.all([
 					limiterConsecutiveFailsByUsernameAndIP.consume(ipAddr),
@@ -261,14 +260,12 @@ function initialSetup() {
 					//rate limits not exceeded
 					let points = values[0].remainingPoints;
 					let message = "Wrong username or password!";
-					if(points < 4) {
+					if(points < 10) {
 						message += " Remaining attemps:"+points;
 					}
-					socket.emit('login_result', false); //old response, for compatibility with old UI clients
 					socket.emit('login_response', { loginOk: false, message: message, access_token: "" });
 				}).catch((error) => {
 					//rate limits exceeded
-                    socket.emit('login_result', false); //old response, for compatibility with old UI clients
                     let retrySecs = 1;
 					try{
 						retrySecs = Math.round(error.msBeforeNext / 1000) || 1;
@@ -330,6 +327,11 @@ function initialSetup() {
 			canBeFlashed (bool)
 			supportsChat (bool)
 			*/
+
+			if(typeof obj !== 'object' && obj !== null) {
+				logger(`Received JSON object: ${obj}`, 'info-quiet'); //Log the raw JSON to console
+				obj = JSON.parse(String(obj)); //Re-parse JSON
+		  }
 
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
@@ -1285,7 +1287,9 @@ function processSourceTallyData(sourceId: string, tallyData: SourceTallyData)
 {
 	writeTallyDataFile(tallyData);
 
-	io.to('settings').emit('tally_data', sourceId, tallyData);
+	for (const [address, busses] of Object.entries(tallyData)) {
+		io.to('settings').emit('tally_data', sourceId, address, busses);
+	}
 	
 	currentSourceTallyData = {
 		...currentSourceTallyData,
