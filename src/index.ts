@@ -915,7 +915,7 @@ function initialSetup() {
 
 	logger('Socket.IO Setup Complete.', 'info-quiet');
 
-	logger('Starting VMix Emulation Service.', 'info-quiet');
+	logger('Starting Listener Providers.', 'info-quiet');
 
 	vMixEmulator = new VMixEmulator();
 	tslListenerProvider = new TSLListenerProvider();
@@ -927,6 +927,7 @@ function initialSetup() {
 			UpdateSockets(type);
 			UpdateCloud(type);
 		});
+		provider.start();
 	}
 
 	if (cloud_destinations.length > 0) {
