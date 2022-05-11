@@ -11,8 +11,8 @@ import { Device } from "../_models/Device";
 export class TSLListenerProvider extends ListenerProvider {
     public tsl_clients: TSLClient[] = [];
 
-    constructor() {
-        super();
+    public start() {
+        logger('Starting TSL Listener Service.', 'info-quiet');
         logger(`Initiating ${currentConfig.tsl_clients.length} TSL Client Connections.`, 'info');
         for (const tslClient of currentConfig.tsl_clients) {
             logger(`TSL Client: ${tslClient.ip}:${tslClient.port} (${tslClient.transport})`, 'info-quiet');
