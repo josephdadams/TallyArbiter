@@ -928,6 +928,13 @@
         </ng-container>
 
         <div class="mb-3">
+            <label for="cloudProtocol" class="form-label">Protocol</label>
+            <select class="form-select" id="cloudProtocol" [(ngModel)]="currentCloudDestination.protocol">
+                <option [ngValue]="'http'">http</option>
+                <option [ngValue]="'https'">https</option>
+            </select>
+        </div>
+        <div class="mb-3">
             <label for="cloudIP" class="form-label">Host</label>
             <input type="text" class="form-control" id="cloudHost" [(ngModel)]="currentCloudDestination.host" />
         </div>

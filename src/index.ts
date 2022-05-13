@@ -1202,6 +1202,12 @@ function loadConfig() { // loads the JSON data from the config file to memory
 
 		if (currentConfig.cloud_destinations) {
 			cloud_destinations = currentConfig.cloud_destinations;
+			cloud_destinations.forEach((d) => {
+				if(!d.protocol) {
+					d.protocol = 'http';
+					SaveConfig();
+				}
+			});
 			logger('Tally Arbiter Cloud Destinations loaded.', 'info');
 		}
 		else {
@@ -1478,6 +1484,7 @@ function StartCloudDestination(cloudDestinationId) {
     let cloudDestinationSocketObj = {
         id: cloudDestinationId,
         socket: null,
+		protocol: cloud_destination.protocol,
         host: cloud_destination.host,
         port: cloud_destination.port,
         key: cloud_destination.key,
@@ -1486,12 +1493,14 @@ function StartCloudDestination(cloudDestinationId) {
 
 	for (let i = 0; i < cloud_destinations_sockets.length; i++) {
 		if (cloud_destinations_sockets[i].id === cloudDestinationId) {
-			logger(`Cloud Destination: ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port}  Initiating Connection.`, 'info-quiet');
+			let cloud_destination_uri = `${cloud_destinations_sockets[i].protocol}://${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port}`;
+	
+			logger(`Cloud Destination: ${cloud_destination_uri}  Initiating Connection.`, 'info-quiet');
 
-			cloud_destinations_sockets[i].socket = ioClient('http://' + cloud_destinations_sockets[i].host + ':' + cloud_destinations_sockets[i].port, {reconnection: true});
+			cloud_destinations_sockets[i].socket = ioClient(cloud_destination_uri, {reconnection: true});
 
 			cloud_destinations_sockets[i].socket.on('connect', () =>  { 
-				logger(`Cloud Destination: ${cloud_destinations_sockets[i].host}:${cloud_destinations_sockets[i].port} Connected. Sending Initial Data.`, 'info-quiet');
+				logger(`Cloud Destination: ${cloud_destination_uri} Connected. Sending Initial Data.`, 'info-quiet');
 				cloud_destinations_sockets[i].connected = true;
 				SetCloudDestinationStatus(cloud_destinations_sockets[i].id, 'connected');
 				cloud_destinations_sockets[i].socket.emit('cloud_client', cloud_destinations_sockets[i].key);
@@ -2022,6 +2031,9 @@ function TallyArbiter_Delete_Bus_Option(obj: Manage): ManageResponse {
 function TallyArbiter_Add_Cloud_Destination(obj: Manage): ManageResponse {
 	let cloudObj = obj.cloudDestination;
 	cloudObj.id = uuidv4();
+	if(!cloudObj.protocol) {
+		cloudObj.protocol = 'http';
+	}
 	cloud_destinations.push(cloudObj);
 
 	logger(`Cloud Destination Added: ${cloudObj.host}:${cloudObj.port}`, 'info');

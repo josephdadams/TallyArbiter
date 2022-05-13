@@ -1,5 +1,6 @@
 export interface CloudDestination {
     connected: boolean;
+    protocol: string;
     host: string;
     id: string;
     key: string;
