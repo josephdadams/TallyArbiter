@@ -28,10 +28,20 @@ Used build flags here:
         <td>generic-embedded-listener</td>
       </tr>
       <tr>
+        <td>MENU_BUTTON_PIN</td>
+        <td>Click once to show info screen. Double click to show settings page (and enable configuration portal). Long click (then confirm long-pressing again) to reset device settings.</td>
+        <td>35</td>
+      </tr>
+      <tr>
+        <td>SLEEP_BUTTON_PIN</td>
+        <td>Click once to start "deep sleep mode". Long press to restart.</td>
+        <td>0</td>
+      </tr>
+      <tr>
         <td>RESET_DURING_BOOT_IF_BUTTON_PRESSED</td>
         <td>
           Reset the device settings if device button pressed during the boot of
-          the device (like accessing PC boot menu)
+          the device (like accessing PC boot menu). MENU_BUTTON_PIN should be defined for this to be enabled.
         </td>
         <td>true</td>
       </tr>
