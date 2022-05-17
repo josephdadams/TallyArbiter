@@ -88,6 +88,16 @@ export function readConfig(): void {
         ...clone(ConfigDefaults),
         ...loadedConfig,
     };
+	if(!loadedConfig.uuid || typeof loadedConfig.uuid !== "string") {
+		logger('Adding an uuid identifier to this server for using MDNS.', 'info-quiet');
+		currentConfig.uuid = uuidv4();
+		SaveConfig(); //uuid added if missing on config save
+	}
+	if(!loadedConfig.security.jwt_private_key || typeof loadedConfig.security.jwt_private_key !== "string") {
+		logger('Adding a private key for JWT authentication.', 'info-quiet');
+		currentConfig.security.jwt_private_key = randomBytes(256).toString('base64');
+		SaveConfig(); //uuid added if missing on config save
+	}
 	if(!loadedConfig.users || typeof loadedConfig.users !== "object" || loadedConfig.users.length === 0) {
 		logger('Migrating user configs to the new format.', 'info-quiet');
 		currentConfig.users = [];
@@ -106,16 +116,6 @@ export function readConfig(): void {
 		delete currentConfig.security.username_settings;
 		delete currentConfig.security.password_settings;
 		SaveConfig();
-	}
-	if(!loadedConfig.uuid || typeof loadedConfig.uuid !== "string") {
-		logger('Adding an uuid identifier to this server for using MDNS.', 'info-quiet');
-		currentConfig.uuid = uuidv4();
-		SaveConfig(); //uuid added if missing on config save
-	}
-	if(!loadedConfig.security.jwt_private_key || typeof loadedConfig.security.jwt_private_key !== "string") {
-		logger('Adding a private key for JWT authentication.', 'info-quiet');
-		currentConfig.security.jwt_private_key = randomBytes(256).toString('base64');
-		SaveConfig(); //uuid added if missing on config save
 	}
 }
 
