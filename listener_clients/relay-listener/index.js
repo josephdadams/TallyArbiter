@@ -258,7 +258,7 @@ function getBusTypeById(busId) {
 
 function getRelayGroupById(deviceId) {
 	let groupIndex;
-	for (i = 0; i <= relay_groups.length; i++) {
+	for (i = 0; i < relay_groups.length; i++) {
 		if (relay_groups[i].deviceId == deviceId) {
 			groupIndex = i;
 			break;
@@ -277,7 +277,7 @@ function ProcessTallyData(states) {
 			if (device_state.sources.length > 0) {
 				logger(device_state.deviceId + " " + getBusTypeById(device_state.busId), 'debug');
 				let relay_group = getRelayGroupById(device_state.deviceId);
-				if (device_state.deviceId === relay_group.deviceId) {
+				if (typeof relay_group !== 'undefined' && device_state.deviceId === relay_group.deviceId) {
 					relay_group.relays.forEach((currentRelay) => {
 						if (currentRelay.busType === getBusTypeById(device_state.busId)) {
 							logger("Relay " + currentRelay.relayNumber + " is on", 'debug');
