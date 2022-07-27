@@ -15,7 +15,8 @@ export class VMixEmulator extends ListenerProvider {
     public vmix_clients = []; // Clients currently connected to the VMix Emulator
     public vmix_client_data = []; // array of connected Vmix clients
 
-    public startVMixEmulator() {
+    public start() {
+        logger('Starting VMix Emulation Service.', 'info-quiet');
         this.server = net.createServer();
 
         this.server.on('connection', (socket) => this.handleConnection(socket));
