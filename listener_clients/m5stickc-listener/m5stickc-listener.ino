@@ -164,11 +164,11 @@ void setup() {
   #if TALLY_EXTRA_OUTPUT
   // Enable interal led for program trigger
   pinMode(led_program, OUTPUT);
-  digitalWrite(led_program, HIGH);
+  digitalWrite(led_program, LOW);
   pinMode(led_preview, OUTPUT);
-  digitalWrite(led_preview, HIGH);
+  digitalWrite(led_preview, LOW);
   pinMode(led_aux, OUTPUT);
-  digitalWrite(led_aux, HIGH);
+  digitalWrite(led_aux, LOW);
   #endif
   connectToServer();
 
@@ -616,24 +616,23 @@ void evaluateMode() {
     }
     
     #if TALLY_EXTRA_OUTPUT
-    if (actualType == "preview") {
-      digitalWrite(led_program, HIGH);
-      digitalWrite (led_preview, LOW);
-      digitalWrite (led_aux, LOW);
-    } else if (actualType == "preview") {
-      digitalWrite(led_program, LOW);
+    if (actualType == "\"program\"") {
+      digitalWrite (led_program, LOW);
       digitalWrite (led_preview, HIGH);
-      digitalWrite (led_aux, LOW);
-    } else if (actualType == "aux") {
-      digitalWrite(led_program, LOW);
+      digitalWrite (led_aux, HIGH);
+    } else if (actualType == "\"preview\"") {
+      digitalWrite (led_program, HIGH);
       digitalWrite (led_preview, LOW);
       digitalWrite (led_aux, HIGH);
-    } else {
-      digitalWrite(led_program, LOW);
-      digitalWrite (led_preview, LOW);
+    } else if (actualType == "\"aux\"") {
+      digitalWrite (led_program, HIGH);
+      digitalWrite (led_preview, HIGH);
       digitalWrite (led_aux, LOW);
+    } else {
+      digitalWrite (led_program, HIGH);
+      digitalWrite (led_preview, HIGH);
+      digitalWrite (led_aux, HIGH);
     }
-    #endif
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
     Serial.print(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));
 
