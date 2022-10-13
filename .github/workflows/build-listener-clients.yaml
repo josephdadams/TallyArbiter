@@ -17,6 +17,7 @@ jobs:
         libraries: |
           - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.2.4.zip
           - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.0.4.zip
+          - source-url: https://github.com/espressif/arduino-esp32/archive/refs/tags/2.0.5/esp32-2.0.5.zip
           - name: WebSockets
           - name: WiFiManager
           - name: MultiButton
