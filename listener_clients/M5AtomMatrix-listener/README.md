@@ -4,7 +4,8 @@ To learn more about the Tally Arbiter project, [click here](http://github.com/jo
   
 It is not sold, authorized, or associated with any other company or product.
   
-To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
+To [report a bug](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=bug&template=bug.yaml&title=%5BBug%5D%3A+) or open a [feature request](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=feature&template=feature.yaml&title=%5BFeature+Request%5D%3A+), please go to our [issues](https://github.com/josephdadams/TallyArbiter/issues/new/choose) page.
+If you would like to see more of @josephdadams's projects or send a word of encouragement his way, please visit [techministry.blog](https://techministry.blog/).
   
 You can buy an M5 ATOM Matrix here:
 https://m5stack.com/collections/m5-atom/products/atom-matrix-esp32-development-kit
@@ -64,4 +65,4 @@ If you receive an error similar to `ImportError: No module named serial` referen
 
 # Improvements and Suggestions
 We are welcome to improvements and suggestions.
-You can submit issues and pull requests on this repo, or contact Joseph Adams through the *"Contact"* page on the [techministry blog](http://www.techministry.blog).
+Feel free to contact us on Github Discussions or open a PR.
