@@ -57,6 +57,7 @@ export class OBSSource extends TallyInput {
                             source: source.name
                         }).then((data) => {
                             this.processMutedState(data.name, data.muted);
+                            this.sendTallyData();
                         });
                     }
                 }
@@ -133,11 +134,16 @@ export class OBSSource extends TallyInput {
         this.obsClient.on('TransitionEnd', (data) => {
             let scene = this.scenes.find(scene => scene.name === data["to-scene"]);
             if (scene?.sources) {
-                this.removeBusFromAllAddresses("program");
+                this.scenes.forEach((scene) => {
+                    this.setBussesForAddress(scene.name, []);
+                    scene.sources.forEach((scene) => {
+                        this.setBussesForAddress(scene.name, []);
+                    });
+                });
+
                 this.processSceneChange(this.currentTransitionToScene['name'], this.currentTransitionToScene?.sources, "program");
                 logger(`Source: ${source.name}  Program Scene Changed.`, 'info-quiet');
 
-                this.removeBusFromAllAddresses("preview");
                 this.processSceneChange(this.currentTransitionFromScene['name'], this.currentTransitionFromScene?.sources, "preview"); //'TransitionEnd' has no "from-scene", so use currentTransitionFromScene
                 logger(`Source: ${source.name}  Preview Scene Changed.`, 'info-quiet');
 
