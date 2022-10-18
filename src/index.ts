@@ -1469,7 +1469,7 @@ function TallyArbiter_Manage(obj: Manage, access_token: string = ""): Promise<Ma
 function StopConnection(sourceId: string) {
 	const source = sources.find((s) => s.id == sourceId);
 	logger(`Source: ${source.name} Closing ${TallyInputs[source.sourceTypeId].label} connection.`, 'info-quiet');
-	SourceClients[sourceId].exit();
+	SourceClients[sourceId]?.exit();
 }
 
 function StartCloudDestination(cloudDestinationId) {
