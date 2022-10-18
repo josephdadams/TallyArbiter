@@ -27,7 +27,7 @@ export class OBSSource extends TallyInput {
     private studioModeEnabled: boolean;
 
     private obsClient5: ObsWebSocket5;
-    private scenes5: OBSResponseTypes['GetSceneList']['scenes'] = [];
+    private scenes5: string[] = [];
     private obsSupportedRpcVersion = 1;
 
     constructor(source: Source) {
@@ -359,8 +359,7 @@ export class OBSSource extends TallyInput {
 
         this.obsClient5.on("CurrentPreviewSceneChanged", (data) => {
             this.scenes5.forEach((scene) => {
-                let sceneName = (scene as any).sceneName;
-                if(sceneName !== data.sceneName) this.removeBusFromAddress(sceneName, "preview");
+                if(scene !== data.sceneName) this.removeBusFromAddress(scene, "preview");
             });
             this.setBussesForAddress(data.sceneName, ["preview"]);
             this.sendTallyData();
@@ -368,11 +367,29 @@ export class OBSSource extends TallyInput {
         
         this.obsClient5.on("CurrentProgramSceneChanged", (data) => {
             this.scenes5.forEach((scene) => {
-                let sceneName = (scene as any).sceneName;
-                if(sceneName !== data.sceneName) this.removeBusFromAddress(sceneName, "program");
+                if(scene !== data.sceneName) this.removeBusFromAddress(scene, "program");
             });
             this.setBussesForAddress(data.sceneName, ["program"]);
             this.sendTallyData();
+        });
+
+        this.obsClient5.on("SceneCreated", (data) => {
+            this.saveSceneList5();
+        });
+
+        this.obsClient5.on("SceneRemoved", (data) => {
+            this.scenes5 = this.scenes5.filter((scene) => scene !== data.sceneName);
+            this.removeAddress(data.sceneName);
+        });
+
+        this.obsClient5.on("SceneNameChanged", (data) => {
+            this.scenes5 = this.scenes5.map((scene) => {
+                if (scene === data.oldSceneName) {
+                    return data.sceneName;
+                }
+                return scene;
+            });
+            this.renameAddress(data.oldSceneName, data.sceneName, data.sceneName);
         });
 
         this.obsClient5.on("StreamStateChanged", (data) => {
@@ -427,22 +444,22 @@ export class OBSSource extends TallyInput {
 
     private saveSceneList5() {
         this.obsClient5.call('GetSceneList').then((data) => {
-            data.scenes.forEach((scene) => {
-                let sceneName = (scene as any).sceneName;
+            let newScenes = data.scenes.flatMap((scene) => (scene.sceneName as string));
+            newScenes.forEach((scene) => {
                 if (!this.scenes5.includes(scene)) {
-                    this.addAddress(sceneName, sceneName);
+                    this.addAddress(scene, scene);
                 }
-                if(sceneName === data.currentPreviewSceneName) {
-                    this.setBussesForAddress(sceneName, ["preview"]);
+                if(scene === data.currentPreviewSceneName) {
+                    this.setBussesForAddress(scene, ["preview"]);
                 }
-                if(sceneName === data.currentProgramSceneName) {
-                    this.setBussesForAddress(sceneName, ["program"]);
+                if(scene === data.currentProgramSceneName) {
+                    this.setBussesForAddress(scene, ["program"]);
                 }
-                if(sceneName != data.currentPreviewSceneName && sceneName != data.currentProgramSceneName) {
-                    this.setBussesForAddress(sceneName, []);
+                if(scene != data.currentPreviewSceneName && scene != data.currentProgramSceneName) {
+                    this.setBussesForAddress(scene, []);
                 }
             });
-            this.scenes5 = data.scenes;
+            this.scenes5 = newScenes;
             this.sendTallyData();
         });
     }
