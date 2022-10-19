@@ -19,12 +19,14 @@ import { TallyInput } from './_Source';
 export class OBSSource extends TallyInput {
     private obsProtocolVersion = 4;
     private currentSceneCollectionName = "";
+    private audioInputs: string[] = [];
 
     private obsClient4: ObsWebSocket4;
     private scenes4: ObsWebSocket4.Scene[] = [];
     private isTransitionFinished = true;
     private currentTransitionFromScene: ObsWebSocket4.Scene = undefined;
     private currentTransitionToScene: ObsWebSocket4.Scene = undefined;
+    private sourceTypeIdsWithAudio: string[] = [];
     private studioModeEnabled: boolean;
 
     private obsClient5: ObsWebSocket5;
@@ -58,25 +60,16 @@ export class OBSSource extends TallyInput {
             let sourceTypesListPromise = this.obsClient4.send('GetSourceTypesList');
             Promise.all([sourceTypesListPromise, sourcesListPromise]).then((data) => {
                 let [sourceTypesList, sourcesList]: any = data;
-                let sourceTypesWithAudio: string[] = [];
 
                 sourceTypesList.types.forEach((type) => {
                     if (type.caps.hasAudio) {
-                        sourceTypesWithAudio.push(type.typeId);
+                        this.sourceTypeIdsWithAudio.push(type.typeId);
                     }
                 });
 
                 if (!Array.isArray(sourcesList.sources)) return;
                 for (const source of sourcesList.sources) {
-                    this.addAddress(source.name, source.name);
-                    if (sourceTypesWithAudio.includes(source.typeId)) {
-                        this.obsClient4.send('GetMute', {
-                            source: source.name
-                        }).then((data) => {
-                            this.processMutedState(data.name, data.muted);
-                            this.sendTallyData();
-                        });
-                    }
+                    this.addAudioInput(source);
                 }
             });
 
@@ -180,22 +173,53 @@ export class OBSSource extends TallyInput {
 
         this.obsClient4.on('SourceCreated', (data) => {
             logger(`Source: ${this.source.name}  New source created (${data.sourceName})`, 'info-quiet');
-            this.saveSceneList4();
+            if(data.sourceType === "input" && this.sourceTypeIdsWithAudio.includes(data.sourceKind)) {
+                this.addAudioInput({
+                    name: data.sourceName,
+                    typeId: data.sourceKind
+                });
+            } else {
+                this.addAddress(data.sourceName, data.sourceName);
+            }
+            this.obsClient4.send('GetSceneList').then((scenesList) => {
+                scenesList.scenes.forEach((scene, sceneIndex) => {
+                    scene.sources.forEach((source) => {
+                        if(source.name === data.sourceName && this.scenes4[sceneIndex]) {
+                            this.scenes4[sceneIndex].sources.push(source);
+                        }
+                    });
+                });
+            });
         });
 
         this.obsClient4.on('SourceDestroyed', (data) => {
             logger(`Source: ${this.source.name}  Deleted source: ${data.sourceName}`, 'info-quiet');
-            this.scenes4 = this.scenes4.filter((scene) => scene.name !== data.sourceName);
+            if(this.audioInputs.find((input) => input === data.sourceName)) {
+                this.audioInputs = this.audioInputs.filter((input) => input !== data.sourceName);
+            }
+            this.scenes4.forEach((source, index) => {
+                this.scenes4[index].sources = this.scenes4[index].sources.filter((source) => source.name !== data.sourceName)
+            });
             this.removeAddress(data.sourceName);
         });
 
         this.obsClient4.on('SourceRenamed', (data) => {
             logger(`Source: ${this.source.name}  Source ${data.previousName} renamed in ${data.newName}`, 'info-quiet');
-            this.scenes4 = this.scenes4.map((scene) => {
-                if (scene.name === data.previousName) {
-                    return {...scene, name: data.newName};
-                }
-                return scene;
+            if(this.audioInputs.find((input) => input === data.previousName)) {
+                this.audioInputs = this.audioInputs.map((input) => {
+                    if (input === data.previousName) {
+                        return data.newName;
+                    }
+                    return input;
+                });
+            }
+            this.scenes4.forEach((source, index) => {
+                this.scenes4[index].sources = this.scenes4[index].sources.map((source) => {
+                    if (source.name === data.previousName) {
+                        return {...source, name: data.newName};
+                    }
+                    return source;
+                });
             });
             this.renameAddress(data.previousName, data.newName, data.newName);
         });
@@ -352,6 +376,10 @@ export class OBSSource extends TallyInput {
                 },
                 {
                     requestType: 'GetSceneCollectionList'
+                },
+                {
+                    requestType: 'GetInputList',
+                    requestData: {}
                 }
             ]).then((results) => {
                 this.addAddress('{{STREAMING}}', '{{STREAMING}}');
@@ -376,6 +404,16 @@ export class OBSSource extends TallyInput {
                 this.sendTallyData();
 
                 this.currentSceneCollectionName = (results[4].responseData as OBSResponseTypes['GetSceneCollectionList']).currentSceneCollectionName;
+
+                //Thanks mooff for the workaround https://discord.com/channels/715691013825364120/853448696061755470/1021847398072455288
+                const inputs = (results[5].responseData as OBSResponseTypes['GetInputList']).inputs;
+                Promise.allSettled(inputs.map(({ inputName }) => this.obsClient5.call('GetInputVolume', { inputName: (inputName as string) }))).then((hasAudioChecks) => {
+                    this.audioInputs = inputs.filter((_, i) => hasAudioChecks[i].status == 'fulfilled').map((input) => { return (input.inputName as string) });
+                    
+                    this.audioInputs.forEach((input) => {
+                        this.addAudioInput(input);
+                    });
+                });
 
                 this.saveSceneList5();
             });
@@ -435,6 +473,45 @@ export class OBSSource extends TallyInput {
                 });
                 if(!isGroup) this.renameAddress(data.oldSceneName, data.sceneName, data.sceneName);
             });
+        });
+
+        this.obsClient5.on("InputCreated", (data) => {
+            this.obsClient5.call('GetInputVolume', { inputName: data.inputName })
+              .then((response) => {
+                this.addAudioInput(data.inputName);
+              })
+              .catch((err) => {});
+        });
+
+        this.obsClient5.on("InputRemoved", (data) => {
+            if(this.audioInputs.includes(data.inputName)) {
+                logger(`Source: ${this.source.name}  Removed audio input ${data.inputName}`, 'info-quiet');
+                this.audioInputs = this.audioInputs.filter((input) => input !== data.inputName);
+                this.removeAddress(data.inputName);
+            }
+        });
+
+        this.obsClient5.on("InputNameChanged", (data) => {
+            if(this.audioInputs.includes(data.oldInputName)) {
+                logger(`Source: ${this.source.name}  Audio input ${data.oldInputName} renamed in ${data.inputName}`, 'info-quiet');
+                this.audioInputs = this.audioInputs.map((input) => {
+                    if (input === data.oldInputName) {
+                        return data.inputName;
+                    }
+                    return input;
+                });
+                this.renameAddress(data.oldInputName, data.inputName, data.inputName);
+            }
+        });
+        
+        this.obsClient5.on("InputMuteStateChanged", (data) => {
+            if(!this.audioInputs.includes(data.inputName)) return;
+            if(data.inputMuted) {
+                this.setBussesForAddress(data.inputName, []);
+            } else {
+                this.setBussesForAddress(data.inputName, ["program"]);
+            }
+            this.sendTallyData();            
         });
 
         this.obsClient5.on("StreamStateChanged", (data) => {
@@ -536,6 +613,33 @@ export class OBSSource extends TallyInput {
             }
         }
         this.addBusToAddress(sceneName, bus);
+    }
+
+    private addAudioInput(input) {
+        if (this.obsProtocolVersion === 4) {
+            if (!this.audioInputs.includes(input.name) &&this.sourceTypeIdsWithAudio.includes(input.typeId)) {
+                this.audioInputs.push(input.name);
+                this.addAddress(input.name, input.name);
+                this.obsClient4.send('GetMute', {
+                    source: input.name
+                }).then((data) => {
+                    this.processMutedState(data.name, data.muted);
+                    this.sendTallyData();
+                });
+            }
+        } else if (this.obsProtocolVersion === 5) {
+            logger(`Source: ${this.source.name}  New audio input created (${input})`, 'info-quiet');
+            this.addAddress(input, input);
+            if(!this.audioInputs.includes(input)) this.audioInputs.push(input);
+            this.obsClient5.call("GetInputMute", {
+                inputName: input
+            }).then((response) => {
+                if(!response.inputMuted) {
+                    this.setBussesForAddress(input, ["program"]);
+                    this.sendTallyData();
+                }
+            });
+        }
     }
 
     private connect() {
