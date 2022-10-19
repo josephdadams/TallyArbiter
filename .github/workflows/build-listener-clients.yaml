@@ -1,6 +1,15 @@
 name: Build Listener Clients
 
-on: [push, pull_request, workflow_dispatch]
+on: 
+  push:
+    paths:
+      - 'listener_clients/**'
+      - '.github/workflows/build-listener-clients.yaml'
+  pull_request:
+    paths:
+      - 'listener_clients/**'
+      - '.github/workflows/build-listener-clients.yaml'
+  workflow_dispatch:
 
 jobs:
   build_m5stickc-listener:
