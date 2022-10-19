@@ -44,7 +44,8 @@ export class OBSSource extends TallyInput {
         }
     }
 
-    initialize_v4() {
+    /** Initializes the OBS WebSocket4 Client and registers event listeners */
+    private initialize_v4(): void {
         this.obsClient4 = new ObsWebSocket4();
 
         this.obsClient4.on('ConnectionClosed', () => {
@@ -84,8 +85,8 @@ export class OBSSource extends TallyInput {
             ]).then((data) => {
                 let [previewScene, programScene, streamingAndRecordingStatus, replayBufferStatus, sceneCollection, studioModeStatus] = data;
 
-                this.processSceneChange(previewScene.name, previewScene.sources, 'preview');
-                this.processSceneChange(programScene.name, programScene.sources, 'program');
+                this.processSceneChange4(previewScene.name, previewScene.sources, 'preview');
+                this.processSceneChange4(programScene.name, programScene.sources, 'program');
 
                 this.currentSceneCollectionName = sceneCollection['sc-name'];
 
@@ -123,7 +124,7 @@ export class OBSSource extends TallyInput {
                 //since preview scene changes during a transition end are processed in 'TransitionEnd' event
                 if (data?.sources) {
                     this.removeBusFromAllAddresses("preview");
-                    this.processSceneChange(data?.['scene-name'], data?.sources, "preview");
+                    this.processSceneChange4(data?.['scene-name'], data?.sources, "preview");
                     this.sendTallyData();
                 }
             }
@@ -133,7 +134,7 @@ export class OBSSource extends TallyInput {
             this.isTransitionFinished = false;
             let toScene = this.scenes4.find(scene => scene.name === data["to-scene"]);
             if (toScene && data["type"] !== "cut_transition") { //Don't add the transition scene to program bus if it's a cut transition
-                this.processSceneChange(data?.['to-scene'], toScene.sources, "program");
+                this.processSceneChange4(data?.['to-scene'], toScene.sources, "program");
                 this.sendTallyData();
             }
 
@@ -153,8 +154,8 @@ export class OBSSource extends TallyInput {
                     });
                 });
 
-                this.processSceneChange(this.currentTransitionToScene['name'], this.currentTransitionToScene?.sources, "program");
-                this.processSceneChange(this.currentTransitionFromScene['name'], this.currentTransitionFromScene?.sources, "preview"); //'TransitionEnd' has no "from-scene", so use currentTransitionFromScene
+                this.processSceneChange4(this.currentTransitionToScene['name'], this.currentTransitionToScene?.sources, "program");
+                this.processSceneChange4(this.currentTransitionFromScene['name'], this.currentTransitionFromScene?.sources, "preview"); //'TransitionEnd' has no "from-scene", so use currentTransitionFromScene
 
                 this.sendTallyData();
             }
@@ -162,7 +163,7 @@ export class OBSSource extends TallyInput {
         });
 
         this.obsClient4.on('SourceMuteStateChanged', (data) => {
-            this.processMutedState(data.sourceName, data.muted);
+            this.setBussesForAddress(data.sourceName, data.muted ? []: ["program"]);
             this.sendTallyData();
         });
 
@@ -323,7 +324,8 @@ export class OBSSource extends TallyInput {
         this.connect();
     }
 
-    initialize_v5() {
+    /** Initializes the OBS WebSocket5 Client and registers event listeners */
+    private initialize_v5(): void {
         this.obsClient5 = new ObsWebSocket5();
 
         this.obsClient5.on('ConnectionClosed', (error) => {
@@ -559,7 +561,8 @@ export class OBSSource extends TallyInput {
         this.connect();
     }
 
-    private saveSceneList4() {
+    /** Gets the Scene List, updates this.scenes4 and adds address if scene is not registered. */
+    private saveSceneList4(): void {
         this.obsClient4.send('GetSceneList').then((data) => {
             data.scenes.forEach((scene) => {
                 if (!this.scenes4.includes(scene)) {
@@ -570,7 +573,10 @@ export class OBSSource extends TallyInput {
         });
     }
 
-    private saveSceneList5() {
+    /** Gets the Scene List, updates this.scenes5 and adds address if scene is not registered.
+     * This function is also used to update the busses at every preview/program change since there aren't events for transitions.
+     */
+    private saveSceneList5(): void {
         this.obsClient5.call('GetSceneList').then((data) => {
             let newScenes = data.scenes.flatMap((scene) => (scene.sceneName as string));
             newScenes.forEach((scene) => {
@@ -592,22 +598,19 @@ export class OBSSource extends TallyInput {
         });
     }
 
-    private processMutedState(sourceName: string, muted: boolean) {
-        if (muted) {
-            this.setBussesForAddress(sourceName, []);
-        } else {
-            this.setBussesForAddress(sourceName, ["program"]);
-        }
-    }
-
-    private processSceneChange(sceneName: string, sources: ObsWebSocket4.SceneItem[], bus: string) {
+    /** Adds a bus to the scene, nested scenes and scene sources.
+     * @param sceneName - Name of the scene.
+     * @param sources - List of scene sources (SceneItem).
+     * @param bus - Bus to assign (preview/program).
+     */
+    private processSceneChange4(sceneName: string, sources: ObsWebSocket4.SceneItem[], bus: string): void {
         if (sources) {
             for (const source of sources.filter((s) => s.render)) {
                 this.addBusToAddress(source.name, bus);
                 if (source.type === "scene") {
                     let nested_scene = this.scenes4.find(scene => scene.name === source.name);
                     if (nested_scene) {
-                        this.processSceneChange(nested_scene.name, nested_scene.sources, bus);
+                        this.processSceneChange4(nested_scene.name, nested_scene.sources, bus);
                     }
                 }
             }
@@ -615,15 +618,16 @@ export class OBSSource extends TallyInput {
         this.addBusToAddress(sceneName, bus);
     }
 
-    private addAudioInput(input) {
+    /** Adds audio input to addresses, to the "audioInputs" list and change tally bus if it's not muted. */
+    private addAudioInput(input): void {
         if (this.obsProtocolVersion === 4) {
-            if (!this.audioInputs.includes(input.name) &&this.sourceTypeIdsWithAudio.includes(input.typeId)) {
+            if (!this.audioInputs.includes(input.name) && this.sourceTypeIdsWithAudio.includes(input.typeId)) {
                 this.audioInputs.push(input.name);
                 this.addAddress(input.name, input.name);
                 this.obsClient4.send('GetMute', {
                     source: input.name
                 }).then((data) => {
-                    this.processMutedState(data.name, data.muted);
+                    this.setBussesForAddress(data.name, data.muted ? []: ["program"]);
                     this.sendTallyData();
                 });
             }
@@ -633,16 +637,15 @@ export class OBSSource extends TallyInput {
             if(!this.audioInputs.includes(input)) this.audioInputs.push(input);
             this.obsClient5.call("GetInputMute", {
                 inputName: input
-            }).then((response) => {
-                if(!response.inputMuted) {
-                    this.setBussesForAddress(input, ["program"]);
-                    this.sendTallyData();
-                }
+            }).then((data) => {
+                this.setBussesForAddress(input, data.inputMuted ? []: ["program"]);
+                this.sendTallyData();
             });
         }
     }
 
-    private connect() {
+    /** Connects to OBS after listeners have been set. */
+    private connect(): void {
         if (this.obsProtocolVersion === 4) {
             this.obsClient4.connect({
                 address: this.source.data.ip + ':' + this.source.data.port,
@@ -660,14 +663,15 @@ export class OBSSource extends TallyInput {
                 this.source.data.password,
                 {
                     rpcVersion: this.obsSupportedRpcVersion,
-                    eventSubscriptions: EventSubscription.All //replace this after testing what events we need. Remember: we don't need volume levels, so we don't use all the network bandwidth
+                    //TODO: replace this after testing what events we need. Remember: we don't need volume levels, so we don't use all the network bandwidth
+                    /* eventSubscriptions: EventSubscription.All */
                 }
             ).catch((error) => {
             });
         }
     }
 
-    public reconnect() {
+    public reconnect(): void {
         this.connect();
     }
 
