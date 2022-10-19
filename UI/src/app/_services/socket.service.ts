@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
+import { connLostSnackbarService } from '../_services/conn-lost-snackbar.service';
 import { BusOption } from '../_models/BusOption';
 import { CloudClient } from '../_models/CloudClient';
 import { CloudDestination } from '../_models/CloudDestination';
@@ -79,13 +80,34 @@ export class SocketService {
   public deviceStateChanged = new Subject<DeviceState[]>();
 
 
-  constructor() {
+  constructor(
+    private connLostSnackbar: connLostSnackbarService
+  ) {
     this.socket = io();
-    this.socket.on("reconnect", (attempt) => {
+
+    this.socket.on('error', (message: string) => {
+      console.error(message);
+    });
+
+    this.socket.on("disconnect", (data) => {
+      console.error(data);
+      connLostSnackbar.show();
+    });
+    this.socket.io.on("reconnect_attempt", (attempt) => {
+      console.log("Reconnect attempt", attempt);
+    });
+    this.socket.io.on("reconnect_error", (error) => {
+      console.log("Reconnect error:", error.message);
+    });
+
+    this.socket.io.on("reconnect", () => {
+      console.log("Reconnected successfully");
+      this.connLostSnackbar.hide();
       if(typeof this.accessToken !== "undefined") {
         this.socket.emit('access_token', this.accessToken);
       }
     });
+
     this.socket.on('sources', (sources: Source[]) => {
       this.sources = this.prepareSources(sources);
     });
@@ -312,13 +334,6 @@ export class SocketService {
     });
     this.socket.on('users', (users: User[]) => {
       this.users = users;
-    });
-    this.socket.on('error', (message: string) => {
-      console.error(message);
-      if(message.includes("Access") || message.includes("JWT") || message.includes("jwt")) {
-        console.error("JWT requested after server reconnection. This should not happen.");
-        window.location.reload(); //tmp fix while we figure out how to handle server reconnection
-      }
     });
 
     this.socket.on('remote_error_opt', (optStatus: boolean) => {
