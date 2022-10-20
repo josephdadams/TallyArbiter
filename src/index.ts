@@ -2481,6 +2481,7 @@ function SendMessage(type: string, socketid: string | null, message: string) {
 }
 
 function generateAndSendErrorReport(error: Error) {
+	if(devmode) return;
 	if(Sentry !== undefined) Sentry.captureException(error);
 	let id = generateErrorReport(error);
 	io.emit("server_error", id);
