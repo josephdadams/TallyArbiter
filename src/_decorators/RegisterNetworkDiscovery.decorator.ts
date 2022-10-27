@@ -13,7 +13,7 @@ interface DeviceData {
 function addDiscoveredDevice(service: NetworkDiscovery, cls: TallyInputType | ListenerProviderType) {
     let sourceId = Reflect.getMetadata("sourceId", cls);
     service.sourceId = sourceId;
-    logger(`Found Device via MDNS: ${service.name} (${service.addresses.join(" / ")})`);
+    logger(`Device discovered on the network: ${service.name} (${service.addresses.join(" / ")})`);
     RegisteredNetworkDiscoveryServices.next(RegisteredNetworkDiscoveryServices.value.concat(service));
 }
 
