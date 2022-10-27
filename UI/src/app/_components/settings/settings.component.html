@@ -47,7 +47,7 @@
                     </table>
                 </div>
                 <div class="alert alert-info mt-3" role="alert" *ngIf="getNetworkDiscoveryList().length > 0">
-                    Found {{ getNetworkDiscoveryList().length }} new sources in your network.
+                    Found {{ getNetworkDiscoveryList().length }} new {{ getNetworkDiscoveryList().length === 1 ? 'source' : 'sources' }} in your network.
                     <table class="table table-hover" *ngIf="getNetworkDiscoveryList().length > 0">
                         <thead>
                             <tr>
