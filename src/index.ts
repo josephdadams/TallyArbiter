@@ -461,7 +461,7 @@ function initialSetup() {
 			for (let i = 0; i < listener_clients.length; i++) {
 				if (listener_clients[i].socketId === socket.id) {
 					if (listener_clients[i].deviceId === oldDeviceId) {
-						if (listener_clients[i].relayGroupId !== relayGroupId) {
+						if (listener_clients[i].internalId !== relayGroupId) {
 							canRemove = false;
 							break;
 						}
@@ -476,8 +476,10 @@ function initialSetup() {
 			socket.join('device-' + deviceId);
 
 			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].relayGroupId === relayGroupId) {
-					listener_clients[i].deviceId = deviceId;
+				if (listener_clients[i].socketId === socket.id) {
+					if (listener_clients[i].internalId === relayGroupId) {
+						listener_clients[i].deviceId = deviceId;
+					}
 				}
 			}
 
@@ -487,6 +489,7 @@ function initialSetup() {
 			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info');
 			UpdateSockets('listener_clients');
 			UpdateCloud('listener_clients');
+			socket.emit('device_states', getDeviceStates());
 		});
 
 		socket.on('listener_reassign_gpo', (gpoGroupId, oldDeviceId, deviceId) => {
@@ -494,7 +497,7 @@ function initialSetup() {
 			for (let i = 0; i < listener_clients.length; i++) {
 				if (listener_clients[i].socketId === socket.id) {
 					if (listener_clients[i].deviceId === oldDeviceId) {
-						if (listener_clients[i].gpoGroupId !== gpoGroupId) {
+						if (listener_clients[i].internalId !== gpoGroupId) {
 							canRemove = false;
 							break;
 						}
@@ -509,8 +512,10 @@ function initialSetup() {
 			socket.join('device-' + deviceId);
 
 			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].gpoGroupId === gpoGroupId) {
-					listener_clients[i].deviceId = deviceId;
+				if (listener_clients[i].socketId === socket.id) {
+					if (listener_clients[i].internalId === gpoGroupId) {
+						listener_clients[i].deviceId = deviceId;
+					}
 				}
 			}
 
