@@ -8,7 +8,7 @@ import { SocketService } from 'src/app/_services/socket.service';
 })
 export class ChatComponent {
   public message = "";
-  @Input() type: "producer" | "client" = "client";
+  @Input() type: "producer" | any;
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
   constructor(public socketService: SocketService) {
     this.socketService.scrollChatSubject.subscribe(() => {

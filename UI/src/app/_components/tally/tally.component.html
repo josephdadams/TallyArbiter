@@ -21,7 +21,7 @@
             <small>{{socketService.devices[currentDeviceIdx].description }}</small>
         </div>
         <div class="container flex-fill py-4" style="min-height: 50px;">
-            <app-chat *ngIf="route.snapshot.queryParams.chat !== 'false'" type="client"></app-chat>
+            <app-chat *ngIf="route.snapshot.queryParams.chat !== 'false'" [type]="socketService.devices[currentDeviceIdx].name"></app-chat>
         </div>
     </div>
 </div>
