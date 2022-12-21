@@ -13,11 +13,13 @@ export class TallyComponent {
   public currentDeviceIdx?: number;
   public currentBus?: BusOption;
   private supportsVibrate?: boolean = false;
-  
+
   public COLORS = {
     DARK_GREY: "#212529",
   }
-  
+
+  public enableChatOptions = true;
+
   constructor(
     private router: Router,
     public route: ActivatedRoute,
@@ -78,7 +80,16 @@ export class TallyComponent {
   }
 
   public selectDevice(id: any) {
-    this.router.navigate(["/", "tally", id.target.value]);
+    let navUrl = `/tally/${id.target.value}`;
+    if (this.enableChatOptions) {
+      this.router.navigate([navUrl]);
+    } else {
+      this.router.navigate([navUrl], {
+        queryParams: {
+          chat: 'false'
+        }
+      })
+    }
   }
 
   public ngOnDestroy() {
