@@ -9,6 +9,9 @@
                 <option [value]="device.id" *ngFor="let device of socketService.devices">{{device.name}}</option>
             </select>
         </div>
+        <div class="form-group" >
+            <input type="checkbox" [(ngModel)]="enableChatOptions"/> Enable Chat
+        </div>
         <h2 class="lead mt-5" *ngIf="socketService.devices.length == 0">No devices are available for tally monitoring at this time.</h2>
     </div>
 
