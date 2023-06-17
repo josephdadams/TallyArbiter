@@ -52,6 +52,9 @@ export class BlackmagicATEMSource extends TallyInput {
     private pgmList = new Set<number | string>();
     private prvList = new Set<number | string>();
 
+    private oldPgmList = new Set<number | string>();
+    private oldPrvList = new Set<number | string>();
+
     constructor(source: Source) {
         super(source);
 
@@ -127,6 +130,9 @@ export class BlackmagicATEMSource extends TallyInput {
     }
 
     private processATEMTally(): void {
+        const areSetsEqual = (a, b) => a.size === b.size && [...a].every(value => b.has(value)); //https://stackoverflow.com/a/44827922
+        if(areSetsEqual(this.prvList, this.oldPrvList) && areSetsEqual(this.pgmList, this.oldPgmList)) return;
+
         this.removeBusFromAllAddresses("preview");
         this.removeBusFromAllAddresses("program");
         let cutBusMode = this.source.data.cut_bus_mode;
@@ -148,6 +154,9 @@ export class BlackmagicATEMSource extends TallyInput {
             }
         }
         this.sendTallyData();
+
+        this.oldPrvList = this.prvList;
+        this.oldPgmList = this.pgmList;
     }
 
     public exit(): void {
