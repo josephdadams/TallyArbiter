@@ -37,3 +37,8 @@
 </nav>
 
 <router-outlet></router-outlet>
+
+<div id="connLostSnackbar" [@fade]="connLostSnackbar.visible ? 'show' : 'hidden'">
+  <p>Connection to server lost...</p>
+  <i class="fa-solid fa-spinner fa-spin fa-xl"></i>
+</div>
