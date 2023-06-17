@@ -41,6 +41,11 @@ int camNumber = 0;
 // Name of the device - the serial number of the listener hardware will be appended to create a unique identifier for the server.
 String listenerDeviceName = "m5Atom-1";
 
+//M5atom Access Point Password
+//minimum of 8 characters
+//leave empty for open Access Point
+const char* AP_password ="";
+
 // Enables the GPIO pinout
 #define TALLY_EXTRA_OUTPUT false
 
@@ -507,18 +512,16 @@ void socket_Reassign(String payload) {
 void socket_Flash() {
   //flash the screen white 3 times
   logger("The device flashed.", "info-quiet");
-  drawNumber(icons[1], alloffcolor);
-  delay(100);
-  drawNumber(icons[1], flashcolor);
-  delay(100);
-  drawNumber(icons[1], alloffcolor);
-  delay(100);
-  drawNumber(icons[1], flashcolor);
-  delay(100);
-  drawNumber(icons[1], alloffcolor);
-  delay(100);
-  drawNumber(icons[1], flashcolor);
-  delay(100);
+  for (int k = 0; k < 3; k++) {
+    //Matrix Off
+    drawNumber(icons[1], alloffcolor);
+    delay(100);
+
+    //Matrix On
+    drawNumber(icons[1], flashcolor);
+    delay(100);
+  }
+  //Matrix Off
   drawNumber(icons[1], alloffcolor);
   delay(100);
   //then resume normal operation
@@ -646,7 +649,7 @@ void connectToNetwork() {
 
   bool res;
   
-  res = wm.autoConnect(listenerDeviceName.c_str());
+  res = wm.autoConnect(listenerDeviceName.c_str(),AP_password);
 
   if (!res) {
     logger("Failed to connect", "error");
@@ -831,12 +834,12 @@ void loop(){
   socket.loop();
   if (M5.Btn.wasPressed()){
     // Switch action below
-    if (camNumber < 17){
+    if (camNumber < 16){
+      camNumber++;
       drawNumber(number[camNumber], offcolor);
-    }
-    camNumber++;
-    if (camNumber > 16){
+    } else {
       camNumber = 0;
+      drawNumber(number[camNumber], offcolor);
     }
     
     // Lets get some info sent out the serial connection for debugging
