@@ -65,10 +65,12 @@ Example `relay_group` entry:
 	"id": 1,
 	"relays": [
 		{
+			"relaySerial": "123456",
 			"relayNumber": 1,
 			"busType": "preview",
 		},
 		{
+			"relaySerial": "123456",
 			"relayNumber": 2,
 			"busType": "program"
 		}
@@ -79,6 +81,7 @@ Example `relay_group` entry:
 
 * `id`: A unique identifier.
 * `relays`: The array of relays assciated in this group. It has the following properties:
+	* `relaySerial`: The serial number of the relay board. This is required in case multiple boards are in use on the same device.
 	* `relayNumber`: The actual relay number on the relay board. (1-8)
 	* `busType`: Either `preview` or `program`.
 * `deviceId`: If configured, the Tally Arbiter Device Id. If this Device Id is invalid or the property does not exist in your config file, Tally Arbiter will automatically reassign this relay group to the first Device on the server. You can reassign it to a new Device using the Tally Arbiter interface.
