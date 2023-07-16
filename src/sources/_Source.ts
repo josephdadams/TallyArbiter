@@ -83,6 +83,9 @@ export class TallyInput extends EventEmitter {
                     }
                 } else {
                     logger(`Source: ${this.source.name} No more reconnects.`, 'info-quiet');
+                    
+                    // Reset failure counter for future reconnect attempts.
+                    this.reconnectFailureCounter = 0;
                 }
             }
         });
