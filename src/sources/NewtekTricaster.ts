@@ -8,18 +8,13 @@ import xml2js from 'xml2js';
 @RegisterTallyInput("f2b7dc72", "Newtek Tricaster", "Uses Port 5951.", [{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }])
 export class NewtekTricasterSource extends TallyInput {
     private client: any;
+    private port = 5951;  // Fixed Newtek Tricaster TCP port number
     private tallydata_TC: any[] = [];
     constructor(source: Source) {
         super(source);
-        let ip = source.data.ip;
-        let port = 5951;
 
         this.client = new net.Socket();
-        this.client.connect({ port: port, host: ip }, () => {
-            let tallyCmd = '<register name="NTK_states"/>';
-            this.client.write(tallyCmd + '\n');
-            this.connected.next(true);
-        });
+        this.connect();
 
         this.client.on('data', (data) => {
             try {
@@ -59,6 +54,9 @@ export class NewtekTricasterSource extends TallyInput {
         });
 
         this.client.on('close', () => {
+            // A new listener is registered in the connect() call
+            this.client.removeAllListeners("connect");
+
             this.connected.next(false);
         });
 
@@ -142,6 +140,22 @@ export class NewtekTricasterSource extends TallyInput {
             }
         }
         this.sendTallyData();
+    }
+
+
+    private connect(): void {
+        let ip = this.source.data.ip;
+
+        this.client.connect({ port: this.port, host: ip }, () => {
+            let tallyCmd = '<register name="NTK_states"/>';
+            this.client.write(tallyCmd + '\n');
+            this.connected.next(true);
+        });        
+    }
+
+
+    public reconnect(): void {
+        this.connect();
     }
 
 
