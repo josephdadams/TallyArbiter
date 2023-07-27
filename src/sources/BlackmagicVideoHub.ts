@@ -21,17 +21,12 @@ export class BlackmagicVideoHubSource extends TallyInput {
 
     constructor(source: Source) {
         super(source);
-        this.connected.next(true);
 
         this.client = new net.Socket();
 
         this.receiveBuffer = '';
         this.command = null;
         this.stash = [];
-
-        this.client.on('error', (error) => {
-            logger(`VideoHub Connection Error occurred: ${error}`, 'error');
-        });
 
         this.client.on('connect', () => {
             this.connected.next(true);
@@ -69,6 +64,10 @@ export class BlackmagicVideoHubSource extends TallyInput {
 
         this.client.on('close', () => {
             this.connected.next(false);
+        });
+
+        this.client.on('error', (error) => {
+            logger(`VideoHub Connection Error occurred: ${error}`, 'error');
         });
 
         this.connect();
