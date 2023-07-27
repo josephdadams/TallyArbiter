@@ -7,17 +7,12 @@ import net from "net";
 @RegisterTallyInput("1190d7be", "Roland VR", "Uses Port 8023", [{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }])
 export class RolandVRSource extends TallyInput {
     private client: any;
+    private port = 8023;  // Fixed Roland VR TCP port number
     constructor(source: Source) {
         super(source);
-        let ip = source.data.ip;
-        let port = 8023;
 
         this.client = new net.Socket();
-        this.client.connect({ port: port, host: ip }, () => {
-            let tallyCmd = '\u0002CPG:1;';
-            this.client.write(tallyCmd + '\n');
-            this.connected.next(true);
-        });
+        this.connect();
 
         this.client.on('data', (data) => {
             try {
@@ -37,6 +32,9 @@ export class RolandVRSource extends TallyInput {
         });
 
         this.client.on('close', () => {
+            // A new listener is registered in the connect() call
+            this.client.removeAllListeners("connect");
+
             this.connected.next(false);
         });
 
@@ -48,6 +46,19 @@ export class RolandVRSource extends TallyInput {
             this.addAddress(`INPUT ${i + 1}`, i.toString());
         }
         this.addAddress(`STILL`, "4");
+    }
+
+    private connect(): void {
+        this.client.connect({ port: this.port, host: this.source.data.ip }, () => {
+            let tallyCmd = '\u0002CPG:1;';
+            this.client.write(tallyCmd + '\n');
+            this.connected.next(true);
+        });
+    }
+
+
+    public reconnect(): void {
+        this.connect();
     }
 
 
