@@ -12,7 +12,16 @@ export class VMixSource extends TallyInput {
         super(source);
 
         this.client = new net.Socket();
-        this.connect();
+
+        this.client.on('connect', () => {
+            this.client.write('SUBSCRIBE TALLY\r\n');
+            this.client.write('SUBSCRIBE ACTS\r\n');
+
+            this.addAddress('Recording', '{{RECORDING}}');
+            this.addAddress('Streaming', '{{STREAMING}}');
+
+            this.connected.next(true);
+        });
 
         this.client.on('data', (data) => {
             logger(`Source: ${source.name}  VMix data received.`, 'info-quiet');
@@ -63,30 +72,20 @@ export class VMixSource extends TallyInput {
             }
         });
 
+        this.client.on('close', () => {
+            this.connected.next(false);
+        });
+
         this.client.on('error', (error) => {
             logger(`Source: ${source.name}  VMix Connection Error occurred: ${error}`, 'error');
         });
 
-        this.client.on('close', () => {
-            // A new listener is registered in every connect() call
-            this.client.removeAllListeners("connect");
-
-            this.connected.next(false);
-        });
+        this.connect();
     }
 
 
     private connect(): void {
-        this.client.connect(this.port, this.source.data.ip, () => {
-
-            this.client.write('SUBSCRIBE TALLY\r\n');
-            this.client.write('SUBSCRIBE ACTS\r\n');
-
-            this.addAddress('Recording', '{{RECORDING}}');
-            this.addAddress('Streaming', '{{STREAMING}}');
-
-            this.connected.next(true);
-        });
+        this.client.connect(this.port, this.source.data.ip);
     }
 
 

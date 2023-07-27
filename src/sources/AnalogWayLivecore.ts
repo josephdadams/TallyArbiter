@@ -45,7 +45,23 @@ export class AWLivecoreSource extends TallyInput {
         this.port = source.data.port;
 
         this.client = new net.Socket();
-        this.connect();
+
+        this.client.on('connect', () => {
+            this.client.write('?\n');
+            this.connected.next(true);
+
+            this.last_heartbeat = Date.now();
+            this.heartbeat_interval = setInterval(() => {
+                if (Date.now() - this.last_heartbeat > 5000) {
+                    clearInterval(this.heartbeat_interval);
+                    this.client.end();
+                    this.client.destroy();
+                    this.connected.next(false);
+                } else {
+                    this.client.write('PCdgs\n');
+                }
+            }, 1000);
+        });
 
         this.client.on('data', (data) => {
             //logger(`Source: ${source.name}  AW Livecore data received.`, 'info-quiet');
@@ -99,16 +115,15 @@ export class AWLivecoreSource extends TallyInput {
             }
         });
 
+        this.client.on('close', () => {
+            this.connected.next(false);
+        });
+
         this.client.on('error', (error) => {
             logger(`Source: ${source.name}  AW Livecore Connection Error occurred: ${error}`, 'error');
         });
 
-        this.client.on('close', () => {
-            // A new listener is registered in the connect() call
-            this.client.removeAllListeners("connect");
-
-            this.connected.next(false);
-        });
+        this.connect();
     }
 
     private processAWLivecoreTally(tallyObj) {
@@ -154,22 +169,7 @@ export class AWLivecoreSource extends TallyInput {
 
 
     private connect(): void {
-        this.client.connect(this.port, this.source.data.ip, () => {
-            this.client.write('?\n');
-            this.connected.next(true);
-
-            this.last_heartbeat = Date.now();
-            this.heartbeat_interval = setInterval(() => {
-                if (Date.now() - this.last_heartbeat > 5000) {
-                    clearInterval(this.heartbeat_interval);
-                    this.client.end();
-                    this.client.destroy();
-                    this.connected.next(false);
-                } else {
-                    this.client.write('PCdgs\n');
-                }
-            }, 1000);
-        });
+        this.client.connect(this.port, this.source.data.ip);
     }
 
 
