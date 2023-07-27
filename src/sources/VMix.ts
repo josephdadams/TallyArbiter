@@ -68,12 +68,15 @@ export class VMixSource extends TallyInput {
         });
 
         this.client.on('close', () => {
+            // A new listener is registered in every connect() call
+            this.client.removeAllListeners("connect");
+
             this.connected.next(false);
         });
     }
 
 
-    private connect() {
+    private connect(): void {
         this.client.connect(this.port, this.source.data.ip, () => {
 
             this.client.write('SUBSCRIBE TALLY\r\n');
@@ -87,7 +90,7 @@ export class VMixSource extends TallyInput {
     }
 
 
-    public reconnect() {
+    public reconnect(): void {
         this.connect();
     }
 
