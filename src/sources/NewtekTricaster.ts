@@ -14,7 +14,13 @@ export class NewtekTricasterSource extends TallyInput {
         super(source);
 
         this.client = new net.Socket();
-        this.connect();
+
+        this.client.on('connect', () => {
+            let tallyCmd = '<register name="NTK_states"/>';
+            this.client.write(tallyCmd + '\n');
+            this.connected.next(true);
+        });        
+
 
         this.client.on('data', (data) => {
             try {
@@ -54,15 +60,14 @@ export class NewtekTricasterSource extends TallyInput {
         });
 
         this.client.on('close', () => {
-            // A new listener is registered in the connect() call
-            this.client.removeAllListeners("connect");
-
             this.connected.next(false);
         });
 
         this.client.on('error', function (error) {
             logger(`Source: ${source.name}  Tricaster Connection Error occurred: ${error}`, 'error');
         });
+
+        this.connect();
     }
 
     
@@ -144,13 +149,7 @@ export class NewtekTricasterSource extends TallyInput {
 
 
     private connect(): void {
-        let ip = this.source.data.ip;
-
-        this.client.connect({ port: this.port, host: ip }, () => {
-            let tallyCmd = '<register name="NTK_states"/>';
-            this.client.write(tallyCmd + '\n');
-            this.connected.next(true);
-        });        
+        this.client.connect({ port: this.port, host: this.source.data.ip });
     }
 
 
