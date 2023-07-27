@@ -11,6 +11,7 @@ import net from "net";
 ])
 export class BlackmagicVideoHubSource extends TallyInput {
     private client: net.Socket;
+    private port = 9990;  // Fixed VideoHub TCP port number
     private receiveBuffer: string;
     private command: any;
     private stash: any[];
@@ -22,9 +23,6 @@ export class BlackmagicVideoHubSource extends TallyInput {
         super(source);
         this.connected.next(true);
 
-        let ip = source.data.ip;
-        let port = 9990;
-
         this.client = new net.Socket();
 
         this.receiveBuffer = '';
@@ -32,7 +30,7 @@ export class BlackmagicVideoHubSource extends TallyInput {
         this.stash = [];
 
         this.client.on('error', (error) => {
-            logger(`VideoHub Error: ${error}`, 'error');
+            logger(`VideoHub Connection Error occurred: ${error}`, 'error');
         });
 
         this.client.on('connect', () => {
@@ -73,8 +71,7 @@ export class BlackmagicVideoHubSource extends TallyInput {
             this.connected.next(false);
         });
 
-        this.client.connect(port, ip);
-
+        this.connect();
     }
 
     private processVideohubInformation(cmd) {
@@ -197,6 +194,15 @@ export class BlackmagicVideoHubSource extends TallyInput {
         this.sendTallyData();
     }
 
+
+    private connect(): void {
+        this.client.connect(this.port, this.source.data.ip);
+    }
+
+
+    public reconnect(): void {
+        this.connect();
+    }
 
     public exit(): void {
         super.exit();
