@@ -164,6 +164,8 @@ def setStates():
 
 def GPO_off():
     print("Setting all GPOs to low before exiting.")
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setwarnings(False)
     for gpo_group in config_object["gpo_groups"]:
         for gpo in gpo_group["gpos"]:
             GPIO.setup(gpo["pinNumber"], GPIO.OUT)
@@ -253,7 +255,7 @@ def on_reassign(oldDeviceId, newDeviceId, gpoGroupId):
         + gpoGroupId
         + " from DeviceID: "
         + oldDeviceId
-        + " to Device ID: "
+        + " to DeviceID: "
         + newDeviceId
         + bcolors.ENDC
     )
@@ -262,7 +264,7 @@ def on_reassign(oldDeviceId, newDeviceId, gpoGroupId):
             gpo_group["deviceId"] = newDeviceId
 
     saveConfig()
-
+    sio.emit('listener_reassign_gpo', (gpoGroupId, oldDeviceId, newDeviceId));
 
 def getBusTypeById(busId):
     for bus in bus_options:
@@ -344,7 +346,7 @@ def main():
             while True:
                 time.sleep(0.1)
         else:
-            server_connect(str(config_object["server_config"]["ip"]), str(config_object["server_config"]["port"]))
+            server_connect("http://" + str(config_object["server_config"]["ip"]) + ":" + str(config_object["server_config"]["port"]))
     except KeyboardInterrupt:
         print(bcolors.OKBLUE + "Exiting Tally Arbiter GPO Listener." + bcolors.ENDC)
         exit(0)
