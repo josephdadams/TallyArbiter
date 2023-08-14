@@ -64,6 +64,7 @@
         "find-package-json": "^1.2.0",
         "find-remove": "^4.0.4",
         "fs-extra": "^10.1.0",
+        "hexdump-nodejs": "^0.1.0",
         "jquery": "^3.6.0",
         "jsonwebtoken": "^9.0.0",
         "jspack": "^0.0.4",
