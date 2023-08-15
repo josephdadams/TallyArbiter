@@ -58,21 +58,26 @@ export class SnellK360Source extends TallyInput {
                         logger(hexdump(data), 'info-quiet');
                     }
 
-                    if (result.direction == 0 && result.type == 1) {
-                        this.addAddress(result.label, result.address);
-
-                        const busses = [];
-                        if (result.tally8) {
-                            busses.push("program");
-                        }
-                        if (result.tally7) {
-                            busses.push("preview");
-                        }
-                        // TODO: Handle MEs/Stores etc?
-                        this.setBussesForAddress(result.address, busses);
-
-                        this.sendTallyData();
+                    let address = result.address;
+                    if (result.direction != 0 && result.type != 1) {
+                        // Add an offset so each address is unique
+                        // We don't do this for basic inputs to keep them on the addresses you'd expect
+                        address += (result.directon << 24) + (result.type << 16) + (result.me << 8)
+                        logger(`Modified address for "${result.label}" from ${result.address} to ${address} for uniqueness`, 'info-quiet');
                     }
+                    this.addAddress(result.label, address);
+
+                    const busses = [];
+                    if (result.tally8) {
+                        busses.push("program");
+                    }
+                    if (result.tally7) {
+                        busses.push("preview");
+                    }
+                    // TODO: Handle MEs/Stores etc as busses?
+                    this.setBussesForAddress(address, busses);
+
+                    this.sendTallyData();
                 } else {
                     logger(`Got unexpected command ${result.command}`, 'info-quiet');
                     logger(hexdump(data), 'info-quiet');
