@@ -98,7 +98,7 @@
         "@types/find-remove": "^2.0.1",
         "@types/node": "^17.0.31",
         "@types/xml2js": "^0.4.11",
-        "electron": "^18.2.0",
+        "electron": "^22.3.21",
         "electron-builder": "^23.0.3",
         "redundancyjs": "^0.1.0",
         "ts-node-dev": "^1.1.8",
