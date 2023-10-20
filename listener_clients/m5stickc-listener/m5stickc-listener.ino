@@ -264,6 +264,9 @@ void logger(String strLog, String strType) {
   */
 }
 
+WiFiManagerParameter* custom_taServer;
+WiFiManagerParameter* custom_taPort;
+
 void connectToNetwork() {
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
 
@@ -272,11 +275,11 @@ void connectToNetwork() {
   //reset settings - wipe credentials for testing
   //wm.resetSettings();
 
-  WiFiManagerParameter custom_taServer("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
-  WiFiManagerParameter custom_taPort("taHostPort", "Port", tallyarbiter_port, 6);
+  custom_taServer = new WiFiManagerParameter("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
+  custom_taPort = new WiFiManagerParameter("taHostPort", "Port", tallyarbiter_port, 6);
 
-  wm.addParameter(&custom_taServer);
-  wm.addParameter(&custom_taPort);
+  wm.addParameter(custom_taServer);
+  wm.addParameter(custom_taPort);
 
   wm.setSaveParamsCallback(saveParamCallback);
 
