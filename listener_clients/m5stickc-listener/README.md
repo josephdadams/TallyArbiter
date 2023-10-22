@@ -47,6 +47,8 @@ Done! Now your board is running the latest listener client firmware version. Go 
 5. Go back, then go to the "Configure WiFi" page and set your WiFi credentials. The board should reboot.
 6. If the connection is successful a WiFi animation and a green tick mark will show. If not a red cross will be shown and you can reboot the device to try again.
 
+When powering the device, if it cannot find the WiFi AP you have defined, it will broadcast its setup wifi for 120s.
+At any point, you can press and hold the menu button for 2 seconds to re-enable the configuration ui, over whatever WiFi connection it has available.
 
 # Troubleshooting
 ### macOS build error
