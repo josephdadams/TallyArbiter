@@ -11,7 +11,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v1
       with:
-        node-version: 14
+        node-version: 20
     - name: Install dependencies
       run: npm i -f
     - name: Create env file
@@ -42,7 +42,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v1
       with:
-        node-version: 14
+        node-version: 20
     - name: Install dependencies and build
       run: npm i -f; npm run build
     - name: Set up QEMU
@@ -99,13 +99,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-2019, ubuntu-latest, macos-latest]
+        os: [windows-2022, ubuntu-latest, macos-latest]
     steps:
     - uses: actions/checkout@v1
     - name: Setup Node.js
       uses: actions/setup-node@v1
       with:
-        node-version: 14
+        node-version: 20
     - name: Create env file
       run: |
         touch .env
