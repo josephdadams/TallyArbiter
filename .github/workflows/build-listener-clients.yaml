@@ -24,8 +24,8 @@ jobs:
             source-url: https://dl.espressif.com/dl/package_esp32_index.json
         fqbn: 'esp32:esp32:m5stick-c'
         libraries: |
-          - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.2.4.zip
-          - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.0.4.zip
+          - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.2.9.zip
+          - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.0.zip
           - name: WebSockets
           - name: WiFiManager
           - name: MultiButton
@@ -53,7 +53,7 @@ jobs:
             source-url: https://dl.espressif.com/dl/package_esp32_index.json
         fqbn: 'esp32:esp32:m5stack-atom'
         libraries: |
-          - source-url: https://github.com/m5stack/M5Atom/archive/refs/tags/0.0.6.zip
+          - source-url: https://github.com/m5stack/M5Atom/archive/refs/tags/0.1.2.zip
           - name: WebSockets
           - name: WiFiManager
           - name: MultiButton
