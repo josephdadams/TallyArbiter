@@ -7,9 +7,9 @@ jobs:
     name: Build CLI on Ubuntu
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: Setup Node.js
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v4
       with:
         node-version: 20
     - name: Install dependencies
@@ -38,9 +38,9 @@ jobs:
     name: Build Docker image on Ubuntu
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: Setup Node.js
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v4
       with:
         node-version: 20
     - name: Install dependencies and build
@@ -101,9 +101,9 @@ jobs:
       matrix:
         os: [windows-2022, ubuntu-latest, macos-latest]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: Setup Node.js
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v4
       with:
         node-version: 20
     - name: Create env file
