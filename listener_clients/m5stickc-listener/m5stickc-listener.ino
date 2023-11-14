@@ -1,4 +1,4 @@
-#define C_PLUS 0 //CHANGE TO 1 IF YOU USE THE M5STICK-C PLUS
+#define C_PLUS 1 //CHANGE TO 1 IF YOU USE THE M5STICK-C PLUS
 
 #if C_PLUS == 1
 #include <M5StickCPlus.h>
@@ -14,7 +14,9 @@
 #include <ArduinoOTA.h>
 #include <ESPmDNS.h>
 #include <Preferences.h>
+#include <Adafruit_NeoPixel.h>
 #include "Free_Fonts.h"
+
 
 
 #define TRIGGER_PIN 0 //reset pin 
@@ -23,6 +25,12 @@
 #define RED   0xF800 // 255  0  0
 #define maxTextSize 5 //larger sourceName text
 
+//pixels
+#define PIN       32
+#define NUMPIXELS 3
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(
+    NUMPIXELS, PIN,
+    NEO_GRB + NEO_KHZ800);
 
 String listenerDeviceName = "m5StickC-1";
 
@@ -33,7 +41,7 @@ String listenerDeviceName = "m5StickC-1";
 bool LAST_MSG = false; // true = show log on tally screen<
 
 //Tally Arbiter Server
-char tallyarbiter_host[40] = "192.168.0.110"; //IP address of the Tally Arbiter Server
+char tallyarbiter_host[40] = "192.168.2.25"; //IP address of the Tally Arbiter Server
 char tallyarbiter_port[6] = "4455";
 
 /* END OF USER CONFIG */
@@ -99,6 +107,9 @@ void setup() {
   M5.Lcd.println("booting...");
   logger("Tally Arbiter M5StickC+ Listener Client booting.", "info");
   logger("Listener device name: " + listenerDeviceName, "info");
+
+  //pixels
+  pixels.begin();
 
   preferences.begin("tally-arbiter", false);
 
@@ -462,16 +473,42 @@ void socket_Connected(const char * payload, size_t length) {
 void socket_Flash() {
   //flash the screen white 3 times
   M5.Lcd.fillScreen(WHITE);
+  pixels.setPixelColor(0, pixels.Color(25, 25, 25));
+  pixels.setPixelColor(1, pixels.Color(25, 25, 25));
+  pixels.setPixelColor(2, pixels.Color(25, 25, 25));
+  pixels.show();
   delay(500);
   M5.Lcd.fillScreen(TFT_BLACK);
+  pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 0));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 0));
+  pixels.show();
+  pixels.show();
   delay(500);
   M5.Lcd.fillScreen(WHITE);
+  pixels.setPixelColor(0, pixels.Color(25, 25, 25));
+  pixels.setPixelColor(1, pixels.Color(25, 25, 25));
+  pixels.setPixelColor(2, pixels.Color(25, 25, 25));
+  pixels.show();
   delay(500);
   M5.Lcd.fillScreen(TFT_BLACK);
+  pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 0));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 0));
+  pixels.show();
+  pixels.show();
   delay(500);
   M5.Lcd.fillScreen(WHITE);
+  pixels.setPixelColor(0, pixels.Color(25, 25, 25));
+  pixels.setPixelColor(1, pixels.Color(25, 25, 25));
+  pixels.setPixelColor(2, pixels.Color(25, 25, 25));
+  pixels.show();
   delay(500);
   M5.Lcd.fillScreen(TFT_BLACK);
+  pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 0));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 0));
+  pixels.show();
 
   //then resume normal operation
   switch (currentScreen) {
@@ -637,7 +674,33 @@ void evaluateMode() {
       digitalWrite (led_aux, HIGH);
     }
     #endif
-    
+
+    if (actualType == "\"program\"") {
+      //led red
+        pixels.setPixelColor(0, pixels.Color(25, 0, 0));
+        pixels.setPixelColor(1, pixels.Color(25, 0, 0));
+        pixels.setPixelColor(2, pixels.Color(25, 0, 0));
+        pixels.show();
+    } else if (actualType == "\"preview\"") {
+      //led green
+        pixels.setPixelColor(0, pixels.Color(0, 25, 0));
+        pixels.setPixelColor(1, pixels.Color(0, 25, 0));
+        pixels.setPixelColor(2, pixels.Color(0, 25, 0));
+        pixels.show();
+    } else if (actualType == "\"aux\"") {
+      //led blue
+        pixels.setPixelColor(0, pixels.Color(0, 0, 25));
+        pixels.setPixelColor(1, pixels.Color(0, 0, 25));
+        pixels.setPixelColor(2, pixels.Color(0, 0, 25));
+        pixels.show();
+    } else {
+      //led off
+        pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+        pixels.setPixelColor(1, pixels.Color(0, 0, 0));
+        pixels.setPixelColor(2, pixels.Color(0, 0, 0));
+        pixels.show();
+    }
+
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
     Serial.print(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));
 
