@@ -35,17 +35,18 @@ const LivecoreDeviceNames: Record<string, string> = {
 ])
 export class AWLivecoreSource extends TallyInput {
     private client: any;
+    private port: number;  // AnalogWay Livecore TCP port number
     private last_heartbeat: number;
     private tallydata_AWLivecore: any[] = [];
     private heartbeat_interval: NodeJS.Timer;
 
     constructor(source: Source) {
         super(source);
-        let ip = source.data.ip;
-        let port = source.data.port;
+        this.port = source.data.port;
 
         this.client = new net.Socket();
-        this.client.connect(port, ip, () => {
+
+        this.client.on('connect', () => {
             this.client.write('?\n');
             this.connected.next(true);
 
@@ -117,6 +118,12 @@ export class AWLivecoreSource extends TallyInput {
         this.client.on('close', () => {
             this.connected.next(false);
         });
+
+        this.client.on('error', (error) => {
+            logger(`Source: ${source.name}  AW Livecore Connection Error occurred: ${error}`, 'error');
+        });
+
+        this.connect();
     }
 
     private processAWLivecoreTally(tallyObj) {
@@ -158,6 +165,16 @@ export class AWLivecoreSource extends TallyInput {
                 }
             }
         }
+    }
+
+
+    private connect(): void {
+        this.client.connect(this.port, this.source.data.ip);
+    }
+
+
+    public reconnect(): void {
+        this.connect();
     }
 
 

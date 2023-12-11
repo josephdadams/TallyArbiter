@@ -652,10 +652,7 @@ export class OBSSource extends TallyInput {
                 password: this.source.data.password
             })
                 .catch((error) => {
-                    if (error.code === 'CONNECTION_ERROR') {
-                        logger(`Source: ${this.source.name}  OBS websocket connection error. Is OBS running?`, 'error');
-                        this.connected.next(false);
-                    }
+                    logger(`Source: ${this.source.name}  OBS websocket Error occurred: ${error.code}`, 'error');
                 });
         } else if (this.obsProtocolVersion === 5) {
             this.obsClient5.connect(
