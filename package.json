@@ -1,6 +1,6 @@
 {
     "name": "tallyarbiter",
-    "version": "3.0.4",
+    "version": "3.0.5",
     "description": "The flexible and customizable tally system",
     "keywords": [
         "util",
@@ -44,9 +44,16 @@
         "LICENSE"
     ],
     "contributors": [
-        "Andreas H. Thomsen <mc-hauge@hotmail.com>",
-        "Hannes Rüger <hannesrueger@gmx.de>",
-        "Matteo Gheza <me@matteogheza.it>"
+        "Robert Wittek <robo-w@dragon.wien>",
+        "Julian Waller",
+        "Joakim Forsberg",
+        "Matteo Gheza <me@matteogheza.it>",
+        "chanx",
+        "Sam Yoffe",
+        "David Stevens", 
+        "David Prows",
+        "monkzz",
+        "Greg Oseid"
     ],
     "dependencies": {
         "@sentry/node": "^6.19.7",
