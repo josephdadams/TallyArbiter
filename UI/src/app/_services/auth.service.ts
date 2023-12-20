@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { SocketService } from './socket.service';
-import jwt_decode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 import { roles } from '../../../../src/_helpers/authRoles';
 
 export interface LoginResponse {
@@ -41,7 +41,7 @@ export class AuthService {
 
   public loadProfile() {
     let now = Date.now().valueOf() / 1000;
-    let decoded: any = jwt_decode(this.access_token);
+    let decoded: any = jwtDecode(this.access_token);
     if (typeof decoded.exp !== 'undefined' && decoded.exp < now) {
       return false;
     }
