@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { BusOption } from 'src/app/_models/BusOption';
 import { DeviceState } from 'src/app/_models/DeviceState';
 import { SocketService } from 'src/app/_services/socket.service';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-tally',
@@ -35,7 +36,7 @@ export class TallyComponent {
     this.socketService.dataLoaded.then(() => {
       this.route.params.subscribe((params) => {
         if (params.deviceId) {
-          this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id == params.deviceId);
+          this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id === params.deviceId || d.name === params.deviceId);
           this.socketService.socket.emit('listenerclient_connect', {
             deviceId: this.socketService.devices[this.currentDeviceIdx!].id,
             listenerType: "web",
