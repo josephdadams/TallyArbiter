@@ -6,8 +6,7 @@
     <table class="table table-hover" *ngIf="socketService.devices.length > 0">
         <thead>
           <tr>
-            <th>PVW</th>
-            <th>PGM</th>
+            <th *ngFor="let bus of socketService.busOptions">{{bus.label}}</th>
             <th>Name</th>
             <th></th>
             <th>Description</th>
@@ -16,8 +15,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let device of socketService.devices" [class.text-muted]="!device.enabled">
-            <td [class.bg-success]="device.modePreview"></td>
-            <td [class.bg-danger]="device.modeProgram"></td>
+            <td *ngFor="let bus of socketService.busOptions" [style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : '#FFFFFF'"></td>
             <td>{{device.name}}</td>
             <td><i class="fas fa-cloud text-muted" *ngIf="device.cloudConnection"></i></td>
             <td>{{device.description}}</td>
