@@ -78,12 +78,12 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "tallyarbiter-ui:build:production",
-              "proxyConfig": "src/proxy.conf.json"
+              "proxyConfig": "src/proxy.conf.json",
+              "buildTarget": "tallyarbiter-ui:build:production"
             },
             "development": {
-              "browserTarget": "tallyarbiter-ui:build:development",
-              "proxyConfig": "src/proxy.conf.json"
+              "proxyConfig": "src/proxy.conf.json",
+              "buildTarget": "tallyarbiter-ui:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -91,7 +91,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "tallyarbiter-ui:build"
+            "buildTarget": "tallyarbiter-ui:build"
           }
         },
         "test": {
