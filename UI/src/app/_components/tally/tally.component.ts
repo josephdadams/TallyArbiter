@@ -13,7 +13,6 @@ import Swal from 'sweetalert2';
 export class TallyComponent {
   public currentDeviceIdx?: number;
   public currentBus?: BusOption;
-  private supportsVibrate?: boolean = false;
 
   public COLORS = {
     DARK_GREY: "#212529",
@@ -28,11 +27,6 @@ export class TallyComponent {
   ) {
     this.socketService.socket.emit('devices');
     this.socketService.socket.emit('bus_options');
-    try {
-      window.navigator.vibrate(1);
-    } catch (e) {
-      this.supportsVibrate = false;
-    }
     this.socketService.dataLoaded.then(() => {
       this.route.params.subscribe((params) => {
         if (params.deviceId) {
@@ -63,13 +57,9 @@ export class TallyComponent {
         return;
       }
       if (hightestPriorityBus.type == "program") {
-        if(this.supportsVibrate == true) {
-          window.navigator.vibrate(400);
-        }
+        window.navigator.vibrate(600);
       } else if (hightestPriorityBus.type == "preview") {
-        if(this.supportsVibrate == true) {
-          window.navigator.vibrate([100, 30, 100, 30, 100]);
-        }
+        window.navigator.vibrate([200, 30, 200, 30, 200]);
       }
       this.currentBus = hightestPriorityBus;
     });
