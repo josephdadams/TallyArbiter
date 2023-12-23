@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { BusOption } from 'src/app/_models/BusOption';
 import { DeviceState } from 'src/app/_models/DeviceState';
 import { SocketService } from 'src/app/_services/socket.service';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-tally',
@@ -12,7 +13,6 @@ import { SocketService } from 'src/app/_services/socket.service';
 export class TallyComponent {
   public currentDeviceIdx?: number;
   public currentBus?: BusOption;
-  private supportsVibrate?: boolean = false;
 
   public COLORS = {
     DARK_GREY: "#212529",
@@ -27,15 +27,10 @@ export class TallyComponent {
   ) {
     this.socketService.socket.emit('devices');
     this.socketService.socket.emit('bus_options');
-    try {
-      window.navigator.vibrate(1);
-    } catch (e) {
-      this.supportsVibrate = false;
-    }
     this.socketService.dataLoaded.then(() => {
       this.route.params.subscribe((params) => {
         if (params.deviceId) {
-          this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id == params.deviceId);
+          this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id === params.deviceId || d.name === params.deviceId);
           this.socketService.socket.emit('listenerclient_connect', {
             deviceId: this.socketService.devices[this.currentDeviceIdx!].id,
             listenerType: "web",
@@ -62,13 +57,9 @@ export class TallyComponent {
         return;
       }
       if (hightestPriorityBus.type == "program") {
-        if(this.supportsVibrate == true) {
-          window.navigator.vibrate(400);
-        }
+        window.navigator.vibrate(600);
       } else if (hightestPriorityBus.type == "preview") {
-        if(this.supportsVibrate == true) {
-          window.navigator.vibrate([100, 30, 100, 30, 100]);
-        }
+        window.navigator.vibrate([200, 30, 200, 30, 200]);
       }
       this.currentBus = hightestPriorityBus;
     });
