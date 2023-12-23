@@ -81,6 +81,7 @@
                 <div class="row">
                     <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: true}"></ng-container>
                 </div>
+                <hr class="my-5" />
             </ng-template>
         </ng-container>
         <ng-container ngbNavItem="listeners" *requireRole="'settings:listeners'">
@@ -184,6 +185,7 @@
                         </div>
                     </div>
                 </div>
+                <hr class="my-5" />
             </ng-template>
         </ng-container>
         <ng-container ngbNavItem="cloud" *requireRole="'settings:cloud'">
