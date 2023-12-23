@@ -1,4 +1,4 @@
-<div class="card chat d-flex">
+<div class="card chat d-flex p-3">
   <div class="mesages bg-light flex-fill p-3 overflow-auto" #chatContainer>
     <div [class]="'d-flex ' + (message.type == 'server' ? 'justify-content-center' : message.socketId == socketService.socket.id ? 'justify-content-end' : 'justify-content-start')" *ngFor="let message of socketService.messages">
         <div class="message p-2 mb-3 rounded" [class.server]="message.type == 'server'" [class.producer]="message.type == 'producer'">
