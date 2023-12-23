@@ -179,8 +179,8 @@ function checkForUpdates() {
         releaseNotesWindow = new BrowserWindow({
             width: 850,
             height: 1260,
-            minHeight: 850,
-            minWidth: 1260,
+            minHeight: 450,
+            minWidth: 450,
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
