@@ -29,8 +29,8 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: WindowProperties.width,
         height: WindowProperties.height,
-        minWidth: WindowProperties.width,
-        minHeight: WindowProperties.height,
+        minWidth: WindowProperties.minWidth,
+        minHeight: WindowProperties.minHeight,
         webPreferences: {},
         show: false,
     });
