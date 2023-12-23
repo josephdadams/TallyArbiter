@@ -11,6 +11,8 @@ let trayIcon;
 const WindowProperties = {
     width: 1260,
     height: 850,
+    minWidth: 450,
+    minHeight: 450
 }
 
 const gotTheLock = app.requestSingleInstanceLock();
