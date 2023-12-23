@@ -67,10 +67,12 @@ export class SocketService {
   public messages: Message[] = [];
   public errorReports: ErrorReportsListElement[] = [] as ErrorReportsListElement[];
   public users: User[] = [];
-  
+
   public accessToken: string | undefined;
 
-  public dataLoaded = new Promise<void>((resolve) => this._resolveDataLoadedPromise = resolve);
+  public dataLoaded = new Promise<void>(async (resolve) => {
+    this._resolveDataLoadedPromise = await resolve
+  });
   private _resolveDataLoadedPromise!: () => void;
 
   public newLogsSubject = new Subject<void>();
@@ -223,7 +225,7 @@ export class SocketService {
       this.deviceActions = deviceActions;
       this.device_states = device_states;
       this.tslClients = tslClients;
-      
+
       this.cloudDestinations = cloudDestinations;
       this.cloudKeys = cloudKeys;
       this.cloudClients = cloudClients;
@@ -341,7 +343,7 @@ export class SocketService {
     });
 
     this.socket.emit('get_error_reports');
-    
+
     this.socket.emit('version');
     this.socket.emit('externalAddress');
     this.socket.emit('interfaces');

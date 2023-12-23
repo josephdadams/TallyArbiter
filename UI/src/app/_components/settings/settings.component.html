@@ -7,7 +7,7 @@
                     <h2>
                         Sources
                         <button class="btn btn-outline-success me-2" (click)="addSource(sourceModal)">
-                    <i class="fas fa-plus"></i> Add 
+                    <i class="fas fa-plus"></i> Add
                   </button>
                     </h2>
                     <span class="text-muted mt-3" *ngIf="socketService.sources.length == 0">No sources configured.</span>
@@ -358,7 +358,7 @@
                     <h2>
                         Users
                         <button class="btn btn-outline-success me-2" (click)="addUser(userModal)">
-                            <i class="fas fa-plus"></i> Add 
+                            <i class="fas fa-plus"></i> Add
                         </button>
                     </h2>
                     <div>
@@ -463,7 +463,7 @@
         </thead>
         <tbody>
             <tr *ngFor="let device of socketService.devices; index as index" [class.text-muted]="!device.enabled">
-                <td *ngFor="let bus of socketService.busOptions" [style.background-color]="deviceBusColors[device.id]?.includes(bus.id) ? bus.color : '#FFFFFF'"></td>
+                <td *ngFor="let bus of socketService.busOptions" [style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : '#FFFFFF'"></td>
                 <td>
                     <small><b>{{ index + 1 }}</b></small> {{ device.name }}
                 </td>
