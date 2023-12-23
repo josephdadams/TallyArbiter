@@ -1,77 +1,81 @@
 <div class="container pt-4" *ngIf="socketService.initialDataLoaded">
-    <nav ngbNav #nav="ngbNav" class="nav-tabs" [animation]="false" (navChange)="navChanged($event)" [(activeId)]="activeNavTab">
+    <nav ngbNav #nav="ngbNav" class="nav nav-pills flex-column flex-sm-row" [animation]="false" (navChange)="navChanged($event)" [(activeId)]="activeNavTab">
         <ng-container ngbNavItem="sources_devices" *requireRole="'settings:sources_devices'">
             <a ngbNavLink>Sources & Devices</a>
             <ng-template ngbNavContent>
                 <div class="row">
-                    <h2>
+                    <h3>
                         Sources
-                        <button class="btn btn-outline-success me-2" (click)="addSource(sourceModal)">
+                        <button class="btn btn-sm btn-success me-2" (click)="addSource(sourceModal)">
                     <i class="fas fa-plus"></i> Add
                   </button>
-                    </h2>
+                    </h3>
                     <span class="text-muted mt-3" *ngIf="socketService.sources.length == 0">No sources configured.</span>
-                    <table class="table table-hover" *ngIf="socketService.sources.length > 0">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th></th>
-                                <th>Type</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let source of socketService.sources" [class]="
-                        source.enabled
-                          ? source.connected
-                            ? 'text-success'
-                            : 'text-danger'
-                          : 'text-muted'
-                      ">
-                                <td>{{ source.name }}</td>
-                                <td><i class="fas fa-cloud text-muted" *ngIf="source.cloudConnection"></i></td>
-                                <td>{{ source.sourceTypeName }}</td>
-                                <td>
-                                    <button class="btn btn-outline-dark" (click)="editSource(source, sourceModal)">
-                          <i class="fas fa-pen"></i> Edit
-                        </button>
-                                    <button class="btn btn-outline-danger mx-2" (click)="deleteSource(source)">
-                          <i class="fas fa-trash"></i> Delete
-                        </button>
-                                    <button class="btn btn-outline-dark" *ngIf="!source.connected" (click)="reconnect(source)">
-                          <i class="fas fa-sync"></i> Reconnect
-                        </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                      <table class="table table-hover align-middle" *ngIf="socketService.sources.length > 0">
+                          <thead>
+                              <tr>
+                                  <th>Name</th>
+                                  <th></th>
+                                  <th>Type</th>
+                                  <th style="min-width: 200px;"></th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                              <tr *ngFor="let source of socketService.sources" [class]="
+                          source.enabled
+                            ? source.connected
+                              ? 'text-success'
+                              : 'text-danger'
+                            : 'text-muted'
+                        ">
+                                  <td>{{ source.name }}</td>
+                                  <td><i class="fas fa-cloud text-muted" *ngIf="source.cloudConnection"></i></td>
+                                  <td>{{ source.sourceTypeName }}</td>
+                                  <td class="text-center" >
+                                      <button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editSource(source, sourceModal)">
+                            <i class="fas fa-pen"></i> Edit
+                          </button>
+                                      <button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteSource(source)">
+                            <i class="fas fa-trash"></i> Delete
+                          </button>
+                                      <button class="btn btn-sm btn-warning mx-1 my-1" *ngIf="!source.connected" (click)="reconnect(source)">
+                            <i class="fas fa-sync"></i> Reconnect
+                          </button>
+                                  </td>
+                              </tr>
+                          </tbody>
+                      </table>
+                    </div>
                 </div>
                 <div class="alert alert-info mt-3" role="alert" *ngIf="getNetworkDiscoveryList().length > 0">
                     Found {{ getNetworkDiscoveryList().length }} new {{ getNetworkDiscoveryList().length === 1 ? 'source' : 'sources' }} in your network.
-                    <table class="table table-hover" *ngIf="getNetworkDiscoveryList().length > 0">
-                        <thead>
-                            <tr>
-                                <th>IP/Host</th>
-                                <th>Type</th>
-                                <th>Name</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let networkDiscovery of getNetworkDiscoveryList()">
-                                <td>
-                                    <select class="form-select" [ngModel]="networkDiscovery.ip" (ngModelChange)="changeIpSelection(networkDiscovery, $event)">
-                                        <option *ngFor="let address of networkDiscovery.addresses" [value]="address">
-                                            {{ address }}
-                                        </option>
-                                    </select>
-                                </td>
-                                <td>{{ getSourceTypeById(networkDiscovery.sourceId)?.label || "Source type not found" }}</td>
-                                <td>{{ networkDiscovery.name }}</td>
-                                <td><button class="btn btn-outline-dark" (click)="addSourceByNetworkDiscovery(networkDiscovery, sourceModal)"><i class="fas fa-plus"></i> Add</button></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                      <table class="table table-hover align-middle" *ngIf="getNetworkDiscoveryList().length > 0">
+                          <thead>
+                              <tr>
+                                  <th>IP/Host</th>
+                                  <th>Type</th>
+                                  <th>Name</th>
+                                  <th></th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                              <tr *ngFor="let networkDiscovery of getNetworkDiscoveryList()">
+                                  <td>
+                                      <select class="form-select" [ngModel]="networkDiscovery.ip" (ngModelChange)="changeIpSelection(networkDiscovery, $event)">
+                                          <option *ngFor="let address of networkDiscovery.addresses" [value]="address">
+                                              {{ address }}
+                                          </option>
+                                      </select>
+                                  </td>
+                                  <td>{{ getSourceTypeById(networkDiscovery.sourceId)?.label || "Source type not found" }}</td>
+                                  <td>{{ networkDiscovery.name }}</td>
+                                  <td><button class="btn btn-sm btn-secondary" (click)="addSourceByNetworkDiscovery(networkDiscovery, sourceModal)"><i class="fas fa-plus"></i> Add</button></td>
+                              </tr>
+                          </tbody>
+                      </table>
+                    </div>
                 </div>
                 <hr class="my-5" />
                 <div class="row">
@@ -83,95 +87,101 @@
             <a ngbNavLink>Listeners</a>
             <ng-template ngbNavContent>
                 <div class="row">
-                    <h2>Connected Listeners</h2>
+                    <h3>Connected Listeners</h3>
                     <span class="text-muted mt-3" *ngIf="socketService.listenerClients.length == 0">No listeners connected.</span>
-                    <table class="table table-hover" *ngIf="socketService.listenerClients.length > 0">
-                        <thead>
-                            <tr>
-                                <th>IP Address</th>
-                                <th></th>
-                                <th class="bg-light">Type</th>
-                                <th>Device</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let listenerClient of socketService.listenerClients">
-                                <td>{{ listenerClient.ipAddress }}</td>
-                                <td><i class="fas fa-cloud text-muted" *ngIf="listenerClient.cloudConnection"></i></td>
-                                <td class="bg-light">{{ listenerClient.listenerType }}</td>
-                                <td>
-                                    <select class="form-select" *ngIf="listenerClient.listenerType != 'vmix'" [ngModel]="listenerClient.deviceId" (ngModelChange)="reassignListenerClient(listenerClient, $event)" [disabled]="!listenerClient.canBeReassigned">
-                          <option *ngFor="let device of socketService.devices" [value]="device.id">
-                            {{ device.name }}
-                          </option>
-                        </select>
-                                </td>
-                                <td>
-                                    <button class="btn btn-outline-danger me-2" *ngIf="listenerClient.inactive" (click)="deleteListener(listenerClient)">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                                    <button class="btn btn-outline-dark" *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed" (click)="flash(listenerClient)">
-                          <i class="fas fa-exclamation"></i> Flash
-                        </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                      <table class="table table-hover align-middle" *ngIf="socketService.listenerClients.length > 0">
+                          <thead>
+                              <tr>
+                                  <th>IP Address</th>
+                                  <th></th>
+                                  <th class="bg-light">Type</th>
+                                  <th>Device</th>
+                                  <th></th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                              <tr *ngFor="let listenerClient of socketService.listenerClients">
+                                  <td>{{ listenerClient.ipAddress }}</td>
+                                  <td><i class="fas fa-cloud text-muted" *ngIf="listenerClient.cloudConnection"></i></td>
+                                  <td class="bg-light">{{ listenerClient.listenerType }}</td>
+                                  <td>
+                                      <select class="form-select" *ngIf="listenerClient.listenerType != 'vmix'" [ngModel]="listenerClient.deviceId" (ngModelChange)="reassignListenerClient(listenerClient, $event)" [disabled]="!listenerClient.canBeReassigned">
+                            <option *ngFor="let device of socketService.devices" [value]="device.id">
+                              {{ device.name }}
+                            </option>
+                          </select>
+                                  </td>
+                                  <td>
+                                      <button class="btn btn-sm btn-danger mx-1 my-1" *ngIf="listenerClient.inactive" (click)="deleteListener(listenerClient)">
+                              <i class="fas fa-trash"></i> Delete
+                          </button>
+                                      <button class="btn btn-sm btn-info mx-1 my-1" *ngIf="!listenerClient.inactive && listenerClient.canBeFlashed" (click)="flash(listenerClient)">
+                            <i class="fas fa-exclamation"></i> Flash
+                          </button>
+                                  </td>
+                              </tr>
+                          </tbody>
+                      </table>
+                    </div>
                 </div>
                 <hr class="my-5" />
                 <div class="row">
-                    <h2>Connected vMix Listeners</h2>
+                    <h3>Connected vMix Listeners</h3>
                     <span class="text-muted mt-3" *ngIf="socketService.vmixClients.length == 0">No listeners connected.</span>
-                    <table class="table table-hover" *ngIf="socketService.vmixClients.length > 0">
-                        <thead>
-                            <tr>
-                                <th>IP Address</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let vmixClient of socketService.vmixClients">
-                                <td>{{ vmixClient.host }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                      <table class="table table-hover align-middle" *ngIf="socketService.vmixClients.length > 0">
+                          <thead>
+                              <tr>
+                                  <th>IP Address</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                              <tr *ngFor="let vmixClient of socketService.vmixClients">
+                                  <td>{{ vmixClient.host }}</td>
+                              </tr>
+                          </tbody>
+                      </table>
+                    </div>
                 </div>
                 <hr class="my-5" />
                 <div class="row">
-                    <h2>TSL Clients
-                        <button class="btn btn-outline-success mr-1" (click)="addTSLClient(tslClientModal)"><i class="fas fa-plus"></i> Add</button>
-                    </h2>
+                    <h3>TSL Clients
+                        <button class="btn btn-sm btn-success mr-1" (click)="addTSLClient(tslClientModal)"><i class="fas fa-plus"></i> Add</button>
+                    </h3>
                     <div>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="chkTSLClients_1SecUpdate" [(ngModel)]="socketService.tslclients_1secupdate" (ngModelChange)="socketService.socket.emit('tslclients_1secupdate', $event);">
                             <label class="form-check-label" for="chkTSLClients_1SecUpdate">1-Second Updates</label>
                         </div>
                         <span class="text-muted mt-3 d-block" *ngIf="socketService.tslClients.length == 0">No TSL clients configured.</span>
-                        <table class="table table-hover" *ngIf="socketService.tslClients.length > 0">
-                            <thead>
-                                <tr>
-                                    <th>IP</th>
-                                    <th>Port</th>
-                                    <th>Transport</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr *ngFor="let tslClient of socketService.tslClients" [class.text-success]="tslClient.connected">
-                                    <td>{{tslClient.ip}}</td>
-                                    <td>{{tslClient.port}}</td>
-                                    <td>{{tslClient.transport}}</td>
-                                    <td>
-                                        <button class="btn btn-outline-dark" (click)="editTSLClient(tslClient, tslClientModal)">
-                                    <i class="fas fa-pen"></i> Edit
-                                </button>
-                                        <button class="btn btn-outline-danger mx-2" (click)="deleteTSLClient(tslClient)">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                          <table class="table table-hover align-middle" *ngIf="socketService.tslClients.length > 0">
+                              <thead>
+                                  <tr>
+                                      <th>IP</th>
+                                      <th>Port</th>
+                                      <th>Transport</th>
+                                      <th></th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  <tr *ngFor="let tslClient of socketService.tslClients" [class.text-success]="tslClient.connected">
+                                      <td>{{tslClient.ip}}</td>
+                                      <td>{{tslClient.port}}</td>
+                                      <td>{{tslClient.transport}}</td>
+                                      <td class="text-center">
+                                          <button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editTSLClient(tslClient, tslClientModal)">
+                                      <i class="fas fa-pen"></i> Edit
+                                  </button>
+                                          <button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteTSLClient(tslClient)">
+                                      <i class="fas fa-trash"></i> Delete
+                                  </button>
+                                      </td>
+                                  </tr>
+                              </tbody>
+                          </table>
+                        </div>
                     </div>
                 </div>
             </ng-template>
@@ -181,94 +191,100 @@
             <ng-template ngbNavContent>
                 <div class="row">
                     <div class="mb-3">
-                        <h2><i class="fas fa-cloud text-muted"></i> Cloud Settings</h2>
+                        <h3><i class="fas fa-cloud text-muted"></i> Cloud Settings</h3>
                     </div>
-                    <div class="col">
-                        <h4>
+                    <div class="col-md-6 col-xs-12">
+                        <h3>
                             Destinations
-                            <button class="btn btn-outline-success" (click)="addCloudDestination(cloudDestinationModal)"><i class="fas fa-plus"></i> Add </button>
-                        </h4>
+                            <button class="btn btn-sm btn-success" (click)="addCloudDestination(cloudDestinationModal)"><i class="fas fa-plus"></i> Add </button>
+                        </h3>
                         <span class="text-muted mt-3" *ngIf="socketService.cloudDestinations.length == 0">No cloud destinations configured.</span>
-                        <table class="table table-hover" *ngIf="socketService.cloudDestinations.length > 0">
-                            <thead>
-                                <tr>
-                                    <th>Host</th>
-                                    <th>Port</th>
-                                    <th>Key</th>
-                                    <th></th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr *ngFor="let cloudDestination of socketService.cloudDestinations" [class.text-success]="cloudDestination.status == 'connected'">
-                                    <td>{{cloudDestination.host}}</td>
-                                    <td>{{cloudDestination.port}}</td>
-                                    <td>{{cloudDestination.key}}</td>
-                                    <td><span *ngIf="cloudDestination.status == 'invalid_key'" class="text-danger">Invalid Key!</span></td>
-                                    <td>
-                                        <button class="btn btn-outline-dark" (click)="editCloudDestination(cloudDestination, cloudDestinationModal)">
-                                            <i class="fas fa-pen"></i> Edit
-                                        </button>
-                                        <button class="btn btn-outline-danger mx-2" (click)="deleteCloudDestination(cloudDestination)">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                        <button class="btn btn-outline-dark" *ngIf="cloudDestination.status == 'disconnected'" (click)="reconnectCloudDestination(cloudDestination)">
-                                            <i class="fas fa-sync"></i> Reconnect
-                                        </button>
-                                        <button class="btn btn-outline-dark" *ngIf="cloudDestination.status == 'connected'" (click)="disconnectCloudDestination(cloudDestination)">
-                                            <i class="fas fa-times"></i> Disconnect
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                          <table class="table table-hover align-middle" *ngIf="socketService.cloudDestinations.length > 0">
+                              <thead>
+                                  <tr>
+                                      <th>Host</th>
+                                      <th>Port</th>
+                                      <th>Key</th>
+                                      <th></th>
+                                      <th></th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  <tr *ngFor="let cloudDestination of socketService.cloudDestinations" [class.text-success]="cloudDestination.status == 'connected'">
+                                      <td>{{cloudDestination.host}}</td>
+                                      <td>{{cloudDestination.port}}</td>
+                                      <td>{{cloudDestination.key}}</td>
+                                      <td><span *ngIf="cloudDestination.status == 'invalid_key'" class="text-danger">Invalid Key!</span></td>
+                                      <td class="text-center">
+                                          <button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editCloudDestination(cloudDestination, cloudDestinationModal)">
+                                              <i class="fas fa-pen"></i> Edit
+                                          </button>
+                                          <button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteCloudDestination(cloudDestination)">
+                                              <i class="fas fa-trash"></i> Delete
+                                          </button>
+                                          <button class="btn btn-sm btn-warning mx-1 my-1" *ngIf="cloudDestination.status == 'disconnected'" (click)="reconnectCloudDestination(cloudDestination)">
+                                              <i class="fas fa-sync"></i> Reconnect
+                                          </button>
+                                          <button class="btn btn-sm btn-dark mx-1 my-1" *ngIf="cloudDestination.status == 'connected'" (click)="disconnectCloudDestination(cloudDestination)">
+                                              <i class="fas fa-times"></i> Disconnect
+                                          </button>
+                                      </td>
+                                  </tr>
+                              </tbody>
+                          </table>
+                        </div>
                     </div>
-                    <div class="col">
+                    <div class="col-md-6 col-xs-12 mt-3">
                         <h4>
                             Keys
-                            <button class="btn btn-outline-success" (click)="addCloudKey(cloudKeyModal)"><i class="fas fa-plus"></i> Add </button>
+                            <button class="btn btn-sm btn-success" (click)="addCloudKey(cloudKeyModal)"><i class="fas fa-plus"></i> Add </button>
                         </h4>
                         <span class="text-muted mt-3" *ngIf="socketService.cloudKeys.length == 0">No cloud keys configured.</span>
-                        <table class="table table-hover" *ngIf="socketService.cloudKeys.length > 0">
-                            <thead>
-                                <tr>
-                                    <th>Key</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr *ngFor="let key of socketService.cloudKeys">
-                                    <td>{{key}}</td>
-                                    <td>
-                                        <button class="btn btn-outline-danger" (click)="deleteCloudKey(key)"><i class="fas fa-trash"></i> Delete</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                          <table class="table table-hover align-middle" *ngIf="socketService.cloudKeys.length > 0">
+                              <thead>
+                                  <tr>
+                                      <th>Key</th>
+                                      <th></th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  <tr *ngFor="let key of socketService.cloudKeys">
+                                      <td>{{key}}</td>
+                                      <td>
+                                          <button class="btn btn-sm btn-danger" (click)="deleteCloudKey(key)"><i class="fas fa-trash"></i> Delete</button>
+                                      </td>
+                                  </tr>
+                              </tbody>
+                          </table>
+                        </div>
                     </div>
                 </div>
                 <div class="row mt-4">
                     <div class="col">
                         <h4>Clients</h4>
                         <span class="text-muted mt-3" *ngIf="socketService.cloudClients.length == 0">No cloud clients connected.</span>
-                        <table class="table table-hover" *ngIf="socketService.cloudClients.length > 0">
-                            <thead>
-                                <tr>
-                                    <th>IP</th>
-                                    <th>Key</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr *ngFor="let client of socketService.cloudClients">
-                                    <td>{{client.ipAddress.replace("::ffff:", "")}}</td>
-                                    <td>{{client.key}}</td>
-                                    <td>
-                                        <button class="btn btn-outline-danger" (click)="removeCloudClient(client)"><i class="fas fa-trash"></i> Remove</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                          <table class="table table-hover align-middle" *ngIf="socketService.cloudClients.length > 0">
+                              <thead>
+                                  <tr>
+                                      <th>IP</th>
+                                      <th>Key</th>
+                                      <th></th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  <tr *ngFor="let client of socketService.cloudClients">
+                                      <td>{{client.ipAddress.replace("::ffff:", "")}}</td>
+                                      <td>{{client.key}}</td>
+                                      <td>
+                                          <button class="btn btn-sm btn-danger" (click)="removeCloudClient(client)"><i class="fas fa-trash"></i> Remove</button>
+                                      </td>
+                                  </tr>
+                              </tbody>
+                          </table>
+                        </div>
                     </div>
                 </div>
             </ng-template>
@@ -277,10 +293,10 @@
             <a ngbNavLink>Testing</a>
             <ng-template ngbNavContent>
                 <div *ngIf="checkTestMode() == false; else testModeOffButton">
-                    <button class="btn btn-outline-dark mb-5" (click)="setTestMode(true)"><i class="fas fa-vial"></i> Turn On Test Mode</button>
+                    <button class="btn btn-secondary mb-5" (click)="setTestMode(true)"><i class="fas fa-vial"></i> Turn On Test Mode</button>
                 </div>
                 <ng-template #testModeOffButton>
-                    <button class="btn btn-outline-dark mb-5" (click)="setTestMode(false)"><i class="fas fa-vial"></i> Turn Off Test Mode</button>
+                    <button class="btn btn-secondary mb-5" (click)="setTestMode(false)"><i class="fas fa-vial"></i> Turn Off Test Mode</button>
                 </ng-template>
                 <i *ngIf="checkTestMode()" class="fas fa-vial fa-spin fa-4x text-secondary float-end"></i>
                 <ng-container *ngTemplateOutlet="devicesTable; context: {editMode: false}"></ng-container>
@@ -290,59 +306,61 @@
             <a ngbNavLink>Config</a>
             <ng-template ngbNavContent>
                 <div class="row">
-                    <h2>Bus Options</h2>
+                    <h3>Bus Options</h3>
                     <div>
                         <span class="text-muted mt-3 d-block" *ngIf="socketService.busOptions.length == 0">No Bus Options configured.</span>
-                        <table class="table table-hover" *ngIf="socketService.busOptions.length > 0">
-                            <thead>
-                                <tr>
-                                    <th>Label</th>
-                                    <th>Type</th>
-                                    <th>Color</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr *ngFor="let busOption of socketService.busOptions">
-                                    <td>{{busOption.label}}</td>
-                                    <td>{{busOption.type}}</td>
-                                    <td><span class="color-box me-3" [style.background-color]="busOption.color"></span>{{busOption.color}}</td>
-                                    <td>
-                                        <button class="btn btn-outline-dark" (click)="editBusOption(busOption, busOptionModal)">
-                                    <i class="fas fa-pen"></i> Edit
-                                </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                          <table class="table table-hover align-middle" *ngIf="socketService.busOptions.length > 0">
+                              <thead>
+                                  <tr>
+                                      <th>Label</th>
+                                      <th>Type</th>
+                                      <th>Color</th>
+                                      <th></th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  <tr *ngFor="let busOption of socketService.busOptions">
+                                      <td>{{busOption.label}}</td>
+                                      <td>{{busOption.type}}</td>
+                                      <td><span class="color-box me-3 align-middle" [style.background-color]="busOption.color"></span>{{busOption.color}}</td>
+                                      <td>
+                                          <button class="btn btn-sm btn-secondary" (click)="editBusOption(busOption, busOptionModal)">
+                                      <i class="fas fa-pen"></i> Edit
+                                  </button>
+                                      </td>
+                                  </tr>
+                              </tbody>
+                          </table>
+                        </div>
                     </div>
                 </div>
-                <div *ngIf="!configLoaded" class="d-flex justify-content-center mt-5 pt-5">
+                <div *ngIf="!configLoaded" class="d-flex justify-content-center mt-3 pt-3">
                     <div class="spinner spinner-border text-dark"><p style="margin-left: 0.5 rem">Loading config...</p></div>
                 </div>
                 <div *ngIf="configLoaded">
-                    <hr class="my-5" />
+                    <hr class="my-3" />
                     <div class="row">
-                        <h2>Config tools</h2>
+                        <h3>Config tools</h3>
                         <div class="btn-group" role="group" aria-label="Basic example">
-                            <button type="button" class="btn btn-outline-primary" style="font-size: 1.2em" (click)="importConfig()"><i class="fas fa-upload"></i> Import</button>
-                            <button type="button" class="btn btn-outline-primary" style="font-size: 1.2em" (click)="exportConfig()"><i class="fas fa-download"></i> Export</button>
+                            <button type="button" class="btn btn-primary" style="font-size: 1.2em" (click)="importConfig()"><i class="fas fa-upload"></i> Import</button>
+                            <button type="button" class="btn btn-secondary" style="font-size: 1.2em" (click)="exportConfig()"><i class="fas fa-download"></i> Export</button>
                         </div>
                     </div>
-                    <hr class="my-5" />
+                    <hr class="my-3" />
                     <div class="alert alert-danger" role="alert">
                         <i class="fas fa-exclamation-triangle"></i> Please note that updating your config manually shouldn't be necesary and it's not recommended. Continue at your own risk.
                     </div>
                     <div class="row">
-                        <h2>Config editor</h2>
+                        <h3>Config editor</h3>
                         <json-editor [options]="jsonEditorOptions" [data]="config" (change)="configUpdated($event)" #configEditor></json-editor>
                         <div style="display: flex; justify-content: flex-end;">
                             <button class="btn btn-primary m-1" (click)="saveConfig()" [disabled]="!updatedConfigValid">Save config</button>
                         </div>
                     </div>
-                    <hr class="my-5" />
+                    <hr class="my-3" />
                     <div class="row">
-                        <h2>Raw Config editor</h2>
+                        <h3>Raw Config editor</h3>
                         <textarea class="form-control" id="exampleFormControlTextarea1" rows="20" [(ngModel)]="updatedRawConfig"></textarea>
                         <div style="display: flex; justify-content: flex-end;">
                             <button class="btn btn-primary m-1" (click)="saveRawConfig()">Save config</button>
@@ -355,40 +373,42 @@
             <a ngbNavLink>Users</a>
             <ng-template ngbNavContent>
                 <div class="row">
-                    <h2>
+                    <h3>
                         Users
-                        <button class="btn btn-outline-success me-2" (click)="addUser(userModal)">
+                        <button class="btn btn-sm btn-success me-2" (click)="addUser(userModal)">
                             <i class="fas fa-plus"></i> Add
                         </button>
-                    </h2>
+                    </h3>
                     <div>
                         <span class="text-muted mt-3 d-block" *ngIf="socketService.users.length == 0">No user found. This should not happen... Please, open a bug report on Github.</span>
-                        <table class="table table-hover" *ngIf="socketService.users.length > 0">
-                            <thead>
-                                <tr>
-                                    <th>Username</th>
-                                    <th>Roles</th>
-                                    <th></th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr *ngFor="let user of socketService.users">
-                                    <td>{{user.username}}</td>
-                                    <td>{{user.roles.toString().replaceAll(";", ", ")}}</td>
-                                    <td>
-                                        <button class="btn btn-outline-dark" (click)="editUser(user, userModal)">
-                                            <i class="fas fa-pen"></i> Edit
-                                        </button>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-outline-danger" (click)="deleteUserButton(user)" [disabled]="socketService.users.length === 1">
-                                            <i class="fas fa-trash"></i> Delete <i class="fas fa-exclamation-triangle" *ngIf="authService.profile.username === user.username"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                          <table class="table table-hover align-middle" *ngIf="socketService.users.length > 0">
+                              <thead>
+                                  <tr>
+                                      <th>Username</th>
+                                      <th>Roles</th>
+                                      <th></th>
+                                      <th></th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  <tr *ngFor="let user of socketService.users">
+                                      <td>{{user.username}}</td>
+                                      <td>{{user.roles.toString().replaceAll(";", ", ")}}</td>
+                                      <td>
+                                          <button class="btn btn-sm btn-secondary" (click)="editUser(user, userModal)">
+                                              <i class="fas fa-pen"></i> Edit
+                                          </button>
+                                      </td>
+                                      <td>
+                                          <button class="btn btn-sm btn-danger" (click)="deleteUserButton(user)" [disabled]="socketService.users.length === 1">
+                                              <i class="fas fa-trash"></i> Delete <i class="fas fa-exclamation-triangle" *ngIf="authService.profile.username === user.username"></i>
+                                          </button>
+                                      </td>
+                                  </tr>
+                              </tbody>
+                          </table>
+                        </div>
                     </div>
                 </div>
             </ng-template>
@@ -397,12 +417,12 @@
             <a ngbNavLink>Logs</a>
             <ng-template ngbNavContent>
                 <div class="row">
-                    <div class="col-xs-12 col-md-6" id="divContainer_Logs">
-                        <h2>Logs
+                    <div class="col-xs-12 col-md-6 mt-3" id="divContainer_Logs">
+                        <h3>Logs
                             <select class="form-select d-inline w-50" [ngModel]="currentLogLevel" (ngModelChange)="setLogLevel($event)">
                                 <option *ngFor="let logLevel of logLevels" [value]="logLevel.id">{{logLevel.title}}</option>
                             </select>
-                        </h2>
+                        </h3>
                         <div class="logs bg-light p-1" #logsContainer>
                             <span class="d-block" [style.color]="
                             log.type == 'console_action'
@@ -416,8 +436,8 @@
                         {{ log.datetime | date: "shortTime" }}] {{ log.log }}</span>
                         </div>
                     </div>
-                    <div class="col-xs-12 col-md-6" id="divContainer_TallyData">
-                        <h2>Tally Data</h2>
+                    <div class="col-xs-12 col-md-6 mt-3" id="divContainer_TallyData">
+                        <h3>Tally Data</h3>
                         <div class="logs bg-light p-1" #tallyDataContainer>
                             <span class="d-block" *ngFor="let log of socketService.tallyData">[{{ log.datetime | date: "shortDate" }}
                         {{ log.datetime | date: "shortTime" }}] {{ log.log }}</span>
@@ -425,10 +445,10 @@
                     </div>
                 </div>
                 <div *ngIf="socketService.remoteErrorOpt == false; else optOutButton">
-                    <button class="btn btn-outline-dark my-3" (click)="optInErrorReporting()"><i class="fas fa-remove"></i> Opt in to remote error reporting</button>
+                    <button class="btn btn-dark my-3" (click)="optInErrorReporting()"><i class="fas fa-remove"></i> Opt in to remote error reporting</button>
                 </div>
                 <ng-template #optOutButton>
-                    <button class="btn btn-outline-dark my-3" (click)="optOutErrorReporting()"><i class="fas fa-remove"></i> Opt out of remote error reporting</button>
+                    <button class="btn btn-dark my-3" (click)="optOutErrorReporting()"><i class="fas fa-remove"></i> Opt out of remote error reporting</button>
                 </ng-template>
                 <div class="text-muted my-3">Version {{ socketService.version }} - <a routerLink="/errors">Go to error reports list</a></div>
             </ng-template>
@@ -446,40 +466,42 @@
 
 
 <ng-template #devicesTable let-editMode="editMode">
-    <h2>
+    <h3>
         Devices
-        <button class="btn btn-outline-success" *ngIf="editMode" (click)="addDevice(deviceModal)"><i class="fas fa-plus"></i> Add </button>
-    </h2>
+        <button class="btn btn-sm btn-success" *ngIf="editMode" (click)="addDevice(deviceModal)"><i class="fas fa-plus"></i> Add </button>
+    </h3>
     <span class="text-muted mt-3" *ngIf="socketService.devices.length == 0">No devices configured.</span>
-    <table class="table table-hover" *ngIf="socketService.devices.length > 0">
-        <thead>
-            <tr>
-                <th *ngFor="let bus of socketService.busOptions">{{bus.label}}</th>
-                <th>Name</th>
-                <th></th>
-                <th>Description</th>
-                <th *ngIf="editMode" ></th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr *ngFor="let device of socketService.devices; index as index" [class.text-muted]="!device.enabled">
-                <td *ngFor="let bus of socketService.busOptions" [style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : '#FFFFFF'"></td>
-                <td>
-                    <small><b>{{ index + 1 }}</b></small> {{ device.name }}
-                </td>
-                <td><i class="fas fa-cloud text-muted" *ngIf="device.cloudConnection"></i></td>
-                <td>{{ device.description }}</td>
-                <td *ngIf="editMode" >
-                    <button class="btn btn-outline-dark me-2" (click)="editDevice(device, deviceModal)">
-                        <i class="fas fa-pen"></i> Edit
-                    </button>
-                    <button class="btn btn-outline-dark me-2" (click)="editDeviceSources(device, deviceSourcesModal)"><i class="fas fa-link"></i> Edit Sources ({{getDeviceSourcesByDeviceId(device.id).length}})</button>
-                    <button class="btn btn-outline-dark me-2" (click)="editDeviceActions(device, deviceActionsModal)"><i class="fas fa-play"></i> Edit Actions ({{getDeviceActionsByDeviceId(device.id).length}})</button>
-                    <button class="btn btn-outline-danger" (click)="deleteDevice(device)"><i class="fas fa-trash"></i> Delete</button>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle" *ngIf="socketService.devices.length > 0">
+          <thead>
+              <tr>
+                  <th *ngFor="let bus of socketService.busOptions">{{bus.label}}</th>
+                  <th style="min-width: 100px;">Name</th>
+                  <th></th>
+                  <th style="min-width: 200px;">Description</th>
+                  <th style="min-width: 250px;" *ngIf="editMode" ></th>
+              </tr>
+          </thead>
+          <tbody>
+              <tr *ngFor="let device of socketService.devices; index as index" [class.text-muted]="!device.enabled">
+                  <td *ngFor="let bus of socketService.busOptions" [style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : '#FFFFFF'"></td>
+                  <td>
+                      <small><b>{{ index + 1 }}</b></small> {{ device.name }}
+                  </td>
+                  <td><i class="fas fa-cloud text-muted" *ngIf="device.cloudConnection"></i></td>
+                  <td>{{ device.description }}</td>
+                  <td *ngIf="editMode" class="text-center" >
+                      <button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editDevice(device, deviceModal)">
+                          <i class="fas fa-pen"></i> Edit
+                      </button>
+                      <button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editDeviceSources(device, deviceSourcesModal)"><i class="fas fa-link"></i> Edit Sources ({{getDeviceSourcesByDeviceId(device.id).length}})</button>
+                      <button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editDeviceActions(device, deviceActionsModal)"><i class="fas fa-play"></i> Edit Actions ({{getDeviceActionsByDeviceId(device.id).length}})</button>
+                      <button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteDevice(device)"><i class="fas fa-trash"></i> Delete</button>
+                  </td>
+              </tr>
+          </tbody>
+      </table>
+    </div>
 </ng-template>
 
 <ng-template #sourceModal let-modal>
@@ -569,7 +591,7 @@
                 </div>
             </ng-container>
             <div class="d-flex justify-content-end">
-                <button class="btn btn-outline-dark" (click)="saveCurrentSource()">
+                <button class="btn btn-primary" (click)="saveCurrentSource()">
           <i class="fas fa-save"></i> {{ editingSource ? "Save Changes" : "Add Source" }}
         </button>
             </div>
@@ -623,7 +645,7 @@
             </div>
         </ng-container>
         <div class="d-flex justify-content-end">
-            <button class="btn btn-outline-dark" (click)="saveCurrentDevice()">
+            <button class="btn btn-primary" (click)="saveCurrentDevice()">
         <i class="fas fa-save"></i> {{ editingDevice ? "Save Changes" : "Add Device" }}
       </button>
         </div>
@@ -639,7 +661,8 @@
     </div>
     <div class="modal-body">
         <div *ngIf="!editingDeviceSource">
-            <table class="table table-hover">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
                 <thead>
                     <tr>
                         <th>Source</th>
@@ -658,13 +681,14 @@
                         <td>{{deviceSource.bus}}</td>
                         <td>{{deviceSource.rename}}</td>
                         <td>
-                            <button class="btn btn-outline-dark me-1" (click)="editDeviceSource(deviceSource)"><i class="fas fa-pen"></i> Edit</button>
-                            <button class="btn btn-outline-danger" (click)="deleteDeviceSource(deviceSource)"><i class="fas fa-trash"></i> Delete</button>
+                            <button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editDeviceSource(deviceSource)"><i class="fas fa-pen"></i> Edit</button>
+                            <button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteDeviceSource(deviceSource)"><i class="fas fa-trash"></i> Delete</button>
                         </td>
                     </tr>
                 </tbody>
             </table>
-            <button class="btn btn-outline-success mr-1" (click)="editingDeviceSource = true"><i class="fas fa-plus"></i> Add Source</button>
+          </div>
+            <button class="btn btn-success mr-1" (click)="editingDeviceSource = true"><i class="fas fa-plus"></i> Add Source</button>
         </div>
         <div *ngIf="editingDeviceSource">
             <h5>New Device Source</h5>
@@ -705,7 +729,7 @@
                 </label>
             </div>
             <div class="d-flex justify-content-end">
-                <button class="btn btn-outline-dark" (click)="saveDeviceSource()"><i class="fas fa-save"></i> {{currentDeviceSource.id !== undefined ? 'Save Changes' : 'Add Device Source'}}</button>
+                <button class="btn btn-primary" (click)="saveDeviceSource()"><i class="fas fa-save"></i> {{currentDeviceSource.id !== undefined ? 'Save Changes' : 'Add Device Source'}}</button>
             </div>
         </div>
     </div>
@@ -720,7 +744,8 @@
     </div>
     <div class="modal-body">
         <div *ngIf="!editingDeviceAction">
-            <table class="table table-hover">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
                 <thead>
                     <tr>
                         <th>Bus</th>
@@ -735,13 +760,14 @@
                         <td>{{deviceAction.active ? 'On' : 'Off'}}</td>
                         <td>{{getOutputTypeById(deviceAction.outputTypeId)?.label}}</td>
                         <td>
-                            <button class="btn btn-outline-dark me-1" (click)="editDeviceAction(deviceAction)"><i class="fas fa-pen"></i> Edit</button>
-                            <button class="btn btn-outline-danger" (click)="deleteDeviceAction(deviceAction)"><i class="fas fa-trash"></i> Delete</button>
+                            <button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editDeviceAction(deviceAction)"><i class="fas fa-pen"></i> Edit</button>
+                            <button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteDeviceAction(deviceAction)"><i class="fas fa-trash"></i> Delete</button>
                         </td>
                     </tr>
                 </tbody>
             </table>
-            <button class="btn btn-outline-success mr-1" (click)="addDeviceAction()"><i class="fas fa-plus"></i> Add Action</button>
+          </div>
+          <button class="btn btn-success mr-1" (click)="addDeviceAction()"><i class="fas fa-plus"></i> Add Action</button>
         </div>
         <div *ngIf="editingDeviceAction">
             <h5>New Device Action</h5>
@@ -800,7 +826,7 @@
             </ng-container>
 
             <div class="d-flex justify-content-end">
-                <button class="btn btn-outline-dark" (click)="saveDeviceAction()"><i class="fas fa-save"></i> {{currentDeviceAction.id !== undefined ? 'Save Changes' : 'Add Action'}}</button>
+                <button class="btn btn-primary" (click)="saveDeviceAction()"><i class="fas fa-save"></i> {{currentDeviceAction.id !== undefined ? 'Save Changes' : 'Add Action'}}</button>
             </div>
         </div>
     </div>
@@ -837,7 +863,7 @@
         </select>
         </div>
         <div class="d-flex justify-content-end">
-            <button class="btn btn-outline-dark" (click)="saveCurrentTSLClient()">
+            <button class="btn btn-primary" (click)="saveCurrentTSLClient()">
           <i class="fas fa-save"></i> {{ editingTSLClient ? "Save Changes" : "Add TSL Client" }}
         </button>
         </div>
@@ -872,7 +898,7 @@
             <input type="color" class="form-control color-input" id="busColor" [(ngModel)]="currentBusOption.color" />
         </div>
         <div class="d-flex justify-content-end">
-            <button class="btn btn-outline-dark" (click)="saveCurrentBusOption()">
+            <button class="btn btn-primary" (click)="saveCurrentBusOption()">
           <i class="fas fa-save"></i> {{ editingBusOption ? "Save Changes" : "Add Bus Option" }}
         </button>
         </div>
@@ -905,7 +931,7 @@
             <input required type="text" class="form-control" id="userPassword" [(ngModel)]="currentUser.password" />
         </div>
         <div class="d-flex justify-content-end">
-            <button class="btn btn-outline-dark" (click)="saveCurrentUser()">
+            <button class="btn btn-primary" (click)="saveCurrentUser()">
             <i class="fas fa-save"></i> {{ editingUser ? "Save Changes" : "Add User" }}
         </button>
         </div>
@@ -940,7 +966,7 @@
             <input type="text" class="form-control" id="cloudKey" [(ngModel)]="currentCloudDestination.key" />
         </div>
         <div class="d-flex justify-content-end">
-            <button class="btn btn-outline-dark" (click)="saveCurrentCloudDestination()">
+            <button class="btn btn-primary" (click)="saveCurrentCloudDestination()">
         <i class="fas fa-save"></i> {{ editingCloudDestination ? "Save Changes" : "Add Cloud Destination" }}
         </button>
         </div>
@@ -958,7 +984,7 @@
             <input type="text" class="form-control" id="key" [(ngModel)]="newCloudKey" />
         </div>
         <div class="d-flex justify-content-end">
-            <button class="btn btn-outline-dark" (click)="saveCloudKey()">
+            <button class="btn btn-primary" (click)="saveCloudKey()">
                 <i class="fas fa-save"></i> Add Cloud Key
             </button>
         </div>

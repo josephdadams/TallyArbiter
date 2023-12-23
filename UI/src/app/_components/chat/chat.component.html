@@ -1,17 +1,17 @@
 <div class="card chat d-flex">
-    <div class="mesages bg-light flex-fill p-3 overflow-auto" #chatContainer>
-        <div [class]="'d-flex ' + (message.type == 'server' ? 'justify-content-center' : message.socketId == socketService.socket.id ? 'justify-content-end' : 'justify-content-start')" *ngFor="let message of socketService.messages">
-            <div class="message p-2 mb-3 rounded" [class.server]="message.type == 'server'" [class.producer]="message.type == 'producer'">
-                <b *ngIf="message.type !== 'server'">{{message.type | titlecase}}<br></b>
-                <span>{{message.text}}</span>
-                <div class="d-flex justify-content-end text-muted">
-                    <small class="time">{{message.date | date: 'shortTime'}}</small>
-                </div>
+  <div class="mesages bg-light flex-fill p-3 overflow-auto" #chatContainer>
+    <div [class]="'d-flex ' + (message.type == 'server' ? 'justify-content-center' : message.socketId == socketService.socket.id ? 'justify-content-end' : 'justify-content-start')" *ngFor="let message of socketService.messages">
+        <div class="message p-2 mb-3 rounded" [class.server]="message.type == 'server'" [class.producer]="message.type == 'producer'">
+            <b *ngIf="message.type !== 'server'">{{message.type | titlecase}}<br></b>
+            <span>{{message.text}}</span>
+            <div class="d-flex justify-content-end text-muted">
+                <small class="time">{{message.date | date: 'shortTime'}}</small>
             </div>
         </div>
     </div>
-    <div class="input-group">
-        <input type="text" class="form-control" placeholder="Type a message" (keydown.enter)="sendMessage()" [(ngModel)]="message">
-        <button class="btn btn-outline-dark" (click)="sendMessage()"><i class="fas fa-paper-plane"></i></button>
-    </div>
+  </div>
+  <div class="input-group">
+      <input type="text" class="form-control" placeholder="Type a message" (keydown.enter)="sendMessage()" [(ngModel)]="message">
+      <button class="btn btn-outline-dark" (click)="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+  </div>
 </div>
