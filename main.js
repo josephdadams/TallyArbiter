@@ -11,6 +11,8 @@ let trayIcon;
 const WindowProperties = {
     width: 1260,
     height: 850,
+    minWidth: 450,
+    minHeight: 450
 }
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -29,8 +31,8 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: WindowProperties.width,
         height: WindowProperties.height,
-        minWidth: WindowProperties.width,
-        minHeight: WindowProperties.height,
+        minWidth: WindowProperties.minWidth,
+        minHeight: WindowProperties.minHeight,
         webPreferences: {},
         show: false,
     });
@@ -179,8 +181,8 @@ function checkForUpdates() {
         releaseNotesWindow = new BrowserWindow({
             width: 850,
             height: 1260,
-            minHeight: 850,
-            minWidth: 1260,
+            minHeight: 450,
+            minWidth: 450,
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false

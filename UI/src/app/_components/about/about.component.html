@@ -1,7 +1,13 @@
 <div class="container pt-3">
     <h1>About</h1>
   <div class="row mt-3">
-    <div class="col">
+    <div class="col-xs-12 col-md-6 mt-3">
+      <div class="card p-3">
+          <h4>Version</h4>
+          <b>{{socketService.version}}</b>
+      </div>
+    </div>
+    <div class="col-xs-12 col-md-6 my-3">
         <div class="card p-3">
             <h4>MIT License</h4>
             <p>Copyright 2020 - {{currentYear}} Joseph Adams and contributors.</p>
@@ -12,12 +18,6 @@
             <hr>
             <p>To <a href="https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=bug&template=bug.yaml&title=%5BBug%5D%3A+">report a bug</a> or open a <a href="https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=feature&template=feature.yaml&title=%5BFeature+Request%5D%3A+">feature request</a>, please go to our <a href="https://github.com/josephdadams/TallyArbiter/issues/new/choose">issues</a> page.</p>
             <p>If you would like to see more of Joseph Adams' projects or send a word of encouragement his way, please visit <a id='bloglink' target="_blank" href='https://www.techministry.blog'>techministry.blog</a>.</p>
-        </div>
-    </div>
-    <div class="col">
-        <div class="card p-3">
-            <h4>Version</h4>
-            <b>{{socketService.version}}</b>
         </div>
     </div>
   </div>
