@@ -117,7 +117,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: Setup TFT_eSPI and select User Setup
       run: |
-        git clone https://github.com/Bodmer/TFT_eSPI/
+        git clone --branch v2.5.33 https://github.com/Bodmer/TFT_eSPI/
         cd TFT_eSPI
         sed -i 's/#include <User_Setup.h>/\/\/#include <User_Setup.h>/g' User_Setup_Select.h
         sed -i 's/\/\/#include <User_Setups\/Setup22_TTGO_T4.h>/#include <User_Setups\/Setup22_TTGO_T4.h>/g' User_Setup_Select.h
