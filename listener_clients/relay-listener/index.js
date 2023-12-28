@@ -10,7 +10,8 @@ const config_file =    './config_relays.json'; //local storage JSON file
 const USBRelay = 	   require('@josephdadams/usbrelay');
 const bonjour 		 = require('bonjour')();
 
-var relay = 		null;
+//var relay = 		null;
+var detectedRelays = [];
 
 var configJson = {};
 var relay_groups = 	[];
@@ -105,6 +106,7 @@ class USBRelaysimulator
 				vendorId: 1234,
 				productId: 6789,
 				path: 'EXAMPLE_PATH',
+				serial: 'ABCDEFGHI',
 				manufacturer: 'TallyArbiter',
 				product: 'simulated USBRelay',
 				release: 1,
@@ -138,11 +140,23 @@ class USBRelaysimulator
 
 function setupUSBRelay() {
 	try {
-		relay = new USBRelay();
+		//relay = new USBRelay();
+		detectedRelays = USBRelay.Relays;
+		console.log('Detected Relays:');
+		console.log(detectedRelays);
+		if (detectedRelays.length > 0) {
+			for (let i = 0; i < detectedRelays.length; i++) {
+				detectedRelays[i].relay = new USBRelay(detectedRelays[i].path);
+			}
+		}
+		else {
+			logger('No USB Relays detected.', 'error');
+			detectedRelays.push(new USBRelaysimulator());
+		}
 	}
 	catch (error) {
 		if(error.message == 'No USB Relays are connected.')	logger(error, 'error');
-		relay = new USBRelaysimulator();
+		detectedRelays.push(new USBRelaysimulator());
 	}
 }
 
@@ -258,7 +272,7 @@ function getBusTypeById(busId) {
 
 function getRelayGroupById(deviceId) {
 	let groupIndex;
-	for (i = 0; i <= relay_groups.length; i++) {
+	for (i = 0; i < relay_groups.length; i++) {
 		if (relay_groups[i].deviceId == deviceId) {
 			groupIndex = i;
 			break;
@@ -277,11 +291,11 @@ function ProcessTallyData(states) {
 			if (device_state.sources.length > 0) {
 				logger(device_state.deviceId + " " + getBusTypeById(device_state.busId), 'debug');
 				let relay_group = getRelayGroupById(device_state.deviceId);
-				if (device_state.deviceId === relay_group.deviceId) {
+				if (typeof relay_group !== 'undefined' && device_state.deviceId === relay_group.deviceId) {
 					relay_group.relays.forEach((currentRelay) => {
 						if (currentRelay.busType === getBusTypeById(device_state.busId)) {
-							logger("Relay " + currentRelay.relayNumber + " is on", 'debug');
-							relay.setState(currentRelay.relayNumber, true);
+							logger("Relay " + currentRelay.relaySerial + ":" + currentRelay.relayNumber + " is on", 'debug');
+							relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, true);
 							powered_relays.push(currentRelay.relayNumber);
 						};
 					});
@@ -292,8 +306,8 @@ function ProcessTallyData(states) {
 			if(relay_group.deviceId === deviceId) {
 				relay_group.relays.forEach(function(currentRelay) {
 					if(!powered_relays.includes(currentRelay.relayNumber)) {
-						logger("Relay " + currentRelay.relayNumber + " is off", 'debug');
-						relay.setState(currentRelay.relayNumber, false);
+						logger("Relay " + currentRelay.relaySerial + ":" + currentRelay.relayNumber + " is off", 'debug');
+						relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, false);
 					}
 				});
 			}
@@ -305,16 +319,17 @@ function FlashRelayGroup(relayGroupId) {
 	for (let i = 0; i < relay_groups.length; i++) {
 		if (relay_groups[i].id === relayGroupId) {
 			for (let j = 0; j < relay_groups[i].relays.length; j++) {
-				let oldState = relay.getState(relay_groups[i].relays[j].relayNumber);
-				relay.setState(relay_groups[i].relays[j].relayNumber, true);
+				let currentRelay = relay_groups[i].relays[j];
+				let oldState = relayGetState(currentRelay.relaySerial, currentRelay.relayNumber);
+				relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, true);
 				setTimeout(function () {
-					relay.setState(relay_groups[i].relays[j].relayNumber, false);
+					relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, false);
 					setTimeout(function () {
-						relay.setState(relay_groups[i].relays[j].relayNumber, true);
+						relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, true);
 						setTimeout(function () {
-							relay.setState(relay_groups[i].relays[j].relayNumber, false);
+							relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, false);
 							setTimeout(function () {
-								relay.setState(relay_groups[i].relays[j].relayNumber, oldState);
+								relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, oldState);
 							}, 500);
 						}, 500)
 					}, 500);
@@ -323,6 +338,48 @@ function FlashRelayGroup(relayGroupId) {
 			break;
 		}
 	}
+}
+
+function relaySetState(relaySerial, relayNumber, state) {
+	//sets the state of a relay
+	if (relaySerial !== null) {
+		//loop through array of relays and determine which one to set
+		for (let i = 0; i < detectedRelays.length; i++) {
+			if (detectedRelays[i].serial === relaySerial) {
+				//set the relay state
+				console.log('setting relay state: ' + relaySerial + ': ' + relayNumber + ' to ' + state);
+				detectedRelays[i].relay.setState(relayNumber, state);
+				break;
+			}
+		}
+	}
+	else {
+		if (detectedRelays.length > 0) {
+			logger('Error setting relay state: No USB relays have been initialized. Are you sure it is connected?', 'error');
+		}
+	}
+}
+
+function relayGetState(relaySerial, relayNumber) {
+	//gets the state of a relay
+	let currentState = false;
+
+	if (relaySerial !== null) {
+		//loop through array of relays and determine which one to set
+		for (let i = 0; i < detectedRelays.length; i++) {
+			if (detectedRelays[i].serial === relaySerial) {
+				currentState = detectedRelays[i].relay.getState(relayNumber);
+				break;
+			}
+		}
+	}
+	else {
+		if (detectedRelays.length > 0) {
+			logger('Error setting relay state: No USB relays have been initialized. Are you sure it is connected?', 'error');
+		}
+	}
+
+	return currentState;
 }
 
 startUp();

@@ -4,6 +4,7 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { Confirmable } from 'src/app/_decorators/confirmable.decorator';
 import { CloudClient } from 'src/app/_models/CloudClient';
 import { CloudDestination } from 'src/app/_models/CloudDestination';
+import { NetworkDiscovery } from "src/app/_models/NetworkDiscovery";
 import { Device } from 'src/app/_models/Device';
 import { DeviceAction } from 'src/app/_models/DeviceAction';
 import { DeviceSource } from 'src/app/_models/DeviceSource';
@@ -18,6 +19,8 @@ import Swal from 'sweetalert2';
 import { SweetAlertOptions } from 'sweetalert2';
 import { BusOption } from 'src/app/_models/BusOption';
 import { SourceTypeBus } from 'src/app/_models/SourceTypeBus';
+import { User } from 'src/app/_models/User';
+import { AuthService } from 'src/app/_services/auth.service';
 import { JsonEditorComponent, JsonEditorOptions } from 'ang-jsoneditor';
 import { default as configSchema } from '../../../../../src/_helpers/configSchema'
 
@@ -96,6 +99,11 @@ export class SettingsComponent {
 	public currentBusOptionSelectedTypeIdx?: number;
 	public currentBusOption: BusOption = {} as BusOption;
 
+	// edit User
+	public editingUser = false;
+	public currentUser: User = {} as User;
+	public selectedUserRoles: string[] = [];
+
 	public newCloudKey = "";
 
 	public configLoaded = false;
@@ -111,7 +119,8 @@ export class SettingsComponent {
 	constructor(
 		private modalService: NgbModal,
 		public socketService: SocketService,
-		private router: Router
+		private router: Router,
+		public authService: AuthService
 	) {
 		this.socketService.joinAdmins();
 		this.socketService.closeModals.subscribe(() => this.modalService.dismissAll());
@@ -125,27 +134,34 @@ export class SettingsComponent {
 			this.filterLogs();
 			this.scrollToBottom(this.logsContainer);
 		});
-		this.socketService.socket.on('server_error', (id: string) => {
-			this.show_error(id);
-		});
-		this.socketService.socket.on('unread_error_reports', (list) => {
-			if(list.length > 0) {
-			this.show_errors_list();
-			}
-		});
-		this.socketService.socket.on('config', (config) => {
-			this.config = config;
-			this.updatedConfig = config;
-			this.updatedRawConfig = JSON.stringify(config, null, 2);
-			this.configLoaded = true;
-		});
-		this.socketService.socket.emit('get_unread_error_reports');
-		this.socketService.socket.emit('get_config');
-		this.jsonEditorOptions.schema = configSchema;
+		if(this.authService.requireRole('admin')) {
+			this.socketService.socket.on('server_error', (id: string) => {
+				this.show_error(id);
+			});
+			this.socketService.socket.on('unread_error_reports', (list) => {
+				if(list.length > 0) {
+					this.show_errors_list();
+				}
+			});
+			this.socketService.socket.emit('get_unread_error_reports');
+		}
+		if(this.authService.requireRole('settings:users')) {
+			this.socketService.socket.emit('users');
+		}
+		if(this.authService.requireRole('settings:config')) {
+			this.socketService.socket.on('config', (config) => {
+				this.config = config;
+				this.updatedConfig = config;
+				this.updatedRawConfig = JSON.stringify(config, null, 2);
+				this.configLoaded = true;
+			});
+			this.socketService.socket.emit('get_unread_error_reports');
+			this.socketService.socket.emit('get_config');
+			this.jsonEditorOptions.schema = configSchema;
+		}
 	}
 
 	public navChanged(event: any) {
-		console.log("nav changed", event);
 		if(event.nextId === "config") {
 			this.socketService.socket.emit('get_config');
 		}
@@ -153,7 +169,7 @@ export class SettingsComponent {
 
 	@Confirmable("There was an unexpected error. Do you want to view the bug report?", false)
 	public show_error(id: string) {
-	this.router.navigate(['/errors', id]);
+	        this.router.navigate(['/errors', id]);
 	}
 
 	@Confirmable(`There are error reports that you haven't read yet. Do you want to open the list of errors now?`, false)
@@ -389,6 +405,35 @@ export class SettingsComponent {
 		this.socketService.socket.emit('manage', arbiterObj);
 	}
 
+	public deleteUserButton(user: User) {
+		if(this.authService.profile.username === user.username) {
+			this.deleteUserAndLogout(user);
+		} else {
+			this.deleteUser(user);
+		}
+	}
+
+	@Confirmable("Are you sure you want to delete this user?")
+	public deleteUser(user: User) {
+		const arbiterObj = {
+			action: 'delete',
+			type: 'user',
+			user: user,
+		};
+		this.socketService.socket.emit('manage', arbiterObj);
+	}
+
+	@Confirmable("You are logged in using this user. Are you sure you want to delete it? You'll be disconnected from this account and redirected to the login page.")
+	public deleteUserAndLogout(user: User) {
+		const arbiterObj = {
+			action: 'delete',
+			type: 'user',
+			user: user,
+		};
+		this.socketService.socket.emit('manage', arbiterObj);
+		this.authService.logout(["login", "settings"]);
+	}
+
 	public getOptionFields(sourceType: SourceType) {
 		return this.socketService.sourceTypeDataFields.find((s) => s.sourceTypeId == sourceType.id)?.fields || [];
 	}
@@ -564,6 +609,33 @@ export class SettingsComponent {
 		this.socketService.socket.emit('manage', arbiterObj);
 	}
 
+	public userRolesSelectionChange(selection: string[]) {
+		this.currentUser.roles = selection.join(';');
+		console.log(selection, this.currentUser);
+	}
+
+	public isUserRoleSelected(role: string) {
+		return this.currentUser.roles && this.currentUser.roles.split(";").includes(role);
+	}
+	
+	public saveCurrentUser() {
+		const userObj = {
+			...this.currentUser,
+		} as any;
+		if(!userObj.password) {
+			userObj.password = "12345";
+		}
+		if(!userObj.roles) {
+			userObj.roles = "tally_view";
+		}
+		const arbiterObj = {
+			action: this.editingUser ? 'edit' : 'add',
+			type: 'user',
+			user: userObj,
+		};
+		this.socketService.socket.emit('manage', arbiterObj);
+	}
+
 	public getBusById(busId: string) {
 		return this.socketService.busOptions.find(({id}) => id === busId);
 	}
@@ -595,8 +667,48 @@ export class SettingsComponent {
 		this.modalService.open(modal);
 	}
 
+	public addUser(userModal: any) {
+		this.editingUser = false;
+		this.currentUser = { } as User;
+		this.selectedUserRoles = [];
+		this.modalService.open(userModal);
+	}
+
 	public getOutputTypeById(outputTypeId: string) {
 		return this.socketService.outputTypes.find(({id}) => id === outputTypeId);
+	}
+
+	public getSourceTypeById(sourceTypeId: string) {
+		return this.socketService.sourceTypes.find((sourceType) => sourceType.id === sourceTypeId);
+	}
+
+	public getNetworkDiscoveryList() {
+		return this.socketService.networkDiscovery.filter((el) => this.checkIfNetworkDiscoveryAlreadyAdded(el));
+	}
+
+	public checkIfNetworkDiscoveryAlreadyAdded(networkDiscovery: NetworkDiscovery) {
+		return this.socketService.sources.every((source) => {
+			return !(networkDiscovery.sourceId === source.sourceTypeId && networkDiscovery.addresses.includes(source.data.ip));
+		});
+	}
+
+	public changeIpSelection(networkDiscovery: NetworkDiscovery, ip: string) {
+		networkDiscovery.ip = ip;
+	}
+
+	public addSourceByNetworkDiscovery(discovered: NetworkDiscovery, modal: any) {
+		this.editingSource = false;
+		this.currentSourceSelectedTypeIdx = this.socketService.sourceTypes.findIndex((t) => t.id == discovered.sourceId);
+		this.currentSource = {
+			name: discovered.name,
+			data: {
+				...discovered,
+			},
+		} as unknown as Source;
+		delete this.currentSource.data.sourceId;
+		delete this.currentSource.data.name;
+		
+		this.modalService.open(modal);
 	}
 
 	public editSource(source: Source, modal: any) {
@@ -637,6 +749,13 @@ export class SettingsComponent {
 		this.currentBusOption = {
 			...bus,
 		} as BusOption;
+		this.modalService.open(modal);
+	}
+
+	public editUser(user: User, modal: any) {
+		this.editingUser = true;
+		this.currentUser = user;
+		this.selectedUserRoles = user.roles.split(';');
 		this.modalService.open(modal);
 	}
 

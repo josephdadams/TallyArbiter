@@ -16,7 +16,8 @@ You can buy a Blink(1) here:
 
 
 
-To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
+To [report a bug](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=bug&template=bug.yaml&title=%5BBug%5D%3A+) or open a [feature request](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=feature&template=feature.yaml&title=%5BFeature+Request%5D%3A+), please go to our [issues](https://github.com/josephdadams/TallyArbiter/issues/new/choose) page.
+If you would like to see more of @josephdadams's projects or send a word of encouragement his way, please visit [techministry.blog](https://techministry.blog/).
 
 ## Getting Started
 A lot of these instructions on getting started are available all over the internet. Some highlights are listed here that should cover it from a top-level:
@@ -58,7 +59,7 @@ These will have to be installed on the Pi in order for the script to function co
 
     *If `pip3` is not installed, you can get it by running `sudo apt-get install python3-pip`.*
 
-1. Now that all the necessary libraries are installed and compiled, you need to copy the `tallyarbiter-blink1listener.py` file to your Pi. You can do this a number of ways, but one simple way is to execute this command through your SSH connection: `wget https://raw.githubusercontent.com/josephdadams/TallyArbiter-Blink1Listener/master/tallyarbiter-blink1listener.py`. This will copy the file into your current folder (you should still be the home folder for the `pi` account).
+1. Now that all the necessary libraries are installed and compiled, you need to copy the `tallyarbiter-blink1listener.py` file to your Pi. You can do this a number of ways, but one simple way is to execute this command through your SSH connection: `wget https://raw.githubusercontent.com/josephdadams/TallyArbiter/master/listener_clients/blink1-listener/blink1-listener.py`. This will copy the file into your current folder (you should still be the home folder for the `pi` account).
 1. Once the Python script has been copied over, go ahead and test it out to make sure everything is working properly. Run this in the SSH session: `sudo python3 tallyarbiter-blink1listener.py 192.168.1.6 4455`
     
     Be sure to replace the IP address `192.168.1.6` with the IP of your Tally Arbiter server. If you leave off the port, it will attempt to connect using port `4455`.
@@ -75,4 +76,4 @@ The program should now launch every time the Pi boots up, and automatically conn
 
 # Improvements and Suggestions
 We are welcome to improvements and suggestions.
-You can submit issues and pull requests on this repo, or contact Joseph Adams through the *"Contact"* page on the [techministry blog](http://www.techministry.blog/contact).
+Feel free to contact us on Github Discussions or open a PR.

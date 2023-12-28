@@ -5,9 +5,10 @@ import { DeviceAction } from "./DeviceAction";
 import { DeviceSource } from "./DeviceSource";
 import { Source } from "./Source";
 import { TSLClient } from "./TSLClient";
+import { User } from "./User";
 
 export interface Manage {
-    type: 'source' | 'device' | 'device_source' | 'device_action' | 'tsl_client' | 'bus_option' | 'cloud_destination' | 'cloud_key' | 'cloud_client';
+    type: 'source' | 'device' | 'device_source' | 'device_action' | 'tsl_client' | 'bus_option' | 'cloud_destination' | 'cloud_key' | 'cloud_client' | 'user';
     action: 'add' | 'edit' | 'delete' | 'remove';
 
     source?: Source;
@@ -24,4 +25,5 @@ export interface Manage {
     cloudId?: string;
     key?: string;
     id?: string;
+    user?: User;
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
+import { connLostSnackbarService } from '../_services/conn-lost-snackbar.service';
 import { BusOption } from '../_models/BusOption';
 import { CloudClient } from '../_models/CloudClient';
 import { CloudDestination } from '../_models/CloudDestination';
@@ -14,6 +15,7 @@ import { LogItem } from '../_models/LogItem';
 import { OutputType } from '../_models/OutputType';
 import { OutputTypeDataFields } from '../_models/OutputTypeDataFields';
 import { Port } from '../_models/Port';
+import { NetworkDiscovery } from '../_models/NetworkDiscovery';
 import { Source } from '../_models/Source';
 import { TSLTallyData } from '../_models/TSLTallyData';
 import { SourceType } from '../_models/SourceType';
@@ -24,6 +26,7 @@ import { ErrorReportsListElement } from '../_models/ErrorReportsListElement';
 import { DeviceTallyData } from "../_models/TallyData";
 import { Addresses } from '../_models/Addresses';
 import { DeviceState } from '../_models/DeviceState';
+import { User } from '../_models/User';
 
 @Injectable({
   providedIn: 'root'
@@ -60,21 +63,53 @@ export class SocketService {
   public cloudKeys: string[] = [];
   public cloudClients: CloudClient[] = [];
   public portsInUse: Port[] = [];
+  public networkDiscovery: NetworkDiscovery[] = [];
   public messages: Message[] = [];
   public errorReports: ErrorReportsListElement[] = [] as ErrorReportsListElement[];
+  public users: User[] = [];
 
-  public dataLoaded = new Promise<void>((resolve) => this._resolveDataLoadedPromise = resolve);
+  public accessToken: string | undefined;
+
+  public dataLoaded = new Promise<void>(async (resolve) => {
+    this._resolveDataLoadedPromise = await resolve
+  });
   private _resolveDataLoadedPromise!: () => void;
 
-  public newLogsSubject = new Subject();
-  public scrollTallyDataSubject = new Subject();
-  public scrollChatSubject = new Subject();
-  public closeModals = new Subject();
+  public newLogsSubject = new Subject<void>();
+  public scrollTallyDataSubject = new Subject<void>();
+  public scrollChatSubject = new Subject<void>();
+  public closeModals = new Subject<void>();
   public deviceStateChanged = new Subject<DeviceState[]>();
 
 
-  constructor() {
+  constructor(
+    private connLostSnackbar: connLostSnackbarService
+  ) {
     this.socket = io();
+
+    this.socket.on('error', (message: string) => {
+      console.error(message);
+    });
+
+    this.socket.on("disconnect", (data) => {
+      console.error(data);
+      connLostSnackbar.show();
+    });
+    this.socket.io.on("reconnect_attempt", (attempt) => {
+      console.log("Reconnect attempt", attempt);
+    });
+    this.socket.io.on("reconnect_error", (error) => {
+      console.log("Reconnect error:", error.message);
+    });
+
+    this.socket.io.on("reconnect", () => {
+      console.log("Reconnected successfully");
+      this.connLostSnackbar.hide();
+      if(typeof this.accessToken !== "undefined") {
+        this.socket.emit('access_token', this.accessToken);
+      }
+    });
+
     this.socket.on('sources', (sources: Source[]) => {
       this.sources = this.prepareSources(sources);
     });
@@ -144,15 +179,13 @@ export class SocketService {
       this.logs.push(log);
       this.newLogsSubject.next();
     });
-    this.socket.on('tally_data', (sourceId: string, tallyObj: TSLTallyData) => {
+    this.socket.on('tally_data', (sourceId: string, address: string, busses: string[]) => {
       if (this.tallyData.length > 1000) {
         this.tallyData.shift();
       }
-      let tallyPreview = (tallyObj.tally1 === 1 ? 'True' : 'False');
-      let tallyProgram = (tallyObj.tally2 === 1 ? 'True' : 'False');
       this.tallyData.push({
         datetime: Date.now().toString(),
-        log: `Source: ${this.getSourceById(sourceId)?.name}  Address: ${tallyObj.address}  Label: ${tallyObj.label}  PVW: ${tallyPreview}  PGM: ${tallyProgram}`,
+        log: `Source: ${this.getSourceById(sourceId)?.name}  Address: ${address} ${busses.length === 0 ? "No busses" : `Bus${busses.length > 1 ? "ses" : ""}: ${busses.map((b) => `${b[0].toUpperCase()}${b.slice(1)}`)}`}`,
         type: 'info',
       });
       this.scrollTallyDataSubject.next();
@@ -176,7 +209,6 @@ export class SocketService {
       this.cloudClients = clients;
     });
     this.socket.on('addresses', (addresses: Addresses) => {
-      console.log("new addresses", addresses);
       this.addresses = addresses;
     });
     this.socket.on('initialdata', (sourceTypes: SourceType[], sourceTypesDataFields: SourceTypeDataFields[], addresses: Addresses, outputTypes: OutputType[], outputTypesDataFields: OutputTypeDataFields[], busOptions: BusOption[], sourcesData: Source[], devicesData: Device[], deviceSources: DeviceSource[], deviceActions: DeviceAction[], device_states: DeviceState[], tslClients: TSLClient[], cloudDestinations: CloudDestination[], cloudKeys: string[], cloudClients: CloudClient[]) => {
@@ -193,11 +225,10 @@ export class SocketService {
       this.deviceActions = deviceActions;
       this.device_states = device_states;
       this.tslClients = tslClients;
-      
+
       this.cloudDestinations = cloudDestinations;
       this.cloudKeys = cloudKeys;
       this.cloudClients = cloudClients;
-      console.log("initial", device_states);
       this.deviceStateChanged.next(this.device_states);
     });
     this.socket.on('listener_clients', (listenerClients: ListenerClient[]) => {
@@ -271,6 +302,12 @@ export class SocketService {
           alert(response.error);
           this.closeModals.next();
           break;
+        case 'user-added-successfully':
+        case 'user-edited-successfully':
+        case 'user-deleted-successfully':
+          this.closeModals.next();
+          this.socket.emit('users');
+          break;
         case 'error':
           alert('Unexpected Error Occurred: ' + response.error);
           break;
@@ -288,18 +325,29 @@ export class SocketService {
     this.socket.on('PortsInUse', (ports: Port[]) => {
       this.portsInUse = ports;
     });
+    this.socket.on('networkDiscovery', (networkDiscovery: NetworkDiscovery[]) => {
+      networkDiscovery.forEach((nd: NetworkDiscovery) => {
+        if(!nd.ip) nd.ip = nd.addresses[0];
+      });
+      this.networkDiscovery = networkDiscovery;
+    });
     this.socket.on('error_reports', (errorReports: ErrorReportsListElement[]) => {
       this.errorReports = errorReports;
     });
+    this.socket.on('users', (users: User[]) => {
+      this.users = users;
+    });
+
     this.socket.on('remote_error_opt', (optStatus: boolean) => {
       this.remoteErrorOpt = optStatus;
     });
 
     this.socket.emit('get_error_reports');
-    
+
     this.socket.emit('version');
     this.socket.emit('externalAddress');
     this.socket.emit('interfaces');
+    this.socket.emit('get_error_reports');
   }
 
   private prepareSources(sources: Source[]): Source[] {
@@ -351,5 +399,10 @@ export class SocketService {
         }
       });
     });
+  }
+
+  public sendAccessToken(accessToken: string) {
+    this.accessToken = accessToken;
+    this.socket.emit('access_token', accessToken);
   }
 }

@@ -110,5 +110,5 @@ export function deleteEveryErrorReport() {
 	const ErrorReportsFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/ErrorReports");
 	fs.emptyDirSync(ErrorReportsFolder);
 	const readErrorReportsFilePath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + "/.local/share/"), "TallyArbiter/readErrorReports.json");
-	fs.writeFileSync(readErrorReportsFilePath, "");
+	fs.writeFileSync(readErrorReportsFilePath, "[]");
 }

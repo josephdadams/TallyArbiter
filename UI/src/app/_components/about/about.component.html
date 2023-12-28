@@ -1,7 +1,13 @@
 <div class="container pt-3">
     <h1>About</h1>
   <div class="row mt-3">
-    <div class="col">
+    <div class="col-xs-12 col-md-6 mt-3">
+      <div class="card p-3">
+          <h4>Version</h4>
+          <b>{{socketService.version}}</b>
+      </div>
+    </div>
+    <div class="col-xs-12 col-md-6 my-3">
         <div class="card p-3">
             <h4>MIT License</h4>
             <p>Copyright 2020 - {{currentYear}} Joseph Adams and contributors.</p>
@@ -9,14 +15,9 @@
             <p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
             <p> THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
             <p>It is not sold, authorized, or associated with any other company or product.</p>
-            <p>To contact the author or for more information, please visit <a id='bloglink' target="_blank" href='http://www.techministry.blog'>www.techministry.blog</a>.</p>
-    
-        </div>
-    </div>
-    <div class="col">
-        <div class="card p-3">
-            <h4>Version</h4>
-            <b>{{socketService.version}}</b>
+            <hr>
+            <p>To <a href="https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=bug&template=bug.yaml&title=%5BBug%5D%3A+">report a bug</a> or open a <a href="https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=feature&template=feature.yaml&title=%5BFeature+Request%5D%3A+">feature request</a>, please go to our <a href="https://github.com/josephdadams/TallyArbiter/issues/new/choose">issues</a> page.</p>
+            <p>If you would like to see more of Joseph Adams' projects or send a word of encouragement his way, please visit <a id='bloglink' target="_blank" href='https://www.techministry.blog'>techministry.blog</a>.</p>
         </div>
     </div>
   </div>

@@ -7,19 +7,19 @@ import net from "net";
 @RegisterTallyInput("58b6af42", "VMix", "Uses Port 8099.", [{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' }])
 export class VMixSource extends TallyInput {
     private client: any;
+    private port = 8099;  // Fixed vMix TCP port number
     constructor(source: Source) {
         super(source);
-        let ip = source.data.ip;
-        let port = 8099;
 
         this.client = new net.Socket();
-        this.client.connect(port, ip, () => {
 
+        this.client.on('connect', () => {
             this.client.write('SUBSCRIBE TALLY\r\n');
             this.client.write('SUBSCRIBE ACTS\r\n');
 
             this.addAddress('Recording', '{{RECORDING}}');
             this.addAddress('Streaming', '{{STREAMING}}');
+
             this.connected.next(true);
         });
 
@@ -31,6 +31,8 @@ export class VMixSource extends TallyInput {
 
             const tallyData = data.filter(text => text.startsWith('TALLY OK'));
 
+            // If received data contains TALLY information loop through the
+            // data and set preview and program based on received data.
             if (tallyData.length > 0) {
                 logger(`Source: ${source.name}  VMix tally data received.`, 'info-quiet');
                 for (let j = 9; j < tallyData[0].length; j++) {
@@ -70,14 +72,27 @@ export class VMixSource extends TallyInput {
             }
         });
 
+        this.client.on('close', () => {
+            this.connected.next(false);
+        });
+
         this.client.on('error', (error) => {
             logger(`Source: ${source.name}  VMix Connection Error occurred: ${error}`, 'error');
         });
 
-        this.client.on('close', () => {
-            this.connected.next(false);
-        });
+        this.connect();
     }
+
+
+    private connect(): void {
+        this.client.connect(this.port, this.source.data.ip);
+    }
+
+
+    public reconnect(): void {
+        this.connect();
+    }
+
 
     public exit(): void {
         super.exit();

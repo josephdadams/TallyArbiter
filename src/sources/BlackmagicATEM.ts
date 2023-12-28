@@ -2,9 +2,27 @@
 import { Atem, listVisibleInputs } from 'atem-connection';
 import { RecordingStatus, StreamingStatus } from 'atem-connection/dist/enums';
 import { RegisterTallyInput } from "../_decorators/RegisterTallyInput.decorator";
+import { RegisterNetworkDiscovery } from '../_decorators/RegisterNetworkDiscovery.decorator';
 import { Source } from '../_models/Source';
 import { TallyInput } from './_Source';
+import { bonjour } from '../_helpers/mdns';
 
+@RegisterNetworkDiscovery((addDiscoveredDevice) => {
+    bonjour.find({
+        type: "blackmagic",
+        txt: {
+          class: "AtemSwitcher"
+        }
+    }, (service) => {
+        // ToDo: Remove this if clause once https://github.com/onlxltd/bonjour-service/issues/16 is fixed
+        if (service.txt?.class === "AtemSwitcher") {
+            addDiscoveredDevice({
+                name: service.name,
+                addresses: service.addresses.concat(service.fqdn)
+            });
+        }
+    });
+})
 @RegisterTallyInput("44b8bc4f", "Blackmagic ATEM", "Uses Port 9910.", [
     { fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
     {
@@ -33,6 +51,9 @@ export class BlackmagicATEMSource extends TallyInput {
     private atemClient: Atem;
     private pgmList = new Set<number | string>();
     private prvList = new Set<number | string>();
+
+    private oldPgmList = new Set<number | string>();
+    private oldPrvList = new Set<number | string>();
 
     constructor(source: Source) {
         super(source);
@@ -80,7 +101,7 @@ export class BlackmagicATEMSource extends TallyInput {
         this.pgmList = new Set();
         this.prvList = new Set();
         for (let i = 0; i < state.video.mixEffects.length; i++) {
-            if (this.source.data.me_onair.includes((i + 1).toString())) {
+            if (this.source.data.me_onair?.includes((i + 1).toString())) {
                 listVisibleInputs("program", state, i).forEach(n => this.pgmList.add(n));
                 listVisibleInputs("preview", state, i).forEach(n => this.prvList.add(n));
             }
@@ -109,6 +130,9 @@ export class BlackmagicATEMSource extends TallyInput {
     }
 
     private processATEMTally(): void {
+        const areSetsEqual = (a, b) => a.size === b.size && [...a].every(value => b.has(value)); //https://stackoverflow.com/a/44827922
+        if(areSetsEqual(this.prvList, this.oldPrvList) && areSetsEqual(this.pgmList, this.oldPgmList)) return;
+
         this.removeBusFromAllAddresses("preview");
         this.removeBusFromAllAddresses("program");
         let cutBusMode = this.source.data.cut_bus_mode;
@@ -130,6 +154,9 @@ export class BlackmagicATEMSource extends TallyInput {
             }
         }
         this.sendTallyData();
+
+        this.oldPrvList = this.prvList;
+        this.oldPgmList = this.pgmList;
     }
 
     public exit(): void {

@@ -22,27 +22,70 @@ export class TallyInput extends EventEmitter {
         super();
         this.source = source;
         logger(`Source: ${this.source.name} Creating connection.`, 'info-quiet');
+
+        // Set max_reconnect to MAX_FAILED_RECONNECTS if not included in config.
+        if (this.source.max_reconnects == undefined) {
+            this.source.max_reconnects = MAX_FAILED_RECONNECTS;
+            logger(`Source: ${this.source.name} Set max reconnect.`, 'info-quiet');
+        }
+
+        // Log number of reconnect attempts
+        if (this.source.max_reconnects == -1) {
+            logger(`Source: ${this.source.name} Inifinite reconnect attempts.`, 'info-quiet');
+        } else {
+            logger(`Source: ${this.source.name} Reconnect attempts ${this.source.max_reconnects}.`, 'info-quiet');
+        }
+
+        // Log reconnect timeout
+        // Configured timeout only used if larger then RECONNECT_INTERVAL
+        if (this.source.reconnect_interval > RECONNECT_INTERVAL) {
+            logger(`Source: ${this.source.name} Configured reconnect timeout: ${this.source.reconnect_interval}.`, 'info-quiet');
+        } else {
+            logger(`Source: ${this.source.name} Default reconnect timeout: ${RECONNECT_INTERVAL}.`, 'info-quiet');
+        }
+
         this.connected.subscribe((connected) => {
             if (connected) {
+                // Connected, no more reconnects for now
+                logger(`Source: ${this.source.name} Connected.`, 'info-quiet');
                 this.tryReconnecting = true;
                 this.reconnectFailureCounter = 0;
             } else {
                 if (!this.tryReconnecting) {
-                    // ignore the first one
+                    // Connection attempt at startup
+                    logger(`Source: ${this.source.name} Connect triggered at startup.`, 'info-quiet');           
                     this.tryReconnecting = true;
                     return;
                 }
-                console.log("not connected")
-                if (this.tryReconnecting && this.reconnectFailureCounter < MAX_FAILED_RECONNECTS) {
+
+                // Reconnect if number of reconnects less than max number of reconnects or
+                // if infinite reconnects are configured (-1)
+                if (this.tryReconnecting && (this.source.max_reconnects == -1) || (this.reconnectFailureCounter < this.source.max_reconnects)) {
                     if (this.reconnectTimeout) {
+                        logger(`Source: ${this.source.name} Reconnect timeout not set.`, 'info-quiet');
                         return;
                     }
-                    console.log("try reconnecting", this.reconnectFailureCounter);
                     this.reconnectFailureCounter++;
-                    this.reconnectTimeout = setTimeout(() => {
-                        this.reconnectTimeout = undefined;
-                        this.reconnect();
-                    }, RECONNECT_INTERVAL);
+                    logger(`Source: ${this.source.name} Reconnect attempt: ${this.reconnectFailureCounter}.`, 'info-quiet');
+
+                    // Use configured timeout only if larger then RECONNECT_INTERVAL
+                    if (this.source.reconnect_interval > RECONNECT_INTERVAL) {
+                        this.reconnectTimeout = setTimeout(() => {
+                            this.reconnectTimeout = undefined;
+                            this.reconnect();
+                        }, this.source.reconnect_interval);
+                    } else {
+                        this.reconnectTimeout = setTimeout(() => {
+                            logger(`Source: ${this.source.name} Default timeout.`, 'info-quiet');
+                            this.reconnectTimeout = undefined;
+                            this.reconnect();
+                        }, RECONNECT_INTERVAL);
+                    }
+                } else {
+                    logger(`Source: ${this.source.name} No more reconnects.`, 'info-quiet');
+                    
+                    // Reset failure counter for future reconnect attempts.
+                    this.reconnectFailureCounter = 0;
                 }
             }
         });
