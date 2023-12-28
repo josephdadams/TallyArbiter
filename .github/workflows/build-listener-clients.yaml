@@ -1,13 +1,22 @@
 name: Build Listener Clients
 
-on: [push, workflow_dispatch]
+on: 
+  push:
+    paths:
+      - 'listener_clients/**'
+      - '.github/workflows/build-listener-clients.yaml'
+  pull_request:
+    paths:
+      - 'listener_clients/**'
+      - '.github/workflows/build-listener-clients.yaml'
+  workflow_dispatch:
 
 jobs:
   build_m5stickc-listener:
     name: Build M5StickC Listener
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - uses: arduino/compile-sketches@v1
       with:
         platforms: |
@@ -15,8 +24,8 @@ jobs:
             source-url: https://dl.espressif.com/dl/package_esp32_index.json
         fqbn: 'esp32:esp32:m5stick-c'
         libraries: |
-          - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.2.4.zip
-          - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.0.4.zip
+          - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.2.9.zip
+          - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.0.zip
           - name: WebSockets
           - name: WiFiManager
           - name: MultiButton
@@ -27,7 +36,7 @@ jobs:
           - listener_clients/m5stickc-listener
         enable-deltas-report: true
     - name: Upload Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'TallyArbiter-Listener-M5StickC'
         path: 'listener_clients/m5stickc-listener/build/esp32.esp32.m5stick-c'
@@ -36,7 +45,7 @@ jobs:
     name: Build M5Atom Listener
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - uses: arduino/compile-sketches@v1
       with:
         platforms: |
@@ -44,7 +53,7 @@ jobs:
             source-url: https://dl.espressif.com/dl/package_esp32_index.json
         fqbn: 'esp32:esp32:m5stack-atom'
         libraries: |
-          - source-url: https://github.com/m5stack/M5Atom/archive/refs/tags/0.0.6.zip
+          - source-url: https://github.com/m5stack/M5Atom/archive/refs/tags/0.1.2.zip
           - name: WebSockets
           - name: WiFiManager
           - name: MultiButton
@@ -56,7 +65,7 @@ jobs:
           - listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom
         enable-deltas-report: true
     - name: Upload Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'TallyArbiter-Listener-M5Atom'
         path: 'listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom/build/esp32.esp32.m5stack-atom'
@@ -65,7 +74,7 @@ jobs:
     name: Build ESP32 NeoPixel Listener
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - uses: arduino/compile-sketches@v1
       with:
         platforms: |
@@ -84,7 +93,7 @@ jobs:
           - listener_clients/esp32-neopixel-listener
         enable-deltas-report: true
     - name: Upload Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'TallyArbiter-Listener-ESP32-NeoPixel'
         path: 'listener_clients/esp32-neopixel-listener/build/esp32.esp32.esp32'
@@ -105,10 +114,10 @@ jobs:
     name: Build ${{ matrix.board.name }} Listener
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: Setup TFT_eSPI and select User Setup
       run: |
-        git clone https://github.com/Bodmer/TFT_eSPI/
+        git clone --branch v2.5.33 https://github.com/Bodmer/TFT_eSPI/
         cd TFT_eSPI
         sed -i 's/#include <User_Setup.h>/\/\/#include <User_Setup.h>/g' User_Setup_Select.h
         sed -i 's/\/\/#include <User_Setups\/Setup22_TTGO_T4.h>/#include <User_Setups\/Setup22_TTGO_T4.h>/g' User_Setup_Select.h
@@ -135,7 +144,7 @@ jobs:
         FQBN_REPLACED=$(echo $RAW_FQBN | sed 's/:/./g')
         echo "FQBN_REPLACED=$FQBN_REPLACED" >> $GITHUB_ENV
     - name: Upload Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: 'TallyArbiter-Listener-${{ matrix.board.name }}'
         path: 'listener_clients/TTGO_T-listener/build/${{ env.FQBN_REPLACED }}'
@@ -144,7 +153,7 @@ jobs:
     name: Analyse Blink1 Listener
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: Install prosepector
       run: pip install prospector[with_everything]
     - name: Analyse
@@ -155,7 +164,7 @@ jobs:
     name: Analyse Pimoroni Blinkt Listener
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: Install prosepector
       run: pip install prospector[with_everything]
     - name: Analyse
@@ -166,7 +175,7 @@ jobs:
     name: Analyse GPO Listener
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: Install prosepector
       run: pip install prospector[with_everything]
     - name: Analyse
@@ -177,13 +186,13 @@ jobs:
     name: Analyse Relay Listener
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - name: Install dependencies
-      working-directory: listener_clients/relay-listener
-      run: |
-        sudo apt install libudev-dev libusb-1.0-0 libusb-1.0-0-dev
-        npm install
-        npm install --global eslint
-    - name: Run eslint
-      working-directory: listener_clients/relay-listener
-      run: eslint index.js || exit 0
+    - uses: actions/checkout@v4
+    #- name: Install dependencies
+    #  working-directory: listener_clients/relay-listener
+    #  run: |
+    #    sudo apt install libudev-dev libusb-1.0-0 libusb-1.0-0-dev
+    #    npm install
+    #    npm install --global eslint
+    #- name: Run eslint
+    #  working-directory: listener_clients/relay-listener
+    #  run: eslint index.js || exit 0

@@ -36,17 +36,16 @@ const sourceTypesPanasonic = [
 
 const PanasonicAVHS410Port = 60020;
 
+@UsesPort(PanasonicAVHS410Port)
 @RegisterTallyInput("7da3b526", "Panasonic AV-HS410", "Uses port 60020. Make sure to have Multicast enabled on the network", [
     { fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
 ])
-@UsesPort(PanasonicAVHS410Port)
 export class PanasonicAVHS410Source extends TallyInput {
     private client: any;
     private multi: dgram.Socket;
     private keepAliveInterval: NodeJS.Timer;
     constructor(source: Source) {
         super(source);
-        let ip = source.data.ip;
 
         var receivebuffer = ''
         let multicastAddress = '224.0.0.200'
@@ -59,11 +58,12 @@ export class PanasonicAVHS410Source extends TallyInput {
         // Post an array of inputs to the dropdowns
         this.addPanasonicSource();
 
-
+        // Create sockets
         this.client = new net.Socket()
         this.multi = dgram.createSocket({ type: 'udp4', reuseAddr: true })
 
-        this.client.connect(PanasonicAVHS410Port, ip, () => {
+        // Register event listeners
+        this.client.on('connect', () => {
             this.connected.next(true);
         });
 
@@ -71,12 +71,12 @@ export class PanasonicAVHS410Source extends TallyInput {
             // Do nothing currently, we only really use the TCP to keep the connection alive
         });
 
-        this.client.on('error', (error) => {
-            logger(`Source: ${source.name}  Panasonic AV-HS410 Error occurred: ${error}`, 'error')
-        });
-
         this.client.on('close', () => {
             this.connected.next(false);
+        });
+
+        this.client.on('error', (error) => {
+            logger(`Source: ${source.name}  Panasonic AV-HS410 Connection Error occurred: ${error}`, 'error')
         });
 
         this.multi.on('listening', () => {
@@ -165,12 +165,14 @@ export class PanasonicAVHS410Source extends TallyInput {
             logger(`Source: ${source.name}  Panasonic Multicast Error occurred: ${err.stack}`, 'error')
         })
 
+        // Configure multicast listening.
         this.multi.bind(multicastPort, () => {
             for (let x = 0; x < multicastInterface.length; x++) {
                 this.multi.addMembership(multicastAddress, multicastInterface[x].address)
             }
         })
 
+        // Configure keep alive on the TCP port.
         this.keepAliveInterval = setInterval(() => {
             if (this.client !== undefined) {
                 this.client.write(STX + 'SPAT:0:00' + ETX)
@@ -179,6 +181,8 @@ export class PanasonicAVHS410Source extends TallyInput {
                 logger(`Source: ${source.name}  Panasonic AV-HS410 Connection Lost.`, 'info')
             }
         }, 500) // 500 ms keepalive command
+
+        this.connect();
     }
 
     public addPanasonicSource() {
@@ -187,6 +191,16 @@ export class PanasonicAVHS410Source extends TallyInput {
             this.addAddress(input.label, address);
             logger(`AV-HS410 Tally Source: ${this.source.id} Added new source: ${input.label}`, 'info-quiet');
         }
+    }
+
+
+    private connect(): void {
+        this.client.connect(PanasonicAVHS410Port, this.source.data.ip);
+    }
+
+
+    public reconnect(): void {
+        this.connect();
     }
 
 

@@ -9,7 +9,6 @@ import compression from 'compression';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
 import bodyParser from 'body-parser';
 import http from 'http';
-import bonjour from 'bonjour';
 import socketio from 'socket.io';
 import ioClient from 'socket.io-client';
 import { BehaviorSubject } from 'rxjs';
@@ -45,6 +44,7 @@ import { ListenerClient } from './_models/ListenerClient';
 //TypeScript globals
 import { TallyInputs } from './_globals/TallyInputs';
 import { PortsInUse } from './_globals/PortsInUse';
+import { RegisteredNetworkDiscoveryServices } from './_globals/RegisteredNetworkDiscoveryServices';
 import { Actions } from './_globals/Actions';
 
 // Helpers
@@ -62,7 +62,9 @@ import { VMixEmulator } from './_modules/VMix';
 import { TSLListenerProvider } from './_modules/TSL';
 import { ListenerProvider } from './_modules/_ListenerProvider';
 import { InternalTestModeSource } from './sources/InternalTestMode';
+import { authenticate, validateAccessToken, getUsersList, addUser, editUser, deleteUser } from './_helpers/auth';
 import { Config } from './_models/Config';
+import { bonjour } from './_helpers/mdns';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
 const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
@@ -70,9 +72,9 @@ const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'deve
 if(devmode) logger('TallyArbiter running in Development Mode.', 'info');
 
 //Rate limiter configurations
-const maxWrongAttemptsByIPperDay = 100;
-const maxConsecutiveFailsByUsernameAndIP = 10;
-const maxPageRequestPerMinute = 100;
+const maxWrongAttemptsByIPperDay = 1000;
+const maxConsecutiveFailsByUsernameAndIP = 200;
+const maxPageRequestPerMinute = 1000;
 const limiterSlowBruteByIP = new RateLimiterMemory({
   keyPrefix: 'login_fail_ip_per_day',
   points: maxWrongAttemptsByIPperDay,
@@ -106,7 +108,7 @@ const app = express();
 const httpServer = new http.Server(app);
 
 const io = new socketio.Server(httpServer, { allowEIO3: true });
-const socketupdates_Settings: string[]  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations', 'cloud_keys', 'cloud_clients', 'PortsInUse', 'vmix_clients', "addresses"];
+const socketupdates_Settings: string[]  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations', 'cloud_keys', 'cloud_clients', 'PortsInUse', 'networkDiscovery', 'vmix_clients', "addresses"];
 const socketupdates_Producer: string[]  = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients'];
 const socketupdates_Companion: string[] = ['sources', 'devices', 'device_sources', 'device_states', 'listener_clients', 'tsl_clients', 'cloud_destinations'];
 
@@ -134,6 +136,10 @@ addresses.subscribe(() => {
 
 PortsInUse.subscribe(() => {
 	UpdateSockets('PortsInUse');
+})
+
+RegisteredNetworkDiscoveryServices.subscribe(() => {
+	UpdateSockets('networkDiscovery');
 })
 
 var sources: Source[]						= []; // the configured tally sources
@@ -201,30 +207,52 @@ function initialSetup() {
 
 	logger('Main HTTP Server Complete.', 'info-quiet');
 
-	bonjour().publish({
-		name: 'tallyarbiter-'+currentConfig["uuid"],
+	bonjour.publish({
+		name: 'tallyarbiter-'+(currentConfig["uuid"] || "unknown"),
 		type: 'tally-arbiter',
 		port: 4455,
 		txt: {
 			version: version,
-			uuid: currentConfig["uuid"]
+			uuid: (currentConfig["uuid"] || "unknown")
 		}
 	});
 	logger('TallyArbiter advertised over MDNS.', 'info-quiet');
 
 	logger('Starting socket.IO Setup.', 'info-quiet');
 
+	let tmpSocketAccessTokens: string[] = [];
 	io.sockets.on('connection', (socket) => {
 		const ipAddr = socket.handshake.address;
 
-		socket.on('login', (type: "settings" | "producer", username: string, password: string) => {
-			if((type === "producer" && username == currentConfig.security.username_producer && password == currentConfig.security.password_producer)
-			|| (type === "settings" && username == currentConfig.security.username_settings && password == currentConfig.security.password_settings)) {
-				//login successfull
-				socket.emit('login_result', true); //old response, for compatibility with old UI clients
-				socket.emit('login_response', { loginOk: true, message: "" });
-			} else {
-				//wrong credentials
+		const requireRole = (role: string) => {
+			return new Promise((resolve, reject) => {
+				if(typeof(tmpSocketAccessTokens[socket.id]) === undefined) {
+					let error_msg = "Access token required. Please login to use this feature.";
+					socket.emit('error', error_msg);
+					reject(error_msg);
+				}
+				let access_token = tmpSocketAccessTokens[socket.id];
+				validateAccessToken(access_token).then((user) => {
+					if(user.roles.includes(role) || user.roles.includes("admin")) {
+						resolve(user);
+					} else {
+						let error_msg = "Access denied. You are not authorized to do this.";
+					    socket.emit('error', error_msg);
+					    reject(error_msg);
+					}
+				}).catch((err) => {
+					socket.emit('error', err.message);
+					reject(err.message);
+				});
+			}); 
+		}
+
+		socket.on('login', (username: string, password: string) => {
+			authenticate(username, password).then((result) => {
+				socket.emit('login_response', { loginOk: true, message: "", accessToken: result.access_token });
+			}).catch((error) => {
+				logger(`User ${username} (ip addr ${ipAddr}) has attempted a login (${error})`);
+                //wrong credentials
 				Promise.all([
 					limiterConsecutiveFailsByUsernameAndIP.consume(ipAddr),
 					limiterSlowBruteByIP.consume(`${username}_${ipAddr}`)
@@ -232,23 +260,25 @@ function initialSetup() {
 					//rate limits not exceeded
 					let points = values[0].remainingPoints;
 					let message = "Wrong username or password!";
-					if(points < 4) {
+					if(points < 10) {
 						message += " Remaining attemps:"+points;
 					}
-					socket.emit('login_result', false); //old response, for compatibility with old UI clients
-					socket.emit('login_response', { loginOk: false, message: message });
+					socket.emit('login_response', { loginOk: false, message: message, access_token: "" });
 				}).catch((error) => {
 					//rate limits exceeded
-                    socket.emit('login_result', false); //old response, for compatibility with old UI clients
                     let retrySecs = 1;
 					try{
 						retrySecs = Math.round(error.msBeforeNext / 1000) || 1;
 					} catch(e) {
 						retrySecs = Math.round(error[0].msBeforeNext / 1000) || 1;
 					}
-					socket.emit('login_response', { loginOk: false, message: "Too many attemps! Please try "+secondsToHms(retrySecs)+" later." });
+					socket.emit('login_response', { loginOk: false, message: "Too many attemps! Please try "+secondsToHms(retrySecs)+" later.", access_token: "" });
 				});
-			}
+			});
+		});
+
+		socket.on('access_token', (access_token: string) => {
+			tmpSocketAccessTokens[socket.id] = access_token;
 		});
 
 		socket.on('version', () =>  {
@@ -297,6 +327,11 @@ function initialSetup() {
 			canBeFlashed (bool)
 			supportsChat (bool)
 			*/
+
+			if(typeof obj !== 'object' && obj !== null) {
+				logger(`Received JSON object: ${obj}`, 'info-quiet'); //Log the raw JSON to console
+				obj = JSON.parse(String(obj)); //Re-parse JSON
+		  }
 
 			let deviceId = obj.deviceId;
 			let device = GetDeviceByDeviceId(deviceId);
@@ -349,23 +384,28 @@ function initialSetup() {
 		});
 
 		socket.on('settings', () => {
-			socket.join('settings');
-			socket.join('messaging');
-			socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), addresses.value, getOutputTypes(), getOutputTypeDataFields(), currentConfig.bus_options, getSources(), devices, device_sources, device_actions, getDeviceStates(), tslListenerProvider.tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
-			socket.emit('listener_clients', listener_clients);
-			socket.emit('logs', Logs);
-			socket.emit('PortsInUse', PortsInUse.value);
-			socket.emit('tslclients_1secupdate', currentConfig.tsl_clients_1secupdate);
+			requireRole("settings").then((user) => {
+				socket.join('settings');
+				socket.join('messaging');
+				socket.emit('initialdata', getSourceTypes(), getSourceTypeDataFields(), addresses.value, getOutputTypes(), getOutputTypeDataFields(), currentConfig.bus_options, getSources(), devices, device_sources, device_actions, getDeviceStates(), tslListenerProvider.tsl_clients, cloud_destinations, cloud_keys, cloud_clients);
+				socket.emit('listener_clients', listener_clients);
+				socket.emit('logs', Logs);
+				socket.emit('PortsInUse', PortsInUse.value);
+				socket.emit('networkDiscovery', RegisteredNetworkDiscoveryServices.value);
+				socket.emit('tslclients_1secupdate', currentConfig.tsl_clients_1secupdate);
+			}).catch((e) => {console.error(e);});
 		});
 
 		socket.on('producer', () => {
-			socket.join('producer');
-			socket.join('messaging');
-			socket.emit('sources', getSources());
-			socket.emit('devices', devices);
-			socket.emit('bus_options', currentConfig.bus_options);
-			socket.emit('listener_clients', listener_clients);
-			socket.emit('device_states', getDeviceStates());
+			requireRole("producer").then((user) => {
+				socket.join('producer');
+				socket.join('messaging');
+				socket.emit('sources', getSources());
+				socket.emit('devices', devices);
+				socket.emit('bus_options', currentConfig.bus_options);
+				socket.emit('listener_clients', listener_clients);
+				socket.emit('device_states', getDeviceStates());
+			}).catch((e) => {console.error(e);});
 		});
 
 		socket.on('companion', () => {
@@ -421,7 +461,7 @@ function initialSetup() {
 			for (let i = 0; i < listener_clients.length; i++) {
 				if (listener_clients[i].socketId === socket.id) {
 					if (listener_clients[i].deviceId === oldDeviceId) {
-						if (listener_clients[i].relayGroupId !== relayGroupId) {
+						if (listener_clients[i].internalId !== relayGroupId) {
 							canRemove = false;
 							break;
 						}
@@ -436,8 +476,10 @@ function initialSetup() {
 			socket.join('device-' + deviceId);
 
 			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].relayGroupId === relayGroupId) {
-					listener_clients[i].deviceId = deviceId;
+				if (listener_clients[i].socketId === socket.id) {
+					if (listener_clients[i].internalId === relayGroupId) {
+						listener_clients[i].deviceId = deviceId;
+					}
 				}
 			}
 
@@ -447,6 +489,7 @@ function initialSetup() {
 			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info');
 			UpdateSockets('listener_clients');
 			UpdateCloud('listener_clients');
+			socket.emit('device_states', getDeviceStates());
 		});
 
 		socket.on('listener_reassign_gpo', (gpoGroupId, oldDeviceId, deviceId) => {
@@ -454,7 +497,7 @@ function initialSetup() {
 			for (let i = 0; i < listener_clients.length; i++) {
 				if (listener_clients[i].socketId === socket.id) {
 					if (listener_clients[i].deviceId === oldDeviceId) {
-						if (listener_clients[i].gpoGroupId !== gpoGroupId) {
+						if (listener_clients[i].internalId !== gpoGroupId) {
 							canRemove = false;
 							break;
 						}
@@ -469,8 +512,10 @@ function initialSetup() {
 			socket.join('device-' + deviceId);
 
 			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].gpoGroupId === gpoGroupId) {
-					listener_clients[i].deviceId = deviceId;
+				if (listener_clients[i].socketId === socket.id) {
+					if (listener_clients[i].internalId === gpoGroupId) {
+						listener_clients[i].deviceId = deviceId;
+					}
 				}
 			}
 
@@ -504,15 +549,17 @@ function initialSetup() {
 		});
 
 		socket.on('listener_delete', (clientId) => { // emitted by the Settings page when an inactive client is being removed manually
-			for (let i = listener_clients.length - 1; i >= 0; i--) {
-				if (listener_clients[i].id === clientId) {
-					logger(`Inactive Client removed: ${listener_clients[i].id}`, 'info');
-					listener_clients.splice(i, 1);
-					break;
+			requireRole("settings:listeners").then((user) => {
+				for (let i = listener_clients.length - 1; i >= 0; i--) {
+					if (listener_clients[i].id === clientId) {
+						logger(`Inactive Client removed: ${listener_clients[i].id}`, 'info');
+						listener_clients.splice(i, 1);
+						break;
+					}
 				}
-			}
-			UpdateSockets('listener_clients');
-			UpdateCloud('listener_clients');
+				UpdateSockets('listener_clients');
+				UpdateCloud('listener_clients');
+			}).catch((e) => {console.error(e);});
 		});
 
 		socket.on('cloud_destination_reconnect', (cloudDestinationId) => {
@@ -759,8 +806,11 @@ function initialSetup() {
 		});
 
 		socket.on('manage', (arbiterObj: Manage) => {
-			const response = TallyArbiter_Manage(arbiterObj);
-			io.to('settings').emit('manage_response', response);
+			requireRole("settings").then((user) => {
+				TallyArbiter_Manage(arbiterObj, tmpSocketAccessTokens[socket.id]).then((response) => {
+					io.to('settings').emit('manage_response', response);
+				});
+		    }).catch((e) => {console.error(e);});
 		});
 
 		socket.on('reconnect_source', (sourceId: string) => {
@@ -788,13 +838,17 @@ function initialSetup() {
 		});
 
 		socket.on('testmode', (value: boolean) => {
-			ToggleTestMode(value);
+			requireRole("settings:testing").then((user) => {
+				ToggleTestMode(value);
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('tslclients_1secupdate', (value: boolean) => {
-			currentConfig.tsl_clients_1secupdate = value;
-			SaveConfig();
-			TSLClients_1SecUpdate(value);
+			requireRole("settings:listeners").then((user) => {
+				currentConfig.tsl_clients_1secupdate = value;
+				SaveConfig();
+				TSLClients_1SecUpdate(value);
+			}).catch((err) => { console.error(err); });
 		})
 
 		socket.on('messaging', (type: string, message: string) => {
@@ -806,34 +860,50 @@ function initialSetup() {
 		});
 
 		socket.on('get_unread_error_reports', () =>  {
-			socket.emit('unread_error_reports', getUnreadErrorReportsList());
+			requireRole("admin").then((user) => {
+				socket.emit('unread_error_reports', getUnreadErrorReportsList());
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('get_error_report', (errorReportId: string) => {
-			markErrorReportAsRead(errorReportId);
-			socket.emit('error_report', getErrorReport(errorReportId));
+			requireRole("admin").then((user) => {
+				markErrorReportAsRead(errorReportId);
+				socket.emit('error_report', getErrorReport(errorReportId));
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('mark_error_reports_as_read', () => {
-			markErrorReportsAsRead();
+			requireRole("admin").then((user) => {
+				markErrorReportsAsRead();
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('delete_every_error_report', () => {
-			deleteEveryErrorReport();
+			requireRole("admin").then((user) => {
+				deleteEveryErrorReport();
+			}).catch((err) => { console.error(err); });
+		});
+
+		socket.on('users', () => {
+			requireRole("settings:users").then((user) => {
+				socket.emit('users', getUsersList());
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('get_config', () => {
-			//TODO: check user roles when #247 get merged
-			socket.emit('config', currentConfig);
+			requireRole("settings:config").then((user) => {
+				socket.emit('config', currentConfig);
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('set_config', (config: Config) => {
-			//TODO: check user roles when #247 get merged
-			validateConfig(config).then((config) => {
-				replaceConfig(config);
-			}).catch((error) => {
-				socket.emit('error', "Config is not valid");
-			});
+			requireRole("settings:config").then((user) => {
+				validateConfig(config).then((config) => {
+					replaceConfig(config);
+				}).catch((error) => {
+					socket.emit('error', "Config is not valid");
+				});
+			}).catch((err) => { console.error(err); });
 		});
 
 		socket.on('disconnect', () =>  { // emitted when any socket.io client disconnects from the server
@@ -850,7 +920,7 @@ function initialSetup() {
 
 	logger('Socket.IO Setup Complete.', 'info-quiet');
 
-	logger('Starting VMix Emulation Service.', 'info-quiet');
+	logger('Starting Listener Providers.', 'info-quiet');
 
 	vMixEmulator = new VMixEmulator();
 	tslListenerProvider = new TSLListenerProvider();
@@ -862,6 +932,7 @@ function initialSetup() {
 			UpdateSockets(type);
 			UpdateCloud(type);
 		});
+		provider.start();
 	}
 
 	if (cloud_destinations.length > 0) {
@@ -973,6 +1044,8 @@ function ToggleTestMode(enabled: boolean) {
 				data: {
 					addressesNumber: devices.length,
 				},
+				reconnect_interval: 5000,
+				max_reconnects: 5,
 			};
 			//turn on test mode
             sources.push(testModeSource);
@@ -986,6 +1059,8 @@ function ToggleTestMode(enabled: boolean) {
 					sourceId: testModeSource.id,
 					bus: "",
 					rename: false,
+					reconnect_interval: 5000,
+					max_reconnects: 5,
 				});
 			}
 
@@ -1171,8 +1246,8 @@ function loadConfig() { // loads the JSON data from the config file to memory
 
 function initializeSource(source: Source): TallyInput {
 	if (!TallyInputs[source.sourceTypeId]?.cls) {
-		console.log(TallyInputs);
-		console.log(source)
+		//console.log(TallyInputs);
+		//console.log(source);
 		throw Error(`No class found for Source ${source.name} (${source.sourceTypeId})`);
 	}
 	logger(`Source: ${source.name} Creating ${TallyInputs[source.sourceTypeId].label} connection.`, 'info-quiet');
@@ -1218,7 +1293,9 @@ function processSourceTallyData(sourceId: string, tallyData: SourceTallyData)
 {
 	writeTallyDataFile(tallyData);
 
-	io.to('settings').emit('tally_data', sourceId, tallyData);
+	for (const [address, busses] of Object.entries(tallyData)) {
+		io.to('settings').emit('tally_data', sourceId, address, busses);
+	}
 	
 	currentSourceTallyData = {
 		...currentSourceTallyData,
@@ -1257,114 +1334,147 @@ function RunAction(deviceId, busId, active) {
 	}
 }
 
-function TallyArbiter_Manage(obj: Manage): ManageResponse {
-    let result: ManageResponse;
-	switch(obj.type) {
-		case 'source':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Source(obj);
+function TallyArbiter_Manage(obj: Manage, access_token: string = ""): Promise<ManageResponse> {
+    return new Promise((resolve, reject) => {
+		validateAccessToken(access_token).then((user) => {
+			const validate_user_role = (role) => {
+				if(!user.roles.includes(role) && !user.roles.includes("admin")) {
+					resolve({ result: 'error', error: 'Access denied. You are not authorized to do this.' });
+					return false;
+				} else {
+					return true;
+				}
 			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_Source(obj);
+			let result: ManageResponse;
+			switch(obj.type) {
+				case 'source':
+					if(!validate_user_role('settings:sources_devices')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Source(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_Source(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Source(obj);
+					}
+					break;
+				case 'device':
+					if(!validate_user_role('settings:sources_devices')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Device(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_Device(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Device(obj);
+					}
+					break;
+				case 'device_source':
+					if(!validate_user_role('settings:sources_devices')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Device_Source(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_Device_Source(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Device_Source(obj);
+					}
+					break;
+				case 'device_action':
+					if(!validate_user_role('settings:sources_devices')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Device_Action(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_Device_Action(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Device_Action(obj);
+					}
+					break;
+				case 'tsl_client':
+					if(!validate_user_role('settings:listeners')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_TSL_Client(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_TSL_Client(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_TSL_Client(obj);
+					}
+					break;
+				case 'bus_option':
+					if(!validate_user_role('settings:config')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Bus_Option(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_Bus_Option(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Bus_Option(obj);
+					}
+					io.emit('bus_options', currentConfig.bus_options); //emit the new bus options array to everyone
+					break;
+				case 'cloud_destination':
+					if(!validate_user_role('settings:cloud')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Cloud_Destination(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_Cloud_Destination(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Cloud_Destination(obj);
+					}
+					break;
+				case 'cloud_key':
+					if(!validate_user_role('settings:cloud')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_Cloud_Key(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_Cloud_Key(obj);
+					}
+					break;
+				case 'cloud_client':
+					if(!validate_user_role('settings:cloud')) return;
+					if (obj.action === 'remove') {
+						result = TallyArbiter_Remove_Cloud_Client(obj);
+					}
+					break;
+				case 'user':
+					if(!validate_user_role('settings:users')) return;
+					if (obj.action === 'add') {
+						result = TallyArbiter_Add_User(obj);
+					}
+					else if (obj.action === 'edit') {
+						result = TallyArbiter_Edit_User(obj);
+					}
+					else if (obj.action === 'delete') {
+						result = TallyArbiter_Delete_User(obj);
+					}
+					break;
+				default:
+						result = {result: 'error', error: 'Invalid API request.'}
+					break;
 			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Source(obj);
-			}
-			break;
-		case 'device':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Device(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_Device(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Device(obj);
-			}
-			break;
-		case 'device_source':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Device_Source(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_Device_Source(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Device_Source(obj);
-			}
-			break;
-		case 'device_action':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Device_Action(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_Device_Action(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Device_Action(obj);
-			}
-			break;
-		case 'tsl_client':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_TSL_Client(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_TSL_Client(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_TSL_Client(obj);
-			}
-			break;
-		case 'bus_option':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Bus_Option(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_Bus_Option(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Bus_Option(obj);
-			}
-			io.emit('bus_options', currentConfig.bus_options); //emit the new bus options array to everyone
-			break;
-		case 'cloud_destination':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Cloud_Destination(obj);
-			}
-			else if (obj.action === 'edit') {
-				result = TallyArbiter_Edit_Cloud_Destination(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Cloud_Destination(obj);
-			}
-			break;
-		case 'cloud_key':
-			if (obj.action === 'add') {
-				result = TallyArbiter_Add_Cloud_Key(obj);
-			}
-			else if (obj.action === 'delete') {
-				result = TallyArbiter_Delete_Cloud_Key(obj);
-			}
-			break;
-		case 'cloud_client':
-			if (obj.action === 'remove') {
-				result = TallyArbiter_Remove_Cloud_Client(obj);
-			}
-			break;
-		default:
-				result = {result: 'error', error: 'Invalid API request.'}
-			break;
-	}
-
-	SaveConfig();
-
-	return result;
+		
+			SaveConfig();
+		
+			resolve(result);
+		});
+	});
 }
 
 function StopConnection(sourceId: string) {
 	const source = sources.find((s) => s.id == sourceId);
 	logger(`Source: ${source.name} Closing ${TallyInputs[source.sourceTypeId].label} connection.`, 'info-quiet');
-	SourceClients[sourceId].exit();
+	SourceClients[sourceId]?.exit();
 }
 
 function StartCloudDestination(cloudDestinationId) {
@@ -1473,7 +1583,7 @@ function SetCloudDestinationStatus(cloudId, status) {
 	UpdateSockets('cloud_destinations');
 }
 
-function UpdateCloud(dataType: 'sources' | 'devices' | 'device_sources' | 'device_states' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse") {
+function UpdateCloud(dataType: 'sources' | 'devices' | 'device_sources' | 'device_states' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse" | "networkDiscovery") {
 	for (let i = 0; i < cloud_destinations_sockets.length; i++) {
 		if (cloud_destinations_sockets[i].connected === true) {
 			try {
@@ -1501,11 +1611,12 @@ function UpdateCloud(dataType: 'sources' | 'devices' | 'device_sources' | 'devic
 	}
 }
 
-type SocketUpdateDataType = 'sources' | 'devices' | 'device_sources' | 'device_states' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse" | "addresses";
+type SocketUpdateDataType = 'sources' | 'devices' | 'device_sources' | 'device_states' | 'listener_clients' | 'vmix_clients' | 'tsl_clients' | 'cloud_destinations' | 'cloud_clients' | "PortsInUse" | "networkDiscovery" | "addresses";
 
 function UpdateSockets(dataType: SocketUpdateDataType) {
 	const data: Record<SocketUpdateDataType, () => any> = {
 		PortsInUse: () => PortsInUse.value,
+		networkDiscovery: () => RegisteredNetworkDiscoveryServices.value,
 		addresses: () => addresses.value,
 		sources: () => getSources(),
 		devices: () => devices,
@@ -1561,6 +1672,8 @@ function TallyArbiter_Edit_Source(obj: Manage): ManageResponse {
 			sources[i].data = sourceObj.data;
 			sourceTypeId = sources[i].sourceTypeId;
 			connected = sources[i].connected;
+			sources[i].reconnect_interval = sourceObj.reconnect_interval;
+			sources[i].max_reconnects = sourceObj.max_reconnects;
 		}
 	}
 
@@ -1722,6 +1835,8 @@ function TallyArbiter_Edit_Device_Source(obj: Manage): ManageResponse {
 			device_sources[i].bus = deviceSourceObj.bus;
 		}
 		device_sources[i].rename = deviceSourceObj.rename;
+		device_sources[i].reconnect_interval = deviceSourceObj.reconnect_interval;
+		device_sources[i].max_reconnects = deviceSourceObj.max_reconnects;
 	}
 
 	let deviceName = GetDeviceByDeviceId(deviceId).name;
@@ -2014,6 +2129,33 @@ function TallyArbiter_Remove_Cloud_Client(obj: Manage): ManageResponse {
 		return {result: 'cloud-client-removed-successfully'};
 	} else {
 		return {result: 'cloud-client-not-removed', error: 'Cloud client not found.' };
+	}
+}
+
+function TallyArbiter_Add_User(obj: Manage): ManageResponse {
+	if(addUser(obj.user)) {
+		logger(`User Added: ${obj.user.username}`, 'info');
+		return {result: 'user-added-successfully'};
+	} else {
+		return {result: 'error', error: 'User already exists.' };
+	}
+}
+
+function TallyArbiter_Edit_User(obj: Manage): ManageResponse {
+	if(editUser(obj.user)) {
+		logger(`User Edited: ${obj.user.username}`, 'info');
+		return {result: 'user-edited-successfully'};
+	} else {
+		return {result: 'error', error: 'User not found.' };
+	}
+}
+
+function TallyArbiter_Delete_User(obj: Manage): ManageResponse {
+	if(deleteUser(obj.user)) {
+		logger(`User Deleted: ${obj.user.username}`, 'info');
+		return {result: 'user-deleted-successfully'};
+	} else {
+		return {result: 'error', error: 'User not found.' };
 	}
 }
 
@@ -2344,6 +2486,7 @@ function SendMessage(type: string, socketid: string | null, message: string) {
 }
 
 function generateAndSendErrorReport(error: Error) {
+	if(devmode) return;
 	if(Sentry !== undefined) Sentry.captureException(error);
 	let id = generateErrorReport(error);
 	io.emit("server_error", id);

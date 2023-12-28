@@ -12,7 +12,8 @@ You can buy a Raspberry Pi here:
 [Raspberry Pi4](https://www.amazon.com/LoveRPi-Raspberry-Computer-Heatsinks-4GB/dp/B07WHZW881/), or 
 [Raspberry Pi Zero](https://www.amazon.com/CanaKit-Raspberry-Wireless-Complete-Starter/dp/B072N3X39J/).
 
-To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
+To [report a bug](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=bug&template=bug.yaml&title=%5BBug%5D%3A+) or open a [feature request](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=feature&template=feature.yaml&title=%5BFeature+Request%5D%3A+), please go to our [issues](https://github.com/josephdadams/TallyArbiter/issues/new/choose) page.
+If you would like to see more of @josephdadams's projects or send a word of encouragement his way, please visit [techministry.blog](https://techministry.blog/).
 
 # Installing Python Libraries and Script
 The Tally Arbiter GPO Listener Client uses the following libraries:
@@ -26,6 +27,7 @@ These will have to be installed on the Pi in order for the script to function co
     * `sudo pip3 install "python-socketio[client]<5"`: This library is used to communicate with a Tally Arbiter server over websockets.
     * `sudo pip3 install RPi.GPIO`: This is the GPIO library used to communicate with the General Purpose In/Out pins on your Raspberry Pi.
     * `sudo pip3 install zeroconf`: This library is used for discovering TallyArbiter in your network without providing the host
+	* `sudo pip3 install argparse`: This library is used for parsing CLI args passed to this program
 
     *If `pip3` is not installed, you can get it by running `sudo apt-get install python3-pip`.*
 
@@ -53,7 +55,11 @@ Upon startup, the program will enumerate through the `config_gpo.json` file and 
 TODO: update docs
 Tally Arbiter GPO Listener uses the built-in GPIO pins of a Raspberry Pi. In order for the program to use the correct pins for your wiring, it must be configured prior to execution. A configuration file, `config_gpo.json` is required to be in the same folder as the listener script.
 
-The `config_gpo.json` file contains two sections:
+The `config_gpo.json` file contains two sections and two others independent config keys:
+
+* `clientUUID`: This is used to keep the same id in TallyArbiter listener client
+
+* `output_invert`: If this is set to `true`, the GPO output are inverted. You need to use this only if you are using a common-anode led setup.
 
 * `server_config`: The IP and Port of the Tally Arbiter server.
 ```javascript
@@ -61,8 +67,10 @@ The `config_gpo.json` file contains two sections:
  {
 	"ip": "192.168.11.141",
 	"port": 4455
+	"use_mdns": true
  }
 ```
+If `use_mdns` is set to `true`, then the listener will use MDNS instead of configured ip and port. Doing this you don't need to update the config file every time your server changes the IP Address.
 
 * `gpo_groups`: The groupings of GPO pins that you want to control. Each GPO Group can be associated with one Tally Arbiter Device.
 
@@ -96,4 +104,4 @@ Once your configuration file is created and you've made the physical connections
 
 # Improvements and Suggestions
 We are welcome to improvements and suggestions.
-You can submit issues and pull requests on this repo, or contact Joseph Adams through the *"Contact"* page on the [techministry blog](http://www.techministry.blog/contact).
+Feel free to contact us on Github Discussions or open a PR.

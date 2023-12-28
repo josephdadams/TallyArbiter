@@ -12,7 +12,8 @@ You can buy a USB relay here:
 [4 Channel](https://www.amazon.com/Diyeeni-4-Channel-Controller-Expansion-Automation/dp/B084TNPG8T/), or 
 [8 Channel](https://www.amazon.com/Zer-one-8-Channel-Computer-Intelligent/dp/B07XPFK1ZM/).
 
-To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
+To [report a bug](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=bug&template=bug.yaml&title=%5BBug%5D%3A+) or open a [feature request](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=feature&template=feature.yaml&title=%5BFeature+Request%5D%3A+), please go to our [issues](https://github.com/josephdadams/TallyArbiter/issues/new/choose) page.
+If you would like to see more of @josephdadams's projects or send a word of encouragement his way, please visit [techministry.blog](https://techministry.blog/).
 
 # Running the software
 The software is written in Node.js and is therefore cross-platform and can be run on MacOS, Linux, or Windows.
@@ -64,10 +65,12 @@ Example `relay_group` entry:
 	"id": 1,
 	"relays": [
 		{
+			"relaySerial": "123456",
 			"relayNumber": 1,
 			"busType": "preview",
 		},
 		{
+			"relaySerial": "123456",
 			"relayNumber": 2,
 			"busType": "program"
 		}
@@ -78,6 +81,7 @@ Example `relay_group` entry:
 
 * `id`: A unique identifier.
 * `relays`: The array of relays assciated in this group. It has the following properties:
+	* `relaySerial`: The serial number of the relay board. This is required in case multiple boards are in use on the same device.
 	* `relayNumber`: The actual relay number on the relay board. (1-8)
 	* `busType`: Either `preview` or `program`.
 * `deviceId`: If configured, the Tally Arbiter Device Id. If this Device Id is invalid or the property does not exist in your config file, Tally Arbiter will automatically reassign this relay group to the first Device on the server. You can reassign it to a new Device using the Tally Arbiter interface.
@@ -88,4 +92,4 @@ Once your configuration file is created and you've made the physical connections
 
 # Improvements and Suggestions
 We are welcome to improvements and suggestions.
-You can submit issues and pull requests on this repo, or contact Joseph Adams through the *"Contact"* page on the [techministry blog](http://www.techministry.blog/contact).
+Feel free to contact us on Github Discussions or open a PR.

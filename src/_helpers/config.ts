@@ -1,10 +1,12 @@
 import { logger, tslListenerProvider } from "..";
 import { Config } from "../_models/Config";
 import { ConfigTSLClient } from "../_models/ConfigTSLClient";
-import fs from "fs";
+import fs from "fs-extra";
 import path from "path";
+import { randomBytes } from "crypto";
 import { clone } from "./clone";
 import { uuidv4 } from "./uuid";
+import { addUser } from "./auth";
 
 function getConfigFilePath(): string {
 	const configFolder = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share"), "TallyArbiter");
@@ -18,12 +20,10 @@ function getConfigFilePath(): string {
 const config_file = getConfigFilePath();
 
 export const ConfigDefaults: Config = {
-    security: {
-        username_producer: 'producer',
-        password_producer: '12345',
-        username_settings: 'admin',
-        password_settings: '12345',
-    },
+	security: {
+		jwt_private_key: "",
+	},
+	users: [],
     cloud_destinations: [],
     cloud_keys: [],
     device_actions: [],
@@ -40,10 +40,11 @@ export const ConfigDefaults: Config = {
     ],
     externalAddress: "http://0.0.0.0:4455/#/tally",
 	remoteErrorReporting: false,
-	uuid: uuidv4()
+	uuid: ""
 }
 
 export let currentConfig: Config = clone(ConfigDefaults);
+export let isConfigLoaded: boolean = false;
 
 export function SaveConfig() {
 	try {
@@ -75,14 +76,46 @@ export function SaveConfig() {
 }
 
 export function readConfig(): void {
-	let loadedConfig = JSON.parse(fs.readFileSync(config_file).toString());
+	isConfigLoaded = true;
+	const configPath = getConfigFilePath();
+	if(!fs.pathExistsSync(configPath)) {
+		try {
+			SaveConfig();
+		} catch(e) {}
+	}
+	let loadedConfig = JSON.parse(fs.readFileSync(configPath).toString());
     currentConfig = {
         ...clone(ConfigDefaults),
         ...loadedConfig,
     };
-	if(!loadedConfig.uuid) {
+	if(!loadedConfig.uuid || typeof loadedConfig.uuid !== "string") {
 		logger('Adding an uuid identifier to this server for using MDNS.', 'info-quiet');
+		currentConfig.uuid = uuidv4();
 		SaveConfig(); //uuid added if missing on config save
+	}
+	if(!loadedConfig.security.jwt_private_key || typeof loadedConfig.security.jwt_private_key !== "string") {
+		logger('Adding a private key for JWT authentication.', 'info-quiet');
+		currentConfig.security.jwt_private_key = randomBytes(256).toString('base64');
+		SaveConfig(); //uuid added if missing on config save
+	}
+	if(!loadedConfig.users || typeof loadedConfig.users !== "object" || loadedConfig.users.length === 0) {
+		logger('Migrating user configs to the new format.', 'info-quiet');
+		currentConfig.users = [];
+		addUser({
+			username: loadedConfig.security.username_producer || "producer",
+			password: loadedConfig.security.password_producer || "12345",
+			roles: "producer"
+		});
+		addUser({
+			username: loadedConfig.security.username_settings || "admin",
+			password: loadedConfig.security.password_settings || "12345",
+			roles: "admin"
+		});
+		delete currentConfig.security.username_producer;
+		delete currentConfig.security.password_producer;
+		delete currentConfig.security.username_settings;
+		delete currentConfig.security.password_settings;
+		SaveConfig();
 	}
 }
 
@@ -93,14 +126,12 @@ export function getConfigRedacted(): Config {
 	} catch (e) {
 	}
 	config["security"] = {
-		username_settings: "admin",
-		password_settings: "12345",
-		username_producer: "producer",
-		password_producer: "12345"
+		jwt_private_key: ""
 	};
+    config["users"] = [];
 	config["cloud_destinations"] = [];
 	config["cloud_keys"] = [];
-	config["uuid"] = "uuid";
+	config["uuid"] = "";
 	return config;
 }
 

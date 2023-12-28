@@ -20,7 +20,6 @@
         "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
         "!**/{UI,docs,.github,bin,release,release_old}",
         "!**/Dockerfile",
-        "!**/Dockerfile.standalone",
         "!**/Procfile"
     ],
     "win": {

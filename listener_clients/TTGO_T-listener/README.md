@@ -1,11 +1,12 @@
 # Tally Arbiter TTGO_T Listener
-Tally Arbiter TTGO_T Listener is a modified Version of the Tally Arbiter M5Stick-C Listener, written by Joseph Adams (https://github.com/josephdadams/TallyArbiter-M5StickCListener), with support for a TTGO_T-Display device.
+Tally Arbiter TTGO_T Listener is a modified Version of the Tally Arbiter M5Stick-C Listener, written by Joseph Adams (https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/m5stickc-listener), with support for a TTGO_T-Display device.
 
 To learn more about the Tally Arbiter project, [click here](http://github.com/josephdadams/tallyarbiter).
 
 It is not sold, authorized, or associated with any other company or product.
 
-To contact the author or for more information, please visit [www.techministry.blog](http://www.techministry.blog).
+To [report a bug](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=bug&template=bug.yaml&title=%5BBug%5D%3A+) or open a [feature request](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=feature&template=feature.yaml&title=%5BFeature+Request%5D%3A+), please go to our [issues](https://github.com/josephdadams/TallyArbiter/issues/new/choose) page.
+If you would like to see more of @josephdadams's projects or send a word of encouragement his way, please visit [techministry.blog](https://techministry.blog/).
 
 ## Assembling the device
 I have added a 3 color LED (connected with 3x 270 Ohm resistors) and an on/off switch for the battery.
@@ -51,7 +52,8 @@ node /home/pi/tallyarbiter/index.js &
 pm2 didn't work for me.
 
 # Improvements and Suggestions
-I welcome all improvements and suggestions. You can submit issues and pull requests.
+We are welcome to improvements and suggestions.
+Feel free to contact us on Github Discussions or open a PR.
 
 ## Thanks
 Thank you to peterfdej for this listener client!

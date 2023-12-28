@@ -25,7 +25,7 @@ The following Device Actions are implemented:
 * TSL 3.1 UDP/TCP
 * TSL 5.0 UDP/TCP
 * Outgoing Webhook
-* Generic TCP
+* Generic TCP/UDP
 * Local Console Output/Logging (useful for testing)
 * Open Sound Control (OSC) (multiple arguments supported)
 

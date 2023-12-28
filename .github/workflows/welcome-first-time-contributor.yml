@@ -20,11 +20,9 @@ jobs:
 
           Welcome to TallyArbiter!
 
-          Thank you for opening your first issue for the Tally Arbiter project. TallyArbiter fosters an open and welcoming environment for all our contributors. Please adhere to our [Code Of Conduct](https://github.com/josephdadams/TallyArbiter/blob/master/CODE_OF_CONDUCT.md).
+          Thank you for opening your first issue for the Tally Arbiter project. Tally Arbiter fosters an open and welcoming environment for all our contributors. Please adhere to our [Code Of Conduct](https://github.com/josephdadams/TallyArbiter/blob/master/CODE_OF_CONDUCT.md).
 
-          Incase you want to claim this issue, please comment down below! We will try to get back to you as soon as we can.
-
-          Feel free to contact the author or for any other information, please visit [www.techministry.blog](www.techministry.blog). We would love to hear your interesting ideas and engage in discussions.
+          If you have more to contribute to this issue, please comment down below! We will try to get back to you as soon as we can.
 
         pr-message: |
           Hello there ${{ github.actor }} 👋
