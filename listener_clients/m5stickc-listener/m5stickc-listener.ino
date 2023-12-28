@@ -18,11 +18,11 @@
 
 #define TRIGGER_PIN 0 //reset pin 
 #define GREY  0x0020 //   8  8  8
-//#define GREEN 0x0200 //   0 64  0
-//#define RED   0xF700 // 255  0  0
-//#define maxTextSize 5 //larger sourceName text
+#define GREEN 0x0200 //   0 64  0
+#define RED   0xF800 // 255  0  0
+#define maxTextSize 5 //larger sourceName text
 
-String listenerDeviceName = "m5StickC-"; // s/n is added in runtime future improvement to only use part of MAC address
+String listenerDeviceName = "m5StickC-"; // part of MAC address is added in runtime 
 
 
 /* USER CONFIG VARIABLES
@@ -32,7 +32,7 @@ String listenerDeviceName = "m5StickC-"; // s/n is added in runtime future impro
 bool LAST_MSG = false; // true = show log on tally screen
 
 //Tally Arbiter Server
-char tallyarbiter_host[40] = "192.168.0.110"; //IP address of the Tally Arbiter Server
+char tallyarbiter_host[40] = "192.168.1.173"; //IP address of the Tally Arbiter Server
 char tallyarbiter_port[6] = "4455";
 
 /* END OF USER CONFIG */
@@ -165,15 +165,15 @@ void setup() {
 
   ArduinoOTA.begin();
 
-#if TALLY_EXTRA_OUTPUT
-  // Enable internal led for program trigger
+  #if TALLY_EXTRA_OUTPUT
+  // Enable interal led for program trigger
   pinMode(led_program, OUTPUT);
-  digitalWrite(led_program, HIGH);
+  digitalWrite(led_program, LOW);
   pinMode(led_preview, OUTPUT);
-  digitalWrite(led_preview, HIGH);
+  digitalWrite(led_preview, LOW);
   pinMode(led_aux, OUTPUT);
-  digitalWrite(led_aux, HIGH);
-#endif
+  digitalWrite(led_aux, LOW);
+  #endif
   connectToServer();
 
   // Load ShowSettings screen since network has been configured
@@ -190,18 +190,30 @@ void loop() {
   socket.loop();
   btnM5.update();
   btnAction.update();
+  M5.update();
 
+  // Is WiFi reset triggered?
+  if (M5.BtnA.pressedFor(5000)){
+    logger("resetSettings()", "info");
+    wm.resetSettings();
+    ESP.restart();
+  }
+
+  // Is screen changed?
   if (btnM5.isClick()) {
     switch (currentScreen) {
       case 0:
+        logger("ShowSettings()", "info");
         showSettings();
         break;
       case 1:
+        logger("ShowDeviceInfo()", "info");
         showDeviceInfo();
         break;
     }
   }
 
+  // Is screen brightness changed?
   if (btnAction.isClick()) {
     updateBrightness();
   }
@@ -237,7 +249,6 @@ void showSettings() {
 
 void showDeviceInfo() {
   currentScreen = 0;
-
   
   if (portalRunning) {
     wm.stopWebPortal();
@@ -258,6 +269,7 @@ void updateBrightness() {
   } else {
     currentBrightness++;
   }
+  logger("Set currentBrightness: " + String(currentBrightness), "info");
   M5.Axp.ScreenBreath(currentBrightness);
 }
 
@@ -273,6 +285,9 @@ void logger(String strLog, String strType) {
   */
 }
 
+WiFiManagerParameter* custom_taServer;
+WiFiManagerParameter* custom_taPort;
+
 void connectToNetwork() {
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
   logger("Connecting to SSID: " + String(WiFi.SSID()), "info");
@@ -280,11 +295,11 @@ void connectToNetwork() {
   //reset settings - wipe credentials for testing
   //wm.resetSettings();
 
-  WiFiManagerParameter custom_taServer("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
-  WiFiManagerParameter custom_taPort("taHostPort", "Port", tallyarbiter_port, 6);
+  custom_taServer = new WiFiManagerParameter("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
+  custom_taPort = new WiFiManagerParameter("taHostPort", "Port", tallyarbiter_port, 6);
 
-  wm.addParameter(&custom_taServer);
-  wm.addParameter(&custom_taPort);
+  wm.addParameter(custom_taServer);
+  wm.addParameter(custom_taPort);
 
   // If no saved WiFi we assume that configuration is needed via the captive portal
   if (wm.getWiFiIsSaved()) {
@@ -631,25 +646,25 @@ void evaluateMode() {
       M5.Lcd.println(DeviceName);
     }
 
-#if TALLY_EXTRA_OUTPUT
-    if (actualType == "program") {
-      digitalWrite(led_program, HIGH);
-      digitalWrite(led_preview, LOW);
-      digitalWrite(led_aux, LOW);
-    } else if (actualType == "preview") {
-      digitalWrite(led_program, LOW);
-      digitalWrite(led_preview, HIGH);
-      digitalWrite(led_aux, LOW);
-    } else if (actualType == "aux") {
-      digitalWrite(led_program, LOW);
-      digitalWrite(led_preview, LOW);
-      digitalWrite(led_aux, HIGH);
+    #if TALLY_EXTRA_OUTPUT
+    if (actualType == "\"program\"") {
+      digitalWrite (led_program, LOW);
+      digitalWrite (led_preview, HIGH);
+      digitalWrite (led_aux, HIGH);
+    } else if (actualType == "\"preview\"") {
+      digitalWrite (led_program, HIGH);
+      digitalWrite (led_preview, LOW);
+      digitalWrite (led_aux, HIGH);
+    } else if (actualType == "\"aux\"") {
+      digitalWrite (led_program, HIGH);
+      digitalWrite (led_preview, HIGH);
+      digitalWrite (led_aux, LOW);
     } else {
-      digitalWrite(led_program, LOW);
-      digitalWrite(led_preview, LOW);
-      digitalWrite(led_aux, LOW);
+      digitalWrite (led_program, HIGH);
+      digitalWrite (led_preview, HIGH);
+      digitalWrite (led_aux, HIGH);
     }
-#endif
+    #endif
 
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
     Serial.println(" r: " + String(r) + " g: " + String(g) + " b: " + String(b));

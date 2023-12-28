@@ -45,8 +45,10 @@ Done! Now your board is running the latest listener client firmware version. Go 
 4. Set your Tally Arbiter server ip by going to *"Setup"* page.
 5. Go back, then go to the "Configure WiFi" page and set your WiFi credentials. The board should reboot.
 6. If the connection is successful a settings page will shown. If not, reconnect to 'm5StickC-XXXXXX' Access Point.
-NB: The captive portal page is accessible on the device when the settings screen is shown.
 
+If you need to reset WI-FI credentials. Press M5 button for 5 seconds.
+
+NB: The captive portal page is accessible on the device when the settings screen is shown.
 
 # Troubleshooting
 ### macOS build error
