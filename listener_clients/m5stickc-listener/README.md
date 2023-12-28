@@ -50,6 +50,9 @@ If you need to reset WI-FI credentials. Press M5 button for 5 seconds.
 
 NB: The captive portal page is accessible on the device when the settings screen is shown.
 
+When powering the device, if it cannot find the WiFi AP you have defined, it will broadcast its setup wifi for 120s.
+At any point, you can press and hold the menu button for 2 seconds to re-enable the configuration ui, over whatever WiFi connection it has available.
+
 # Troubleshooting
 ### macOS build error
 If you receive an error similar to `ImportError: No module named serial` reference: https://community.m5stack.com/post/11106
