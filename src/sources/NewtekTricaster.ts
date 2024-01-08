@@ -23,6 +23,7 @@ export class NewtekTricasterSource extends TallyInput {
 
 
         this.client.on('data', (data) => {
+            logger(`Source: ${source.name}  Tricaster data received.`, 'info-quiet');
             try {
                 data = '<data>' + data.toString() + '</data>';
 
@@ -36,6 +37,22 @@ export class NewtekTricasterSource extends TallyInput {
                     else {
                         let shortcut_states = Object.entries(result['data']['shortcut_states']);
 
+                        // Clear the busses before we update based on Tricast input
+                        this.removeBusFromAllAddresses("program");
+                        this.removeBusFromAllAddresses("preview");
+
+                        // Loop through the data and set preview and program based on received data.
+                        // Example input from page 62: https://downloads.newtek.com/LiveProductionSystems/VMC1/Automation%20and%20Integration%20Guide.pdf
+                        //
+                        // <shortcut_states>
+                        //   <shortcut_state name="program_tally" value="INPUT1|BFR2|DDR3" type="" sender="" />
+                        //   <shortcut_state name="preview_tally" value="INPUT7" type="" sender="" />
+                        // </shortcut_states> 
+                        //
+                        // In this example, INPUT1, BFR1, DDR3 are identified as being on Program output, while INPUT7 is on Preview.
+                        //
+                        // For testing can the above data been fed into TallyArbiter via the SocketTest v3.0.0 application
+                        //
                         for (const [name, value] of shortcut_states) {
                             let shortcut_state = value['shortcut_state'];
                             for (let j = 0; j < shortcut_state.length; j++) {
@@ -44,9 +61,10 @@ export class NewtekTricasterSource extends TallyInput {
                                     case 'preview_tally':
                                         let tallyValue = shortcut_state[j]['$'].value;
                                         let addresses = tallyValue.split('|');
-                                        this.processTricasterTally(addresses, shortcut_state[j]['$'].name);
+                                        this.processTricasterTally(source, addresses, shortcut_state[j]['$'].name);
                                         break;
                                     default:
+
                                         break;
                                 }
                             }
@@ -102,6 +120,8 @@ export class NewtekTricasterSource extends TallyInput {
     
         for (let i = 0; i < this.tallydata_TC.length; i++) {
             let tricasterSourceFound = false;
+
+            // Add preview or program for each used Tricaster input.
             for (let j = 0; j < sourceArray.length; j++) {
                 if (this.tallydata_TC[i].sourceId === sourceId) {
                     if (this.tallydata_TC[i].address === sourceArray[j]) {
@@ -126,18 +146,19 @@ export class NewtekTricasterSource extends TallyInput {
                 }
             }
     
+            // Remove preview or program for each not used Tricaster input, in case it was earlier used.
             if (!tricasterSourceFound) {
                 //it is no longer in the bus, mark it as such
                 switch(tallyType) {
                     case 'preview_tally':
                         this.tallydata_TC[i].tally1 = 0;
                         this.tallydata_TC[i].preview = 0;
-                        this.removeBusFromAddress(sourceArray[i], "preview");
+                        this.addBusToAddress(sourceArray[i], "preview");
                         break;
                     case 'program_tally':
                         this.tallydata_TC[i].tally2 = 0;
                         this.tallydata_TC[i].program = 0;
-                        this.removeBusFromAddress(sourceArray[i], "program");
+                        this.addBusToAddress(sourceArray[i], "program");
                         break;
                     default:
                         break;
