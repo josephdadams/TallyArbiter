@@ -31,7 +31,7 @@ You will need the IP address of the ATEM. The ATEM can only have 5 simultaneous 
 You will need the IP address of the VideoHub. You can choose to have any destination be configured as a preview bus, program bus, or both. Enter multiple destination routes by separating them with commas.
 
 ## OBS Studio
-The `obs-websockets` plugin must be installed and configured in order for Tally Arbiter to connect. You can get the plugin here: https://github.com/Palakis/obs-websocket/releases
+For OBS v27 (or older) the `obs-websockets` plugin must be installed and configured in order for Tally Arbiter to connect. You can get the plugin here: https://github.com/Palakis/obs-websocket/releases. From v28 is `obs-websockets` included with OBS Studio.
 
 You will need to supply the IP address, port, and password configured in the OBS Websockets plugin.
 
