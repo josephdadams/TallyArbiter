@@ -9,7 +9,7 @@ All documentation can be found [here](https://josephdadams.github.io/TallyArbite
 
 ## Contributing
 Contributions are always welcome. Here's a quick guide on how to setup your local development environment:
-1. Install [`Node.js`](https://nodejs.org/en/). You need at least version `14.17`.
+1. Install [`Node.js`](https://nodejs.org/en/). You need at least version `18.13`.
 1. Make sure you have `npm@7`. This can be checked by running `npm -v`. If your version of `npm` is too old, update it using `npm i -g npm@7` 
 1. Clone this repository (or your fork): `git clone https://github.com/josephdadams/TallyArbiter`
 1. Run `npm install` in the project's root folder
