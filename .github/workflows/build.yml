@@ -23,7 +23,7 @@ jobs:
       run: npm pack
     - name: NPM Publish
       if: startsWith(github.ref, 'refs/tags/v')
-      uses: JS-DevTools/npm-publish@v1
+      uses: JS-DevTools/npm-publish@v3
       with:
         token: ${{ secrets.NPM_ACCESS_TOKEN }}
 ##    - uses: Saionaro/extract-package-version@v1.0.6
@@ -56,7 +56,7 @@ jobs:
       uses: docker/setup-buildx-action@master
     - name: Get Docker meta
       id: meta
-      uses: crazy-max/ghaction-docker-meta@v2
+      uses: docker/metadata-action@v5
       with:
         images: josephdadams/tallyarbiter
         tags: |
@@ -66,7 +66,7 @@ jobs:
           latest=false
     - name: Login to DockerHub
       if: startsWith(github.ref, 'refs/tags/v')
-      uses: docker/login-action@v1
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -77,7 +77,7 @@ jobs:
         echo SENTRY_DSN=${{ secrets.SENTRY_DSN }} >> .env
     - name: Build and push
       if: startsWith(github.ref, 'refs/tags/v') != true
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v5
       with:
         context: .
         push: ${{ startsWith(github.ref, 'refs/tags/v') }}
@@ -85,14 +85,14 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
     - name: Build and push (multiarch)
       if: startsWith(github.ref, 'refs/tags/v')
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v5
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: .
         push: ${{ startsWith(github.ref, 'refs/tags/v') }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/arm/v7,linux/arm/v6
+        platforms: linux/amd64,linux/arm64,linux/s390x,linux/arm/v7,linux/arm/v6
 
   build_desktop:
     name: Build Desktop on ${{ matrix.os }}
