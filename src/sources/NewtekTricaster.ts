@@ -37,10 +37,6 @@ export class NewtekTricasterSource extends TallyInput {
                     else {
                         let shortcut_states = Object.entries(result['data']['shortcut_states']);
 
-                        // Clear the busses before we update based on Tricast input
-                        this.removeBusFromAllAddresses("program");
-                        this.removeBusFromAllAddresses("preview");
-
                         // Loop through the data and set preview and program based on received data.
                         // Example input from page 62: https://downloads.newtek.com/LiveProductionSystems/VMC1/Automation%20and%20Integration%20Guide.pdf
                         //
@@ -90,6 +86,18 @@ export class NewtekTricasterSource extends TallyInput {
 
     
     public processTricasterTally(sourceId, sourceArray, tallyType?) {
+        // Clear the busses before we update based on received Tricast input
+        switch(tallyType) {
+            case 'preview_tally':
+                this.removeBusFromAllAddresses("preview");
+                break;
+            case 'program_tally':
+                this.removeBusFromAllAddresses("program");
+                break;
+            default:
+                break;
+        }
+
         for (let i = 0; i < sourceArray.length; i++) {
             let tricasterSourceFound = false;
             for (let j = 0; j < this.tallydata_TC.length; j++) {
