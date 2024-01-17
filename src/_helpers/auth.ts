@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { logger } from "../index";
 import { currentConfig, SaveConfig } from './config';
 import { clone } from "./clone";

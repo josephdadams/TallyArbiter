@@ -7,8 +7,8 @@ RUN apk add --update nodejs npm \
     && apk add --no-cache --virtual .build-deps alpine-sdk python3 \
     && npm install node-gyp -g \
     && npm i --ignore-script --omit=dev \
-    && npm uninstall bcrypt \
-    && npm install bcrypt \
+    && npm uninstall bcryptjs \
+    && npm install bcryptjs \
     && npm uninstall node-gyp -g \
     && apk del .build-deps
 
