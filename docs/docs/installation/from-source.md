@@ -6,12 +6,13 @@ sidebar_position: 3
 ## Installation
 To try out the latest features, you will likely need to build and run TallyArbiter from source. But no worries, it's very easy. 
 
-You must have Node.js installed. You can download it here: <https://nodejs.org/en/download/>.
+You must have Node.js installed. You can download it here: https://nodejs.org/en/download/
+
 If you're on MacOS, you may also need to download and install XCode Command Line Tools.
 
 Download the Tallly Arbiter source code. You can download it directly from GitHub, or you can use `git` from the command line to download the files.
 
-To use `git`, you must have it installed: <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>
+To use `git`, you must have it installed: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
 
 Type `git clone https://github.com/josephdadams/tallyarbiter` to download the source code. This will download to a subfolder of your current working folder.
 

@@ -23,11 +23,11 @@ If you cannot reach the logs via the UI, you can view those files manually. The 
 		</tr>
 		<tr>
 			<td>MacOS</td>
-			<td><b><code>~/Library/Preferences/TallyArbiter/logs</code></b><br/><br/>(<code>~</code> points to your home directory. The full path will look something like this: <code>/Users/USERNAME/Library/Preferences/TallyArbiter/logs</code>, but you need to replace <code>USERNAME</code> with your username)</td>
+			<td><b><code>&#126;/Library/Preferences/TallyArbiter/logs</code></b><br/><br/>(<code>&#126;</code> points to your home directory. The full path will look something like this: <code>/Users/USERNAME/Library/Preferences/TallyArbiter/logs</code>, but you need to replace <code>USERNAME</code> with your username)</td>
 		</tr>
 		<tr>
 			<td>Linux / Raspberry Pi</td>
-			<td><b><code>~/.local/share/TallyArbiter/logs</code></b><br/><br/>(<code>~</code> points to your home directory. The full path will look something like this: <code>/Users/USERNAME/.local/share/TallyArbiter/logs</code>, but you need to replace <code>USERNAME</code> with your username)</td>
+			<td><b><code>&#126;/.local/share/TallyArbiter/logs</code></b><br/><br/>(<code>&#126;</code> points to your home directory. The full path will look something like this: <code>/Users/USERNAME/.local/share/TallyArbiter/logs</code>, but you need to replace <code>USERNAME</code> with your username)</td>
 		</tr>
 	</tbody>
 </table>
