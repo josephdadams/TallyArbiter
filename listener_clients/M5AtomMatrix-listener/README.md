@@ -42,13 +42,14 @@ Done! Now your board is running the latest listener client firmware version. Go 
 # Setup your device
 1. Plug the device in a power source
 2. Wait for the boot animation to finish, if there is no saved AP it will start an Access Point where you can configure one.
-3. Connect to the 'm5Atom-1xxxxxxx' access point via phone and go to 192.168.4.1 (or wait a bit, and captive portal page should open).
+3. Connect to the 'm5Atom-XXXXXX' Access Point via phone and go to 192.168.4.1 (or wait a bit, a captive portal page should open). NB: The portal times out after 120 sec of inactivity.
 4. Set your Tally Arbiter server ip by going to *"Setup"* page.
 5. Go back, then go to the "Configure WiFi" page and set your WiFi credentials. The board should reboot.
 6. If the connection is successful a WiFi animation and a green tick mark will show. If not a red cross will be shown and you can reboot the device to try again.
 
-* If you need to reset WI-FI credentials. Press Atom button for 5 seconds.
-
+Button (behind screen):
+Single click - Toggle between camera number 1 to 16.
+Long press 5 seconds - reset WiFi credentials.
 
 # Troubleshooting
 ### macOS build error

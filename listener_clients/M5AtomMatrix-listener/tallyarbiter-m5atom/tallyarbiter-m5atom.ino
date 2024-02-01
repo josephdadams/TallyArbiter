@@ -12,6 +12,8 @@
 #include <Preferences.h>
 #define DATA_PIN_LED 27
 
+#define SHOW_CAMERA_NUMBER_DURING_PVW_AND_PGM false
+
 //M5 variables
 PinButton btnAction(39); //the "Action" button on the device
 Preferences preferences;
@@ -38,8 +40,8 @@ IPAddress stationMask = IPAddress(255, 255, 255, 0);
 //Local Default Camera Number. Used for local display only - does not impact function. Zero results in a single dot displayed.
 int camNumber = 0;
 
-// Name of the device - the serial number of the listener hardware will be appended to create a unique identifier for the server.
-String listenerDeviceName = "m5Atom-1";
+// Name of the device - the 3 last bytes of the mac address will be appended to create a unique identifier for the server.
+String listenerDeviceName = "m5Atom-";
 
 //M5atom Access Point Password
 //minimum of 8 characters
@@ -309,8 +311,8 @@ void setDeviceName(){
   preferences.putString("deviceid", DeviceId);
   preferences.end();
   logger("-------------------------------------------------", "info-quiet");
-  logger("DeviceName:" + String(DeviceName), "info-quiet");
-  logger("DeviceId:" + String(DeviceId), "info-quiet");
+  logger("DeviceName: " + String(DeviceName), "info-quiet");
+  logger("DeviceId: " + String(DeviceId), "info-quiet");
   logger("-------------------------------------------------", "info-quiet");
 }
 
@@ -349,9 +351,12 @@ void evaluateMode() {
       int currColor[] = {backgroundColor, numbercolor};
       logger("Current color: " + String(backgroundColor), "info");
       //logger("Current camNumber: " + String(camNumber), "info");
+#if SHOW_CAMERA_NUMBER_DURING_PVW_AND_PGM
       // If you want the camera number displayed during Pgm and Pvw, uncomment the following line and comment the line after.
-      // drawNumber(number[camNumber], currColor);
+      drawNumber(number[camNumber], currColor);
+#else
       drawNumber(icons[12], currColor);
+#endif
     } else {
       drawNumber(number[camNumber], offcolor);
     }
@@ -375,6 +380,7 @@ void evaluateMode() {
       digitalWrite (led_aux, LOW);
     }
     #endif
+
     logger("Device is in " + actualType + " (color " + actualColor + " priority " + String(actualPriority) + ")", "info");
     // This is a hack to compensate for the Matrix needing GRB.
     logger(" r: " + String(g) + " g: " + String(r) + " b: " + String(b), "info");
@@ -613,6 +619,9 @@ void processTallyData() {
   evaluateMode();
 }
 
+WiFiManagerParameter* custom_taServer;
+WiFiManagerParameter* custom_taPort;
+
 void connectToNetwork() {
   // allow for static IP assignment instead of DHCP if stationIP is defined as something other than 0.0.0.0
   #if staticIP == 1
@@ -623,18 +632,17 @@ void connectToNetwork() {
   #endif
   
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
-
   logger("Connecting to SSID: " + String(WiFi.SSID()), "info");
 
   //reset settings - wipe credentials for testing
   //wm.resetSettings();
 
   //add TA fields
-  WiFiManagerParameter custom_taServer("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
-  WiFiManagerParameter custom_taPort("taHostPort", "Port", tallyarbiter_port, 6);
+  custom_taServer = new WiFiManagerParameter("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
+  custom_taPort = new WiFiManagerParameter("taHostPort", "Port", tallyarbiter_port, 6);
 
-  wm.addParameter(&custom_taServer);
-  wm.addParameter(&custom_taPort);
+  wm.addParameter(custom_taServer);
+  wm.addParameter(custom_taPort);
 
   wm.setSaveParamsCallback(saveParamCallback);
 
@@ -738,9 +746,14 @@ void setup() {
   //Save battery by turning off BlueTooth
   btStop();
 
-  uint64_t chipid = ESP.getEfuseMac();
-  listenerDeviceName = "m5Atom-" + String((uint16_t)(chipid>>32)) + String((uint32_t)chipid);
+  // Append last three pairs of MAC to listenerDeviceName to make it some what unique
+  byte mac[6];              // the MAC address of your Wifi shield
+  WiFi.macAddress(mac);
+  listenerDeviceName = listenerDeviceName + String(mac[3], HEX) + String(mac[4], HEX) + String(mac[5], HEX);
   logger("Listener device name: " + listenerDeviceName, "info");
+
+  // Set WiFi hostname
+  wm.setHostname ((const char *) listenerDeviceName.c_str());
 
   M5.begin(true, false, true);
   delay(50);
@@ -836,25 +849,23 @@ void loop(){
     // Switch action below
     if (camNumber < 16){
       camNumber++;
-      drawNumber(number[camNumber], offcolor);
     } else {
       camNumber = 0;
-      drawNumber(number[camNumber], offcolor);
     }
-    
+    drawNumber(number[camNumber], offcolor);
+
     // Lets get some info sent out the serial connection for debugging
-    logger("", "info-quiet");
     logger("---------------------------------", "info-quiet");
     logger("Button Pressed.", "info-quiet");
-    logger("M5Atom IP Address: " + String(WiFi.localIP()), "info-quiet");
+    logger("M5Atom IP Address: " + WiFi.localIP().toString(), "info-quiet");
     logger("Tally Arbiter Server: " + String(tallyarbiter_host), "info-quiet");
     logger("Device ID: " + String(DeviceId), "info-quiet");
     logger("Device Name: " + String(DeviceName), "info-quiet");
     logger("Cam Number: " + String(camNumber), "info-quiet");
     logger("---------------------------------", "info-quiet");
-    logger("", "info-quiet");
   }
     
+  // Is WiFi reset triggered?
   if (M5.Btn.pressedFor(5000)){
     wm.resetSettings();
     ESP.restart();
