@@ -22,7 +22,8 @@
 #define RED   0xF800 // 255  0  0
 #define maxTextSize 5 //larger sourceName text
 
-String listenerDeviceName = "m5StickC-"; // part of MAC address is added in runtime 
+// Name of the device - the 3 last bytes of the mac address will be appended to create a unique identifier for the server.
+String listenerDeviceName = "m5StickC-";
 
 
 /* USER CONFIG VARIABLES
@@ -32,7 +33,7 @@ String listenerDeviceName = "m5StickC-"; // part of MAC address is added in runt
 bool LAST_MSG = false; // true = show log on tally screen
 
 //Tally Arbiter Server
-char tallyarbiter_host[40] = "192.168.1.173"; //IP address of the Tally Arbiter Server
+char tallyarbiter_host[40] = "192.168.0.110"; //IP address of the Tally Arbiter Server
 char tallyarbiter_port[6] = "4455";
 
 /* END OF USER CONFIG */
@@ -69,10 +70,14 @@ String LastMessage = "";
 //General Variables
 bool networkConnected = false;
 int currentScreen = 0; //0 = Tally Screen, 1 = Settings Screen
-int currentBrightness = 11; //12 is Max level
+int currentBrightness = 11; //12 is Max level on m5stickC but 100 on m5stickC-Plus
 
 WiFiManager wm; // global wm instance
 bool portalRunning = false;
+
+// Lcd size
+// m5stickC: 80x160
+// m5StickC Plus: 135x240
 
 void setup() {
   pinMode(TRIGGER_PIN, INPUT_PULLUP);
@@ -80,7 +85,11 @@ void setup() {
   while (!Serial);
 
   // Initialize the M5StickC object
+#if C_PLUS == 1
+  logger("Initializing M5StickCPlus.", "info-quiet");
+#else
   logger("Initializing M5StickC.", "info-quiet");
+#endif
 
   setCpuFrequencyMhz(80);   //Save battery by turning down the CPU clock
   btStop();                 //Save battery by turning off BlueTooth
@@ -203,11 +212,9 @@ void loop() {
   if (btnM5.isClick()) {
     switch (currentScreen) {
       case 0:
-        logger("ShowSettings()", "info");
         showSettings();
         break;
       case 1:
-        logger("ShowDeviceInfo()", "info");
         showDeviceInfo();
         break;
     }
@@ -221,6 +228,7 @@ void loop() {
 
 void showSettings() {
   currentScreen = 1;
+  logger("showSettings()", "info-quiet");
 
   wm.startWebPortal();
   portalRunning = true;
@@ -249,14 +257,17 @@ void showSettings() {
 
 void showDeviceInfo() {
   currentScreen = 0;
+  logger("showDeviceInfo()", "info-quiet");
   
   if (portalRunning) {
     wm.stopWebPortal();
     portalRunning = false;
   }
 
-  M5.Lcd.setTextColor(GREY, BLACK);
   M5.Lcd.fillScreen(TFT_BLACK);
+  M5.Lcd.setCursor(4, 82);
+  M5.Lcd.setFreeFont(FSS24);
+  M5.Lcd.setTextColor(GREY, BLACK);
   M5.Lcd.println(DeviceName);
 
   //displays the currently assigned device and tally data
@@ -264,12 +275,20 @@ void showDeviceInfo() {
 }
 
 void updateBrightness() {
+#if C_PLUS == 1
+  if (currentBrightness >= 100) {
+    currentBrightness = 7;
+  } else {
+    currentBrightness = currentBrightness + 10;
+  }
+#else
   if (currentBrightness >= 12) {
     currentBrightness = 7;
   } else {
     currentBrightness++;
   }
-  logger("Set currentBrightness: " + String(currentBrightness), "info");
+#endif
+  logger("Set currentBrightness: " + String(currentBrightness), "info-quiet");
   M5.Axp.ScreenBreath(currentBrightness);
 }
 
@@ -295,6 +314,7 @@ void connectToNetwork() {
   //reset settings - wipe credentials for testing
   //wm.resetSettings();
 
+  //add TA fields
   custom_taServer = new WiFiManagerParameter("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
   custom_taPort = new WiFiManagerParameter("taHostPort", "Port", tallyarbiter_port, 6);
 
@@ -522,6 +542,7 @@ String strip_quot(String str) {
 }
 
 void socket_Reassign(String payload) {
+  logger("socket_Reassign()", "info-quiet");
   String oldDeviceId = payload.substring(0, payload.indexOf(','));
   String newDeviceId = payload.substring(oldDeviceId.length() + 1);
   newDeviceId = newDeviceId.substring(0, newDeviceId.indexOf(','));
@@ -636,6 +657,7 @@ void evaluateMode() {
     int r = number >> 16;
     int g = number >> 8 & 0xFF;
     int b = number & 0xFF;
+
     if (actualType != "") {
       M5.Lcd.setTextColor(BLACK);
       M5.Lcd.fillScreen(M5.Lcd.color565(r, g, b));
