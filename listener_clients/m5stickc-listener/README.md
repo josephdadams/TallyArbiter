@@ -39,6 +39,8 @@ Make sure you have selected the **right serial port** and the **right board type
 
 Done! Now your board is running the latest listener client firmware version. Go to the *"Setup your device"* sections to connect the board to the Tally Arbiter server.
 
+NB: The code base is either compiled for m5stickC or m5stickC-Plus based on the define C_PLUS, default is for m5stickC.
+
 # Setup your device
 1. Plug the device in a power source
 2. Wait for the boot up to finish, if there is no saved AP it will startup an Access Point where you can configure one.
@@ -47,7 +49,12 @@ Done! Now your board is running the latest listener client firmware version. Go 
 5. Go back, then go to the "Configure WiFi" page and set your WiFi credentials. The board should reboot.
 6. If the connection is successful a settings page will shown. If not, reconnect to 'm5StickC-XXXXXX' Access Point.
 
-If you need to reset WI-FI credentials. Press M5 button for 5 seconds.
+Button A (M5):
+Single click - Switch between settings screen and device name (the device name is from Tally Arbiter server).
+Long press 5 seconds - reset WiFi credentials.
+
+Button B:
+Single click - Increase screen brightness
 
 NB: The captive portal page is accessible on the device when the settings screen is shown.
 
