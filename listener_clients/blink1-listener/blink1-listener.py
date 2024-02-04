@@ -63,6 +63,9 @@ parser.add_argument(
     "--disable-flash", action="store_true", help="Disable client listener flash"
 )
 parser.add_argument(
+    "--disable-status-blink", action="store_true", help="Disable all status light blinks"
+)
+parser.add_argument(
     "--skip-blink1",
     action="store_true",
     help="Skip the Blink(1) requirment and simulate it (only for debugging)",
@@ -155,6 +158,8 @@ def connect():
             "supportsChat": False,
         },
     )
+    if args.disable_status_blink:
+        return
     repeatNumber = 2
     while repeatNumber:
         repeatNumber = repeatNumber - 1
@@ -167,6 +172,8 @@ def connect():
 @sio.event
 def connect_error(data):
     print("Unable to connect to Tally Arbiter server:", args.host, args.port)
+    if args.disable_status_blink:
+        return
     doBlink(150, 150, 150)
     time.sleep(0.3)
     doBlink(0, 0, 0)
@@ -176,6 +183,8 @@ def connect_error(data):
 @sio.event
 def disconnect():
     print("Disconnected from Tally Arbiter server:", args.host, args.port)
+    if args.disable_status_blink:
+        return
     doBlink(255, 255, 255)
     time.sleep(0.3)
     doBlink(0, 0, 0)
@@ -185,6 +194,8 @@ def disconnect():
 @sio.event
 def reconnect():
     print("Reconnected to Tally Arbiter server:", args.host, args.port)
+    if args.disable_status_blink:
+        return
     repeatNumber = 2
     while repeatNumber:
         repeatNumber = repeatNumber - 1
