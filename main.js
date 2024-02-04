@@ -1,5 +1,5 @@
 // This is the electron startup script
-const { app, BrowserWindow, Tray, Menu, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, Menu, dialog, ipcMain, powerMonitor } = require('electron');
 const { autoUpdater } = require("electron-updater");
 const { nativeImage } = require('electron/common');
 const path = require("path");
@@ -208,6 +208,11 @@ function checkForUpdates() {
         });
     });
 }
+
+powerMonitor.on('shutdown', () => {
+    app.isQuiting = true;
+    app.quit();
+});
 
 
 if (!gotTheLock) {
