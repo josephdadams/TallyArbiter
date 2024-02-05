@@ -49,6 +49,7 @@ A lot of these instructions on getting started are available all over the intern
 The Tally Arbiter Python Listener Client uses the following libraries:
 * `blink1`
 * `python-socketio[client]`
+* `zeroconf`
 
 These will have to be installed on the Pi in order for the script to function correctly.
 
@@ -56,6 +57,7 @@ These will have to be installed on the Pi in order for the script to function co
     * `sudo apt install libudev-dev libusb-1.0-0-dev`: The `libusb` library is necessary to communicate with the blink(1) device over USB.
     * `sudo pip3 install blink1`: This is the base library to use with the blink(1).
     * `sudo pip3 install "python-socketio[client]<5"`: This library is used to communicate with a Tally Arbiter server over websockets.
+	* `sudo pip3 install zeroconf`: This library helps with auto discovery of services
 
     *If `pip3` is not installed, you can get it by running `sudo apt-get install python3-pip`.*
 
