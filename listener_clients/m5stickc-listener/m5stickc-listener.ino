@@ -21,7 +21,8 @@
 #define GREEN 0x0200 //   0 64  0
 #define RED   0xF800 // 255  0  0
 #define maxTextSize 5 //larger sourceName text
-
+#define startBrightness 11
+#define maxBrightness 100
 // Name of the device - the 3 last bytes of the mac address will be appended to create a unique identifier for the server.
 String listenerDeviceName = "m5StickC-";
 
@@ -70,7 +71,7 @@ String LastMessage = "";
 //General Variables
 bool networkConnected = false;
 int currentScreen = 0; //0 = Tally Screen, 1 = Settings Screen
-int currentBrightness = 11; //12 is Max level on m5stickC but 100 on m5stickC-Plus
+int currentBrightness = startBrightness; //12 is Max level on m5stickC but 100 on m5stickC-Plus
 
 WiFiManager wm; // global wm instance
 bool portalRunning = false;
@@ -104,10 +105,14 @@ void setup() {
 
   M5.begin();
   M5.Lcd.setRotation(3);
-  M5.Lcd.setCursor(0, 20);
   M5.Lcd.fillScreen(TFT_BLACK);
+  #if C_PLUS == 1
+  M5.Lcd.setCursor(0, 20);
   M5.Lcd.setFreeFont(FSS9);
-  //M5.Lcd.setTextSize(2);
+  #else
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.setTextSize(1);
+  #endif
   M5.Lcd.setTextColor(WHITE, BLACK);
   M5.Lcd.println("booting...");
   logger("Tally Arbiter M5StickC Listener Client booting.", "info");
@@ -226,6 +231,7 @@ void loop() {
   }
 }
 
+// 
 void showSettings() {
   currentScreen = 1;
   logger("showSettings()", "info-quiet");
@@ -234,10 +240,14 @@ void showSettings() {
   portalRunning = true;
 
   //displays the current network connection and Tally Arbiter server data
-  M5.Lcd.setCursor(0, 20);
   M5.Lcd.fillScreen(TFT_BLACK);
+  #if C_PLUS == 1
+  M5.Lcd.setCursor(0, 20);
   M5.Lcd.setFreeFont(FSS9);
-  //M5.Lcd.setTextSize(1);
+  #else
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.setTextSize(1);
+  #endif
   M5.Lcd.setTextColor(WHITE, BLACK);
   M5.Lcd.println("SSID: " + String(WiFi.SSID()));
   M5.Lcd.println(WiFi.localIP());
@@ -265,9 +275,14 @@ void showDeviceInfo() {
   }
 
   M5.Lcd.fillScreen(TFT_BLACK);
+  #if C_PLUS == 1
   M5.Lcd.setCursor(4, 82);
   M5.Lcd.setFreeFont(FSS24);
-  M5.Lcd.setTextColor(GREY, BLACK);
+  #else
+  M5.Lcd.setCursor(4, 30);
+  M5.Lcd.setTextSize(2);
+  #endif
+  M5.Lcd.setTextColor(DARKGREY, BLACK);
   M5.Lcd.println(DeviceName);
 
   //displays the currently assigned device and tally data
@@ -275,20 +290,13 @@ void showDeviceInfo() {
 }
 
 void updateBrightness() {
-#if C_PLUS == 1
-  if (currentBrightness >= 100) {
-    currentBrightness = 7;
+  if (currentBrightness >= maxBrightness) {
+    currentBrightness = startBrightness;
   } else {
     currentBrightness = currentBrightness + 10;
   }
-#else
-  if (currentBrightness >= 12) {
-    currentBrightness = 7;
-  } else {
-    currentBrightness++;
-  }
-#endif
-  logger("Set currentBrightness: " + String(currentBrightness), "info-quiet");
+
+  logger("Set brightness: " + String(currentBrightness), "info-quiet");
   M5.Axp.ScreenBreath(currentBrightness);
 }
 
@@ -644,13 +652,19 @@ void SetDeviceName() {
   preferences.putString("devicename", DeviceName);
   preferences.end();
   evaluateMode();
+  logger("DeviceName: " + DeviceName, "info");
 }
 
 void evaluateMode() {
   if (actualType != prevType) {
+    #if C_PLUS == 1
     M5.Lcd.setCursor(4, 82);
     M5.Lcd.setFreeFont(FSS24);
+    #else
+    M5.Lcd.setCursor(4, 30);
     //M5.Lcd.setTextSize(maxTextSize);
+    M5.Lcd.setTextSize(2);
+    #endif
     actualColor.replace("#", "");
     String hexstring = actualColor;
     long number = (long) strtol( &hexstring[1], NULL, 16);
@@ -663,7 +677,7 @@ void evaluateMode() {
       M5.Lcd.fillScreen(M5.Lcd.color565(r, g, b));
       M5.Lcd.println(DeviceName);
     } else {
-      M5.Lcd.setTextColor(GREY, BLACK);
+      M5.Lcd.setTextColor(DARKGREY, BLACK);
       M5.Lcd.fillScreen(TFT_BLACK);
       M5.Lcd.println(DeviceName);
     }
@@ -706,10 +720,14 @@ void checkReset() {
     // poor mans debounce/press-hold, code not ideal for production
     delay(50);
     if ( digitalRead(TRIGGER_PIN) == LOW ) {
-      M5.Lcd.setCursor(0, 40);
       M5.Lcd.fillScreen(TFT_BLACK);
+      #if C_PLUS == 1
+      M5.Lcd.setCursor(0, 40);
       M5.Lcd.setFreeFont(FSS9);
-      //M5.Lcd.setTextSize(1);
+      #else
+      M5.Lcd.setCursor(0, 0);
+      M5.Lcd.setTextSize(1);
+      #endif
       M5.Lcd.setTextColor(WHITE, BLACK);
       M5.Lcd.println("Reset button pushed....");
       logger("Button Pressed", "info");
