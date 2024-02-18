@@ -28,5 +28,8 @@ The following Device Actions are implemented:
 * Generic TCP/UDP
 * Local Console Output/Logging (useful for testing)
 * Open Sound Control (OSC) (multiple arguments supported)
+* Ember+ support for setting virtual GPI (boolean or int64 as boolean)
 
 Device Actions can only be run once when the device state enters or exits that bus. This is to prevent actions from being run continuously if tally data is received in chunks. To run an action again, a device must change state on that specific bus (Preview or Program) before it can be run again.
+
+Ember+ device IP, port and Ember tree path must be specified in the action.  Device path may be retrieved using Ember+ Viewer (freely available under BSL-1.0 license).  More information on Ember+ may be found at github.com/Lawo/ember-plus.  Ember+ vGPIO tally tested on Lawo MCX 6.4 and 10.8.
