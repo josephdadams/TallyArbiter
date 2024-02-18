@@ -86,10 +86,19 @@ export class Ember extends Action {
     logger(`Ember+ sending message ${this.action.data.value} to ${this.action.data.ip}:${this.action.data.port} on path ${this.action.data.path}`);
     try {
         var node = await this.getConnection().getElementByPathAsync(this.action.data.path);
+        
+        // since a boolean value results in a checkbox in the HTML admin page, we don't always get a value:false in the json.
+        // if the value is undefined we will assume it should be "false"
+        var emberValue = false;
+        if (this.action.data.value === undefined) {
+          emberValue = false;
+        } else {
+          emberValue = this.action.data.value;
+        }
 
         await this.getConnection().setValueAsync(
             node,
-            this.action.data.value
+            emberValue
         );
     } catch (error) {
         logger(`Ember+ error, giving up sending: ${error}`, "error");
