@@ -50,7 +50,7 @@
         "Matteo Gheza <me@matteogheza.it>",
         "chanx",
         "Sam Yoffe",
-        "David Stevens", 
+        "David Stevens",
         "David Prows",
         "monkzz",
         "Greg Oseid"
@@ -74,6 +74,7 @@
         "jquery": "^3.6.0",
         "jsonwebtoken": "^9.0.0",
         "jspack": "^0.0.4",
+        "node-emberplus": "^3.0.5",
         "obs-websocket-js": "npm:obs-websocket-js@^4.0.3",
         "obs-websocket-js-5": "npm:obs-websocket-js@^5.0.2",
         "osc": "^2.4.3",
