@@ -1,0 +1,51 @@
+name: Build Desktop Versions
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build_desktop:
+    name: Build Desktop on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-2022, ubuntu-latest, macos-latest]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - name: Create env file
+      run: |
+        touch .env
+        echo SENTRY_ENABLED=1 >> .env
+        echo SENTRY_DSN=${{ secrets.SENTRY_DSN }} >> .env
+    - name: Install dependencies and build
+      run: npm i -f; npm run build
+    - name: Build
+      uses: samuelmeuli/action-electron-builder@v1.6.0
+      with:
+        github_token: ${{ secrets.github_token }}
+        release: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        skip_build: true
+##    - name: Get current version
+##      uses: Saionaro/extract-package-version@v1.0.6
+##      id: package-version
+##    - name: Upload Artifact
+##      uses: actions/upload-artifact@v2
+##      if: matrix.os == 'ubuntu-latest'
+##      with:
+##        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-Linux'
+##        path: 'release/TallyArbiter-${{ steps.package-version.outputs.version }}.AppImage'
+##    - name: Upload Artifact
+##      uses: actions/upload-artifact@v2
+##      if: matrix.os == 'macos-latest'
+##      with:
+##        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-MacOS'
+##        path: 'release/TallyArbiter-${{ steps.package-version.outputs.version }}.dmg'
+##    - name: Upload Artifact
+##      uses: actions/upload-artifact@v2
+##      if: matrix.os == 'windows-latest'
+##      with:
+##        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}-Windows'
+##        path: 'release/TallyArbiter Setup ${{ steps.package-version.outputs.version }}.exe'
