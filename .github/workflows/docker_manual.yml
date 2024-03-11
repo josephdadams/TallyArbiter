@@ -1,12 +1,7 @@
 name: Publish to DockerHub Manually
 
 on:
-  workflow_dispatch:
-    inputs:
-      git-ref:
-        description: 'Git ref to build (tag/commit)'
-        required: true
-        default: 'refs/tags/v0.0.0'
+  workflow_dispatch
 
 jobs:
   build_docker:
