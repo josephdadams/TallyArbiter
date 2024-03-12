@@ -12,7 +12,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 18
     - name: Install dependencies and build
       run: npm i -f; npm run build
     - name: Set up QEMU
