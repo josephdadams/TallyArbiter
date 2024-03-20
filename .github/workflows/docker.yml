@@ -19,13 +19,13 @@ jobs:
       run: npm i -f; npm run build
     - name: Set up QEMU
       if: startsWith(github.ref, 'refs/tags/v')
-      uses: docker/setup-qemu-action@master
+      uses: docker/setup-qemu-action@v3
       with:
         platforms: all
     - name: Set up Docker Buildx
       if: startsWith(github.ref, 'refs/tags/v')
       id: buildx
-      uses: docker/setup-buildx-action@master
+      uses: docker/setup-buildx-action@v3.2.0
     - name: Get Docker meta
       id: meta
       uses: docker/metadata-action@v5
