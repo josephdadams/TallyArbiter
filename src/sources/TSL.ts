@@ -4,7 +4,6 @@ import { FreePort, UsePort } from "../_decorators/UsesPort.decorator";
 import { Source } from '../_models/Source';
 import { TallyInputConfigField } from "../_types/TallyInputConfigField";
 import { TallyInput } from './_Source';
-import packet from 'packet';
 import TSLUMD from 'tsl-umd';
 import net from "net";
 import dgram from "dgram";
@@ -55,25 +54,51 @@ export class TSL3TCPSource extends TallyInput {
         super(source);
         let port = source.data.port;
 
-        let parser = packet.createParser();
-        parser.packet('tsl', 'b8{x1, b7 => address},b8{x2, b2 => brightness, b1 => tally4, b1 => tally3, b1 => tally2, b1 => tally1 }, b8[16] => label');
+        //let parser = packet.createParser();
+        //parser.packet('tsl', 'b8{x1, b7 => address},b8{x2, b2 => brightness, b1 => tally4, b1 => tally3, b1 => tally2, b1 => tally1 }, b8[16] => label');
 
         UsePort(port, this.source.id);
         this.server = net.createServer((socket) => {
             socket.on('data', (data) => {
-                parser.extract('tsl', (result) => {
-                    const busses = [];
-                    if (result.tally1) {
-                        busses.push("preview");
-                    }
-                    if (result.tally2) {
-                        busses.push("program");
-                    }
-                    this.setBussesForAddress(result.address, busses);
-                    
-                    this.sendTallyData();
-                });
-                parser.parse(data);
+				function getBits(byte) {
+					let bits = [];
+					
+					// Loop through each bit position
+					for (let i = 7; i >= 0; i--) {
+						// Shift the bits to the right to isolate the current bit
+						let bit = (byte >> i) & 1;
+						
+						// Add the bit to the array
+						bits.push(bit);
+					}
+					
+					return bits;
+				}
+				
+				//get the control byte
+				let controlByte = data.readUInt8(1);
+				let bits = getBits(controlByte);
+				console.log(bits);
+
+				//parse the data
+				let address = data.readUInt8(0) - 0x80;
+				let brightness = bits[2] + bits[1];
+				let tally4 = bits[4];
+				let tally3 = bits[5];
+				let tally2 = bits[6];
+				let tally1 = bits[7];
+				
+				let label = data.toString('utf8', 2, 1);
+				
+				const busses = [];
+				if (tally1) {
+					busses.push("preview");
+				}
+				if (tally2) {
+					busses.push("program");
+				}
+				this.setBussesForAddress(address.toString(), busses);
+				this.sendTallyData();
             });
 
             socket.on('close', () => {
