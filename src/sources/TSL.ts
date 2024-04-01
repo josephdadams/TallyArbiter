@@ -78,7 +78,6 @@ export class TSL3TCPSource extends TallyInput {
 				//get the control byte
 				let controlByte = data.readUInt8(1);
 				let bits = getBits(controlByte);
-				console.log(bits);
 
 				//parse the data
 				let address = data.readUInt8(0) - 0x80;
