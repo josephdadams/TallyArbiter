@@ -837,9 +837,9 @@ function initialSetup() {
 			socket.emit('cloud_clients', cloud_clients);
 		});
 
-		socket.on('testmode', (value: boolean) => {
+		socket.on('testmode', (value: boolean, interval?: number) => {
 			requireRole("settings:testing").then((user) => {
-				ToggleTestMode(value);
+				ToggleTestMode(value, interval);
 			}).catch((err) => { console.error(err); });
 		});
 
@@ -1029,7 +1029,7 @@ function getOutputTypes(): OutputType[] {
 	} as OutputType));
 }
 
-function ToggleTestMode(enabled: boolean) {
+function ToggleTestMode(enabled: boolean, interval?: number) {
 	TestMode = enabled;
 	if (TestMode) {
 		//first check that there's not already a "test mode" source
@@ -1043,6 +1043,7 @@ function ToggleTestMode(enabled: boolean) {
 				connected: true,
 				data: {
 					addressesNumber: devices.length,
+					interval: interval || 1000,
 				},
 				reconnect_interval: 5000,
 				max_reconnects: 5,

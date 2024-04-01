@@ -52,6 +52,7 @@ export class SocketService {
   public sourceTypes: SourceType[] = [];
   public sourceTypeDataFields: SourceTypeDataFields[] = [];
   public testModeOn = false;
+  public testModeInterval: number = 1000;
   public tslclients_1secupdate?: boolean;
   public deviceSources: DeviceSource[] = [];
   public addresses: Addresses = {};
