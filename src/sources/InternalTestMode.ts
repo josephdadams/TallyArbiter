@@ -25,7 +25,7 @@ export class InternalTestModeSource extends TallyInput {
     constructor(source: Source) {
         super(source);
 
-        if(!this.source.data.interval) this.source.data.interval = 1000;
+        if(!this.source.data.interval) this.source.data.interval = 100;
         if(!this.source.data.changeMode) this.source.data.changeMode = 'one-at-a-time';
         if(!this.source.data.addressesNumber) this.source.data.addressesNumber = 10;
 
