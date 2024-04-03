@@ -1840,8 +1840,23 @@ function TallyArbiter_Edit_Device_Source(obj: Manage): ManageResponse {
 		device_sources[i].max_reconnects = deviceSourceObj.max_reconnects;
 	}
 
-	let deviceName = GetDeviceByDeviceId(deviceId).name;
-	let sourceName = GetSourceBySourceId(deviceSourceObj.sourceId).name;
+	let deviceName = ''
+	try {
+		deviceName = GetDeviceByDeviceId(deviceId).name;
+	}
+	catch (error) {
+		//sometimes the device is already deleted, so we can't get the name
+		deviceName = 'Unknown';
+	}
+	
+	let sourceName = ''
+	try {
+		sourceName = GetSourceBySourceId(deviceSourceObj.sourceId).name;
+	}
+	catch (error) {
+		//sometimes the source is already deleted, so we can't get the name
+		sourceName = 'Unknown';
+	}
 
 	UpdateCloud('device_sources');
 
@@ -1869,8 +1884,23 @@ function TallyArbiter_Delete_Device_Source(obj: Manage): ManageResponse {
 
 	delete currentDeviceTallyData[deviceSourceId];
 
-	let deviceName = GetDeviceByDeviceId(deviceId).name;
-	let sourceName = GetSourceBySourceId(sourceId).name;
+	let deviceName = ''
+	try {
+		deviceName = GetDeviceByDeviceId(deviceId).name;
+	}
+	catch (error) {
+		//sometimes the device is already deleted, so we can't get the name
+		deviceName = 'Unknown';
+	}
+	
+	let sourceName = ''
+	try {
+		sourceName = GetSourceBySourceId(sourceId).name;
+	}
+	catch (error) {
+		//sometimes the source is already deleted, so we can't get the name
+		sourceName = 'Unknown';
+	}
 
 	UpdateCloud('device_sources');
 
