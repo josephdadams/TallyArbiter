@@ -147,4 +147,10 @@ export class TallyInput extends EventEmitter {
     protected sendTallyData() {
         this.tally.next(this.tallyData);
     }
+
+	protected sendIndividualTallyData(address: string, busses: string[]) {
+		let individualTallyData = {};
+		individualTallyData[address] = busses;
+		this.tally.next(individualTallyData);
+	}
 }
