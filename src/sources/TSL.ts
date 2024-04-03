@@ -51,11 +51,12 @@ export class TSL3UDPSource extends TallyInput {
 export class TSL3TCPSource extends TallyInput {
     private server: any;
     constructor(source: Source) {
+		source.reconnect = false;
         super(source);
-        let port = source.data.port;
 
-        //let parser = packet.createParser();
-        //parser.packet('tsl', 'b8{x1, b7 => address},b8{x2, b2 => brightness, b1 => tally4, b1 => tally3, b1 => tally2, b1 => tally1 }, b8[16] => label');
+		console.log(source)
+
+        let port = source.data.port;
 
         UsePort(port, this.source.id);
         this.server = net.createServer((socket) => {

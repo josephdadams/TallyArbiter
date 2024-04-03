@@ -1722,6 +1722,7 @@ function TallyArbiter_Delete_Source(obj: Manage): ManageResponse {
 		}
 	}
 
+	UpdateSockets('sources');
 	UpdateCloud('sources');
 
 	for (let i = device_sources.length - 1; i >= 0; i--) {
@@ -1730,6 +1731,7 @@ function TallyArbiter_Delete_Source(obj: Manage): ManageResponse {
 		}
 	}
 
+	UpdateSockets('device_sources');
 	UpdateCloud('device_sources');
 
 	/* for (let i = currentTallyData.length - 1; i >=0; i--) {
@@ -1742,6 +1744,7 @@ function TallyArbiter_Delete_Source(obj: Manage): ManageResponse {
 	} */
 
 	UpdateSockets('device_states');
+	UpdateCloud('device_states');
 
 	logger(`Source Deleted: ${sourceName}`, 'info');
 
