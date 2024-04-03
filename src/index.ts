@@ -1086,6 +1086,17 @@ function ToggleTestMode(enabled: boolean, interval?: number) {
 				break;
 			}
 		}
+
+		//loop through device sources and remove any that are from the test source
+		for (let i = 0; i < device_sources.length; i++) {
+			if (device_sources[i].sourceId === 'TEST') {
+				device_sources.splice(i, 1);
+				i--;
+			}
+		}
+
+		UpdateSockets('device_sources');
+		UpdateCloud('device_sources');
 		SendMessage('server', null, 'Test Mode Disabled.');
 	}
 
