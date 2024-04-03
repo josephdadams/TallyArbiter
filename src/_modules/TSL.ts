@@ -22,11 +22,11 @@ export class TSLListenerProvider extends ListenerProvider {
     }
 
     public startTSLClientConnection(configTSLClient: ConfigTSLClient) {
-        this.tsl_clients = this.tsl_clients.filter((t) => t.id == configTSLClient.id);
+    	//this.tsl_clients = this.tsl_clients.filter((t) => t.id == configTSLClient.id);
         const tslClient = { ...configTSLClient, connected: false } as TSLClient;
         switch (tslClient.transport) {
             case 'udp':
-                logger(`TSL Client: ${tslClient.id}  Initiating TSL Client UDP Socket.`, 'info-quiet');
+                logger(`TSL Client: ${tslClient.id}  Initiating TSL Client UDP Socket: ${tslClient.ip}:${tslClient.port}`, 'info-quiet');
                 tslClient.socket = dgram.createSocket('udp4');
                 tslClient.socket.on('error', (error) => {
                     logger(`An error occurred with the connection to ${tslClient.ip}:${tslClient.port}  ${error}`, 'error');
@@ -53,7 +53,7 @@ export class TSLListenerProvider extends ListenerProvider {
                 tslClient.connected = true;
                 break;
             case 'tcp':
-                logger(`TSL Client: ${tslClient.id}  Initiating TSL Client TCP Socket.`, 'info-quiet');
+                logger(`TSL Client: ${tslClient.id}  Initiating TSL Client TCP Socket: ${tslClient.ip}:${tslClient.port}`, 'info-quiet');
                 tslClient.socket = new net.Socket();
                 tslClient.socket.on('error', (error) => {
                     logger(`An error occurred with the connection to ${tslClient.ip}:${tslClient.port}  ${error}`, 'error');
@@ -89,16 +89,19 @@ export class TSLListenerProvider extends ListenerProvider {
         const tslClient = this.tsl_clients.find((t) => t.id == tslClientId);
         switch (tslClient.transport) {
             case 'udp':
-                logger(`TSL Client: ${tslClientId}  Closing TSL Client UDP Socket.`, 'info-quiet');
+                logger(`TSL Client: ${tslClientId}  Closing TSL Client UDP Socket: ${tslClient.ip}:${tslClient.port}`, 'info-quiet');
                 tslClient.socket.close();
                 break;
             case 'tcp':
-                logger(`TSL Client: ${tslClientId}  Closing TSL Client TCP Socket.`, 'info-quiet');
+                logger(`TSL Client: ${tslClientId}  Closing TSL Client TCP Socket: ${tslClient.ip}:${tslClient.port}`, 'info-quiet');
                 tslClient.socket.end();
                 break;
             default:
                 break;
         }
+
+		this.tsl_clients = this.tsl_clients.filter((t) => t.id !== tslClientId); //remove this one from the internal class array
+		this.emit("updateSockets", "tsl_clients")
     }
 
 
