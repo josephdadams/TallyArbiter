@@ -51,16 +51,25 @@ export class TSL3UDPSource extends TallyInput {
 export class TSL3TCPSource extends TallyInput {
     private server: any;
     constructor(source: Source) {
-		source.reconnect = false;
         super(source);
-
-		console.log(source)
 
         let port = source.data.port;
 
         UsePort(port, this.source.id);
+
         this.server = net.createServer((socket) => {
             socket.on('data', (data) => {
+				//split data up delimiter
+
+				var messages = [];
+				var len = data.length;
+				var i = 0;
+				let chunkSize = 18;
+
+				while (i < len) {
+					messages.push(data.slice(i, i += chunkSize));
+				}
+				
 				function getBits(byte) {
 					let bits = [];
 					
@@ -75,30 +84,37 @@ export class TSL3TCPSource extends TallyInput {
 					
 					return bits;
 				}
-				
-				//get the control byte
-				let controlByte = data.readUInt8(1);
-				let bits = getBits(controlByte);
 
-				//parse the data
-				let address = data.readUInt8(0) - 0x80;
-				let brightness = bits[2] + bits[1];
-				let tally4 = bits[4];
-				let tally3 = bits[5];
-				let tally2 = bits[6];
-				let tally1 = bits[7];
-				
-				let label = data.toString('utf8', 2, 1);
-				
-				const busses = [];
-				if (tally1) {
-					busses.push("preview");
+				//parse each message
+				for (let buf of messages) {
+					//get the control byte
+					let controlByte = buf.readUInt8(1);
+					let bits = getBits(controlByte);
+
+					//parse the data
+					let address = buf.readUInt8(0) - 0x80;
+					let brightness = bits[2] + bits[1];
+					let tally4 = bits[4];
+					let tally3 = bits[5];
+					let tally2 = bits[6];
+					let tally1 = bits[7];
+
+					let label = buf.toString('utf8', 2).trim();
+
+					this.renameAddress(address.toString(), address.toString(), label);
+
+					const busses = [];
+					if (tally1) {
+						busses.push("preview");
+					}
+					if (tally2) {
+						busses.push("program");
+					}
+					//add support here for tally3 and tally4
+
+					this.setBussesForAddress(address.toString(), busses);
+					this.sendIndividualTallyData(address.toString(), busses);
 				}
-				if (tally2) {
-					busses.push("program");
-				}
-				this.setBussesForAddress(address.toString(), busses);
-				this.sendTallyData();
             });
 
             socket.on('close', () => {
