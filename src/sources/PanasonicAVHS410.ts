@@ -39,6 +39,7 @@ const PanasonicAVHS410Port = 60020;
 @UsesPort(PanasonicAVHS410Port)
 @RegisterTallyInput("7da3b526", "Panasonic AV-HS410", "Uses port 60020. Make sure to have Multicast enabled on the network", [
     { fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
+	{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' }
 ])
 export class PanasonicAVHS410Source extends TallyInput {
     private client: any;
@@ -50,7 +51,7 @@ export class PanasonicAVHS410Source extends TallyInput {
         var receivebuffer = ''
         let multicastAddress = '224.0.0.200'
         let multicastInterface = getNetworkInterfaces() // get network interfaces
-        let multicastPort = 60020
+        let multicastPort = this.source.data.port || 60020
 
         var STX = String.fromCharCode(0x02)
         var ETX = String.fromCharCode(0x03)
