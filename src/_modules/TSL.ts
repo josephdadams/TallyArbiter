@@ -164,7 +164,9 @@ export class TSLListenerProvider extends ListenerProvider {
             }
             bufUMD[1] = bufTally;
 
-			logger(`Sending TSL data for ${device.name} to ${this.tsl_clients.length} clients.`, 'info');
+			if (this.tsl_clients.length > 0) {
+				logger(`Sending TSL data for ${device.name} to ${this.tsl_clients.length} clients.`, 'info');
+			}
 
             for (const tslClient of this.tsl_clients.filter((t) => t.connected)) {
                 //logger(`Sending TSL data for ${device.name} to ${tslClient.ip}:${tslClient.port}`, 'info');
