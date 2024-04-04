@@ -1,9 +1,6 @@
 name: Build Desktop Versions
 
-on:
-  workflow_dispatch:
-  release:
-    types: [created]
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build_desktop:
