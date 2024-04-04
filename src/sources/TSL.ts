@@ -32,8 +32,7 @@ export class TSL3UDPSource extends TallyInput {
                 busses.push("program");
             }
             this.setBussesForAddress(tally.address, busses);
-            
-            this.sendTallyData();
+			this.sendIndividualTallyData(tally.address, busses);
         });
 
         this.connected.next(true);
@@ -113,7 +112,8 @@ export class TSL3TCPSource extends TallyInput {
 					//add support here for tally3 and tally4
 
 					this.setBussesForAddress(address.toString(), busses);
-					this.sendIndividualTallyData(address.toString(), busses);
+					//this.sendIndividualTallyData(address.toString(), busses);
+					this.sendTallyData();
 				}
             });
 
