@@ -1206,7 +1206,7 @@ function loadConfig() { // loads the JSON data from the config file to memory
 
 		device_actions = currentConfig.device_actions;
 		logger('Tally Arbiter Device Actions loaded.', 'info');
-		logger(`${device_actions.length} Device Sources configured.`, 'info');
+		logger(`${device_actions.length} Device Actions configured.`, 'info');
 
 		if (currentConfig.tsl_clients_1secupdate) {
 			currentConfig.tsl_clients_1secupdate = true;
