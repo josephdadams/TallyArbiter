@@ -9,6 +9,7 @@ RUN apk add --update nodejs npm \
     && npm i --ignore-script --omit=dev \
     && npm uninstall bcryptjs \
     && npm install bcryptjs \
+    && node-gyp -C node_modules/@julusian/freetype2 rebuild \
     && npm uninstall node-gyp -g \
     && apk del .build-deps
 
