@@ -82,7 +82,7 @@ export class BlackmagicATEMSource extends TallyInput {
 
         this.atemClient.on('stateChanged', (state, paths) => {
             for (const path of paths) {
-                logger(`Source: ${source.name}  path = ${path}`, 'info-quiet');
+                logger(`Source: ${source.name}  path: ${path}`, 'info-quiet');
                 if ((path.indexOf('video.mixEffects') > -1) || (path.indexOf('video.downstreamKeyers') > -1)) {
                     this.processATEMState(state);
                 } else if ((path.indexOf('video.auxilliaries') > -1)) {
@@ -112,12 +112,15 @@ export class BlackmagicATEMSource extends TallyInput {
         for (let i = 0; i < state.video.mixEffects.length; i++) {
             if (this.source.data.me_onair?.includes((i + 1).toString())) {
                 listVisibleInputs("program", state, i).forEach(n => this.pgmList.add(n));
+                listVisibleInputs("program", state, i).forEach(n => logger(`Source: ${this.source.name} pgm id: ${n}`, 'info-quiet'));
                 listVisibleInputs("preview", state, i).forEach(n => this.prvList.add(n));
+                listVisibleInputs("preview", state, i).forEach(n => logger(`Source: ${this.source.name} pvw id: ${n}`, 'info-quiet'));
             }
         }
 
         // Process video.auxilliaries.X (X: No of auxBus)
         for (let i = 0; i < state.video.auxilliaries.length; i++) {
+            logger(`Source: ${this.source.name} aux id: ${i}: ${state.video.auxilliaries[i]}.`, 'info-quiet');
             this.auxList.add(state.video.auxilliaries[i])
         }
 
