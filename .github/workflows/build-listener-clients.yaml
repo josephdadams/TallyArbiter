@@ -131,8 +131,8 @@ jobs:
           - name: WebSockets
           - name: WiFiManager
           - name: MultiButton
-          - name: Arduino_JSON
           - source-path: TFT_eSPI
+          - name: Arduino_JSON
         cli-compile-flags: |
           - --export-binaries
         sketch-paths: |
