@@ -129,10 +129,10 @@ jobs:
         fqbn: ${{ matrix.board.fqbn }}
         libraries: |
           - name: WebSockets
-          - source-path: TFT_eSPI
+          - name: WiFiManager
           - name: MultiButton
           - name: Arduino_JSON
-          - name: WiFiManager
+          - source-path: TFT_eSPI
         cli-compile-flags: |
           - --export-binaries
         sketch-paths: |
