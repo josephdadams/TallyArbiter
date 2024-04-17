@@ -39,9 +39,9 @@ Make sure you have selected the **right serial port** and the **right board type
 
 Done! Now your board is running the latest listener client firmware version. Go to the *"Setup your device"* sections to connect the board to the Tally Arbiter server.
 
-NB: The code base is either compiled for m5stickC, m5stickC-Plus or m5stickC-Plus2 based on the defines M5STICKC, M5STICKC_PLUS and M5STICKC_PLUS_2. Default is build for m5stickC. Only one can be enabled at at time.
+NB: The code base is either compiled for **M5StickC**, **M5StickC-Plus** or **M5StickC-Plus2** based on the configured **board** in **Arduino IDE**. Only one can be enabled at at time.
 
-TALLY_EXTRA_OUTPUT can be used for extra tally info. The internal led is used for program. Preview and aux is available on external ports.
+TALLY_EXTRA_OUTPUT can be used for extra tally info. The internal led is used for program. Preview and aux is available on external ports by default.
 
 # Setup your device
 1. Plug the device in a power source
