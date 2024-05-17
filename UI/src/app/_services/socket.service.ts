@@ -52,6 +52,7 @@ export class SocketService {
   public sourceTypes: SourceType[] = [];
   public sourceTypeDataFields: SourceTypeDataFields[] = [];
   public testModeOn = false;
+  public testModeInterval: number = 1000;
   public tslclients_1secupdate?: boolean;
   public deviceSources: DeviceSource[] = [];
   public addresses: Addresses = {};
@@ -183,9 +184,20 @@ export class SocketService {
       if (this.tallyData.length > 1000) {
         this.tallyData.shift();
       }
+
+	  let deviceSource = this.deviceSources.find((ds) => ds.id === address);
+	  let deviceId = deviceSource?.deviceId || undefined;
+	  let deviceName = '';
+	  if (deviceId) {
+		let deviceObj = this.devices.find((d) => d.id === deviceId);
+		if (deviceObj) {
+			deviceName = deviceObj.name;
+		}
+	  }
+
       this.tallyData.push({
         datetime: Date.now().toString(),
-        log: `Source: ${this.getSourceById(sourceId)?.name}  Address: ${address} ${busses.length === 0 ? "No busses" : `Bus${busses.length > 1 ? "ses" : ""}: ${busses.map((b) => `${b[0].toUpperCase()}${b.slice(1)}`)}`}`,
+        log: `${this.getSourceById(sourceId)?.name}  ${deviceName} ${busses.length === 0 ? "None" : `Bus${busses.length > 1 ? "ses" : ""}: ${busses.map((b) => `${b[0].toUpperCase()}${b.slice(1)}`)}`}`,
         type: 'info',
       });
       this.scrollTallyDataSubject.next();

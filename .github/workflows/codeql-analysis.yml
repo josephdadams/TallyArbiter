@@ -73,7 +73,7 @@ jobs:
          docker build -t tallyarbiter-test-image:${{ github.sha }} .
 
     - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@0.18.0
       with:
         image-ref: 'tallyarbiter-test-image:${{ github.sha }}'
         ignore-unfixed: true

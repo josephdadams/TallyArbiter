@@ -243,7 +243,7 @@ def on_flash(gpoGroupId):
                 time.sleep(0.5)
                 GPIO.output(gpo["pinNumber"], getOutputValue(False))
                 time.sleep(0.5)
-                GPIO.output(gpo["pinNumber"], gpo["lastState"])
+                GPIO.output(gpo["pinNumber"], getOutputValue(gpo["lastState"]))
 
 @sio.on("reassign")
 def on_reassign(oldDeviceId, newDeviceId, gpoGroupId):

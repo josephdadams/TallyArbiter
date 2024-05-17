@@ -4,7 +4,6 @@ import { FreePort, UsePort } from "../_decorators/UsesPort.decorator";
 import { Source } from '../_models/Source';
 import { TallyInputConfigField } from "../_types/TallyInputConfigField";
 import { TallyInput } from './_Source';
-import packet from 'packet';
 import TSLUMD from 'tsl-umd';
 import net from "net";
 import dgram from "dgram";
@@ -33,8 +32,7 @@ export class TSL3UDPSource extends TallyInput {
                 busses.push("program");
             }
             this.setBussesForAddress(tally.address, busses);
-            
-            this.sendTallyData();
+			this.sendIndividualTallyData(tally.address, busses);
         });
 
         this.connected.next(true);
@@ -53,27 +51,70 @@ export class TSL3TCPSource extends TallyInput {
     private server: any;
     constructor(source: Source) {
         super(source);
+
         let port = source.data.port;
 
-        let parser = packet.createParser();
-        parser.packet('tsl', 'b8{x1, b7 => address},b8{x2, b2 => brightness, b1 => tally4, b1 => tally3, b1 => tally2, b1 => tally1 }, b8[16] => label');
-
         UsePort(port, this.source.id);
+
         this.server = net.createServer((socket) => {
             socket.on('data', (data) => {
-                parser.extract('tsl', (result) => {
-                    const busses = [];
-                    if (result.tally1) {
-                        busses.push("preview");
-                    }
-                    if (result.tally2) {
-                        busses.push("program");
-                    }
-                    this.setBussesForAddress(result.address, busses);
-                    
-                    this.sendTallyData();
-                });
-                parser.parse(data);
+				//split data up delimiter
+
+				var messages = [];
+				var len = data.length;
+				var i = 0;
+				let chunkSize = 18;
+
+				while (i < len) {
+					messages.push(data.slice(i, i += chunkSize));
+				}
+				
+				function getBits(byte) {
+					let bits = [];
+					
+					// Loop through each bit position
+					for (let i = 7; i >= 0; i--) {
+						// Shift the bits to the right to isolate the current bit
+						let bit = (byte >> i) & 1;
+						
+						// Add the bit to the array
+						bits.push(bit);
+					}
+					
+					return bits;
+				}
+
+				//parse each message
+				for (let buf of messages) {
+					//get the control byte
+					let controlByte = buf.readUInt8(1);
+					let bits = getBits(controlByte);
+
+					//parse the data
+					let address = buf.readUInt8(0) - 0x80;
+					let brightness = bits[2] + bits[1];
+					let tally4 = bits[4];
+					let tally3 = bits[5];
+					let tally2 = bits[6];
+					let tally1 = bits[7];
+
+					let label = buf.toString('utf8', 2).trim();
+
+					this.renameAddress(address.toString(), address.toString(), label);
+
+					const busses = [];
+					if (tally1) {
+						busses.push("preview");
+					}
+					if (tally2) {
+						busses.push("program");
+					}
+					//add support here for tally3 and tally4
+
+					this.setBussesForAddress(address.toString(), busses);
+					//this.sendIndividualTallyData(address.toString(), busses);
+					this.sendTallyData();
+				}
             });
 
             socket.on('close', () => {
@@ -142,6 +183,8 @@ class TSL5Base extends TallyInput {
 
             tallyobj.TEXT = jspack.Unpack( "s".repeat(LENGTH), data, cursor)
 
+			this.renameAddress(tallyobj.INDEX[0].toString(), tallyobj.INDEX[0].toString(), tallyobj.TEXT.toString().trim()); 
+
             let inPreview = 0;
             let inProgram = 0;
             
@@ -171,9 +214,8 @@ class TSL5Base extends TallyInput {
             if (inProgram) {
                 busses.push("program");
             }
-            this.setBussesForAddress(tallyobj.INDEX[0], busses);
-            
-            this.sendTallyData();
+            this.setBussesForAddress(tallyobj.INDEX[0].toString(), busses);
+            this.sendIndividualTallyData(tallyobj.INDEX[0].toString(), busses);
         }
     }
 }
