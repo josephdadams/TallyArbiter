@@ -82,7 +82,6 @@ export class BlackmagicATEMSource extends TallyInput {
 
         this.atemClient.on('stateChanged', (state, paths) => {
             for (const path of paths) {
-                logger(`Source: ${source.name}  path: ${path}`, 'info-quiet');
                 if ((path.indexOf('video.mixEffects') > -1) || (path.indexOf('video.downstreamKeyers') > -1)) {
                     this.processATEMState(state);
                 } else if ((path.indexOf('video.auxilliaries') > -1)) {
