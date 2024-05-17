@@ -446,9 +446,9 @@ export class SettingsComponent {
 		return this.socketService.sourceTypes.find((obj) => obj.id === sourceTypeId)?.busses as SourceTypeBus[];
 	}
 
-	public setTestMode(state: boolean) {
+	public setTestMode(state: boolean, interval: number = 1000) {
 		if (state == true) {
-			this.socketService.socket.emit('testmode', true);
+			this.socketService.socket.emit('testmode', true, interval);
 			this.socketService.testModeOn = true;
 		} else if (state == false) {
 			this.socketService.socket.emit('testmode', false);

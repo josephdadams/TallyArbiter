@@ -295,7 +295,11 @@
             <a ngbNavLink>Testing</a>
             <ng-template ngbNavContent>
                 <div *ngIf="checkTestMode() == false; else testModeOffButton">
-                    <button class="btn btn-secondary mb-5" (click)="setTestMode(true)"><i class="fas fa-vial"></i> Turn On Test Mode</button>
+                    <button class="btn btn-secondary mb-5" (click)="setTestMode(true, socketService.testModeInterval)"><i class="fas fa-vial"></i> Turn On Test Mode</button>
+					<div class="mb-3 form-check">
+						<label for="testModeInterval" class="form-label">Interval (ms) between changes</label>
+						<input type="number" class="form-control w-25" id="txtTestModeInterval" [(ngModel)]="socketService.testModeInterval" />
+					</div>
                 </div>
                 <ng-template #testModeOffButton>
                     <button class="btn btn-secondary mb-5" (click)="setTestMode(false)"><i class="fas fa-vial"></i> Turn Off Test Mode</button>
@@ -701,7 +705,7 @@
         </select>
             </div>
             <div class="mb-3" *ngIf="socketService.sources[currentDeviceSource.sourceIdx!]">
-                <label for="deviceSource" class="form-label">Address
+                <label for="deviceSource" class="form-label">Input/Address Number
           ({{socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0 ? 'select or ' : ''}}enter
           manually):</label>
                 <div class="row">

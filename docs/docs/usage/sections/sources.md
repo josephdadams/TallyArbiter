@@ -66,7 +66,7 @@ OSC paths must be one of the following:
 The device source address should be sent as an integer or a string. Send one argument of any type (integer, float, or string). If you send multiple arguments, they will be ignored.
 
 ## Panasonic AV-HS410
-You will need the IP address of the switcher.
+You will need the IP address of the switcher. Multicast must also be enabled on the switcher and your network in order to receive the tally data, therefore Tally Arbiter and the Panasonic device must reside on the same subnet.
 
 ## Analog Way Livecore Image Processors
 You will need the IP address of the device, and the port (standard port is 10600).

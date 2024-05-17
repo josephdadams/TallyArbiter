@@ -837,9 +837,9 @@ function initialSetup() {
 			socket.emit('cloud_clients', cloud_clients);
 		});
 
-		socket.on('testmode', (value: boolean) => {
+		socket.on('testmode', (value: boolean, interval?: number) => {
 			requireRole("settings:testing").then((user) => {
-				ToggleTestMode(value);
+				ToggleTestMode(value, interval);
 			}).catch((err) => { console.error(err); });
 		});
 
@@ -982,7 +982,7 @@ function TSLClients_UpdateAll() {
 }
 
 function getDeviceStates(deviceId?: string): DeviceState[] {
-	return devices.filter((d) => deviceId ? d.id == deviceId : true).flatMap((d) => currentConfig.bus_options.map((b) => {
+	let deviceStateObj = devices.filter((d) => deviceId ? d.id == deviceId : true).flatMap((d) => currentConfig.bus_options.map((b) => {
 		const deviceSources = device_sources.filter((s) => s.deviceId == d.id);
 		return {
 			busId: b.id,
@@ -993,6 +993,11 @@ function getDeviceStates(deviceId?: string): DeviceState[] {
 					.findIndex(([address, busses]: [string, string[]]) => busses.includes(b.type)) !== -1).map((s) => s.id),
 		}
 	}));
+
+	//console.log('*** device state obj ***')
+	//console.log(deviceStateObj)
+
+	return deviceStateObj;
 }
 
 function getSourceTypeDataFields(): SourceTypeDataFields[] {
@@ -1029,7 +1034,7 @@ function getOutputTypes(): OutputType[] {
 	} as OutputType));
 }
 
-function ToggleTestMode(enabled: boolean) {
+function ToggleTestMode(enabled: boolean, interval?: number) {
 	TestMode = enabled;
 	if (TestMode) {
 		//first check that there's not already a "test mode" source
@@ -1043,6 +1048,7 @@ function ToggleTestMode(enabled: boolean) {
 				connected: true,
 				data: {
 					addressesNumber: devices.length,
+					interval: interval || 1000,
 				},
 				reconnect_interval: 5000,
 				max_reconnects: 5,
@@ -1085,6 +1091,17 @@ function ToggleTestMode(enabled: boolean) {
 				break;
 			}
 		}
+
+		//loop through device sources and remove any that are from the test source
+		for (let i = 0; i < device_sources.length; i++) {
+			if (device_sources[i].sourceId === 'TEST') {
+				device_sources.splice(i, 1);
+				i--;
+			}
+		}
+
+		UpdateSockets('device_sources');
+		UpdateCloud('device_sources');
 		SendMessage('server', null, 'Test Mode Disabled.');
 	}
 
@@ -1143,6 +1160,7 @@ function UpdateDeviceState(deviceId: string) {
 			}
 		}
 	}
+
 	UpdateSockets("device_states");
 	UpdateListenerClients(deviceId);
 	vMixEmulator?.updateListenerClients(currentDeviceTallyData);
@@ -1194,7 +1212,7 @@ function loadConfig() { // loads the JSON data from the config file to memory
 
 		device_actions = currentConfig.device_actions;
 		logger('Tally Arbiter Device Actions loaded.', 'info');
-		logger(`${device_actions.length} Device Sources configured.`, 'info');
+		logger(`${device_actions.length} Device Actions configured.`, 'info');
 
 		if (currentConfig.tsl_clients_1secupdate) {
 			currentConfig.tsl_clients_1secupdate = true;
@@ -1279,6 +1297,9 @@ function initializeSource(source: Source): TallyInput {
 		});
 	});
 	sourceClient.on("renameAddress", (address: string, newAddress: string) => {
+		//only do if they are different
+		if (address === newAddress) return;
+		
 		for (const deviceSource of device_sources.filter((d) => d.rename && d.sourceId == source.id && d.address == address)) {
 			deviceSource.address = newAddress;
 		}
@@ -1296,7 +1317,7 @@ function processSourceTallyData(sourceId: string, tallyData: SourceTallyData)
 	for (const [address, busses] of Object.entries(tallyData)) {
 		io.to('settings').emit('tally_data', sourceId, address, busses);
 	}
-	
+
 	currentSourceTallyData = {
 		...currentSourceTallyData,
 		...tallyData,
@@ -1710,6 +1731,7 @@ function TallyArbiter_Delete_Source(obj: Manage): ManageResponse {
 		}
 	}
 
+	UpdateSockets('sources');
 	UpdateCloud('sources');
 
 	for (let i = device_sources.length - 1; i >= 0; i--) {
@@ -1718,6 +1740,7 @@ function TallyArbiter_Delete_Source(obj: Manage): ManageResponse {
 		}
 	}
 
+	UpdateSockets('device_sources');
 	UpdateCloud('device_sources');
 
 	/* for (let i = currentTallyData.length - 1; i >=0; i--) {
@@ -1730,6 +1753,7 @@ function TallyArbiter_Delete_Source(obj: Manage): ManageResponse {
 	} */
 
 	UpdateSockets('device_states');
+	UpdateCloud('device_states');
 
 	logger(`Source Deleted: ${sourceName}`, 'info');
 
@@ -1839,8 +1863,23 @@ function TallyArbiter_Edit_Device_Source(obj: Manage): ManageResponse {
 		device_sources[i].max_reconnects = deviceSourceObj.max_reconnects;
 	}
 
-	let deviceName = GetDeviceByDeviceId(deviceId).name;
-	let sourceName = GetSourceBySourceId(deviceSourceObj.sourceId).name;
+	let deviceName = ''
+	try {
+		deviceName = GetDeviceByDeviceId(deviceId).name;
+	}
+	catch (error) {
+		//sometimes the device is already deleted, so we can't get the name
+		deviceName = 'Unknown';
+	}
+	
+	let sourceName = ''
+	try {
+		sourceName = GetSourceBySourceId(deviceSourceObj.sourceId).name;
+	}
+	catch (error) {
+		//sometimes the source is already deleted, so we can't get the name
+		sourceName = 'Unknown';
+	}
 
 	UpdateCloud('device_sources');
 
@@ -1868,8 +1907,23 @@ function TallyArbiter_Delete_Device_Source(obj: Manage): ManageResponse {
 
 	delete currentDeviceTallyData[deviceSourceId];
 
-	let deviceName = GetDeviceByDeviceId(deviceId).name;
-	let sourceName = GetSourceBySourceId(sourceId).name;
+	let deviceName = ''
+	try {
+		deviceName = GetDeviceByDeviceId(deviceId).name;
+	}
+	catch (error) {
+		//sometimes the device is already deleted, so we can't get the name
+		deviceName = 'Unknown';
+	}
+	
+	let sourceName = ''
+	try {
+		sourceName = GetSourceBySourceId(sourceId).name;
+	}
+	catch (error) {
+		//sometimes the source is already deleted, so we can't get the name
+		sourceName = 'Unknown';
+	}
 
 	UpdateCloud('device_sources');
 
