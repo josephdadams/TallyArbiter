@@ -196,7 +196,7 @@ export class PanasonicAVHS410Source extends TallyInput {
 
 
     private connect(): void {
-        this.client.connect(PanasonicAVHS410Port, this.source.data.ip);
+        this.client.connect(this.source.data.port, this.source.data.ip);
     }
 
 
