@@ -10,12 +10,18 @@
 #include <ArduinoOTA.h>
 #include <ESPmDNS.h>
 #include <Preferences.h>
-#define DATA_PIN_LED 27
+#define DATA_PIN_LED 27 // NeoPixelArray
 
+
+
+// Set to true if you want to compile with the ability to show camera number during pvw and pgm
 #define SHOW_CAMERA_NUMBER_DURING_PVW_AND_PGM false
 
+// Enables the GPIO pinout
+#define TALLY_EXTRA_OUTPUT true
+
 //M5 variables
-PinButton btnAction(39); //the "Action" button on the device
+PinButton btnAction(39); //the "Action" button on the device - aka the front screen button for reset - push the front of the led display - ITS A BUTTON!
 Preferences preferences;
 
 /* USER CONFIG VARIABLES
@@ -23,7 +29,7 @@ Preferences preferences;
 */
 
 //Tally Arbiter Server
-char tallyarbiter_host[40] = "TALLYARBITERSERVERIP";
+char tallyarbiter_host[40] = "TALLYARBITERSERVERIPADDRESS";
 char tallyarbiter_port[6] = "4455";
 
 //Set staticIP to 1 if you want the client to use a static IP address. Default is DHCP.
@@ -48,8 +54,8 @@ String listenerDeviceName = "m5Atom-";
 //leave empty for open Access Point
 const char* AP_password ="";
 
-// Enables the GPIO pinout
-#define TALLY_EXTRA_OUTPUT false
+// Global array to hold rotated numbers
+int rotatedNumber[25];
 
 /* END OF USER VARIABLES
  *  
@@ -57,7 +63,7 @@ const char* AP_password ="";
 
 //Tally Arbiter variables
 SocketIOclient socket;
-WiFiManager wm; // global wm instance
+WiFiManager WiFiManager; // global WiFiManager instance
 
 JSONVar BusOptions;
 JSONVar Devices;
@@ -70,9 +76,9 @@ unsigned long currentReconnectTime = 0;
 bool isReconnecting = false;
 
 #if TALLY_EXTRA_OUTPUT
-const int led_program = 10;
-const int led_preview = 26; //OPTIONAL Led for preview on pin G26
-const int led_aux = 36;     //OPTIONAL Led for aux on pin G36
+const int led_program = 33; //Led for program on pin G33 - if TALLY_EXTRA_OUTPUT set to true at top of file
+const int led_preview = 23; //Led for preview on pin G23 - if TALLY_EXTRA_OUTPUT set to true at top of file
+const int led_aux = 19;     //Led for aux on pin G19 - if TALLY_EXTRA_OUTPUT set to true at top of file
 #endif
 
 String prevType = ""; // reduce display flicker by storing previous state
@@ -82,24 +88,28 @@ int actualPriority = 0;
 long colorNumber = 0;
 
 // default color values
-int GRB_COLOR_WHITE = 0xffffff;
-int GRB_COLOR_BLACK = 0x000000;
-int GRB_COLOR_RED = 0xff0000;
-int GRB_COLOR_ORANGE = 0xa5ff00;
-int GRB_COLOR_YELLOW = 0xffff00;
-int GRB_COLOR_GREEN = 0x00ff00;
-int GRB_COLOR_BLUE = 0x0000ff;
-int GRB_COLOR_PURPLE = 0x008080;
+int RGB_COLOR_WHITE = 0xffffff;
+int RGB_COLOR_DIMWHITE = 0x555555;
+int RGB_COLOR_WARMWHITE = 0xFFEBC8;
+int RGB_COLOR_DIMWARMWHITE = 0x877D5F;
+int RGB_COLOR_BLACK = 0x000000;
+int RGB_COLOR_RED = 0xff0000;
+int RGB_COLOR_ORANGE = 0xa5ff00;
+int RGB_COLOR_YELLOW = 0xffff00;
+int RGB_COLOR_DIMYELLOW = 0x555500;
+int RGB_COLOR_GREEN = 0x008800; // toning this down as the green is way brighter than the other colours
+int RGB_COLOR_BLUE = 0x0000ff;
+int RGB_COLOR_PURPLE = 0x008080;
 
-int numbercolor = GRB_COLOR_WHITE;
+int numbercolor = RGB_COLOR_WARMWHITE;
 
-int flashcolor[] = {GRB_COLOR_WHITE, GRB_COLOR_WHITE};
-int offcolor[] = {GRB_COLOR_BLACK, numbercolor};
-int badcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_RED};
-int readycolor[] = {GRB_COLOR_BLACK, GRB_COLOR_GREEN};
-int alloffcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_BLACK};
-int wificolor[] = {GRB_COLOR_BLACK, GRB_COLOR_BLUE};
-int infocolor[] = {GRB_COLOR_BLACK, GRB_COLOR_ORANGE};
+int flashcolor[] = {RGB_COLOR_WHITE, RGB_COLOR_WHITE};
+int offcolor[] = {RGB_COLOR_BLACK, numbercolor};
+int badcolor[] = {RGB_COLOR_BLACK, RGB_COLOR_RED};
+int readycolor[] = {RGB_COLOR_BLACK, RGB_COLOR_GREEN};
+int alloffcolor[] = {RGB_COLOR_BLACK, RGB_COLOR_BLACK};
+int wificolor[] = {RGB_COLOR_BLACK, RGB_COLOR_BLUE};
+int infocolor[] = {RGB_COLOR_BLACK, RGB_COLOR_ORANGE};
 
 //this is the array that stores the number layout
 int number[17][25] = {{
@@ -343,23 +353,23 @@ void evaluateMode() {
     String hexstring = actualColor;
     long colorNumber = (long) strtol( &hexstring[1], NULL, 16);
  // This order is to compensate for Matrix needing grb.
-    int g = colorNumber >> 16;
-    int r = colorNumber >> 8 & 0xFF;
-    int b = colorNumber & 0xFF;
+    int r = strtol(hexstring.substring(3, 5).c_str(), NULL, 16);
+    int g = strtol(hexstring.substring(1, 3).c_str(), NULL, 16);
+    int b = strtol(hexstring.substring(5).c_str(), NULL, 16);
     
     if (actualType != "") {
-      int backgroundColor = 0x10000 * g + 0x100 * r + b;
-      int currColor[] = {backgroundColor, numbercolor};
-      logger("Current color: " + String(backgroundColor), "info");
+     int backgroundColorhex = (g << 16) | (r << 8) | b; // Swap positions of RGB to GRB conversion
+      int currColor[] = {backgroundColorhex, numbercolor};
+      logger("Current color: " + String(backgroundColorhex), "info");
       //logger("Current camNumber: " + String(camNumber), "info");
 #if SHOW_CAMERA_NUMBER_DURING_PVW_AND_PGM
-      // If you want the camera number displayed during Pgm and Pvw, uncomment the following line and comment the line after.
-      drawNumber(number[camNumber], currColor);
+      // If you want the camera number displayed during Pgm and Pvw, change the variable at the top of the file
+      drawNumber(rotatedNumber[camNumber], currColor);
 #else
       drawNumber(icons[12], currColor);
 #endif
     } else {
-      drawNumber(number[camNumber], offcolor);
+      drawNumber(rotatedNumber, offcolor);
     }
 
     #if TALLY_EXTRA_OUTPUT
@@ -620,15 +630,17 @@ void processTallyData() {
   evaluateMode();
 }
 
+// A whole ton of WiFiManager stuff, first up, here is the Paramaters
 WiFiManagerParameter* custom_taServer;
 WiFiManagerParameter* custom_taPort;
+//WiFiManagerParameter* custom_tashownumbersduringtally;
 
 void connectToNetwork() {
   // allow for static IP assignment instead of DHCP if stationIP is defined as something other than 0.0.0.0
   #if staticIP == 1
   if (stationIP != IPAddress(0, 0, 0, 0))
   {
-    wm.setSTAStaticIPConfig(stationIP, stationGW, stationMask); // optional DNS 4th argument 
+    WiFiManager.setSTAStaticIPConfig(stationIP, stationGW, stationMask); // optional DNS 4th argument 
   }
   #endif
   
@@ -636,29 +648,31 @@ void connectToNetwork() {
   logger("Connecting to SSID: " + String(WiFi.SSID()), "info");
 
   //reset settings - wipe credentials for testing
-  //wm.resetSettings();
+  //WiFiManager.resetSettings();
 
   //add TA fields
   custom_taServer = new WiFiManagerParameter("taHostIP", "Tally Arbiter Server", tallyarbiter_host, 40);
   custom_taPort = new WiFiManagerParameter("taHostPort", "Port", tallyarbiter_port, 6);
+ // custom_tashownumbersduringtally = new WiFiManagerParameter("tashownumbersduringtally", "Show Number During Tally (true/false)", SHOW_CAMERA_NUMBER_DURING_PVW_AND_PGM, 6);
 
-  wm.addParameter(custom_taServer);
-  wm.addParameter(custom_taPort);
+  WiFiManager.addParameter(custom_taServer);
+  WiFiManager.addParameter(custom_taPort);
+  //WiFiManager.addParameter(custom_tashownumbersduringtally);
 
-  wm.setSaveParamsCallback(saveParamCallback);
+  WiFiManager.setSaveParamsCallback(saveParamCallback);
 
   // custom menu via array or vector
   std::vector<const char *> menu = {"wifi","param","info","sep","restart","exit"};
-  wm.setMenu(menu);
+  WiFiManager.setMenu(menu);
 
   // set dark theme
-  wm.setClass("invert");
+  WiFiManager.setClass("invert");
 
-  wm.setConfigPortalTimeout(120); // auto close configportal after n seconds
+  WiFiManager.setConfigPortalTimeout(120); // auto close configportal after n seconds
 
   bool res;
   
-  res = wm.autoConnect(listenerDeviceName.c_str(),AP_password);
+  res = WiFiManager.autoConnect(listenerDeviceName.c_str(),AP_password);
 
   if (!res) {
     logger("Failed to connect", "error");
@@ -712,8 +726,8 @@ void connectToNetwork() {
 String getParam(String name) {
   //read parameter from server, for customhmtl input
   String value;
-  if (wm.server->hasArg(name)) {
-    value = wm.server->arg(name);
+  if (WiFiManager.server->hasArg(name)) {
+    value = WiFiManager.server->arg(name);
   }
   return value;
 }
@@ -724,14 +738,14 @@ void saveParamCallback() {
   logger("PARAM tally Arbiter Server = " + getParam("taHostIP"), "info-quiet");
   String str_taHost = getParam("taHostIP");
   String str_taPort = getParam("taHostPort");
-
-  //str_taHost.toCharArray(tallyarbiter_host, 40);
-  //saveEEPROM();
+  String str_tashownumbersduringtally = getParam("tashownumbersduringtally");
+  //saveEEPROM(); // this was commented out as prefrences is now being used in place
   logger("Saving new TallyArbiter host", "info-quiet");
   logger(str_taHost, "info-quiet");
   preferences.begin("tally-arbiter", false);
   preferences.putString("taHost", str_taHost);
   preferences.putString("taPort", str_taPort);
+  preferences.putString("tashownumbersduringtally", str_tashownumbersduringtally);
   preferences.end();
 
 }
@@ -747,6 +761,14 @@ void setup() {
   //Save battery by turning off BlueTooth
   btStop();
 
+    // Initialize IMU (MPU6886) The rotation sensor
+  if (M5.IMU.Init() != 0) {
+    Serial.println("MPU6886 initialization failed!");
+    while (1) delay(100);
+  } else {
+    Serial.println("MPU6886 initialization successful!");
+  }
+
   // Append last three pairs of MAC to listenerDeviceName to make it some what unique
   byte mac[6];              // the MAC address of your Wifi shield
   WiFi.macAddress(mac);
@@ -754,7 +776,7 @@ void setup() {
   logger("Listener device name: " + listenerDeviceName, "info");
 
   // Set WiFi hostname
-  wm.setHostname ((const char *) listenerDeviceName.c_str());
+  WiFiManager.setHostname ((const char *) listenerDeviceName.c_str());
 
   M5.begin(true, false, true);
   delay(50);
@@ -774,28 +796,38 @@ void setup() {
   
   connectToNetwork(); //starts Wifi connection
 
+  // Load from non-volatile memory
   preferences.begin("tally-arbiter", false);
-  if (preferences.getString("deviceid").length() > 0) {
-    DeviceId = preferences.getString("deviceid");
-    //DeviceId = "unassigned";
-  }
-  if (preferences.getString("devicename").length() > 0) {
-    DeviceName = preferences.getString("devicename");
-    //DeviceName = "unassigned";
-  }
 
-  if(preferences.getString("taHost").length() > 0){
-    String newHost = preferences.getString("taHost");
-    logger("Setting TallyArbiter host as " + newHost, "info-quiet");
-    newHost.toCharArray(tallyarbiter_host, 40);
-  }
-  if(preferences.getString("taPort").length() > 0){
-    String newPort = preferences.getString("taPort");
-    logger("Setting TallyArbiter port as " + newPort, "info-quiet");
-    newPort.toCharArray(tallyarbiter_port, 6);
-  }
+    if (preferences.getString("deviceid").length() > 0) {
+      DeviceId = preferences.getString("deviceid");
+      //DeviceId = "unassigned";
+    }
+    if (preferences.getString("devicename").length() > 0) {
+      DeviceName = preferences.getString("devicename");
+      //DeviceName = "unassigned";
+    }
+
+    if(preferences.getString("taHost").length() > 0){
+      String newHost = preferences.getString("taHost");
+      logger("Setting TallyArbiter host as " + newHost, "info-quiet");
+      newHost.toCharArray(tallyarbiter_host, 40);
+    }
+    if(preferences.getString("taPort").length() > 0){
+      String newPort = preferences.getString("taPort");
+      logger("Setting TallyArbiter port as " + newPort, "info-quiet");
+      newPort.toCharArray(tallyarbiter_port, 6);
+    }
+    camNumber = preferences.getInt("camNumber"); // Get camera from memory
+//    SHOW_CAMERA_NUMBER_DURING_PVW_AND_PGM = preferences.getInt("tashownumbersduringtally"); // Get prefrence for Showing numbers during tally (default false)
 
   preferences.end();
+
+  //debug
+    char message[200]; // Adjust the size as needed
+    sprintf(message, "After the preferences.end TA Host is: %s TA Port is: %s", tallyarbiter_host, tallyarbiter_port);
+    logger(message, "info-quiet");
+
 
   ArduinoOTA.setHostname(listenerDeviceName.c_str());
   ArduinoOTA.setPassword("tallyarbiter");
@@ -842,6 +874,72 @@ void setup() {
 }
 // --------------------------------------------------------------------------------------------------------------------
 
+// Functions for Screen Rotation for AutoRotation
+
+void rotate90(int source[25], int dest[25]) {
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            dest[j * 5 + (4 - i)] = source[i * 5 + j];
+        }
+    }
+}
+
+void rotate180(int source[25], int dest[25]) {
+    for (int i = 0; i < 25; ++i) {
+        dest[24 - i] = source[i];
+    }
+}
+
+void rotate270(int source[25], int dest[25]) {
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            dest[(4 - j) * 5 + i] = source[i * 5 + j];
+        }
+    }
+}
+
+// Screen Update Routine
+void updateDisplayBasedOnOrientation(float accX, float accY, float accZ) {
+
+  //Serial.print("Screen Orientation: ");
+  //Serial.print("Accel X: ");
+  //Serial.print(accX);
+  //Serial.print(" Y: ");
+  //Serial.print(accY);
+  //Serial.print(" Z: ");
+  //Serial.print(accZ);
+  //Serial.println(" m/s^2");
+  
+  // 0.8 is used as a deadband control
+
+  // Check for USB right (Normal orientation)
+  if (accX > 0.8) {
+  //  Serial.println("USB Right - 0 degrees (normal)");
+    memcpy(rotatedNumber, number[camNumber], sizeof(int) * 25);
+  } 
+  // Check for USB left (180 degrees)
+  else if (accX < -0.8) {
+  //  Serial.println("USB Left - 180 degrees");
+    rotate180(number[camNumber], rotatedNumber);
+  } 
+  // Check for USB up
+  else if (accY > 0.8) {
+  //  Serial.println("USB Up - 90 degrees");
+    rotate90(number[camNumber], rotatedNumber);
+  } 
+  // Check for USB down
+  else if (accY < -0.8) {
+  //  Serial.println("USB Down - 270 degrees");
+    rotate270(number[camNumber], rotatedNumber);
+  } 
+  else {
+  //  Serial.println("Flat or undefined orientation");
+    memcpy(rotatedNumber, number[camNumber], sizeof(int) * 25);
+  }
+
+}
+
+
 // --------------------------------------------------------------------------------------------------------------------
 // This is the main program loop
 void loop(){
@@ -849,11 +947,19 @@ void loop(){
   if (M5.Btn.wasPressed()){
     // Switch action below
     if (camNumber < 16){
-      camNumber++;
+      camNumber++;  
+        preferences.begin("tally-arbiter", false);          // Open Preferences with no read-only access
+        preferences.putInt("camNumber", camNumber);      // Save camera number
+        delay(100);                                         // Introduce a short delay before closing
+        preferences.end();                                  // Close the Preferences after saving
     } else {
       camNumber = 0;
+        preferences.begin("tally-arbiter", false);          // Open Preferences with no read-only access
+        preferences.putInt("camNumber", camNumber);      // Save camera number
+        delay(100);                                         // Introduce a short delay before closing
+        preferences.end();                                  // Close the Preferences after saving
     }
-    drawNumber(number[camNumber], offcolor);
+    drawNumber(rotatedNumber, offcolor);
 
     // Lets get some info sent out the serial connection for debugging
     logger("---------------------------------", "info-quiet");
@@ -868,7 +974,7 @@ void loop(){
     
   // Is WiFi reset triggered?
   if (M5.Btn.pressedFor(5000)){
-    wm.resetSettings();
+    WiFiManager.resetSettings();
     ESP.restart();
   }
 
@@ -884,8 +990,23 @@ void loop(){
       currentReconnectTime = millis();
     }
   }
+
+//#if AUTO_ORIENTATION
+  // Check orientation and autorotate the screen
+
+    // Orientation Sensor Data variables
+  float accX, accY, accZ;
+
+  // Read acceleration data
+  M5.IMU.getAccelData(&accX, &accY, &accZ);
+
+  // Run the rotation change to the variabne rotatedNumber
+  updateDisplayBasedOnOrientation(accX, accY, accZ);
+    
+//  #else
+//  #endif
   
-  delay(50);
+  delay(100);
   M5.update();
 }
 // --------------------------------------------------------------------------------------------------------------------
