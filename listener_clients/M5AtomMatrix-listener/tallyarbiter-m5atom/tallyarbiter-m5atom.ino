@@ -79,6 +79,7 @@ String prevType = ""; // reduce display flicker by storing previous state
 String actualType = "";
 String actualColor = "";
 int actualPriority = 0;
+long colorNumber = 0;
 
 // default color values
 int GRB_COLOR_WHITE = 0xffffff;
