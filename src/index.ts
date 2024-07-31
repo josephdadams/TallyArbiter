@@ -1136,20 +1136,6 @@ function UpdateDeviceState(deviceId: string) {
 	for (const bus of currentConfig.bus_options) {
 		if ((device.linkedBusses || []).includes(bus.id)) {
 			// bus is linked, which means all sources must be in this bus			
-			//logger(`findIndex: ${deviceSources.findIndex((s) => !currentSourceTallyData?.[s.id]?.includes(bus.type))}`, 'info-quiet');
-			//if (deviceSources.findIndex((s) => !currentSourceTallyData?.[s.sourceId]?.includes(bus.type)) === -1) {
-			// if (deviceSources.findIndex((s) => !currentSourceTallyData?.[s.sourceId]?.includes(bus.type)) === -1) {
-			// 	logger(`Match!!!!`, 'info-quiet');
-			// 	currentDeviceTallyData[device.id].push(bus.id);
-			// 	if (!previousBusses.includes(bus.id)) {
-			// 		RunAction(deviceId, bus.id, true);
-			// 	}
-			// } else {
-			// 	logger(`No Match!!!!`, 'info-quiet');
-			// 	if (previousBusses.includes(bus.id)) {
-			// 		RunAction(deviceId, bus.id, false);
-			// 	}
-			// }
 
 			// Count number of sources in bus
 			// TODO: This should be replaced with deviceSources.findIndex((s).
