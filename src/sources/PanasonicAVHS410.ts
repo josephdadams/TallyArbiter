@@ -34,9 +34,9 @@ const sourceTypesPanasonic = [
     { id: '23', label: 'XPT 24' },
 ];
 
-const PanasonicAVHS410Port = 60020;
+//const PanasonicAVHS410Port = 60020;
 
-@UsesPort(PanasonicAVHS410Port)
+//@UsesPort(PanasonicAVHS410Port)
 @RegisterTallyInput("7da3b526", "Panasonic AV-HS410", "Uses port 60020. Make sure to have Multicast enabled on the network", [
     { fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
 	{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' }
@@ -196,7 +196,7 @@ export class PanasonicAVHS410Source extends TallyInput {
 
 
     private connect(): void {
-        this.client.connect(PanasonicAVHS410Port, this.source.data.ip);
+        this.client.connect(this.source.data.port, this.source.data.ip);
     }
 
 

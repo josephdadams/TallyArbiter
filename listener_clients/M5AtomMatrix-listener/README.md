@@ -60,7 +60,7 @@ If you receive an error similar to `ImportError: No module named serial` referen
 * What this does when used with TallyArbiter - https://youtu.be/hNhU22OkXek
 * Demo of the M5Atom Matrix code in this git - https://youtu.be/Mc_PCxg6qdc
 * Demo running on 10 M5Atom Matrix units via a cloud server - https://youtu.be/TiqjmXdzPic
-* RAW Step-By-Step Install on a fresh windows installation (warning: this video is outdated) - https://youtu.be/soj1Cxv3mLY
+* RAW Step-By-Step Install on a fresh windows installation - UPDATED 2024/04/26- https://youtu.be/soj1Cxv3mLY
 * Video Walkthrough (warning: this video is outdated) -  https://youtu.be/WMrRKD63Jrw
 
 
