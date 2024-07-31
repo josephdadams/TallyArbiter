@@ -1135,12 +1135,36 @@ function UpdateDeviceState(deviceId: string) {
 	const deviceSources = device_sources.filter((d) => d.deviceId == deviceId);
 	for (const bus of currentConfig.bus_options) {
 		if ((device.linkedBusses || []).includes(bus.id)) {
-			// bus is linked, which means all sources must be in this bus
-			if (deviceSources.findIndex((s) => !currentSourceTallyData?.[s.id]?.includes(bus.type)) === -1) {
+			// bus is linked, which means all sources must be in this bus			
+			//logger(`findIndex: ${deviceSources.findIndex((s) => !currentSourceTallyData?.[s.id]?.includes(bus.type))}`, 'info-quiet');
+			//if (deviceSources.findIndex((s) => !currentSourceTallyData?.[s.sourceId]?.includes(bus.type)) === -1) {
+			// if (deviceSources.findIndex((s) => !currentSourceTallyData?.[s.sourceId]?.includes(bus.type)) === -1) {
+			// 	logger(`Match!!!!`, 'info-quiet');
+			// 	currentDeviceTallyData[device.id].push(bus.id);
+			// 	if (!previousBusses.includes(bus.id)) {
+			// 		RunAction(deviceId, bus.id, true);
+			// 	}
+			// } else {
+			// 	logger(`No Match!!!!`, 'info-quiet');
+			// 	if (previousBusses.includes(bus.id)) {
+			// 		RunAction(deviceId, bus.id, false);
+			// 	}
+			// }
+
+			// Count number of sources in bus
+			// TODO: This should be replaced with deviceSources.findIndex((s).
+			let num = 0;
+			for (let i = 0; i < deviceSources.length; i++) {
+				if (currentSourceTallyData?.[deviceSources[i].sourceId]?.includes(bus.type)) {
+					num++
+				}
+			}
+
+			if (num === deviceSources.length) {
 				currentDeviceTallyData[device.id].push(bus.id);
 				if (!previousBusses.includes(bus.id)) {
 					RunAction(deviceId, bus.id, true);
-				}
+				}	
 			} else {
 				if (previousBusses.includes(bus.id)) {
 					RunAction(deviceId, bus.id, false);
@@ -1148,7 +1172,7 @@ function UpdateDeviceState(deviceId: string) {
 			}
 		} else {
 			// bus is unlinked
-			if (deviceSources.findIndex((s) => currentSourceTallyData?.[s.id]?.includes(bus.type)) !== -1) {
+			if (deviceSources.findIndex((s) => currentSourceTallyData?.[s.sourceId]?.includes(bus.type)) !== -1) {
 				currentDeviceTallyData[device.id].push(bus.id);
 				if (!previousBusses.includes(bus.id)) {
 					RunAction(deviceId, bus.id, true);
@@ -1284,7 +1308,7 @@ function initializeSource(source: Source): TallyInput {
 		for (const [sourceAddress, busses] of Object.entries(tallyDataWithAddresses)) {
 			let device_source = device_sources.find((s) => s.sourceId == source.id && s.address == sourceAddress);
 			if(device_source) {
-				tallyData[device_source.id] = busses;
+				tallyData[device_source.sourceId] = busses;
 			}
 		}
 		SendCloudSourceTallyData(source.id, tallyData);
