@@ -984,14 +984,46 @@ function TSLClients_UpdateAll() {
 function getDeviceStates(deviceId?: string): DeviceState[] {
 	let deviceStateObj = devices.filter((d) => deviceId ? d.id == deviceId : true).flatMap((d) => currentConfig.bus_options.map((b) => {
 		const deviceSources = device_sources.filter((s) => s.deviceId == d.id);
-		return {
-			busId: b.id,
-			deviceId: d.id,
-			sources: deviceSources.filter(
-				(s) => Object.entries(SourceClients[s.sourceId]?.tally?.value || [])
-				.filter(([address, busses]) => address == s.address)
-					.findIndex(([address, busses]: [string, string[]]) => busses.includes(b.type)) !== -1).map((s) => s.id),
-		}
+
+		// Check if buss is linked, if linked all sources must be in this bus
+		const device = GetDeviceByDeviceId(d.id);
+		if ((device.linkedBusses || []).includes(b.id)) {
+
+			// Check if all sources are in the buss, if not return [] for sources. 
+			// Count number of sources in bus
+			// TODO: Check if this can be replaced with deviceSources.findIndex((s) and refactored to reduce duplicated code.
+			let num = 0;
+			for (let i = 0; i < deviceSources.length; i++) {
+				if (currentSourceTallyData?.[deviceSources[i].sourceId]?.includes(b.type)) {
+					num++
+				}
+			}
+			if (num === deviceSources.length) {
+				return {
+					busId: b.id,
+					deviceId: d.id,
+					sources: deviceSources.filter(
+						(s) => Object.entries(SourceClients[s.sourceId]?.tally?.value || [])
+						.filter(([address, busses]) => address == s.address)
+							.findIndex(([address, busses]: [string, string[]]) => busses.includes(b.type)) !== -1).map((s) => s.id),
+				}	
+			} else {
+				return {
+					busId: b.id,
+					deviceId: d.id,
+					sources: [],
+				}		
+			}
+		} else {
+			return {
+				busId: b.id,
+				deviceId: d.id,
+				sources: deviceSources.filter(
+					(s) => Object.entries(SourceClients[s.sourceId]?.tally?.value || [])
+					.filter(([address, busses]) => address == s.address)
+						.findIndex(([address, busses]: [string, string[]]) => busses.includes(b.type)) !== -1).map((s) => s.id),
+			}
+		}	
 	}));
 
 	//console.log('*** device state obj ***')
