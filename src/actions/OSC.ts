@@ -38,18 +38,22 @@ export class OSC extends Action {
         let args = [];
         let data = [];
 
+        const isNumeric = (string) => /^[+-]?\d+(\.\d+)?$/.test(string)
+
         if (this.action.data.args !== '') {
-            let args = this.action.data.args.split(' ');
-            let arg;
+            args = this.action.data.args.split(' ');
+            let arg: any;
 
             for (let i = 0; i < args.length; i++) {
-                if (Number.isNaN(args[i])) {
+                // Check if OSC-string
+                if (!isNumeric(args[i])) {
                     arg = {
                         type: 's',
                         value: args[i].replace(/"/g, '').replace(/'/g, '')
                     };
                     data.push(arg);
                 }
+                // Check if float32
                 else if (args[i].toString().indexOf('.') > -1) {
                     arg = {
                         type: 'f',
@@ -57,6 +61,7 @@ export class OSC extends Action {
                     };
                     data.push(arg);
                 }
+                // No check, assume int32
                 else {
                     arg = {
                         type: 'i',
@@ -72,6 +77,6 @@ export class OSC extends Action {
         }
 
         logger(`Sending OSC Message: ${this.action.data.ip}:${this.action.data.port} ${this.action.data.path} ${this.action.data.args}`, 'info');
-        oscUDP.send({ address: this.action.data.path, args: args }, this.action.data.ip, this.action.data.port);
+        oscUDP.send({ address: this.action.data.path, args: data }, this.action.data.ip, this.action.data.port);
     }
 }
