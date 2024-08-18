@@ -422,19 +422,19 @@ export class OBSSource extends TallyInput {
         });
 
         this.obsClient5.on("CurrentPreviewSceneChanged", (data) => {
-            this.scenes5.forEach((scene) => {
-                if(scene !== data.sceneName) this.removeBusFromAddress(scene, "preview");
-            });
-            this.setBussesForAddress(data.sceneName, ["preview"]);
-            this.sendTallyData();
+            this.removeBusFromAllAddresses("preview");
+            this.addBusToAddress(data.sceneName, "preview");
+            this.processSceneChange5(data.sceneName, "preview");
+
+            //this.sendTallyData();
         });
         
         this.obsClient5.on("CurrentProgramSceneChanged", (data) => {
-            this.scenes5.forEach((scene) => {
-                if(scene !== data.sceneName) this.removeBusFromAddress(scene, "program");
-            });
-            this.setBussesForAddress(data.sceneName, ["program"]);
-            this.sendTallyData();
+            this.removeBusFromAllAddresses("program");
+            this.addBusToAddress(data.sceneName, "program");
+            this.processSceneChange5(data.sceneName, "program");
+
+            // this.sendTallyData();
         });
 
         this.obsClient5.on("CurrentSceneCollectionChanged", (data) => {
@@ -585,9 +585,11 @@ export class OBSSource extends TallyInput {
                 }
                 if(scene === data.currentPreviewSceneName) {
                     this.setBussesForAddress(scene, ["preview"]);
+                    this.processSceneChange5(scene, "preview");
                 }
                 if(scene === data.currentProgramSceneName) {
                     this.setBussesForAddress(scene, ["program"]);
+                    this.processSceneChange5(scene, "program")
                 }
                 if(scene != data.currentPreviewSceneName && scene != data.currentProgramSceneName) {
                     this.setBussesForAddress(scene, []);
@@ -597,6 +599,7 @@ export class OBSSource extends TallyInput {
             this.sendTallyData();
         });
     }
+
 
     /** Adds a bus to the scene, nested scenes and scene sources.
      * @param sceneName - Name of the scene.
@@ -617,6 +620,35 @@ export class OBSSource extends TallyInput {
         }
         this.addBusToAddress(sceneName, bus);
     }
+
+
+    /** Adds a bus for the scene, nested scenes and scene sources.
+     * @param sceneName - Name of the scene.
+     * @param bus - Bus to assign (preview/program).
+     */
+    private processSceneChange5(sceneName: string, bus: string): void {
+        // No support for specific handling for Groups since Group usage is discouraged in OBS, see https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md#getsceneitemlist
+        this.obsClient5.call("GetSceneItemList", { sceneName: sceneName}).then((sceneItems) => {
+
+            let sceneSources = 0;
+            for (let i = 0; i < sceneItems.sceneItems.length; i++) {
+                // All scene source items to the bus
+                // Should a check be done for audio input if they are enabled?
+                this.addBusToAddress(sceneItems.sceneItems[i].sourceName as string, bus);
+                if (sceneItems.sceneItems[i].sourceType == "OBS_SOURCE_TYPE_INPUT") {
+                    sceneSources++;
+                } else if (sceneItems.sceneItems[i].sourceType == "OBS_SOURCE_TYPE_SCENE") {
+                    // Nested scene, dig deeper...
+                    this.processSceneChange5(sceneItems.sceneItems[i].sourceName as string, bus);
+                }
+            }
+
+            // If this scene doesn't contain a scene then we trigger this.sendTallyData().
+            // The check is done to keep uncessary updates to a minimum.
+            if (sceneSources == sceneItems.sceneItems.length) {this.sendTallyData();}
+        });
+    }
+
 
     /** Adds audio input to addresses, to the "audioInputs" list and change tally bus if it's not muted. */
     private addAudioInput(input): void {
