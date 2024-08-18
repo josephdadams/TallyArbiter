@@ -76,7 +76,7 @@
         "jspack": "^0.0.4",
         "node-emberplus": "^3.0.5",
         "obs-websocket-js": "npm:obs-websocket-js@^4.0.3",
-        "obs-websocket-js-5": "npm:obs-websocket-js@^5.0.2",
+        "obs-websocket-js-5": "npm:obs-websocket-js@^5.0.6",
         "osc": "^2.4.3",
         "rate-limiter-flexible": "^2.3.7",
         "reflect-metadata": "^0.1.13",
