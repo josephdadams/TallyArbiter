@@ -18,6 +18,7 @@ The following source types are supported:
 * Open Sound Control (OSC)
 * Panasonic AV-HS410
 * Analog Way Livecore Image Processors
+* Riedel SimplyLive
 
 When you add a source and the connection to the tally source (video switcher, software, etc.) is successfully made, the source will be green. If there is an error, the source will be red. Look at the logs for more error information.
 
@@ -70,3 +71,7 @@ You will need the IP address of the switcher. Multicast must also be enabled on 
 
 ## Analog Way Livecore Image Processors
 You will need the IP address of the device, and the port (standard port is 10600).
+
+## Riedel SimplyLive
+You need to configure TSL in the SimplyLive backend to send the data to Tally Arbiter at the port you specify.
+Uses an TSL v5 UDP connection internally.

@@ -1,4 +1,3 @@
-import { logger } from "..";
 import { RegisterTallyInput } from "../_decorators/RegisterTallyInput.decorator";
 import { FreePort, UsePort } from "../_decorators/UsesPort.decorator";
 import { Source } from '../_models/Source';
@@ -133,55 +132,61 @@ export class TSL3TCPSource extends TallyInput {
     }
 }
 
+export class TSL5DataParser {
+    public static parseTSL5Data(data) {
+        let tallyobj: any = {};
+
+        var cursor = 0;
+
+        //Message Format
+        const _PBC = 2 //bytes
+        const _VAR = 1
+        const _FLAGS = 1
+        const _SCREEN = 2
+        const _INDEX = 2
+        const _CONTROL = 2
+
+        //Display Data
+        const _LENGTH = 2
+
+        tallyobj.PBC = jspack.Unpack("<H", data, cursor);
+        cursor += _PBC;
+
+        tallyobj.VAR = jspack.Unpack("<B", data, cursor);
+        cursor += _VAR;
+
+        tallyobj.FLAGS = jspack.Unpack("<B", data, cursor);
+        cursor += _FLAGS;
+
+        tallyobj.SCREEN = jspack.Unpack("<H", data, cursor);
+        cursor += _SCREEN;
+
+        tallyobj.INDEX = jspack.Unpack("<H", data, cursor);
+        cursor += _INDEX;
+
+        tallyobj.CONTROL = jspack.Unpack("<H", data, cursor);
+        cursor += _CONTROL;
+
+        tallyobj.control = {};
+        tallyobj.control.rh_tally = (tallyobj.CONTROL >> 0 & 0b11);
+        tallyobj.control.text_tally = (tallyobj.CONTROL >> 2 & 0b11);
+        tallyobj.control.lh_tally = (tallyobj.CONTROL >> 4 & 0b11);
+        tallyobj.control.brightness = (tallyobj.CONTROL >> 6 & 0b11);
+        tallyobj.control.reserved = (tallyobj.CONTROL >> 8 & 0b1111111);
+        tallyobj.control.control_data = (tallyobj.CONTROL >> 15 & 0b1);
+
+        var LENGTH = jspack.Unpack("<H", data, cursor)
+        cursor += _LENGTH;
+
+        tallyobj.TEXT = jspack.Unpack("s".repeat(LENGTH), data, cursor)
+        return tallyobj;
+    }
+}
+
 class TSL5Base extends TallyInput {
     protected processTSL5Tally(data) {
         if (data.length > 12) {
-
-            let tallyobj: any = {};
-
-            var cursor = 0;
-
-            //Message Format
-            const _PBC = 2 //bytes
-            const _VAR = 1
-            const _FLAGS = 1
-            const _SCREEN = 2
-            const _INDEX = 2
-            const _CONTROL = 2
-
-            //Display Data
-            const _LENGTH = 2
-
-            tallyobj.PBC = jspack.Unpack( "<H", data, cursor);
-            cursor += _PBC;
-
-            tallyobj.VAR = jspack.Unpack( "<B", data, cursor);
-            cursor += _VAR;
-
-            tallyobj.FLAGS = jspack.Unpack( "<B", data, cursor);
-            cursor += _FLAGS;
-
-            tallyobj.SCREEN = jspack.Unpack( "<H", data, cursor);
-            cursor += _SCREEN;
-
-            tallyobj.INDEX = jspack.Unpack( "<H", data, cursor);
-            cursor += _INDEX;
-
-            tallyobj.CONTROL = jspack.Unpack( "<H", data, cursor);
-            cursor += _CONTROL;
-
-            tallyobj.control = {};
-            tallyobj.control.rh_tally = (tallyobj.CONTROL >> 0 & 0b11);
-            tallyobj.control.text_tally = (tallyobj.CONTROL >> 2 & 0b11);
-            tallyobj.control.lh_tally = (tallyobj.CONTROL >> 4 & 0b11);
-            tallyobj.control.brightness = (tallyobj.CONTROL >> 6 & 0b11);
-            tallyobj.control.reserved = (tallyobj.CONTROL >> 8 & 0b1111111);
-            tallyobj.control.control_data = (tallyobj.CONTROL >> 15 & 0b1);
-
-            var LENGTH = jspack.Unpack( "<H", data, cursor)
-            cursor += _LENGTH;
-
-            tallyobj.TEXT = jspack.Unpack( "s".repeat(LENGTH), data, cursor)
+            let tallyobj: any = TSL5DataParser.parseTSL5Data(data)
 
 			this.renameAddress(tallyobj.INDEX[0].toString(), tallyobj.INDEX[0].toString(), tallyobj.TEXT.toString().trim()); 
 
