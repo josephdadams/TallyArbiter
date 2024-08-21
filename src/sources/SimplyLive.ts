@@ -21,9 +21,12 @@ export class SimplyLivePSource extends TallyInput {
         this.server.bind(port);
 
         this.server.on('message', (message) => {
-            if (message.length > 12) {
+            if (message.length >= 12) {
                 let tallyobj: any = TSL5DataParser.parseTSL5Data(message)
-                this.renameAddress(tallyobj.INDEX[0].toString(), tallyobj.INDEX[0].toString(), tallyobj.TEXT.toString().trim());
+
+                if (tallyobj.TEXT !== "") {
+                    this.renameAddress(tallyobj.INDEX[0].toString(), tallyobj.INDEX[0].toString(), tallyobj.TEXT.toString().trim());
+                }
 
                 let inPreview: number = 0;
                 let inProgram: number = 0;
