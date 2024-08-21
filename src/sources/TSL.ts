@@ -178,17 +178,19 @@ export class TSL5DataParser {
         var LENGTH = jspack.Unpack("<H", data, cursor)
         cursor += _LENGTH;
 
-        tallyobj.TEXT = jspack.Unpack("s".repeat(LENGTH), data, cursor)
+        tallyobj.TEXT = jspack.Unpack("s".repeat(LENGTH), data, cursor).join("")
         return tallyobj;
     }
 }
 
 class TSL5Base extends TallyInput {
     protected processTSL5Tally(data) {
-        if (data.length > 12) {
+        if (data.length >= 12) {
             let tallyobj: any = TSL5DataParser.parseTSL5Data(data)
 
-			this.renameAddress(tallyobj.INDEX[0].toString(), tallyobj.INDEX[0].toString(), tallyobj.TEXT.toString().trim()); 
+            if (tallyobj.TEXT !== "") {
+                this.renameAddress(tallyobj.INDEX[0].toString(), tallyobj.INDEX[0].toString(), tallyobj.TEXT.toString().trim());
+            }
 
             let inPreview = 0;
             let inProgram = 0;
