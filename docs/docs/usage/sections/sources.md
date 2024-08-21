@@ -74,3 +74,4 @@ You will need the IP address of the device, and the port (standard port is 10600
 
 ## Riedel SimplyLive
 You need to configure TSL in the SimplyLive backend to send the data to Tally Arbiter at the port you specify.
+Uses an TSL v5 UDP connection internally.
