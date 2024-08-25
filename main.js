@@ -1,8 +1,8 @@
 // This is the electron startup script
-const { app, BrowserWindow, Tray, Menu, dialog, ipcMain, powerMonitor } = require('electron');
-const { autoUpdater } = require("electron-updater");
-const { nativeImage } = require('electron/common');
-const path = require("path");
+import { app, BrowserWindow, Tray, Menu, dialog, ipcMain, powerMonitor } from 'electron';
+import { autoUpdater } from "electron-updater";
+import { nativeImage } from 'electron/common';
+import path from "path";
 
 let server;
 let mainWindow;
@@ -166,7 +166,7 @@ function checkForUpdates() {
     </style>
   </head>
   <body>
-    <script>const { ipcRenderer } = require('electron');</script>
+    <script>import { ipcRenderer } from 'electron';</script>
     <h1><b>There's an update available for TallyArbiter.</b> Do you want to download and install it?</h1>
     <button class="btn btn-success" onclick="ipcRenderer.send('updateButtonPressed')">Update</button> <button class="btn btn-danger" onclick="window.close();">Cancel</button>
     <h1>Release notes for version <b>${info.releaseName}</b>:</h1>
