@@ -105,8 +105,30 @@ export class TallyInput extends EventEmitter {
     }
     
     protected renameAddress(address: string, newAddress: string, newLabel: string) {
-        this.emit("renameAddress", address, newAddress);
-        this.addresses.next(this.addresses.value.filter((a) => a.address !== address).concat({ address: newAddress, label: newLabel }));
+        this.emit("renameAddress", address, newAddress); //this is for source types where the address is used as a key and is not a fixed number, like OBS
+
+		//first check to see if the address current label is the same as the new label
+		//if it is, don't update the label
+		let addressObj = this.addresses.value.find((a) => a.address === address);
+		if (addressObj) {
+			if (addressObj.label !== newLabel) {
+				this.addresses.next(this.addresses.value.filter((a) => a.address !== address).concat({ address: newAddress, label: newLabel }));
+			}
+		}
+		else {
+			this.addresses.next(this.addresses.value.concat({ address: newAddress, label: newLabel }));
+		}
+
+		//now sort the addresses by address
+		//first, let's see if the addresses are a number, or a string. If it returns NaN, it's a string, and we can sort alphabetically. If it's a number, we can sort numerically.
+		this.addresses.value.sort((a, b) => {
+			if (isNaN(parseInt(a.address))) {
+				return a.address.localeCompare(b.address);
+			}
+			else {
+				return parseInt(a.address) - parseInt(b.address);
+			}
+		});
     }
 
     protected addBusToAddress(address: string, bus: string) {
