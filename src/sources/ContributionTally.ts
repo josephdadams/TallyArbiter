@@ -67,54 +67,54 @@ const CTPbussesRossVision = [
 	{ address: '2', bus: 'me2', name: "ME 2", type: "me" },
 	{ address: '3', bus: 'me3', name: "ME 3", type: "me" },
 	{ address: '4', bus: 'me4', name: "ME 4", type: "me" },
-	{ address: '1', bus: 'aux1:1', name: "Aux 1:1", type: "output" },
-	{ address: '2', bus: 'aux1:2', name: "Aux 1:2", type: "output" },
-	{ address: '3', bus: 'aux1:3', name: "Aux 1:3", type: "output" },
-	{ address: '4', bus: 'aux1:4', name: "Aux 1:4", type: "output" },
-	{ address: '5', bus: 'pgm', name: "PGM", type: "output" },
-	{ address: '6', bus: 'pvw', name: "PVW", type: "output" },
-	{ address: '7', bus: 'clean', name: "Clean", type: "output" },
-	{ address: '8', bus: 'aux1:5', name: "Aux 1:5", type: "output" },
-	{ address: '9', bus: 'aux1:6', name: "Aux 1:6", type: "output" },
-	{ address: '10', bus: 'aux1:7', name: "Aux 1:7", type: "output" },
-	{ address: '11', bus: 'aux1:8', name: "Aux 1:8", type: "output" },
-	{ address: '12', bus: 'aux2:1', name: "Aux 2:1", type: "output" },
-	{ address: '13', bus: 'aux2:2', name: "Aux 2:2", type: "output" },
-	{ address: '14', bus: 'aux2:3', name: "Aux 2:3", type: "output" },
-	{ address: '15', bus: 'aux2:4', name: "Aux 2:4", type: "output" },
-	{ address: '16', bus: 'aux2:5', name: "Aux 2:5", type: "output" },
-	{ address: '17', bus: 'aux2:6', name: "Aux 2:6", type: "output" },
-	{ address: '18', bus: 'aux2:7', name: "Aux 2:7", type: "output" },
-	{ address: '19', bus: 'aux2:8', name: "Aux 2:8", type: "output" },
-	{ address: '20', bus: 'aux3:1', name: "Aux 3:1", type: "output" },
-	{ address: '21', bus: 'aux3:2', name: "Aux 3:2", type: "output" },
-	{ address: '22', bus: 'aux3:3', name: "Aux 3:3", type: "output" },
-	{ address: '23', bus: 'aux3:4', name: "Aux 3:4", type: "output" },
-	{ address: '24', bus: 'aux3:5', name: "Aux 3:5", type: "output" },
-	{ address: '25', bus: 'aux3:6', name: "Aux 3:6", type: "output" },
-	{ address: '26', bus: 'aux3:7', name: "Aux 3:7", type: "output" },
-	{ address: '27', bus: 'aux3:8', name: "Aux 3:8", type: "output" },
-	{ address: '28', bus: 'aux4:1', name: "Aux 4:1", type: "output" },
-	{ address: '29', bus: 'aux4:2', name: "Aux 4:2", type: "output" },
-	{ address: '30', bus: 'aux4:3', name: "Aux 4:3", type: "output" },
-	{ address: '31', bus: 'aux4:4', name: "Aux 4:4", type: "output" },
-	{ address: '32', bus: 'aux4:5', name: "Aux 4:5", type: "output" },
-	{ address: '33', bus: 'aux4:6', name: "Aux 4:6", type: "output" },
-	{ address: '34', bus: 'aux4:7', name: "Aux 4:7", type: "output" },
-	{ address: '35', bus: 'aux4:8', name: "Aux 4:8", type: "output" },
-	{ address: '36', bus: 'aux5:1', name: "Aux 5:1", type: "output" },
-	{ address: '37', bus: 'aux5:2', name: "Aux 5:2", type: "output" },
-	{ address: '38', bus: 'aux5:3', name: "Aux 5:3", type: "output" },
-	{ address: '39', bus: 'aux5:4', name: "Aux 5:4", type: "output" },
-	{ address: '40', bus: 'aux5:5', name: "Aux 5:5", type: "output" },
-	{ address: '41', bus: 'aux5:6', name: "Aux 5:6", type: "output" },
-	{ address: '42', bus: 'aux5:7', name: "Aux 5:7", type: "output" },
-	{ address: '43', bus: 'aux5:8', name: "Aux 5:8", type: "output" },
-	{ address: '44', bus: 'aux6:1', name: "Aux 6:1", type: "output" },
-	{ address: '45', bus: 'aux6:2', name: "Aux 6:2", type: "output" },
-	{ address: '46', bus: 'aux6:3', name: "Aux 6:3", type: "output" },
-	{ address: '47', bus: 'aux6:4', name: "Aux 6:4", type: "output" },
-	{ address: '48', bus: 'aux6:5', name: "Aux 6:5", type: "output" },
+	{ address: '1', bus: 'output1', name: "Aux 1:1", type: "output" },
+	{ address: '2', bus: 'output2', name: "Aux 1:2", type: "output" },
+	{ address: '3', bus: 'output3', name: "Aux 1:3", type: "output" },
+	{ address: '4', bus: 'output4', name: "Aux 1:4", type: "output" },
+	{ address: '5', bus: 'output5', name: "PGM", type: "output" },
+	{ address: '6', bus: 'output6', name: "PVW", type: "output" },
+	{ address: '7', bus: 'output7', name: "Clean", type: "output" },
+	{ address: '8', bus: 'output8', name: "Aux 1:5", type: "output" },
+	{ address: '9', bus: 'output9', name: "Aux 1:6", type: "output" },
+	{ address: '10', bus: 'output10', name: "Aux 1:7", type: "output" },
+	{ address: '11', bus: 'output11', name: "Aux 1:8", type: "output" },
+	{ address: '12', bus: 'output12', name: "Aux 2:1", type: "output" },
+	{ address: '13', bus: 'output13', name: "Aux 2:2", type: "output" },
+	{ address: '14', bus: 'output14', name: "Aux 2:3", type: "output" },
+	{ address: '15', bus: 'output15', name: "Aux 2:4", type: "output" },
+	{ address: '16', bus: 'output16', name: "Aux 2:5", type: "output" },
+	{ address: '17', bus: 'output17', name: "Aux 2:6", type: "output" },
+	{ address: '18', bus: 'output18', name: "Aux 2:7", type: "output" },
+	{ address: '19', bus: 'output19', name: "Aux 2:8", type: "output" },
+	{ address: '20', bus: 'output20', name: "Aux 3:1", type: "output" },
+	{ address: '21', bus: 'output21', name: "Aux 3:2", type: "output" },
+	{ address: '22', bus: 'output22', name: "Aux 3:3", type: "output" },
+	{ address: '23', bus: 'output23', name: "Aux 3:4", type: "output" },
+	{ address: '24', bus: 'output24', name: "Aux 3:5", type: "output" },
+	{ address: '25', bus: 'output25', name: "Aux 3:6", type: "output" },
+	{ address: '26', bus: 'output26', name: "Aux 3:7", type : "output" },
+	{ address: '27', bus: 'output27', name: "Aux 3:8", type: "output" },
+	{ address: '28', bus: 'output28', name: "Aux 4:1", type: "output" },
+	{ address: '29', bus: 'output29', name: "Aux 4:2", type: "output" },
+	{ address: '30', bus: 'output30', name: "Aux 4:3", type: "output" },
+	{ address: '31', bus: 'output31', name: "Aux 4:4", type: "output" },
+	{ address: '32', bus: 'output32', name: "Aux 4:5", type: "output" },
+	{ address: '33', bus: 'output33', name: "Aux 4:6", type: "output" },
+	{ address: '34', bus: 'output34', name: "Aux 4:7", type: "output" },
+	{ address: '35', bus: 'output35', name: "Aux 4:8", type: "output" },
+	{ address: '36', bus: 'output36', name: "Aux 5:1", type: "output" },
+	{ address: '37', bus: 'output37', name: "Aux 5:2", type: "output" },
+	{ address: '38', bus: 'output38', name: "Aux 5:3", type: "output" },
+	{ address: '39', bus: 'output39', name: "Aux 5:4", type: "output" },
+	{ address: '40', bus: 'output40', name: "Aux 5:5", type: "output" },
+	{ address: '41', bus: 'output41', name: "Aux 5:6", type: "output" },
+	{ address: '42', bus: 'output42', name: "Aux 5:7", type: "output" },
+	{ address: '43', bus: 'output43', name: "Aux 5:8", type: "output" },
+	{ address: '44', bus: 'output44', name: "Aux 6:1", type : "output" },
+	{ address: '45', bus: 'output45', name: "Aux 6:2", type: "output" },
+	{ address: '46', bus: 'output46', name: "Aux 6:3", type: "output" },
+	{ address: '47', bus: 'output47', name: "Aux 6:4", type: "output" },
+	{ address: '48', bus: 'output48', name: "Aux 6:5", type: "output" },
 ];
 
 const CTPFields: TallyInputConfigField[] = [
@@ -144,7 +144,6 @@ export class CTPSource extends TallyInput {
 			this.server = dgram.createSocket({ type: 'udp4', reuseAddr: true });
 
 			this.server.on('message', (data) => {
-				this.connected.next(true);
 				this.processCTPData(data);
 			});
 
@@ -154,11 +153,15 @@ export class CTPSource extends TallyInput {
 			});
 			
 			this.server.bind(port);
+			this.connected.next(true); //just assume we're connected if UDP
 		}
 		else {
 			this.server = net.createServer((socket) => {
+				socket.on('connect', () => {
+					this.connected.next(true); //set connected to true when a connection is made
+				});
+
 				socket.on('data', (data) => {
-					this.connected.next(true);
 					this.processCTPData(data);
 				});
 
@@ -265,7 +268,7 @@ export class CTPSource extends TallyInput {
 					parsedData = this.parseStillStoreContribution(section.data);
 					break;
 				case 0xB: // Outputs Status
-					parsedData = this.parseOutputsStatus(section.data);
+					parsedData = this.parseOutputsStatus(section.data, section.instanceID);
 					break;
 				case 0xC: // Source Name
 					parsedData = this.parseSourceName(section.data, section.instanceID);
@@ -576,34 +579,78 @@ export class CTPSource extends TallyInput {
 		};
 	}
 	
-	private parseOutputsStatus(data) {
-		let blockID = null;
-		const outputs = [];
+	private parseOutputsStatus(data, blockID: number) {
+		//the block id determines the block of outputs this data is for
+		//for example, block id1, the 8 outputs are 1-8, block id2, the 8 outputs are 9-16, etc
 	
-		// Iterate over each byte in the data
-		for (let i = 0; i < data.length; i++) {
-			const byteValue = parseInt(data[i], 16);
-	
-			if (i === 0) {
-				// First byte is the Block ID
-				blockID = byteValue;
-			} else {
-				// Subsequent bytes are the Output Source and Mode
-				const sourceID = (byteValue & 0x7F); // Source ID (7 bits)
-				const mode = (byteValue & 0x80) >> 7; // Mode (1 bit, MSB)
-	
-				outputs.push({
-					outputIndex: i,
-					sourceID,
-					mode: mode === 0 ? "Video-video" : "Video-key"
-				});
-			}
-		}
-	
-		return {
-			blockID,
-			outputs
+		//byte 1 is the first output status
+		let byte1 = parseInt(data[0], 16);
+
+		//byte 2 is 8 bits of output status mode, the first four are 0,
+		//the second four are out 7/8, 5/6, 3/4, 1/2 where 0 = "video-video" and 1 = "video-key"
+		let byte2 = parseInt(data[1], 16);
+		let output78_mode = (byte2 & 0x01) >> 0;
+		let output56_mode = (byte2 & 0x02) >> 1;
+		let output34_mode = (byte2 & 0x04) >> 2;
+		let output12_mode = (byte2 & 0x08) >> 3;
+
+		//byte 3 is the second output status
+		let byte3 = parseInt(data[2], 16);
+
+		//byte 4 is 8 bits of output on air status
+		let byte4 = parseInt(data[3], 16);
+		let output8_on_air = (byte4 & 0x01) >> 0;
+		let output7_on_air = (byte4 & 0x02) >> 1;
+		let output6_on_air = (byte4 & 0x04) >> 2;
+		let output5_on_air = (byte4 & 0x08) >> 3;
+		let output4_on_air = (byte4 & 0x10) >> 4;
+		let output3_on_air = (byte4 & 0x20) >> 5;
+		let output2_on_air = (byte4 & 0x40) >> 6;
+		let output1_on_air = (byte4 & 0x80) >> 7;
+
+		//byte 5 is the third output status
+		let byte5 = parseInt(data[4], 16);
+
+		//byte 6 is the fourth output status
+		let byte6 = parseInt(data[5], 16);
+
+		//byte 7 is the fifth output status
+		let byte7 = parseInt(data[6], 16);
+
+		//byte 8 is the sixth output status
+		let byte8 = parseInt(data[7], 16);
+
+		//byte 9 is the seventh output status
+		let byte9 = parseInt(data[8], 16);
+
+		//byte 10 is the eighth output status
+		let byte10 = parseInt(data[9], 16);
+
+		let outputsBytes = {
+			1: byte1,
+			2: byte3,
+			3: byte5,
+			4: byte6,
+			5: byte7,
+			6: byte8,
+			7: byte9,
+			8: byte10
 		};
+
+		let outputs = [];
+
+		//when returning the object, name the output based on the block id
+		let outputOffsetNumber = (blockID - 1) * 8;
+
+		for (let i = 1; i <= 8; i++) {
+			let outputObj = {
+				blockId: blockID,
+				bus: 'output' + (outputOffsetNumber + i),
+				address: outputsBytes[i].toString(),
+			}
+			outputs.push(outputObj);
+		}
+		return outputs;
 	}
 	
 	private parseSourceName(data, namesetId: number) {
@@ -648,7 +695,6 @@ export class CTPSource extends TallyInput {
 	//TALLY SPECIFIC FUNCTIONS
 	private processTally(tallyDataType: string, data) {
 		if (tallyDataType === 'me') {
-			console.log('processTally me', data);
 			/*
 				loop through device_sources
 				if device_source.sourceId === this.source.id
@@ -678,7 +724,7 @@ export class CTPSource extends TallyInput {
 			for (let i = 0; i < device_sources.length; i++) {
 				let deviceSourceObj = device_sources[i];
 				if (deviceSourceObj.sourceId === this.source.id) { //this device_source is associated with the tally data of this source
-					if (deviceSourceObj.bus === 'me' + data.ME_ID) { //the me of this contribution data
+					if (deviceSourceObj.bus === bus) { //the me of this contribution data
 						if (deviceSourceObj.address === addressPGM) { //this device_source's address matches what was in the a_source field
 							this.addTally(deviceSourceObj.address, bus, 'program');
 						}
@@ -721,10 +767,48 @@ export class CTPSource extends TallyInput {
 			}
 		}
 		else if (tallyDataType === 'output') {
-			//console.log('processTally output', contributionData);
-		}
+			//we will process this similar to ME data but only as a program bus. maybe later we can add proper aux support
+			//loop through the data array, it will be 8 entries, one for each output
+			for (let i = 0; i < data.length; i++) {
+				let bus = data[i].bus
+				let address = data[i].address.toString();
 
-		console.log('finished')
+				for (let i = 0; i < device_sources.length; i++) {
+					let deviceSourceObj = device_sources[i];
+					if (deviceSourceObj.sourceId === this.source.id) { //this device_source is associated with the tally data of this output source
+						if (deviceSourceObj.bus === bus) { //the output number of this contribution data
+							if (deviceSourceObj.address === address) { //this device_source's address matches what was in the output pgm field
+								this.addTally(deviceSourceObj.address, bus, 'program'); //currently in this output
+							}
+							else {
+								this.removeTally(deviceSourceObj.address, bus, 'program'); //no longer in this output
+							}
+						}
+					}
+				}
+			}
+
+			//get array of unique device_source addresses for this source
+			let uniqueAddresses = [...new Set(device_sources.filter(obj => obj.sourceId === this.source.id).map(obj => obj.address))];
+
+			if (uniqueAddresses.length > 0) {
+				for (let i = 0; i < uniqueAddresses.length; i++) {
+					let address = uniqueAddresses[i];
+					let busses = [];
+
+					for (let j = 0; j < this.CTPtallydata.length; j++) {
+						if (this.CTPtallydata[j].address === address) {
+							if (this.CTPtallydata[j].busType === 'program') {
+								busses.push('program');
+								break; //no need to continue if it's in program in one place, that's enough
+							}
+						}
+					}
+
+					this.setBussesForAddress(address, busses);
+				}
+			}
+		}
     }
 
     private addTally(address: string, bus: string, busType: string) {
@@ -763,37 +847,3 @@ export class CTPSource extends TallyInput {
         this.connected.next(false);
     }
 }
-
-/*
-ROSS VISION MAPPING TO CTP
-
-Input Table:
-
-   InvalidSrc = 0
-   FirstBNC   = 1
-   LastBNC    = MAX_INPUTS //Max 92 In 93-96 are not tallied.
-   Mle1  = 93
-   Clean1 = 94
-   Pvw1   = 97
-   Pvw1b  = 98,    //Program Out before FTB.
-   Mle2   = 99
-   Clean2 = 100
-   Pvw2   = 103
-   Pvw2b  = 104,   //Program Out before FTB.
-   Mle3   = 105
-   Clean3 = 106
-   Pvw3   = 109
-   Pvw3b  = 110,   //Program Out before FTB.
-   Mle4   = 111,   //Program MLE Output.
-   Clean4 = 112,   //Clean Feed Output.
-   Pvw4   = 115,   //Preview Bus (always).
-   Pvw4b  = 116,   //Program Out before FTB.
-   Test   = 117,   //Used for DVE Send—N/A in MD/X or QMD/X
-   Black = 118
-   Bkgd1 = 119
-   Bkgd2 = 120
-   StillFirst = 121
-   GlbStoreLast = 123
-   MLEStoreFirst = 125,  // MLE Stores are mapped to GVG Still 5,6,7,8
-   StillLast  = 128,
-   */
