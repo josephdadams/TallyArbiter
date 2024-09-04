@@ -3,7 +3,7 @@ export type AddressTallyData = {
 }
 
 export type SourceTallyData = {
-    [sourceId: string]: string[];
+    [deviceSourceId: string]: string[];
 }
 
 export type DeviceTallyData = {
