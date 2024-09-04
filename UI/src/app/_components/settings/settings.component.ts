@@ -234,6 +234,10 @@ export class SettingsComponent {
 			type: "device_source",
 			device_source: deviceSourceObj,
 		};
+
+		//reset the currentDeviceSource
+		this.currentDeviceSource = {} as DeviceSource;
+
 		this.socketService.socket.emit('manage', arbiterObj);
 	}
 
