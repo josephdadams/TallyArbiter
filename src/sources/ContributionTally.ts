@@ -752,12 +752,16 @@ export class CTPSource extends TallyInput {
 					for (let j = 0; j < this.CTPtallydata.length; j++) {
 						if (this.CTPtallydata[j].address === address) {
 							if (this.CTPtallydata[j].busType === 'program') {
-								busses.push('program');
-								break; //no need to continue if it's in program in one place, that's enough
+								//check to see if 'program' is already in busses and add it if not
+								if (!busses.includes('program')) {
+									busses.push('program');
+								}
 							}
 							if (this.CTPtallydata[j].busType === 'preview') {
-								busses.push('preview');
-								break; //no need to continue if it's in preview in one place, that's enough
+								//check to see if 'preview' is already in busses and add it if not
+								if (!busses.includes('preview')) {
+									busses.push('preview');
+								}
 							}
 						}
 					}
@@ -799,8 +803,10 @@ export class CTPSource extends TallyInput {
 					for (let j = 0; j < this.CTPtallydata.length; j++) {
 						if (this.CTPtallydata[j].address === address) {
 							if (this.CTPtallydata[j].busType === 'program') {
-								busses.push('program');
-								break; //no need to continue if it's in program in one place, that's enough
+								//check to see if 'program' is already in busses and add it if not
+								if (!busses.includes('program')) {
+									busses.push('program');
+								}
 							}
 						}
 					}
