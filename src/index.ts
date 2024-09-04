@@ -1896,13 +1896,13 @@ function TallyArbiter_Edit_Device_Source(obj: Manage): ManageResponse {
 			device_sources[i].sourceId = deviceSourceObj.sourceId;
 			oldAddress = device_sources[i].address;
 			device_sources[i].address = deviceSourceObj.address;
+			if (deviceSourceObj.bus) {
+				device_sources[i].bus = deviceSourceObj.bus;
+			}
+			device_sources[i].rename = deviceSourceObj.rename;
+			device_sources[i].reconnect_interval = deviceSourceObj.reconnect_interval;
+			device_sources[i].max_reconnects = deviceSourceObj.max_reconnects;
 		}
-		if (device_sources[i].bus) {
-			device_sources[i].bus = deviceSourceObj.bus;
-		}
-		device_sources[i].rename = deviceSourceObj.rename;
-		device_sources[i].reconnect_interval = deviceSourceObj.reconnect_interval;
-		device_sources[i].max_reconnects = deviceSourceObj.max_reconnects;
 	}
 
 	let deviceName = ''
