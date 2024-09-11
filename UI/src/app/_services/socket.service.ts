@@ -42,6 +42,7 @@ export class SocketService {
   public vmixClients: VmixClient[] = [];
   public sources: Source[] = [];
   public busOptions: BusOption[] = [];
+  public busOptionsVisible: BusOption[] = [];
   public remoteErrorOpt: boolean = true;
   public initialDataLoaded = false;
   public version?: string;
@@ -231,6 +232,7 @@ export class SocketService {
       this.outputTypes = outputTypes;
       this.outputTypeDataFields = outputTypesDataFields;
       this.busOptions = busOptions;
+	  this.busOptionsVisible = busOptions.filter((b) => b.visible);
       this.sources =  this.prepareSources(sourcesData);
       this.devices = devicesData;
       this.deviceSources = deviceSources;

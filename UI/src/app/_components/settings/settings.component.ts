@@ -234,6 +234,10 @@ export class SettingsComponent {
 			type: "device_source",
 			device_source: deviceSourceObj,
 		};
+
+		//reset the currentDeviceSource
+		this.currentDeviceSource = {} as DeviceSource;
+
 		this.socketService.socket.emit('manage', arbiterObj);
 	}
 
@@ -743,6 +747,13 @@ export class SettingsComponent {
 		} as CloudDestination;
 		this.modalService.open(modal);
 	}
+
+	public addBusOption(modal: any) {
+		this.editingBusOption = false;
+		this.currentBusOption = { } as BusOption;
+		this.modalService.open(modal);
+	}
+
 	public editBusOption(bus: BusOption, modal: any) {
 		this.editingBusOption = true;
 		this.currentBusOptionSelectedTypeIdx = this.socketService.busOptions.findIndex((t) => t.id == bus.id);

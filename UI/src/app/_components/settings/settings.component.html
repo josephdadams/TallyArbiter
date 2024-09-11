@@ -339,6 +339,7 @@
                               </tbody>
                           </table>
                         </div>
+						<button class="btn btn-sm btn-success" (click)="addBusOption(busOptionModal)"><i class="fas fa-plus"></i> Add </button>
                     </div>
                 </div>
                 <div *ngIf="!configLoaded" class="d-flex justify-content-center mt-3 pt-3">
@@ -481,7 +482,7 @@
       <table class="table table-hover align-middle" *ngIf="socketService.devices.length > 0">
           <thead>
               <tr>
-                  <th *ngFor="let bus of socketService.busOptions">{{bus.label}}</th>
+                  <th *ngFor="let bus of socketService.busOptionsVisible">{{bus.label}}</th>
                   <th style="min-width: 100px;">Name</th>
                   <th></th>
                   <th style="min-width: 200px;">Description</th>
@@ -490,7 +491,7 @@
           </thead>
           <tbody>
               <tr *ngFor="let device of socketService.devices; index as index" [class.text-muted]="!device.enabled">
-                  <td *ngFor="let bus of socketService.busOptions" [style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : '#FFFFFF'"></td>
+                  <td *ngFor="let bus of socketService.busOptionsVisible" [style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : '#FFFFFF'"></td>
                   <td>
                       <small><b>{{ index + 1 }}</b></small> {{ device.name }}
                   </td>
@@ -635,7 +636,7 @@
         <div class="mb-3">
             <b>Linked Busses:</b><br>
             <small>
-                By default busses are unlinked. That means the device will be (for example) in PVW if it is in PVW in <b>any</b> Device Source. All busses you select here will only be in that bus if it is in PVW across <b>all</b> Device Sources.
+                By default busses are unlinked. That means the device will be (for example) in Preview if it is in Preview in <b>any</b> Device Source. By linking, all busses you select here will only be in that bus within Tally Arbiter if it is in Preview across <b>all</b> Device Sources.
             </small>
             <div>
                 <select class="form-select" [(ngModel)]="currentDevice.linkedBusses" multiple="multiple">
@@ -903,6 +904,10 @@
             <label for="busColor" class="form-label">Color</label>
             <input type="color" class="form-control color-input" id="busColor" [(ngModel)]="currentBusOption.color" />
         </div>
+		<div class="mb-3">
+			<input type="checkbox" class="form-check-input" id="busVisible" [(ngModel)]="currentBusOption.visible" />
+			<label class="form-check-label" for="busVisible">Visible in UI</label>
+		</div>
         <div class="d-flex justify-content-end">
             <button class="btn btn-primary" (click)="saveCurrentBusOption()">
           <i class="fas fa-save"></i> {{ editingBusOption ? "Save Changes" : "Add Bus Option" }}
