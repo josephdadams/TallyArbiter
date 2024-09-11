@@ -1,3 +1,4 @@
+import { currentConfig } from '../_helpers/config';
 import { EventEmitter } from "events";
 import { BehaviorSubject } from "rxjs";
 import { logger } from "..";
@@ -105,8 +106,30 @@ export class TallyInput extends EventEmitter {
     }
     
     protected renameAddress(address: string, newAddress: string, newLabel: string) {
-        this.emit("renameAddress", address, newAddress);
-        this.addresses.next(this.addresses.value.filter((a) => a.address !== address).concat({ address: newAddress, label: newLabel }));
+        this.emit("renameAddress", address, newAddress); //this is for source types where the address is used as a key and is not a fixed number, like OBS
+
+		//first check to see if the address current label is the same as the new label
+		//if it is, don't update the label
+		let addressObj = this.addresses.value.find((a) => a.address === address);
+		if (addressObj) {
+			if (addressObj.label !== newLabel) {
+				this.addresses.next(this.addresses.value.filter((a) => a.address !== address).concat({ address: newAddress, label: newLabel }));
+			}
+		}
+		else {
+			this.addresses.next(this.addresses.value.concat({ address: newAddress, label: newLabel }));
+		}
+
+		//now sort the addresses by address
+		//first, let's see if the addresses are a number, or a string. If it returns NaN, it's a string, and we can sort alphabetically. If it's a number, we can sort numerically.
+		this.addresses.value.sort((a, b) => {
+			if (isNaN(parseInt(a.address))) {
+				return a.address.localeCompare(b.address);
+			}
+			else {
+				return parseInt(a.address) - parseInt(b.address);
+			}
+		});
     }
 
     protected addBusToAddress(address: string, bus: string) {
@@ -133,7 +156,26 @@ export class TallyInput extends EventEmitter {
     }
 
     protected setBussesForAddress(address: string, busses: string[]) {
-        this.tallyData[address] = busses || [];
+		//if bus is "preview" or "program", find its real bus id and use that instead because many source types use those words instead of the actual busId
+		let realBusses = [];
+		for (let bus of busses) {
+			if (bus === "preview") {
+				realBusses.push(currentConfig.bus_options.find((b) => b.type === "preview").id);
+			}
+			else if (bus === "program") {
+				realBusses.push(currentConfig.bus_options.find((b) => b.type === "program").id);
+			}
+			else if (bus === "aux") {
+				realBusses.push(currentConfig.bus_options.find((b) => b.type === "aux").id);
+			}
+			else {
+				realBusses.push(bus);
+			}
+		}
+
+		//console.log("realBusses", realBusses);
+
+        this.tallyData[address] = realBusses || [];
     }
 
     protected clearTallies() {

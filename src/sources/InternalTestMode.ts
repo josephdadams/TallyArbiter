@@ -1,3 +1,4 @@
+import { currentConfig } from '../_helpers/config';
 import { timeStamp } from "console";
 import { RegisterTallyInput } from "../_decorators/RegisterTallyInput.decorator";
 import { Source } from '../_models/Source';
@@ -16,7 +17,7 @@ export class InternalTestModeSource extends TallyInput {
     currentAddressNumber = 0;
     currentAddressIterations = 0;
 
-    busses = ["preview", "program", "aux"];
+    busses = currentConfig.bus_options.map((bus) => bus.id);
 
     testModeInterval: NodeJS.Timeout;
 
@@ -61,6 +62,8 @@ export class InternalTestModeSource extends TallyInput {
 
         //console.log("currentAddressNumber", this.currentAddressNumber, "currentAddressIterations", this.currentAddressIterations, this.busses[this.currentAddressIterations - 1]);
         
+		//console.log("busses", this.busses);
+
         this.busses.forEach((busses) => {
             this.removeBusFromAllAddresses(busses);
         });

@@ -33,10 +33,17 @@ export const ConfigDefaults: Config = {
     tsl_clients: [],
     tsl_clients_1secupdate: false,
     bus_options: [
-        { id: 'e393251c', label: 'Preview', type: 'preview', color: '#3fe481', priority: 50},
-        { id: '334e4eda', label: 'Program', type: 'program', color: '#e43f5a', priority: 200},
-        { id: '12c8d699', label: 'Aux 1', type: 'aux', color: '#0000FF', priority: 100},
-        { id: '12c8d689', label: 'Aux 2', type: 'aux', color: '#0000FF', priority: 100}
+        { id: 'e393251c', label: 'Preview', type: 'preview', color: '#3fe481', priority: 50, visible: true},
+        { id: '334e4eda', label: 'Program', type: 'program', color: '#e43f5a', priority: 200, visible: true},
+        { id: '12c8d699', label: 'Aux 1', type: 'aux', color: '#0000FF', priority: 100, visible: true},
+        { id: '0449b0c7', label: 'Aux 2', type: 'aux', color: '#0000FF', priority: 100, visible: true},
+		{ id: '5d94f273', label: 'Aux 3', type: 'aux', color: '#0000FF', priority: 100, visible: false},
+		{ id: '77ffb605', label: 'Aux 4', type: 'aux', color: '#0000FF', priority: 100, visible: false},
+		{ id: '09d4975d', label: 'Aux 5', type: 'aux', color: '#0000FF', priority: 100, visible: false},
+		{ id: 'e2c2e192', label: 'Aux 6', type: 'aux', color: '#0000FF', priority: 100, visible: false},
+		{ id: '734f7395', label: 'Aux 7', type: 'aux', color: '#0000FF', priority: 100, visible: false},
+		{ id: '3011d34a', label: 'Aux 8', type: 'aux', color: '#0000FF', priority: 100, visible: false},
+
     ],
     externalAddress: "http://0.0.0.0:4455/#/tally",
 	remoteErrorReporting: false,
