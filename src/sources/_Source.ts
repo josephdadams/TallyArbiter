@@ -1,3 +1,4 @@
+import { currentConfig } from '../_helpers/config';
 import { EventEmitter } from "events";
 import { BehaviorSubject } from "rxjs";
 import { logger } from "..";
@@ -155,7 +156,26 @@ export class TallyInput extends EventEmitter {
     }
 
     protected setBussesForAddress(address: string, busses: string[]) {
-        this.tallyData[address] = busses || [];
+		//if bus is "preview" or "program", find its real bus id and use that instead because many source types use those words instead of the actual busId
+		let realBusses = [];
+		for (let bus of busses) {
+			if (bus === "preview") {
+				realBusses.push(currentConfig.bus_options.find((b) => b.type === "preview").id);
+			}
+			else if (bus === "program") {
+				realBusses.push(currentConfig.bus_options.find((b) => b.type === "program").id);
+			}
+			else if (bus === "aux") {
+				realBusses.push(currentConfig.bus_options.find((b) => b.type === "aux").id);
+			}
+			else {
+				realBusses.push(bus);
+			}
+		}
+
+		//console.log("realBusses", realBusses);
+
+        this.tallyData[address] = realBusses || [];
     }
 
     protected clearTallies() {
