@@ -1,4 +1,5 @@
 import { device_sources, logger } from "..";
+import { currentConfig } from '../_helpers/config';
 import { RegisterTallyInput } from "../_decorators/RegisterTallyInput.decorator";
 import { FreePort, UsePort } from "../_decorators/UsesPort.decorator";
 import { Source } from '../_models/Source';
@@ -12,54 +13,54 @@ const CTPbusses = [
 	{ address: '2', bus: 'me2', name: "ME 2", type: "me" },
 	{ address: '3', bus: 'me3', name: "ME 3", type: "me" },
 	{ address: '4', bus: 'me4', name: "ME 4", type: "me" },
-	{ address: '1', bus: 'output1', name: "Output 1", type: "output" },
-	{ address: '2', bus: 'output2', name: "Output 2", type: "output" },
-	{ address: '3', bus: 'output3', name: "Output 3", type: "output" },
-	{ address: '4', bus: 'output4', name: "Output 4", type: "output" },
-	{ address: '5', bus: 'output5', name: "Output 5", type: "output" },
-	{ address: '6', bus: 'output6', name: "Output 6", type: "output" },
-	{ address: '7', bus: 'output7', name: "Output 7", type: "output" },
-	{ address: '8', bus: 'output8', name: "Output 8", type: "output" },
-	{ address: '9', bus: 'output9', name: "Output 9", type: "output" },
-	{ address: '10', bus: 'output10', name: "Output 10", type: "output" },
-	{ address: '11', bus: 'output11', name: "Output 11", type: "output" },
-	{ address: '12', bus: 'output12', name: "Output 12", type: "output" },
-	{ address: '13', bus: 'output13', name: "Output 13", type: "output" },
-	{ address: '14', bus: 'output14', name: "Output 14", type: "output" },
-	{ address: '15', bus: 'output15', name: "Output 15", type: "output" },
-	{ address: '16', bus: 'output16', name: "Output 16", type: "output" },
-	{ address: '17', bus: 'output17', name: "Output 17", type: "output" },
-	{ address: '18', bus: 'output18', name: "Output 18", type: "output" },
-	{ address: '19', bus: 'output19', name: "Output 19", type: "output" },
-	{ address: '20', bus: 'output20', name: "Output 20", type: "output" },
-	{ address: '21', bus: 'output21', name: "Output 21", type: "output" },
-	{ address: '22', bus: 'output22', name: "Output 22", type: "output" },
-	{ address: '23', bus: 'output23', name: "Output 23", type: "output" },
-	{ address: '24', bus: 'output24', name: "Output 24", type: "output" },
-	{ address: '25', bus: 'output25', name: "Output 25", type: "output" },
-	{ address: '26', bus: 'output26', name: "Output 26", type: "output" },
-	{ address: '27', bus: 'output27', name: "Output 27", type: "output" },
-	{ address: '28', bus: 'output28', name: "Output 28", type: "output" },
-	{ address: '29', bus: 'output29', name: "Output 29", type: "output" },
-	{ address: '30', bus: 'output30', name: "Output 30", type: "output" },
-	{ address: '31', bus: 'output31', name: "Output 31", type: "output" },
-	{ address: '32', bus: 'output32', name: "Output 32", type: "output" },
-	{ address: '33', bus: 'output33', name: "Output 33", type: "output" },
-	{ address: '34', bus: 'output34', name: "Output 34", type: "output" },
-	{ address: '35', bus: 'output35', name: "Output 35", type: "output" },
-	{ address: '36', bus: 'output36', name: "Output 36", type: "output" },
-	{ address: '37', bus: 'output37', name: "Output 37", type: "output" },
-	{ address: '38', bus: 'output38', name: "Output 38", type: "output" },
-	{ address: '39', bus: 'output39', name: "Output 39", type: "output" },
-	{ address: '40', bus: 'output40', name: "Output 40", type: "output" },
-	{ address: '41', bus: 'output41', name: "Output 41", type: "output" },
-	{ address: '42', bus: 'output42', name: "Output 42", type: "output" },
-	{ address: '43', bus: 'output43', name: "Output 43", type: "output" },
-	{ address: '44', bus: 'output44', name: "Output 44", type: "output" },
-	{ address: '45', bus: 'output45', name: "Output 45", type: "output" },
-	{ address: '46', bus: 'output46', name: "Output 46", type: "output" },
-	{ address: '47', bus: 'output47', name: "Output 47", type: "output" },
-	{ address: '48', bus: 'output48', name: "Output 48", type: "output" },
+	{ address: '1', bus: 'output1', name: "Output 1", type: "aux", busId: '12c8d699' }, //aux 1
+	{ address: '2', bus: 'output2', name: "Output 2", type: "aux", busId: '0449b0c7' }, //aux 2
+	{ address: '3', bus: 'output3', name: "Output 3", type: "aux", busId: '5d94f273' }, //aux 3
+	{ address: '4', bus: 'output4', name: "Output 4", type: "aux", busId: '77ffb605' }, //aux 4
+	{ address: '5', bus: 'output5', name: "Output 5", type: "aux", busId: '09d4975d' }, //aux 5
+	{ address: '6', bus: 'output6', name: "Output 6", type: "aux", busId: 'e2c2e192' }, //aux 6
+	{ address: '7', bus: 'output7', name: "Output 7", type: "aux", busId: '734f7395' }, //aux 7
+	{ address: '8', bus: 'output8', name: "Output 8", type: "aux", busId: '3011d34a' }, //aux 8
+	{ address: '9', bus: 'output9', name: "Output 9", type: "aux", busId: 'f3b3b3b3' }, //aux 9
+	{ address: '10', bus: 'output10', name: "Output 10", type: "aux" },
+	{ address: '11', bus: 'output11', name: "Output 11", type: "aux" },
+	{ address: '12', bus: 'output12', name: "Output 12", type: "aux" },
+	{ address: '13', bus: 'output13', name: "Output 13", type: "aux" },
+	{ address: '14', bus: 'output14', name: "Output 14", type: "aux" },
+	{ address: '15', bus: 'output15', name: "Output 15", type: "aux" },
+	{ address: '16', bus: 'output16', name: "Output 16", type: "aux" },
+	{ address: '17', bus: 'output17', name: "Output 17", type: "aux" },
+	{ address: '18', bus: 'output18', name: "Output 18", type: "aux" },
+	{ address: '19', bus: 'output19', name: "Output 19", type: "aux" },
+	{ address: '20', bus: 'output20', name: "Output 20", type: "aux" },
+	{ address: '21', bus: 'output21', name: "Output 21", type: "aux" },
+	{ address: '22', bus: 'output22', name: "Output 22", type: "aux" },
+	{ address: '23', bus: 'output23', name: "Output 23", type: "aux" },
+	{ address: '24', bus: 'output24', name: "Output 24", type: "aux" },
+	{ address: '25', bus: 'output25', name: "Output 25", type: "aux" },
+	{ address: '26', bus: 'output26', name: "Output 26", type: "aux" },
+	{ address: '27', bus: 'output27', name: "Output 27", type: "aux" },
+	{ address: '28', bus: 'output28', name: "Output 28", type: "aux" },
+	{ address: '29', bus: 'output29', name: "Output 29", type: "aux" },
+	{ address: '30', bus: 'output30', name: "Output 30", type: "aux" },
+	{ address: '31', bus: 'output31', name: "Output 31", type: "aux" },
+	{ address: '32', bus: 'output32', name: "Output 32", type: "aux" },
+	{ address: '33', bus: 'output33', name: "Output 33", type: "aux" },
+	{ address: '34', bus: 'output34', name: "Output 34", type: "aux" },
+	{ address: '35', bus: 'output35', name: "Output 35", type: "aux" },
+	{ address: '36', bus: 'output36', name: "Output 36", type: "aux" },
+	{ address: '37', bus: 'output37', name: "Output 37", type: "aux" },
+	{ address: '38', bus: 'output38', name: "Output 38", type: "aux" },
+	{ address: '39', bus: 'output39', name: "Output 39", type: "aux" },
+	{ address: '40', bus: 'output40', name: "Output 40", type: "aux" },
+	{ address: '41', bus: 'output41', name: "Output 41", type: "aux" },
+	{ address: '42', bus: 'output42', name: "Output 42", type: "aux" },
+	{ address: '43', bus: 'output43', name: "Output 43", type: "aux" },
+	{ address: '44', bus: 'output44', name: "Output 44", type: "aux" },
+	{ address: '45', bus: 'output45', name: "Output 45", type: "aux" },
+	{ address: '46', bus: 'output46', name: "Output 46", type: "aux" },
+	{ address: '47', bus: 'output47', name: "Output 47", type: "aux" },
+	{ address: '48', bus: 'output48', name: "Output 48", type: "aux" },
 ];
 
 const CTPbussesRossVision = [
@@ -67,54 +68,59 @@ const CTPbussesRossVision = [
 	{ address: '2', bus: 'me2', name: "ME 2", type: "me" },
 	{ address: '3', bus: 'me3', name: "ME 3", type: "me" },
 	{ address: '4', bus: 'me4', name: "ME 4", type: "me" },
-	{ address: '1', bus: 'output1', name: "Aux 1:1", type: "output" },
-	{ address: '2', bus: 'output2', name: "Aux 1:2", type: "output" },
-	{ address: '3', bus: 'output3', name: "Aux 1:3", type: "output" },
-	{ address: '4', bus: 'output4', name: "Aux 1:4", type: "output" },
-	{ address: '5', bus: 'output5', name: "PGM", type: "output" },
-	{ address: '6', bus: 'output6', name: "PVW", type: "output" },
-	{ address: '7', bus: 'output7', name: "Clean", type: "output" },
-	{ address: '8', bus: 'output8', name: "Aux 1:5", type: "output" },
-	{ address: '9', bus: 'output9', name: "Aux 1:6", type: "output" },
-	{ address: '10', bus: 'output10', name: "Aux 1:7", type: "output" },
-	{ address: '11', bus: 'output11', name: "Aux 1:8", type: "output" },
-	{ address: '12', bus: 'output12', name: "Aux 2:1", type: "output" },
-	{ address: '13', bus: 'output13', name: "Aux 2:2", type: "output" },
-	{ address: '14', bus: 'output14', name: "Aux 2:3", type: "output" },
-	{ address: '15', bus: 'output15', name: "Aux 2:4", type: "output" },
-	{ address: '16', bus: 'output16', name: "Aux 2:5", type: "output" },
-	{ address: '17', bus: 'output17', name: "Aux 2:6", type: "output" },
-	{ address: '18', bus: 'output18', name: "Aux 2:7", type: "output" },
-	{ address: '19', bus: 'output19', name: "Aux 2:8", type: "output" },
-	{ address: '20', bus: 'output20', name: "Aux 3:1", type: "output" },
-	{ address: '21', bus: 'output21', name: "Aux 3:2", type: "output" },
-	{ address: '22', bus: 'output22', name: "Aux 3:3", type: "output" },
-	{ address: '23', bus: 'output23', name: "Aux 3:4", type: "output" },
-	{ address: '24', bus: 'output24', name: "Aux 3:5", type: "output" },
-	{ address: '25', bus: 'output25', name: "Aux 3:6", type: "output" },
-	{ address: '26', bus: 'output26', name: "Aux 3:7", type : "output" },
-	{ address: '27', bus: 'output27', name: "Aux 3:8", type: "output" },
-	{ address: '28', bus: 'output28', name: "Aux 4:1", type: "output" },
-	{ address: '29', bus: 'output29', name: "Aux 4:2", type: "output" },
-	{ address: '30', bus: 'output30', name: "Aux 4:3", type: "output" },
-	{ address: '31', bus: 'output31', name: "Aux 4:4", type: "output" },
-	{ address: '32', bus: 'output32', name: "Aux 4:5", type: "output" },
-	{ address: '33', bus: 'output33', name: "Aux 4:6", type: "output" },
-	{ address: '34', bus: 'output34', name: "Aux 4:7", type: "output" },
-	{ address: '35', bus: 'output35', name: "Aux 4:8", type: "output" },
-	{ address: '36', bus: 'output36', name: "Aux 5:1", type: "output" },
-	{ address: '37', bus: 'output37', name: "Aux 5:2", type: "output" },
-	{ address: '38', bus: 'output38', name: "Aux 5:3", type: "output" },
-	{ address: '39', bus: 'output39', name: "Aux 5:4", type: "output" },
-	{ address: '40', bus: 'output40', name: "Aux 5:5", type: "output" },
-	{ address: '41', bus: 'output41', name: "Aux 5:6", type: "output" },
-	{ address: '42', bus: 'output42', name: "Aux 5:7", type: "output" },
-	{ address: '43', bus: 'output43', name: "Aux 5:8", type: "output" },
-	{ address: '44', bus: 'output44', name: "Aux 6:1", type : "output" },
-	{ address: '45', bus: 'output45', name: "Aux 6:2", type: "output" },
-	{ address: '46', bus: 'output46', name: "Aux 6:3", type: "output" },
-	{ address: '47', bus: 'output47', name: "Aux 6:4", type: "output" },
-	{ address: '48', bus: 'output48', name: "Aux 6:5", type: "output" },
+	{ address: '1', bus: 'output1', name: "Aux 1:1", type: "aux", busId: '12c8d699' }, //aux 1
+	{ address: '2', bus: 'output2', name: "Aux 1:2", type: "aux", busId: '0449b0c7' }, //aux 2
+	{ address: '3', bus: 'output3', name: "Aux 1:3", type: "aux", busId: '5d94f273' }, //aux 3
+	{ address: '4', bus: 'output4', name: "Aux 1:4", type: "aux", busId: '77ffb605' }, //aux 4
+	{ address: '5', bus: 'output5', name: "PGM", type: "aux" },
+	{ address: '6', bus: 'output6', name: "PVW", type: "aux" },
+	{ address: '7', bus: 'output7', name: "Clean", type: "aux" },
+	{ address: '8', bus: 'output8', name: "Aux 1:5", type: "aux", busId: '09d4975d' }, //aux 5
+	{ address: '9', bus: 'output9', name: "Aux 1:6", type: "aux", busId: 'e2c2e192' }, //aux 6
+	{ address: '10', bus: 'output10', name: "Aux 1:7", type: "aux", busId: '734f7395' }, //aux 7
+	{ address: '11', bus: 'output11', name: "Aux 1:8", type: "aux", busId: '3011d34a' }, //aux 8
+	{ address: '12', bus: 'output12', name: "Aux 2:1", type: "aux" },
+	{ address: '13', bus: 'output13', name: "Aux 2:2", type: "aux" },
+	{ address: '14', bus: 'output14', name: "Aux 2:3", type: "aux" },
+	{ address: '15', bus: 'output15', name: "Aux 2:4", type: "aux" },
+	{ address: '16', bus: 'output16', name: "Aux 2:5", type: "aux" },
+	{ address: '17', bus: 'output17', name: "Aux 2:6", type: "aux" },
+	{ address: '18', bus: 'output18', name: "Aux 2:7", type: "aux" },
+	{ address: '19', bus: 'output19', name: "Aux 2:8", type: "aux" },
+	{ address: '20', bus: 'output20', name: "Aux 3:1", type: "aux" },
+	{ address: '21', bus: 'output21', name: "Aux 3:2", type: "aux" },
+	{ address: '22', bus: 'output22', name: "Aux 3:3", type: "aux" },
+	{ address: '23', bus: 'output23', name: "Aux 3:4", type: "aux" },
+	{ address: '24', bus: 'output24', name: "Aux 3:5", type: "aux" },
+	{ address: '25', bus: 'output25', name: "Aux 3:6", type: "aux" },
+	{ address: '26', bus: 'output26', name: "Aux 3:7", type: "aux" },
+	{ address: '27', bus: 'output27', name: "Aux 3:8", type: "aux" },
+	{ address: '28', bus: 'output28', name: "Aux 4:1", type: "aux" },
+	{ address: '29', bus: 'output29', name: "Aux 4:2", type: "aux" },
+	{ address: '30', bus: 'output30', name: "Aux 4:3", type: "aux" },
+	{ address: '31', bus: 'output31', name: "Aux 4:4", type: "aux" },
+	{ address: '32', bus: 'output32', name: "Aux 4:5", type: "aux" },
+	{ address: '33', bus: 'output33', name: "Aux 4:6", type: "aux" },
+	{ address: '34', bus: 'output34', name: "Aux 4:7", type: "aux" },
+	{ address: '35', bus: 'output35', name: "Aux 4:8", type: "aux" },
+	{ address: '36', bus: 'output36', name: "Aux 5:1", type: "aux" },
+	{ address: '37', bus: 'output37', name: "Aux 5:2", type: "aux" },
+	{ address: '38', bus: 'output38', name: "Aux 5:3", type: "aux" },
+	{ address: '39', bus: 'output39', name: "Aux 5:4", type: "aux" },
+	{ address: '40', bus: 'output40', name: "Aux 5:5", type: "aux" },
+	{ address: '41', bus: 'output41', name: "Aux 5:6", type: "aux" },
+	{ address: '42', bus: 'output42', name: "Aux 5:7", type: "aux" },
+	{ address: '43', bus: 'output43', name: "Aux 5:8", type: "aux" },
+	{ address: '44', bus: 'output44', name: "Aux 6:1", type: "aux" },
+	{ address: '45', bus: 'output45', name: "Aux 6:2", type: "aux" },
+	{ address: '46', bus: 'output46', name: "Aux 6:3", type: "aux" },
+	{ address: '47', bus: 'output47', name: "Aux 6:4", type: "aux" },
+	{ address: '48', bus: 'output48', name: "Aux 6:5", type: "aux" },
+];
+
+const CTPSourcesToBusses = [
+	{ sourceId: 'b4f626a6', busses: CTPbusses },
+	{ sourceId: '9501c3fc', busses: CTPbussesRossVision }
 ];
 
 const CTPFields: TallyInputConfigField[] = [
@@ -133,12 +139,20 @@ const CTPFields: TallyInputConfigField[] = [
 export class CTPSource extends TallyInput {
 	private CTPtallydata = [];
     private server: any;
+	private CTPbusArray: any[];
     constructor(source: Source) {
         super(source);
 
         let port = source.data.port;
 
         UsePort(port, this.source.id);
+
+		this.CTPbusArray = CTPSourcesToBusses.find(obj => obj.sourceId === this.source.sourceTypeId)?.busses;
+
+		if (!this.CTPbusArray) {
+			logger("Contribution Tally Source: No busses found for source ID " + this.source.id, "error");
+			return;
+		}
 
 		if (source.data.transport_type === 'udp') {
 			this.server = dgram.createSocket({ type: 'udp4', reuseAddr: true });
@@ -721,54 +735,31 @@ export class CTPSource extends TallyInput {
 
 			let bus = 'me' + data.ME_ID;
 
+			let busIdPGM = '334e4eda'; //this is the busId for the program bus as defined in default config
+			let busIdPVW = 'e393251c'; //this is the busId for the preview bus as defined in default config
+
 			for (let i = 0; i < device_sources.length; i++) {
 				let deviceSourceObj = device_sources[i];
 				if (deviceSourceObj.sourceId === this.source.id) { //this device_source is associated with the tally data of this source
 					if (deviceSourceObj.bus === bus) { //the me of this contribution data
 						if (deviceSourceObj.address === addressPGM) { //this device_source's address matches what was in the a_source field
-							this.addTally(deviceSourceObj.address, bus, 'program');
+							this.addTally(deviceSourceObj.address, busIdPGM);
 						}
 						else {
-							this.removeTally(deviceSourceObj.address, bus, 'program');
+							this.removeTally(deviceSourceObj.address, busIdPGM);
 						}
 						if (device_sources[i].address === addressPVW) {
-							this.addTally(deviceSourceObj.address, bus, 'preview');
+							this.addTally(deviceSourceObj.address, busIdPVW);
 						}
 						else {
-							this.removeTally(deviceSourceObj.address, bus, 'preview');
+							this.removeTally(deviceSourceObj.address, busIdPVW);
 						}
 					}
 				}
 			}
 
-			//get array of unique device_source addresses for this source
-			let uniqueAddresses = [...new Set(device_sources.filter(obj => obj.sourceId === this.source.id).map(obj => obj.address))];
-
-			if (uniqueAddresses.length > 0) {
-				for (let i = 0; i < uniqueAddresses.length; i++) {
-					let address = uniqueAddresses[i];
-					let busses = [];
-
-					for (let j = 0; j < this.CTPtallydata.length; j++) {
-						if (this.CTPtallydata[j].address === address) {
-							if (this.CTPtallydata[j].busType === 'program') {
-								//check to see if 'program' is already in busses and add it if not
-								if (!busses.includes('program')) {
-									busses.push('program');
-								}
-							}
-							if (this.CTPtallydata[j].busType === 'preview') {
-								//check to see if 'preview' is already in busses and add it if not
-								if (!busses.includes('preview')) {
-									busses.push('preview');
-								}
-							}
-						}
-					}
-
-					this.setBussesForAddress(address, busses);
-				}
-			}
+			this.checkBusssesForAddress(addressPGM);
+			this.checkBusssesForAddress(addressPVW);
 		}
 		else if (tallyDataType === 'output') {
 			//we will process this similar to ME data but only as a program bus. maybe later we can add proper aux support
@@ -777,74 +768,89 @@ export class CTPSource extends TallyInput {
 				let bus = data[i].bus
 				let address = data[i].address.toString();
 
+				let busId = '';
+
+				//find the busId for this bus by searching for the bus in the busArray
+				for (let j = 0; j < this.CTPbusArray.length; j++) {
+					if (this.CTPbusArray[j].bus === bus) {
+						busId = this.CTPbusArray[j].busId;
+						break;
+					}
+				}
+
 				for (let i = 0; i < device_sources.length; i++) {
 					let deviceSourceObj = device_sources[i];
 					if (deviceSourceObj.sourceId === this.source.id) { //this device_source is associated with the tally data of this output source
 						if (deviceSourceObj.bus === bus) { //the output number of this contribution data
-							if (deviceSourceObj.address === address) { //this device_source's address matches what was in the output pgm field
-								this.addTally(deviceSourceObj.address, bus, 'program'); //currently in this output
+							if (deviceSourceObj.address === address) { //this device_source's address matches what was in the output/aux pgm field
+								this.addTally(deviceSourceObj.address, busId); //currently in this output
 							}
 							else {
-								this.removeTally(deviceSourceObj.address, bus, 'program'); //no longer in this output
+								this.removeTally(deviceSourceObj.address, busId); //no longer in this output
 							}
 						}
 					}
 				}
-			}
 
-			//get array of unique device_source addresses for this source
-			let uniqueAddresses = [...new Set(device_sources.filter(obj => obj.sourceId === this.source.id).map(obj => obj.address))];
-
-			if (uniqueAddresses.length > 0) {
-				for (let i = 0; i < uniqueAddresses.length; i++) {
-					let address = uniqueAddresses[i];
-					let busses = [];
-
-					for (let j = 0; j < this.CTPtallydata.length; j++) {
-						if (this.CTPtallydata[j].address === address) {
-							if (this.CTPtallydata[j].busType === 'program') {
-								//check to see if 'program' is already in busses and add it if not
-								if (!busses.includes('program')) {
-									busses.push('program');
-								}
-							}
-						}
-					}
-
-					this.setBussesForAddress(address, busses);
-				}
+				this.checkBusssesForAddress(address);
 			}
 		}
     }
 
-    private addTally(address: string, bus: string, busType: string) {
+    private addTally(address: string, busId: string) {
         let found = false;
 
         for (let i = 0; i < this.CTPtallydata.length; i++) {
-            if (this.CTPtallydata[i].address === address && this.CTPtallydata[i].bus === bus && this.CTPtallydata[i].busType === busType) {
+            if (this.CTPtallydata[i].address === address && this.CTPtallydata[i].busId === busId) {
                 found = true;
 				break;
             }
         }
 
-        if (!found) { //if there was not an entry in the array for this address and bus and busType
+		//get the busType based on the busId
+		let busType = currentConfig.bus_options.find(obj => obj.id === busId).type;
+
+        if (!found) { //if there was not an entry in the array for this address and bus and busId
             let tallyObj = {
                 address: address,
-                bus: bus,
+                busId: busId,
 				busType: busType
             };
             this.CTPtallydata.push(tallyObj);
         }
     }
 
-    private removeTally(address: string, bus: string, busType: string) {
+    private removeTally(address: string, busId: string) {
         for (let i = 0; i < this.CTPtallydata.length; i++) {
-            if (this.CTPtallydata[i].address === address && this.CTPtallydata[i].bus === bus && this.CTPtallydata[i].busType === busType) {
+            if (this.CTPtallydata[i].address === address && this.CTPtallydata[i].busId === busId) {
                 this.CTPtallydata.splice(i, 1);
 				break;
             }
         }
     }
+
+	private checkBusssesForAddress(address: string) {
+		//get array of unique device_source addresses for this source
+		let uniqueAddresses = [...new Set(device_sources.filter(obj => obj.sourceId === this.source.id).map(obj => obj.address))];
+
+		if (uniqueAddresses.length > 0) {
+			for (let i = 0; i < uniqueAddresses.length; i++) {
+				let address = uniqueAddresses[i];
+				let busses = [];
+
+				for (let j = 0; j < this.CTPtallydata.length; j++) {
+					if (this.CTPtallydata[j].address === address) {
+						busses.push(this.CTPtallydata[j].busId);
+					}
+				}
+
+				//make sure the busses array is unique
+				busses = [...new Set(busses)];
+
+				this.setBussesForAddress(address, busses);
+			}
+		}
+	}
 
     public exit(): void {
         super.exit();
