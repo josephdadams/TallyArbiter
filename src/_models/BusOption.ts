@@ -4,4 +4,5 @@ export interface BusOption {
 	id: string;
     color: string;
     priority: number;
+	visible: boolean;
 }
