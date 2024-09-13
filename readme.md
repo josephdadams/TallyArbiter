@@ -28,7 +28,7 @@ If you want to make changes to the UI, you need to do the following:
 
 When you make changes to the source code, the page in your browser will automatically reload. 
 
-The socket&#46;io / REST API requests the UI makes are automatically proxied to `http://localhost:4455`. That's the reason why the main server (see above) needs to be running.
+The socket&#46;io requests the UI makes are automatically proxied to `http://localhost:4455`. That's the reason why the main server (see above) needs to be running.
 
 Running `npm install` in the project's root folder (not in the UI directory) the UI is built automatically. As the UI's bundled dist files are excluded from the git repository in the `.gitignore` file, this is needed to ensure users which install TallyArbiter from source also have bundled UI dist. This dist is also served by the main server using `express.static()`.
 
