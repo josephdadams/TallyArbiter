@@ -133,6 +133,17 @@ export class TallyInput extends EventEmitter {
     }
 
     protected addBusToAddress(address: string, bus: string) {
+		//replace bus with its real id if it is "preview" or "program" or "aux"
+		if (bus === "preview") {
+			bus = currentConfig.bus_options.find((b) => b.type === "preview").id;
+		}
+		else if (bus === "program") {
+			bus = currentConfig.bus_options.find((b) => b.type === "program").id;
+		}
+		else if (bus === "aux") {
+			bus = currentConfig.bus_options.find((b) => b.type === "aux").id;
+		}
+
         if (!Array.isArray(this.tallyData[address])) {
             this.tallyData[address] = [];
         }
@@ -142,6 +153,17 @@ export class TallyInput extends EventEmitter {
     }
 
     protected removeBusFromAddress(address: string, bus: string) {
+		//replace bus with its real id if it is "preview" or "program" or "aux"
+		if (bus === "preview") {
+			bus = currentConfig.bus_options.find((b) => b.type === "preview").id;
+		}
+		else if (bus === "program") {
+			bus = currentConfig.bus_options.find((b) => b.type === "program").id;
+		}
+		else if (bus === "aux") {
+			bus = currentConfig.bus_options.find((b) => b.type === "aux").id;
+		}
+
         if (!Array.isArray(this.tallyData[address])) {
             this.tallyData[address] = [];
         } else  {
@@ -150,6 +172,17 @@ export class TallyInput extends EventEmitter {
     }
 
     protected removeBusFromAllAddresses(bus: string) {
+		//replace bus with its real id if it is "preview" or "program" or "aux"
+		if (bus === "preview") {
+			bus = currentConfig.bus_options.find((b) => b.type === "preview").id;
+		}
+		else if (bus === "program") {
+			bus = currentConfig.bus_options.find((b) => b.type === "program").id;
+		}
+		else if (bus === "aux") {
+			bus = currentConfig.bus_options.find((b) => b.type === "aux").id;
+		}
+
         for (const address of Object.keys(this.tallyData)) {
             this.tallyData[address] = this.tallyData[address].filter((b) => b !== bus);
         }
@@ -173,8 +206,6 @@ export class TallyInput extends EventEmitter {
 			}
 		}
 
-		//console.log("realBusses", realBusses);
-
         this.tallyData[address] = realBusses || [];
     }
 
@@ -191,8 +222,25 @@ export class TallyInput extends EventEmitter {
     }
 
 	protected sendIndividualTallyData(address: string, busses: string[]) {
+		//if bus is "preview" or "program", find its real bus id and use that instead because many source types use those words instead of the actual busId
+		let realBusses = [];
+		for (let bus of busses) {
+			if (bus === "preview") {
+				realBusses.push(currentConfig.bus_options.find((b) => b.type === "preview").id);
+			}
+			else if (bus === "program") {
+				realBusses.push(currentConfig.bus_options.find((b) => b.type === "program").id);
+			}
+			else if (bus === "aux") {
+				realBusses.push(currentConfig.bus_options.find((b) => b.type === "aux").id);
+			}
+			else {
+				realBusses.push(bus);
+			}
+		}
+
 		let individualTallyData = {};
-		individualTallyData[address] = busses;
+		individualTallyData[address] = realBusses || [];
 		this.tally.next(individualTallyData);
 	}
 }

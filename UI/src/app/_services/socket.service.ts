@@ -236,7 +236,7 @@ export class SocketService {
       this.outputTypes = outputTypes;
       this.outputTypeDataFields = outputTypesDataFields;
       this.busOptions = busOptions;
-	  this.busOptionsVisible = busOptions.filter((b) => b.visible);
+	  this.busOptionsVisible = busOptions.filter((b) => b.visible == true || b.visible == undefined);
       this.sources =  this.prepareSources(sourcesData);
       this.devices = devicesData;
       this.deviceSources = deviceSources;
