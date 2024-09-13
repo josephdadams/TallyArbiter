@@ -67,6 +67,7 @@ import { Config } from './_models/Config';
 import { bonjour } from './_helpers/mdns';
 
 const version = findPackageJson(__dirname).next()?.value?.version || "unknown";
+const uiVersion = findPackageJson(path.join(__dirname, '..', 'ui')).next()?.value?.version || "unknown";
 const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
 
 if(devmode) logger('TallyArbiter running in Development Mode.', 'info');
@@ -283,6 +284,10 @@ function initialSetup() {
 
 		socket.on('version', () =>  {
 			socket.emit('version', version);
+		});
+
+		socket.on('uiVersion', () =>  {
+			socket.emit('uiVersion', uiVersion);
 		});
 
 		socket.on('externalAddress', () => {
@@ -1383,8 +1388,6 @@ function initializeSource(source: Source): TallyInput {
 
 function processSourceTallyData(sourceId: string, tallyData: SourceTallyData)
 {
-	//console.log('got source tally data', tallyData);
-
 	writeTallyDataFile(tallyData);
 
 	for (const [address, busses] of Object.entries(tallyData)) {
@@ -1392,16 +1395,10 @@ function processSourceTallyData(sourceId: string, tallyData: SourceTallyData)
 		io.to('settings').emit('tally_data', sourceId, address, busses);
 	}
 
-	//console.log('currentSourceTallyData', currentSourceTallyData);
-
-	
 	currentSourceTallyData = {
 		...currentSourceTallyData,
 		...tallyData,
 	}; 
-	
-
-	console.log('currentSourceTallyData2', currentSourceTallyData);
 
 	for (const device of devices) {
 		UpdateDeviceState(device.id);

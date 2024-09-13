@@ -46,6 +46,7 @@ export class SocketService {
   public remoteErrorOpt: boolean = true;
   public initialDataLoaded = false;
   public version?: string;
+  public uiVersion?: string;
   public externalAddress?: string;
   public interfaces: any[] = [];
   public logs: LogItem[] = [];
@@ -156,6 +157,9 @@ export class SocketService {
     this.socket.on("version", (version: string) => {
       this.version = version;
     });
+	this.socket.on('uiVersion', (uiVersion: string) => {
+		this.uiVersion = uiVersion;
+	});
 
     this.socket.on("externalAddress", (externalAddress: string) => {
         this.externalAddress = externalAddress;
@@ -359,6 +363,7 @@ export class SocketService {
     this.socket.emit('get_error_reports');
 
     this.socket.emit('version');
+	this.socket.emit('uiVersion');
     this.socket.emit('externalAddress');
     this.socket.emit('interfaces');
     this.socket.emit('get_error_reports');
