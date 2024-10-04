@@ -191,6 +191,11 @@ function connectToServer(ip, port) {
 
 	socket.on('disconnect', function(){
 		logger('Disconnected from Tally Arbiter server.', 'error');
+		//attempt to reconnect after 5 seconds
+		setTimeout(function() {
+			openSocket();
+		}, 5000);
+
 	});
 
 	socket.on('error', function(error){
