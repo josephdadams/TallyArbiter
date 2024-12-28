@@ -3,8 +3,10 @@ sidebar_position: 3
 ---
 
 # Build and run from source
+
 ## Installation
-To try out the latest features, you will likely need to build and run TallyArbiter from source. But no worries, it's very easy. 
+
+To try out the latest features, you will likely need to build and run TallyArbiter from source. But no worries, it's very easy.
 
 You must have Node.js installed. You can download it here: https://nodejs.org/en/download/
 
@@ -21,6 +23,7 @@ After downloading the software, type `npm install` to install all necessary libr
 You can then start it by typing `npm start` in a terminal.
 
 ## Upgrading
+
 If you downloaded the software using `git`, upgrades are simple. In the terminal window, change directly to the Tally Arbiter folder, and then type: `git pull`. This will download the latest source code.
 
 If you downloaded the source code manually, just replace the files in the folder manually.

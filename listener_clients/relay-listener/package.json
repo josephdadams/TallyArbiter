@@ -1,36 +1,36 @@
 {
-    "name": "tallyarbiter-relaylistener",
-    "version": "2.0.1",
-    "description": "Relay Listener for the Tally Arbiter project. Uses USB relays and listens to device state data from a Tally Arbiter server.",
-    "keywords": [
-        "util",
-        "functional",
-        "server",
-        "client",
-        "browser",
-        "tsl",
-        "tally",
-        "carbonite",
-        "graphite",
-        "blackmagic",
-        "atem",
-        "ross",
-        "obs",
-        "vmix",
-        "blink1",
-        "roland"
-    ],
-    "license": "MIT",
-    "author": "Joseph Adams",
-    "dependencies": {
-        "@josephdadams/usbrelay": "^1.0.3",
-        "bonjour": "^3.5.0",
-        "cli-color": "^2.0.0",
-        "socket.io": "4.8.0",
-        "uuid": "^8.3.2"
-    },
-    "main": "index.js",
-    "scripts": {
-        "start": "node index.js"
-    }
+	"name": "tallyarbiter-relaylistener",
+	"version": "2.0.1",
+	"description": "Relay Listener for the Tally Arbiter project. Uses USB relays and listens to device state data from a Tally Arbiter server.",
+	"keywords": [
+		"util",
+		"functional",
+		"server",
+		"client",
+		"browser",
+		"tsl",
+		"tally",
+		"carbonite",
+		"graphite",
+		"blackmagic",
+		"atem",
+		"ross",
+		"obs",
+		"vmix",
+		"blink1",
+		"roland"
+	],
+	"license": "MIT",
+	"author": "Joseph Adams",
+	"dependencies": {
+		"@josephdadams/usbrelay": "^1.0.3",
+		"bonjour": "^3.5.0",
+		"cli-color": "^2.0.0",
+		"socket.io": "4.8.0",
+		"uuid": "^8.3.2"
+	},
+	"main": "index.js",
+	"scripts": {
+		"start": "node index.js"
+	}
 }

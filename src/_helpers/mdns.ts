@@ -1,3 +1,3 @@
-import Bonjour from "bonjour-service";
+import Bonjour from 'bonjour-service'
 
-export const bonjour = new Bonjour();
+export const bonjour = new Bonjour()

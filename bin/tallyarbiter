@@ -1,4 +1,4 @@
 #!/usr/bin/env node
 
-require = require('esm')(module);
-require('../dist/index.js');
+require = require('esm')(module)
+require('../dist/index.js')

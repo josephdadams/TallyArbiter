@@ -1,10 +1,10 @@
-name: "CodeQL code scanning"
+name: 'CodeQL code scanning'
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   analyze_code:
@@ -18,28 +18,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'javascript', 'python' ]
+        language: ['javascript', 'python']
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        config-file: ./.github/codeql/codeql-config.yml
-        languages: ${{ matrix.language }}
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          config-file: ./.github/codeql/codeql-config.yml
+          languages: ${{ matrix.language }}
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 14
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 14
 
-    - name: Install dependencies
-      run: npm i -f
+      - name: Install dependencies
+        run: npm i -f
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
 
   analyze_docker:
     name: Analyze Docker
@@ -53,35 +53,35 @@ jobs:
       fail-fast: false
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 18
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-    - name: Install dependencies and build
-      run: |
-        npm i -f
-        npm run build; cd UI; npm run build
+      - name: Install dependencies and build
+        run: |
+          npm i -f
+          npm run build; cd UI; npm run build
 
-    - name: Build an image from Dockerfile
-      run: |
-         docker build -t tallyarbiter-test-image:${{ github.sha }} .
+      - name: Build an image from Dockerfile
+        run: |
+          docker build -t tallyarbiter-test-image:${{ github.sha }} .
 
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@0.18.0
-      with:
-        image-ref: 'tallyarbiter-test-image:${{ github.sha }}'
-        ignore-unfixed: true
-        format: 'template'
-        template: '@/contrib/sarif.tpl'
-        output: 'trivy-results.sarif'
-        severity: 'MEDIUM,HIGH,CRITICAL'
-        vuln-type: 'os'
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.18.0
+        with:
+          image-ref: 'tallyarbiter-test-image:${{ github.sha }}'
+          ignore-unfixed: true
+          format: 'template'
+          template: '@/contrib/sarif.tpl'
+          output: 'trivy-results.sarif'
+          severity: 'MEDIUM,HIGH,CRITICAL'
+          vuln-type: 'os'
 
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: 'trivy-results.sarif'
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'

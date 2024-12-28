@@ -1,29 +1,23 @@
-import {
-  Directive,
-  Input,
-  OnInit,
-  TemplateRef,
-  ViewContainerRef
-} from '@angular/core';
-import { AuthService } from '../_services/auth.service';
+import { Directive, Input, OnInit, TemplateRef, ViewContainerRef } from '@angular/core'
+import { AuthService } from '../_services/auth.service'
 
 @Directive({
-  selector: '[requireRole]'
+	selector: '[requireRole]',
 })
 export class RequireRoleDirective implements OnInit {
-  @Input() requireRole = '';
+	@Input() requireRole = ''
 
-  constructor(
-    private templateRef: TemplateRef<any>,
-    private viewContainer: ViewContainerRef,
-    private authService: AuthService
-  ) {}
+	constructor(
+		private templateRef: TemplateRef<any>,
+		private viewContainer: ViewContainerRef,
+		private authService: AuthService,
+	) {}
 
-  ngOnInit() {
-    if(this.authService.requireRole(this.requireRole)) {
-      this.viewContainer.createEmbeddedView(this.templateRef);
-    } else {
-      this.viewContainer.clear();
-    }
-  }
+	ngOnInit() {
+		if (this.authService.requireRole(this.requireRole)) {
+			this.viewContainer.createEmbeddedView(this.templateRef)
+		} else {
+			this.viewContainer.clear()
+		}
+	}
 }

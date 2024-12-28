@@ -1,43 +1,43 @@
 <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark" *ngIf="navbarVisibilityService.navbarIsVisible">
-  <div class="container">
-    <a class="navbar-brand" routerLink="/home"><img src="assets/logo_white.png" height="30" alt="" loading="lazy"></a>
-    <button class="navbar-toggler" type="button" (click)="showMenu = !showMenu">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarCollapse" [class.show]="showMenu">
-      <ul class="navbar-nav me-auto mb-2 mb-md-0">
-        <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/home">Home</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/tally">Tally View</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/producer">Producer</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/settings">Settings</a>
-        </li>
-      </ul>
-      <ul class="navbar-nav mb-2 mb-md-0">
-        <app-theme-selector></app-theme-selector>
-        <li class="nav-item">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/about">About</a>
-        </li>
-        <li class="nav-item" *ngIf="authService.profile !== undefined">
-          <a class="nav-link" (click)="showMenu = false; authService.logout();" style="cursor: pointer">Logout</a>
-        </li>
-        <li class="nav-item" *ngIf="authService.profile === undefined">
-          <a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/login/home">Login</a>
-        </li>
-      </ul>
-    </div>
-  </div>
+	<div class="container">
+		<a class="navbar-brand" routerLink="/home"><img src="assets/logo_white.png" height="30" alt="" loading="lazy" /></a>
+		<button class="navbar-toggler" type="button" (click)="showMenu = !showMenu">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse" id="navbarCollapse" [class.show]="showMenu">
+			<ul class="navbar-nav me-auto mb-2 mb-md-0">
+				<li class="nav-item">
+					<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/home">Home</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/tally">Tally View</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/producer">Producer</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/settings">Settings</a>
+				</li>
+			</ul>
+			<ul class="navbar-nav mb-2 mb-md-0">
+				<app-theme-selector></app-theme-selector>
+				<li class="nav-item">
+					<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/about">About</a>
+				</li>
+				<li class="nav-item" *ngIf="authService.profile !== undefined">
+					<a class="nav-link" (click)="showMenu = false; authService.logout()" style="cursor: pointer">Logout</a>
+				</li>
+				<li class="nav-item" *ngIf="authService.profile === undefined">
+					<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/login/home">Login</a>
+				</li>
+			</ul>
+		</div>
+	</div>
 </nav>
 
 <router-outlet></router-outlet>
 
 <div id="connLostSnackbar" *ngIf="connLostSnackbar.visible" [@fade]="connLostSnackbar.visible ? 'show' : 'hidden'">
-  <p>Connection to server lost...</p>
-  <i class="fa-solid fa-spinner fa-spin fa-xl"></i>
+	<p>Connection to server lost...</p>
+	<i class="fa-solid fa-spinner fa-spin fa-xl"></i>
 </div>

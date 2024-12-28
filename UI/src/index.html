@@ -1,35 +1,40 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>TallyArbiter</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.png">
-  <link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials">
-  <meta name="theme-color" content="#1976d2">
-  <style> 
-  .no-fouc {display: none;}
-  </style>
-  <script>
-  document.documentElement.className = 'no-fouc';
-  document.addEventListener("DOMContentLoaded", function() {
-    document.documentElement.className = '';
-  });
-  </script>
-</head>
-<body>
-  <app-root></app-root>
-  <noscript>Please enable JavaScript to continue using this application.</noscript>
-  <script> 
-    var $buoop = {required:{e:89,f:88,o:78,s:13,c:90},insecure:true,api:2021.10 }; 
-    function $buo_f(){ 
-     var e = document.createElement("script"); 
-     e.src = "//browser-update.org/update.min.js"; 
-     document.body.appendChild(e);
-    };
-    try {document.addEventListener("DOMContentLoaded", $buo_f,false)}
-    catch(e){window.attachEvent("onload", $buo_f)}
-  </script>
-</body>
+	<head>
+		<meta charset="utf-8" />
+		<title>TallyArbiter</title>
+		<base href="/" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/x-icon" href="favicon.png" />
+		<link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials" />
+		<meta name="theme-color" content="#1976d2" />
+		<style>
+			.no-fouc {
+				display: none;
+			}
+		</style>
+		<script>
+			document.documentElement.className = 'no-fouc'
+			document.addEventListener('DOMContentLoaded', function () {
+				document.documentElement.className = ''
+			})
+		</script>
+	</head>
+	<body>
+		<app-root></app-root>
+		<noscript>Please enable JavaScript to continue using this application.</noscript>
+		<script>
+			var $buoop = { required: { e: 89, f: 88, o: 78, s: 13, c: 90 }, insecure: true, api: 2021.1 }
+			function $buo_f() {
+				var e = document.createElement('script')
+				e.src = '//browser-update.org/update.min.js'
+				document.body.appendChild(e)
+			}
+			try {
+				document.addEventListener('DOMContentLoaded', $buo_f, false)
+			} catch (e) {
+				window.attachEvent('onload', $buo_f)
+			}
+		</script>
+	</body>
 </html>

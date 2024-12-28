@@ -1,4 +1,4 @@
 export interface ErrorReportsListElement {
-    id: string;
-    datetime: Date;
+	id: string
+	datetime: Date
 }

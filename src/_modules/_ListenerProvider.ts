@@ -1,5 +1,5 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from 'events'
 
 export abstract class ListenerProvider extends EventEmitter {
-    public start(): void {}
+	public start(): void {}
 }

@@ -6,22 +6,25 @@ import { Router, NavigationEnd } from '@angular/router'
 
 @Injectable({ providedIn: 'root' })
 export class LocationBackService {
-  private history: string[] = [];
+	private history: string[] = []
 
-  constructor(private router: Router, private location: Location) {
-    this.router.events.subscribe((event) => {
-      if (event instanceof NavigationEnd && !event.urlAfterRedirects.includes('login')) {
-        this.history.push(event.urlAfterRedirects);
-      }
-    })
-  }
+	constructor(
+		private router: Router,
+		private location: Location,
+	) {
+		this.router.events.subscribe((event) => {
+			if (event instanceof NavigationEnd && !event.urlAfterRedirects.includes('login')) {
+				this.history.push(event.urlAfterRedirects)
+			}
+		})
+	}
 
-  goBack(): void {
-    this.history.pop();
-    if (this.history.length > 0) {
-      this.location.back();
-    } else {
-      this.router.navigateByUrl('/home');
-    }
-  }
+	goBack(): void {
+		this.history.pop()
+		if (this.history.length > 0) {
+			this.location.back()
+		} else {
+			this.router.navigateByUrl('/home')
+		}
+	}
 }
