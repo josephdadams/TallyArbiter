@@ -92,6 +92,7 @@
     "main": "main.js",
     "scripts": {
         "start": "ts-node-dev src/index.ts --dev",
+		"format": "prettier -w .",
         "prepare": "cd UI && npm i && npm run build",
         "redundancyjs": "redundancyjs",
         "build": "tsc",
@@ -107,6 +108,7 @@
         "@types/xml2js": "^0.4.11",
         "electron": "^28.0.0",
         "electron-builder": "^24.9.1",
+        "prettier": "^3.4.2",
         "redundancyjs": "^0.1.0",
         "ts-node-dev": "^1.1.8",
         "typescript": "^5.1.6"
