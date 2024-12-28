@@ -1,11 +1,11 @@
-import { DeviceAction } from "../_models/DeviceAction";
+import { DeviceAction } from '../_models/DeviceAction'
 
 export class Action {
-    protected action: DeviceAction;
+	protected action: DeviceAction
 
-    constructor(action: DeviceAction) {
-        this.action = action;
-    }
+	constructor(action: DeviceAction) {
+		this.action = action
+	}
 
-    public run(): void {};
+	public run(): void {}
 }

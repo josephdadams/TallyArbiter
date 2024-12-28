@@ -1,6 +1,6 @@
-name: "TallyArbiter CodeQL Scanning"
+name: 'TallyArbiter CodeQL Scanning'
 
-paths-ignore: 
+paths-ignore:
   - node_modules
   - ui-dist
   - '**/*.test.js'

@@ -1,4 +1,4 @@
 export interface SourceTypeBus {
-    bus: string;
-    name: string;
+	bus: string
+	name: string
 }

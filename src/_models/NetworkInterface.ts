@@ -1,5 +1,5 @@
 export interface NetworkInterface {
-    label: string;
-    name: string;
-    address: string;
+	label: string
+	name: string
+	address: string
 }

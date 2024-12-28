@@ -1,19 +1,17 @@
 {
-    "compilerOptions": {
-        "lib": ["ES2019"],
-        "target": "es5",
-        "module": "CommonJS",
-        "moduleResolution": "node",
-        "outDir": "./dist",
-        "resolveJsonModule": true,
-        "emitDecoratorMetadata": true,
-        "experimentalDecorators": true,
-        "downlevelIteration": true,
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true,
-        "skipLibCheck": true
-    },
-    "exclude": [
-        "./UI/"
-    ]
+	"compilerOptions": {
+		"lib": ["ES2019"],
+		"target": "es5",
+		"module": "CommonJS",
+		"moduleResolution": "node",
+		"outDir": "./dist",
+		"resolveJsonModule": true,
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"downlevelIteration": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"skipLibCheck": true
+	},
+	"exclude": ["./UI/"]
 }

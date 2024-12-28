@@ -1,10 +1,10 @@
 interface Source {
-    address: string;
-    sourceId: string;
+	address: string
+	sourceId: string
 }
 
 export interface DeviceState {
-    busId: string;
-    deviceId: string;
-    sources: string[];
+	busId: string
+	deviceId: string
+	sources: string[]
 }

@@ -1,12 +1,12 @@
 export interface CloudListenerSocketData {
-    id: string;
-    socketId: string;
-    deviceId: string;
-    listenerType: string;
-    ipAddress: string;
-    datetimeConnected: string;
-    inactive: boolean;
+	id: string
+	socketId: string
+	deviceId: string
+	listenerType: string
+	ipAddress: string
+	datetimeConnected: string
+	inactive: boolean
 
-    cloudConnection?: boolean;
-    cloudClientId?: string;
+	cloudConnection?: boolean
+	cloudClientId?: string
 }

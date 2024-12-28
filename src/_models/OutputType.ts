@@ -1,6 +1,6 @@
 export interface OutputType {
-    enabled: boolean;
-    id: string;
-    label: string;
-    type: string;
+	enabled: boolean
+	id: string
+	label: string
+	type: string
 }

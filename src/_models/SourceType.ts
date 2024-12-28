@@ -1,10 +1,10 @@
-import { SourceTypeBus } from "./SourceTypeBus"
+import { SourceTypeBus } from './SourceTypeBus'
 
 export interface SourceType {
-    enabled: boolean;
-    help: string;
-    id: string;
-    label: string;
-    type: string;
-    busses: SourceTypeBus[]
+	enabled: boolean
+	help: string
+	id: string
+	label: string
+	type: string
+	busses: SourceTypeBus[]
 }

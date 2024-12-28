@@ -10,15 +10,15 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Install dependencies
-      working-directory: docs
-      run: npm i
-    - name: Build docs
-      working-directory: docs
-      run: npm run build
-    - name: Deploy
-      uses: JamesIves/github-pages-deploy-action@3.7.1
-      with:
-        BRANCH: gh-pages
-        FOLDER: docs/build
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        working-directory: docs
+        run: npm i
+      - name: Build docs
+        working-directory: docs
+        run: npm run build
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          BRANCH: gh-pages
+          FOLDER: docs/build

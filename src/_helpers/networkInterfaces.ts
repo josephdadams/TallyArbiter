@@ -1,7 +1,8 @@
-import { NetworkInterface } from "../_models/NetworkInterface"
-import os from "os";
+import { NetworkInterface } from '../_models/NetworkInterface'
+import os from 'os'
 
-export function getNetworkInterfaces(): NetworkInterface[] { // Get all network interfaces on host device
+export function getNetworkInterfaces(): NetworkInterface[] {
+	// Get all network interfaces on host device
 	var interfaces = []
 	const networkInterfaces = os.networkInterfaces()
 

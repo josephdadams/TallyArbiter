@@ -1,8 +1,8 @@
 export interface CloudClient {
-    datetimeConnected: number;
-    id: string;
-    inactive: boolean;
-    ipAddress: string;
-    key: string;
-    socketId: string;
+	datetimeConnected: number
+	id: string
+	inactive: boolean
+	ipAddress: string
+	key: string
+	socketId: string
 }

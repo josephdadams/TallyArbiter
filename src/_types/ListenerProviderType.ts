@@ -1,3 +1,3 @@
-import { ListenerProvider } from "../_modules/_ListenerProvider";
+import { ListenerProvider } from '../_modules/_ListenerProvider'
 
-export type ListenerProviderType = new () => ListenerProvider;
+export type ListenerProviderType = new () => ListenerProvider
