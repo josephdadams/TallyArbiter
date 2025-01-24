@@ -43,21 +43,21 @@
 #if defined(STICK_C_PLUS2)
 #include <M5StickCPlus2.h>
 #if defined(STICK_C) || defined(STICK_C_PLUS)
-#error "Multiple board defines"
+#error "Multiple m5stick boards types defined"
 #endif
 #endif
 
 #if defined(STICK_C_PLUS)
 #include <M5StickCPlus.h>
 #if defined(STICK_C) || defined(STICK_C_PLUS2)
-#error "Multiple board defines"
+#error "Multiple m5stick boards types defined"
 #endif
 #endif
 
 #if defined(STICK_C)
 #include <M5StickC.h>
 #if defined(STICK_C_PLUS) || defined(STICK_C_PLUS2)
-#error "Multiple defboard definesines"
+#error "Multiple m5stick boards types defined"
 #endif
 #endif
 
