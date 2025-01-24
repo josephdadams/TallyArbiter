@@ -18,7 +18,7 @@ All the changes you make there are saved to a `config.json` file. This file shou
 
 - Windows: `C:\Users\YourUsername\AppData\Roaming\TallyArbiter\config.json`
 - MacOS: `~/Library/Preferences/TallyArbiter/config.json`
-- Linux: `~/.local/share/TallyArbiter/config.json`
+- Linux: `~/.local/share/TallyArbiter/config.json` or `/root/.local/share/TallyArbiter/config.json` (when using sudo)
 
 You can also manually edit that file.
 
