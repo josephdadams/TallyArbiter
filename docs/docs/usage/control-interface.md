@@ -18,22 +18,10 @@ All the changes you make there are saved to a `config.json` file. This file shou
 
 - Windows: `C:\Users\YourUsername\AppData\Roaming\TallyArbiter\config.json`
 - MacOS: `~/Library/Preferences/TallyArbiter/config.json`
-- Linux: `~/.local/share/TallyArbiter/config.json`
+- Linux: `~/.local/share/TallyArbiter/config.json` or `/root/.local/share/TallyArbiter/config.json` (when using sudo)
 
 You can also manually edit that file.
 
 **Make sure that TallyArbiter is closed while making changes, because otherwise they will be overwritten!**
 
-You can change the security of the settings and the producer page by adding or replacing the following section to your `config.json` file:
-
-```javascript
-{
-	"security":
-	{
-		"username_settings": "admin",
-		"password_settings": "12345",
-		"username_producer": "producer",
-		"password_producer": "12345"
-	}
-}
-```
+On the settings page can the settings be exported/imported to/from a file via the configuration interface.

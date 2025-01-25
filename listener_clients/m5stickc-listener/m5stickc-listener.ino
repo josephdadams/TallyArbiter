@@ -1,16 +1,63 @@
 //
-// Board defines used by Arduino IDE as preprocessor flags
+// Automatic support for board selection with Arduino IDE
+//
+// Board defines used by Arduino IDE as preprocessor flags when selecting boards
+// Boards > M5Stack Arduino > M5StickC / M5StickCPlus / M5StickCPlus2
 // M5StickC        ARDUINO_m5stack_stickc
 // M5StickC-Plus   ARDUINO_m5stack_stickc_plus
 // M5StickC-Plus2  ARDUINO_m5stack_stickc_plus2
 //
-#if defined(ARDUINO_m5stack_stickc_plus2)
-#include <M5StickCPlus2.h>
-#else
+#if defined(ARDUINO_m5stack_stickc)
+#define STICK_C
+#endif
+
 #if defined(ARDUINO_m5stack_stickc_plus)
+#define STICK_C_PLUS
+#endif
+
+#if defined(ARDUINO_m5stack_stickc_plus2)
+#define STICK_C_PLUS2
+#endif
+
+//
+// Uncomment the platform you're building for
+// ==========================================
+// If using an environment without support for the preprocessor flags uncomment
+// the specifc board type.
+//
+// Uncommenting more than one at a time will result in errors
+//
+//#define STICK_C
+//#define STICK_C_PLUS
+//#define STICK_C_PLUS2
+
+// The default is M5StickC if nothing is specified. This is also the only
+// supported board type in the github builds.
+#if !defined(STICK_C) && !defined(STICK_C_PLUS) && !defined(STICK_C_PLUS2)
+#define STICK_C
+#endif
+
+//
+// Guard againts multiple defines.
+//
+#if defined(STICK_C_PLUS2)
+#include <M5StickCPlus2.h>
+#if defined(STICK_C) || defined(STICK_C_PLUS)
+#error "Multiple m5stick boards types defined"
+#endif
+#endif
+
+#if defined(STICK_C_PLUS)
 #include <M5StickCPlus.h>
-#else
+#if defined(STICK_C) || defined(STICK_C_PLUS2)
+#error "Multiple m5stick boards types defined"
+#endif
+#endif
+
+#if defined(STICK_C)
 #include <M5StickC.h>
+#if defined(STICK_C_PLUS) || defined(STICK_C_PLUS2)
+#error "Multiple m5stick boards types defined"
 #endif
 #endif
 
@@ -32,7 +79,18 @@
 #define startBrightness 11
 #define maxBrightness 100
 // Name of the device - the 3 last bytes of the mac address will be appended to create a unique identifier for the server.
+#if defined(STICK_C_PLUS2)
+String listenerDeviceName = "m5StickC-plus2-";
+String listenerDeviceHW = "M5StickC-Plus2";
+#endif
+#if defined(STICK_C_PLUS)
+String listenerDeviceName = "m5StickC-plus-";
+String listenerDeviceHW = "M5StickC-Plus";
+#endif
+#if defined(STICK_C)
 String listenerDeviceName = "m5StickC-";
+String listenerDeviceHW = "M5StickC";
+#endif
 
 
 /* USER CONFIG VARIABLES
@@ -68,7 +126,7 @@ uint8_t wasPressed();
 // Program (Internal led): 10: Low is on, HIGH is off
 // Preview: 26
 // Aux: Not supported
-#if defined(ARDUINO_m5stack_stickc_plus2)
+#if defined(STICK_C_PLUS2)
 const int led_program = 19;  //OPTIONAL Led for program on pin G19
 #else
 const int led_program = 10;  //OPTIONAL Led for program on pin G10
@@ -111,16 +169,8 @@ void setup() {
   while (!Serial)
     ;
 
-    // Initialize the M5StickC object
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  logger("Initializing M5StickCPlus2.", "info-quiet");
-#else
-#if defined(ARDUINO_m5stack_stickc_plus)
-  logger("Initializing M5StickCPlus2.", "info-quiet");
-#else
-  logger("Initializing M5StickC.", "info-quiet");
-#endif
-#endif
+  // Initialize the M5StickC object
+  logger("Initializing " + listenerDeviceHW + ".", "info-quiet");
 
   setCpuFrequencyMhz(80);  //Save battery by turning down the CPU clock
   btStop();                //Save battery by turning off BlueTooth
@@ -133,38 +183,16 @@ void setup() {
   // Set WiFi hostname
   wm.setHostname((const char *)listenerDeviceName.c_str());
 
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  auto cfg = M5.config();
-  StickCP2.begin(cfg);
-  StickCP2.Display.setRotation(3);
-  StickCP2.Display.fillScreen(TFT_BLACK);
-#else
-  M5.begin();
-  M5.Lcd.setRotation(3);
-  M5.Lcd.fillScreen(TFT_BLACK);
-#endif
+  m5_begin();
+  m5_setRotation(3);
+  m5_fillScreen(TFT_BLACK);
 
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  StickCP2.Display.setCursor(0, 0);
-  StickCP2.Display.setFreeFont(FSS9);
-#else
-#if defined(ARDUINO_m5stack_stickc_plus)
-  M5.Lcd.setCursor(0, 20);
-  M5.Lcd.setFreeFont(FSS9);
-#else
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.setTextSize(1);
-#endif
-#endif
+  m5_configInitialScreen();
 
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  StickCP2.Display.setTextColor(WHITE, BLACK);
-  StickCP2.Display.println("booting...");
-#else
-  M5.Lcd.setTextColor(WHITE, BLACK);
-  M5.Lcd.println("booting...");
-#endif
-  logger("Tally Arbiter M5StickC Listener Client booting.", "info");
+  m5_setTextColor(WHITE, BLACK);
+  m5_println("booting...");
+
+  logger("Tally Arbiter " + listenerDeviceHW + " Listener Client booting.", "info");
   logger("Listener device name: " + listenerDeviceName, "info");
 
   preferences.begin("tally-arbiter", false);
@@ -231,7 +259,7 @@ void setup() {
 #if TALLY_EXTRA_OUTPUT
   // Enable internal led for program trigger
   pinMode(led_program, OUTPUT);
-#if defined(ARDUINO_m5stack_stickc_plus2)
+#if defined(STICK_C_PLUS2)
   digitalWrite(led_program, LOW);
 #else
   digitalWrite(led_program, HIGH);
@@ -260,11 +288,7 @@ void loop() {
   M5.update();
 
   // Is WiFi reset triggered?
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  if (StickCP2.BtnA.pressedFor(5000)) {
-#else
-  if (M5.BtnA.pressedFor(5000)) {
-#endif
+  if (m5_BtnA_pressedFor(5000)) {
     logger("resetSettings()", "info");
     wm.resetSettings();
     ESP.restart();
@@ -297,49 +321,23 @@ void showSettings() {
   portalRunning = true;
 
   //displays the current network connection and Tally Arbiter server data
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  StickCP2.Display.fillScreen(TFT_BLACK);
-#else
-  M5.Lcd.fillScreen(TFT_BLACK);
-#endif
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  StickCP2.Display.setCursor(0, 0);
-  StickCP2.Display.setFreeFont(FSS9);
-#else
-#if defined(ARDUINO_m5stack_stickc_plus)
-  M5.Lcd.setCursor(0, 20);
-  M5.Lcd.setFreeFont(FSS9);
-#else
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.setTextSize(1);
-#endif
-#endif
+  m5_fillScreen(TFT_BLACK);
+  m5_configSettingsScreen();
 
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  StickCP2.Display.setTextColor(WHITE, BLACK);
-  StickCP2.Display.println("SSID: " + String(WiFi.SSID()));
-  StickCP2.Display.println(WiFi.localIP());
+  m5_setTextColor(WHITE, BLACK);
+  m5_println("SSID: " + String(WiFi.SSID()));
+  m5_println(WiFi.localIP().toString());
 
-  StickCP2.Display.println("Tally Arbiter Server:");
-  StickCP2.Display.println(String(tallyarbiter_host) + ":" + String(tallyarbiter_port));
-  StickCP2.Display.println();
-  StickCP2.Display.print("Battery: ");
-#else
-  M5.Lcd.setTextColor(WHITE, BLACK);
-  M5.Lcd.println("SSID: " + String(WiFi.SSID()));
-  M5.Lcd.println(WiFi.localIP());
+  m5_println("Tally Arbiter Server:");
+  m5_println(String(tallyarbiter_host) + ":" + String(tallyarbiter_port));
+  m5_println();
+  m5_print("Battery: ");
 
-  M5.Lcd.println("Tally Arbiter Server:");
-  M5.Lcd.println(String(tallyarbiter_host) + ":" + String(tallyarbiter_port));
-  M5.Lcd.println();
-  M5.Lcd.print("Battery: ");
-#endif
-
-#if defined(ARDUINO_m5stack_stickc_plus2)
+#if defined(STICK_C_PLUS2)
   // TODO: The battery voltage code is flawed
   int batteryLevel = floor(100.0 * ((1.01 * StickCP2.Power.getBatteryVoltage() / 1000) / 4));
   batteryLevel = batteryLevel > 100 ? 100 : batteryLevel;
-  if (batteryLevel >= 100) {
+  if (StickCP2.Power.getBatteryCurrent() > 0) {
     StickCP2.Display.println("Charging...");  // show when M5 is plugged in
   } else {
     StickCP2.Display.println(String(batteryLevel) + "%");
@@ -365,31 +363,12 @@ void showDeviceInfo() {
     portalRunning = false;
   }
 
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  StickCP2.Display.fillScreen(TFT_BLACK);
-#else
-  M5.Lcd.fillScreen(TFT_BLACK);
-#endif
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  StickCP2.Display.setCursor(4, 50);
-  StickCP2.Display.setFreeFont(FSS24);
-#else
-#if defined(ARDUINO_m5stack_stickc_plus)
-  M5.Lcd.setCursor(4, 82);
-  M5.Lcd.setFreeFont(FSS24);
-#else
-  M5.Lcd.setCursor(4, 30);
-  M5.Lcd.setTextSize(2);
-#endif
-#endif
+  m5_fillScreen(TFT_BLACK);
+  configureDisplayToShowDeviceInfo();
 
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  StickCP2.Display.setTextColor(DARKGREY, BLACK);
-  StickCP2.Display.println(DeviceName);
-#else
-  M5.Lcd.setTextColor(DARKGREY, BLACK);
-  M5.Lcd.println(DeviceName);
-#endif
+  m5_setTextColor(DARKGREY, BLACK);
+  m5_println(DeviceName);
+
   //displays the currently assigned device and tally data
   evaluateMode();
 }
@@ -402,7 +381,7 @@ void updateBrightness() {
   }
 
   logger("Set brightness: " + String(currentBrightness), "info-quiet");
-#if !defined(ARDUINO_m5stack_stickc_plus2)
+#if !defined(STICK_C_PLUS2)
   // TODO: Add call for brightness on Plus2
   M5.Axp.ScreenBreath(currentBrightness);
 #endif
@@ -438,21 +417,12 @@ void connectToNetwork() {
   wm.addParameter(custom_taPort);
 
   // If no saved WiFi we assume that configuration is needed via the captive portal
-#if defined(ARDUINO_m5stack_stickc_plus2)
   if (wm.getWiFiIsSaved()) {
-    StickCP2.Display.println("connecting...");
+    m5_println("connecting...");
   } else {
-    StickCP2.Display.println("Configure on");
-    StickCP2.Display.println("SSID: " + listenerDeviceName);
+    m5_println("Configure on");
+    m5_println("SSID: " + listenerDeviceName);
   }
-#else
-  if (wm.getWiFiIsSaved()) {
-    M5.Lcd.println("connecting...");
-  } else {
-    M5.Lcd.println("Configure on");
-    M5.Lcd.println("SSID: " + listenerDeviceName);
-  }
-#endif
 
   wm.setSaveParamsCallback(saveParamCallback);
 
@@ -470,13 +440,9 @@ void connectToNetwork() {
 
   if (!res) {
     logger("Failed to connect", "error");
-#if defined(ARDUINO_m5stack_stickc_plus2)
-    StickCP2.Display.println("Configuration timeout");
-    StickCP2.Display.println("Restart device to configure");
-#else
-    M5.Lcd.println("Configuration timeout");
-    M5.Lcd.println("Restart device to configure");
-#endif
+    m5_println("Configuration timeout");
+    m5_println("Restart device to configure");
+
     // ESP.restart();
   } else {
     //if you get here you have connected to the WiFi
@@ -540,12 +506,12 @@ void saveParamCallback() {
 
 void WiFiEvent(WiFiEvent_t event) {
   switch (event) {
-    case SYSTEM_EVENT_STA_GOT_IP:
+    case IP_EVENT_STA_GOT_IP:
       logger("Network connected!", "info");
       logger(WiFi.localIP().toString(), "info");
       networkConnected = true;
       break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
+    case WIFI_EVENT_STA_DISCONNECTED:
       logger("Network connection lost!", "info");
       networkConnected = false;
       break;
@@ -638,31 +604,17 @@ void socket_Connected(const char *payload, size_t length) {
 
 void socket_Flash() {
   //flash the screen white 3 times
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  StickCP2.Display.fillScreen(WHITE);
+  m5_fillScreen(WHITE);
   delay(500);
-  StickCP2.Display.fillScreen(TFT_BLACK);
+  m5_fillScreen(TFT_BLACK);
   delay(500);
-  StickCP2.Display.fillScreen(WHITE);
+  m5_fillScreen(WHITE);
   delay(500);
-  StickCP2.Display.fillScreen(TFT_BLACK);
+  m5_fillScreen(TFT_BLACK);
   delay(500);
-  StickCP2.Display.fillScreen(WHITE);
+  m5_fillScreen(WHITE);
   delay(500);
-  StickCP2.Display.fillScreen(TFT_BLACK);
-#else
-  M5.Lcd.fillScreen(WHITE);
-  delay(500);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  delay(500);
-  M5.Lcd.fillScreen(WHITE);
-  delay(500);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  delay(500);
-  M5.Lcd.fillScreen(WHITE);
-  delay(500);
-  M5.Lcd.fillScreen(TFT_BLACK);
-#endif
+  m5_fillScreen(TFT_BLACK);
   //then resume normal operation
   switch (currentScreen) {
     case 0:
@@ -698,23 +650,13 @@ void socket_Reassign(String payload) {
   ws_emit("listener_reassign_object", charReassignObj);
   ws_emit("devices");
 
-#if defined(ARDUINO_m5stack_stickc_plus2)
-  StickCP2.Display.fillScreen(RED);
+  m5_fillScreen(RED);
   delay(200);
-  StickCP2.Display.fillScreen(TFT_BLACK);
+  m5_fillScreen(TFT_BLACK);
   delay(200);
-  StickCP2.Display.fillScreen(RED);
+  m5_fillScreen(RED);
   delay(200);
-  StickCP2.Display.fillScreen(TFT_BLACK);
-#else
-  M5.Lcd.fillScreen(RED);
-  delay(200);
-  M5.Lcd.fillScreen(TFT_BLACK);
-  delay(200);
-  M5.Lcd.fillScreen(RED);
-  delay(200);
-  M5.Lcd.fillScreen(TFT_BLACK);
-#endif
+  m5_fillScreen(TFT_BLACK);
 
   logger("newDeviceId: " + newDeviceId, "info-quiet");
   DeviceId = newDeviceId;
@@ -722,6 +664,15 @@ void socket_Reassign(String payload) {
   preferences.putString("deviceid", newDeviceId);
   preferences.end();
   SetDeviceName();
+
+  switch (currentScreen) {
+    case 0:
+      showDeviceInfo();
+      break;
+    case 1:
+      showSettings();
+      break;
+  }
 }
 
 void socket_Messaging(String payload) {
@@ -802,19 +753,7 @@ void SetDeviceName() {
 
 void evaluateMode() {
   if (actualType != prevType) {
-#if defined(ARDUINO_m5stack_stickc_plus2)
-    StickCP2.Display.setCursor(4, 50);
-    StickCP2.Display.setFreeFont(FSS24);
-#else
-#if defined(ARDUINO_m5stack_stickc_plus)
-    M5.Lcd.setCursor(4, 82);
-    M5.Lcd.setFreeFont(FSS24);
-#else
-    M5.Lcd.setCursor(4, 30);
-    //M5.Lcd.setTextSize(maxTextSize);
-    M5.Lcd.setTextSize(2);
-#endif
-#endif
+    configureDisplayToEvaluateMode();
     actualColor.replace("#", "");
     String hexstring = actualColor;
     long number = (long)strtol(&hexstring[1], NULL, 16);
@@ -823,30 +762,19 @@ void evaluateMode() {
     int b = number & 0xFF;
 
     if (actualType != "") {
-#if defined(ARDUINO_m5stack_stickc_plus2)
-      StickCP2.Display.setTextColor(BLACK);
-      StickCP2.Display.fillScreen(M5.Lcd.color565(r, g, b));
-      StickCP2.Display.println(DeviceName);
-#else
-      M5.Lcd.setTextColor(BLACK);
-      M5.Lcd.fillScreen(M5.Lcd.color565(r, g, b));
-      M5.Lcd.println(DeviceName);
-#endif
+      m5_setTextColor(BLACK);
+      m5_fillScreen(M5.Lcd.color565(r, g, b));
+      m5_println(DeviceName);
+
     } else {
-#if defined(ARDUINO_m5stack_stickc_plus2)
-      StickCP2.Display.setTextColor(DARKGREY, BLACK);
-      StickCP2.Display.fillScreen(TFT_BLACK);
-      StickCP2.Display.println(DeviceName);
-#else
-      M5.Lcd.setTextColor(DARKGREY, BLACK);
-      M5.Lcd.fillScreen(TFT_BLACK);
-      M5.Lcd.println(DeviceName);
-#endif
+      m5_setTextColor(DARKGREY, BLACK);
+      m5_fillScreen(TFT_BLACK);
+      m5_println(DeviceName);
     }
 
 #if TALLY_EXTRA_OUTPUT
     if (actualType == "\"program\"") {
-#if defined(ARDUINO_m5stack_stickc_plus2)
+#if defined(STICK_C_PLUS2)
       digitalWrite(led_program, HIGH);
 #else
       digitalWrite(led_program, LOW);
@@ -854,7 +782,7 @@ void evaluateMode() {
       digitalWrite(led_preview, LOW);
       digitalWrite(led_aux, LOW);
     } else if (actualType == "\"preview\"") {
-#if defined(ARDUINO_m5stack_stickc_plus2)
+#if defined(STICK_C_PLUS2)
       digitalWrite(led_program, LOW);
 #else
       digitalWrite(led_program, HIGH);
@@ -862,7 +790,7 @@ void evaluateMode() {
       digitalWrite(led_preview, HIGH);
       digitalWrite(led_aux, LOW);
     } else if (actualType == "\"aux\"") {
-#if defined(ARDUINO_m5stack_stickc_plus2)
+#if defined(STICK_C_PLUS2)
       digitalWrite(led_program, LOW);
 #else
       digitalWrite(led_program, HIGH);
@@ -870,7 +798,7 @@ void evaluateMode() {
       digitalWrite(led_preview, LOW);
       digitalWrite(led_aux, HIGH);
     } else {
-#if defined(ARDUINO_m5stack_stickc_plus2)
+#if defined(STICK_C_PLUS2)
       digitalWrite(led_program, LOW);
 #else
       digitalWrite(led_program, HIGH);
@@ -887,11 +815,7 @@ void evaluateMode() {
   }
 
   if (LAST_MSG == true) {
-#if defined(ARDUINO_m5stack_stickc_plus2)
-    StickCP2.Display.println(LastMessage);
-#else
-    M5.Lcd.println(LastMessage);
-#endif
+    m5_println(LastMessage);
   }
 }
 
@@ -902,52 +826,24 @@ void checkReset() {
     // poor mans debounce/press-hold, code not ideal for production
     delay(50);
     if (digitalRead(TRIGGER_PIN) == LOW) {
-#if defined(ARDUINO_m5stack_stickc_plus2)
-      StickCP2.Display.fillScreen(TFT_BLACK);
-#else
-      M5.Lcd.fillScreen(TFT_BLACK);
-#endif
-#if defined(ARDUINO_m5stack_stickc_plus)
-      M5.Lcd.setCursor(0, 40);
-      M5.Lcd.setFreeFont(FSS9);
-#else
-#if defined(ARDUINO_m5stack_stickc_plus2)
-      StickCP2.Display.setCursor(0, 40);
-      StickCP2.Display.setFreeFont(FSS9);
-#else
-      M5.Lcd.setCursor(0, 0);
-      M5.Lcd.setTextSize(1);
-#endif
-#endif
+      m5_fillScreen(TFT_BLACK);
+      configureDisplayToCheckReset();
 
-#if defined(ARDUINO_m5stack_stickc_plus2)
-      StickCP2.Display.setTextColor(WHITE, BLACK);
-      StickCP2.Display.println("Reset button pushed....");
-#else
-      M5.Lcd.setTextColor(WHITE, BLACK);
-      M5.Lcd.println("Reset button pushed....");
-#endif
+      m5_setTextColor(WHITE, BLACK);
+      m5_println("Reset button pushed....");
       logger("Button Pressed", "info");
 
       // still holding button for 3000 ms, reset settings, code not ideal for production
       delay(3000);  // reset delay hold
       if (digitalRead(TRIGGER_PIN) == LOW) {
-#if defined(ARDUINO_m5stack_stickc_plus2)
-        StickCP2.Display.println("Erasing....");
-#else
-        M5.Lcd.println("Erasing....");
-#endif
+        m5_println("Erasing....");
         logger("Button Held", "info");
         logger("Erasing Config, restarting", "info");
         wm.resetSettings();
         ESP.restart();
       }
 
-#if defined(ARDUINO_m5stack_stickc_plus2)
-      StickCP2.Display.println("Starting Portal...");
-#else
-      M5.Lcd.println("Starting Portal...");
-#endif
+      m5_println("Starting Portal...");
 
       // start portal w delay
       logger("Starting config portal", "info");
@@ -963,4 +859,169 @@ void checkReset() {
       }
     }
   }
+}
+
+
+//
+// Hiding differences between hw variants to increased readability of common source code.
+//
+
+void m5_println(void) {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.println();
+#else
+  M5.Lcd.println();
+#endif
+}
+
+void m5_println(const String &s) {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.println(s);
+#else
+  M5.Lcd.println(s);
+#endif
+}
+
+void m5_println(const char c[]) {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.println(c);
+#else
+  M5.Lcd.println(c);
+#endif
+}
+
+void m5_print(const char str[]) {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.print(str);
+#else
+  M5.Lcd.print(str);
+#endif
+}
+
+void m5_setTextColor(uint16_t color) {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.setTextColor(color);
+#else
+  M5.Lcd.setTextColor(color);
+#endif
+}
+
+void m5_setTextColor(uint16_t fgcolor, uint16_t bgcolor) {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.setTextColor(fgcolor, bgcolor);
+#else
+  M5.Lcd.setTextColor(fgcolor, bgcolor);
+#endif
+}
+
+void m5_fillScreen(uint32_t color) {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.fillScreen(color);
+#else
+  M5.Lcd.fillScreen(color);
+#endif
+}
+
+uint8_t m5_BtnA_pressedFor(uint32_t ms) {
+#if defined(STICK_C_PLUS2)
+  return StickCP2.BtnA.pressedFor(ms);
+#else
+  return M5.BtnA.pressedFor(ms);
+#endif
+}
+
+void configureDisplayToEvaluateMode() {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.setCursor(4, 50);
+  StickCP2.Display.setFreeFont(FSS24);
+#endif
+#if defined(STICK_C_PLUS)
+  M5.Lcd.setCursor(4, 82);
+  M5.Lcd.setFreeFont(FSS24);
+#endif
+#if defined(STICK_C)
+  M5.Lcd.setCursor(4, 30);
+  M5.Lcd.setTextSize(2);
+#endif
+}
+
+void configureDisplayToShowDeviceInfo() {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.setCursor(4, 50);
+  StickCP2.Display.setFreeFont(FSS24);
+#endif
+#if defined(STICK_C_PLUS)
+  M5.Lcd.setCursor(4, 82);
+  M5.Lcd.setFreeFont(FSS24);
+#endif
+#if defined(STICK_C)
+  M5.Lcd.setCursor(4, 30);
+  M5.Lcd.setTextSize(2);
+#endif
+}
+
+
+void configureDisplayToCheckReset() {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.setCursor(0, 40);
+  StickCP2.Display.setFreeFont(FSS9);
+#endif
+#if defined(STICK_C_PLUS)
+  M5.Lcd.setCursor(0, 40);
+  M5.Lcd.setFreeFont(FSS9);
+#endif
+#if defined(STICK_C)
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.setTextSize(1);
+#endif
+}
+
+void m5_begin() {
+#if defined(STICK_C_PLUS2)
+  auto cfg = M5.config();
+  StickCP2.begin(cfg);
+#else
+  M5.begin();
+#endif
+}
+
+
+void m5_configInitialScreen() {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.setCursor(0, 0);
+  StickCP2.Display.setFreeFont(FSS9);
+#endif
+#if defined(STICK_C_PLUS)
+  M5.Lcd.setCursor(0, 20);
+  M5.Lcd.setFreeFont(FSS9);
+#endif
+#if defined(STICK_C)
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.setTextSize(1);
+#endif
+}
+
+
+void m5_configSettingsScreen() {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.setCursor(0, 0);
+  StickCP2.Display.setFreeFont(FSS9);
+#endif
+#if defined(STICK_C_PLUS)
+  M5.Lcd.setCursor(0, 20);
+  M5.Lcd.setFreeFont(FSS9);
+#endif
+#if defined(STICK_C)
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.setTextSize(1);
+#endif
+}
+
+
+void m5_setRotation(uint_fast8_t rotation) {
+#if defined(STICK_C_PLUS2)
+  StickCP2.Display.setRotation(rotation);
+#else
+  M5.Lcd.setRotation(rotation);
+#endif
 }
