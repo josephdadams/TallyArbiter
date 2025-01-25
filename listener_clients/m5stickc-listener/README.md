@@ -28,6 +28,8 @@ https://www.adafruit.com/product/4290 (Shipped from USA)
    You should select the file that ends in **.ino.bin**, not the file that ends in _.ino.elf_ or _.ino.partitions.bin_.
 5. Flash the firmware on your board _(clicking "Flash ESP" in esphome-flasher)_.
 
+**NB:** The built version onf GitHub is only for **M5StickC**.
+
 Done! Now your board is running the latest listener client firmware version. Go to the _"Setup your device"_ sections to connect the board to the Tally Arbiter server.
 
 ## 2. Using the Arduino IDE
@@ -41,7 +43,12 @@ Done! Now your board is running the latest listener client firmware version. Go 
 
 Done! Now your board is running the latest listener client firmware version. Go to the _"Setup your device"_ sections to connect the board to the Tally Arbiter server.
 
-NB: The code base is either compiled for **M5StickC**, **M5StickC-Plus** or **M5StickC-Plus2** based on the configured **board** in **Arduino IDE**. Only one can be enabled at at time.
+The code base is compiled for **M5StickC**, **M5StickC-Plus** or **M5StickC-Plus2** based on the configured **M5Stack Arduino** version in **Board** in Arduino IDE. Only one can be enabled at at time:
+- M5Stack Arduino -> M5StickC
+- M5Stack Arduino -> M5StickC-Plus
+- M5Stack Arduino -> M5StickC-Plus2
+
+It is possible to manually select what board type to build for if the wanted board type in the ino file, e.g., when not using Arduino IDE.
 
 TALLY_EXTRA_OUTPUT can be used for extra tally info. The internal led is used for program. Preview and aux is available on external ports by default.
 
