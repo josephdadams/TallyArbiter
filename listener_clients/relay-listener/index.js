@@ -218,6 +218,8 @@ function connectToServer(ip, port) {
 					'info',
 				)
 				saveConfig()
+
+				socket.emit('listener_reassign_relay', relayGroupId, oldDeviceId, newDeviceId);
 			}
 		}
 	})
