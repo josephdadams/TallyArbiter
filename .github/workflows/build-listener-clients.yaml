@@ -24,7 +24,7 @@ jobs:
               source-url: https://dl.espressif.com/dl/package_esp32_index.json
           fqbn: 'esp32:esp32:m5stick_stickc'
           libraries: |
-            - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.2.9.zip
+            - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.3.0.zip
             - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.0.zip
             - name: WebSockets
             - name: WiFiManager
