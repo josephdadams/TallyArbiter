@@ -36,7 +36,7 @@ jobs:
             - listener_clients/m5stickc-listener
           enable-deltas-report: true
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: 'TallyArbiter-Listener-M5StickC'
           path: 'listener_clients/m5stickc-listener/build/esp32.esp32.m5stick-c'
@@ -65,7 +65,7 @@ jobs:
             - listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom
           enable-deltas-report: true
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: 'TallyArbiter-Listener-M5Atom'
           path: 'listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom/build/esp32.esp32.m5stack-atom'
@@ -93,7 +93,7 @@ jobs:
             - listener_clients/esp32-neopixel-listener
           enable-deltas-report: true
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: 'TallyArbiter-Listener-ESP32-NeoPixel'
           path: 'listener_clients/esp32-neopixel-listener/build/esp32.esp32.esp32'
@@ -144,7 +144,7 @@ jobs:
           FQBN_REPLACED=$(echo $RAW_FQBN | sed 's/:/./g')
           echo "FQBN_REPLACED=$FQBN_REPLACED" >> $GITHUB_ENV
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: 'TallyArbiter-Listener-${{ matrix.board.name }}'
           path: 'listener_clients/TTGO_T-listener/build/${{ env.FQBN_REPLACED }}'
