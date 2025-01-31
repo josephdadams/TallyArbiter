@@ -51,9 +51,9 @@ jobs:
           platforms: |
             - name: esp32:esp32
               source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          fqbn: 'esp32:esp32:m5stack-atom'
+          fqbn: 'esp32:esp32:m5stack_atom'
           libraries: |
-            - source-url: https://github.com/m5stack/M5Atom/archive/refs/tags/0.1.2.zip
+            - source-url: https://github.com/m5stack/M5Atom/archive/refs/tags/0.1.3.zip
             - name: WebSockets
             - name: WiFiManager
             - name: MultiButton
@@ -68,7 +68,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: 'TallyArbiter-Listener-M5Atom'
-          path: 'listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom/build/esp32.esp32.m5stack-atom'
+          path: 'listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom/build/esp32.esp32.m5stack_atom'
 
   build_esp32-neopixel-listener:
     name: Build ESP32 NeoPixel Listener
