@@ -14,12 +14,12 @@ Modify User_Setup_Select.h in libraryY TFT_eSPI
 #include <WiFi.h>
 #include <WebSocketsClient.h>
 #include <SocketIOclient.h>
+#include <WiFiManager.h>
 #include <TFT_eSPI.h>
 #include <Arduino_JSON.h>
 #include <PinButton.h>
 #include <SPI.h>
 #include <Arduino.h>
-#include <WiFiManager.h>
 #include <ArduinoOTA.h>
 #include <ESPmDNS.h>
 #include <Preferences.h>
@@ -277,12 +277,12 @@ void saveParamCallback() {
 
 void WiFiEvent(WiFiEvent_t event) {
   switch (event) {
-    case SYSTEM_EVENT_STA_GOT_IP:
+    case IP_EVENT_STA_GOT_IP:
       logger("Network connected!", "info");
       logger(WiFi.localIP().toString(), "info");
       networkConnected = true;
       break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
+    case WIFI_EVENT_STA_DISCONNECTED:
       tft.setCursor(0, 0);
       tft.fillScreen(TFT_BLACK);
       tft.setTextSize(2);

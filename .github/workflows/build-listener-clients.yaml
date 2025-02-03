@@ -22,9 +22,9 @@ jobs:
           platforms: |
             - name: esp32:esp32
               source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          fqbn: 'esp32:esp32:m5stick-c'
+          fqbn: 'esp32:esp32:m5stack_stickc'
           libraries: |
-            - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.2.9.zip
+            - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.3.0.zip
             - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.0.zip
             - name: WebSockets
             - name: WiFiManager
@@ -36,10 +36,10 @@ jobs:
             - listener_clients/m5stickc-listener
           enable-deltas-report: true
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: 'TallyArbiter-Listener-M5StickC'
-          path: 'listener_clients/m5stickc-listener/build/esp32.esp32.m5stick-c'
+          path: 'listener_clients/m5stickc-listener/build/esp32.esp32.m5stack_stickc'
 
   build_m5atom-listener:
     name: Build M5Atom Listener
@@ -51,9 +51,9 @@ jobs:
           platforms: |
             - name: esp32:esp32
               source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          fqbn: 'esp32:esp32:m5stack-atom'
+          fqbn: 'esp32:esp32:m5stack_atom'
           libraries: |
-            - source-url: https://github.com/m5stack/M5Atom/archive/refs/tags/0.1.2.zip
+            - source-url: https://github.com/m5stack/M5Atom/archive/refs/tags/0.1.3.zip
             - name: WebSockets
             - name: WiFiManager
             - name: MultiButton
@@ -65,10 +65,10 @@ jobs:
             - listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom
           enable-deltas-report: true
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: 'TallyArbiter-Listener-M5Atom'
-          path: 'listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom/build/esp32.esp32.m5stack-atom'
+          path: 'listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom/build/esp32.esp32.m5stack_atom'
 
   build_esp32-neopixel-listener:
     name: Build ESP32 NeoPixel Listener
@@ -93,7 +93,7 @@ jobs:
             - listener_clients/esp32-neopixel-listener
           enable-deltas-report: true
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: 'TallyArbiter-Listener-ESP32-NeoPixel'
           path: 'listener_clients/esp32-neopixel-listener/build/esp32.esp32.esp32'
@@ -144,7 +144,7 @@ jobs:
           FQBN_REPLACED=$(echo $RAW_FQBN | sed 's/:/./g')
           echo "FQBN_REPLACED=$FQBN_REPLACED" >> $GITHUB_ENV
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: 'TallyArbiter-Listener-${{ matrix.board.name }}'
           path: 'listener_clients/TTGO_T-listener/build/${{ env.FQBN_REPLACED }}'
