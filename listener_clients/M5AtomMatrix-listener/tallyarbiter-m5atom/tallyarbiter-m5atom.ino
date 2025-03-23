@@ -761,6 +761,9 @@ void setup() {
   //Save battery by turning off BlueTooth
   btStop();
 
+  //Initialize WiFi
+  WiFi.begin();
+
     // Initialize IMU (MPU6886) The rotation sensor
   if (M5.IMU.Init() != 0) {
     Serial.println("MPU6886 initialization failed!");
