@@ -541,6 +541,8 @@ void socket_Flash() {
   //Matrix Off
   drawNumber(icons[1], alloffcolor);
   delay(100);
+  // Draw camera number after flashing
+  drawNumber(rotatedNumber, offcolor);
   //then resume normal operation
   evaluateMode();
 }
