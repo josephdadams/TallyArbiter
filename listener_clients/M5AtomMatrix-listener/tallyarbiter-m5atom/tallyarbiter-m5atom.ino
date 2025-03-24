@@ -543,6 +543,8 @@ void socket_Flash() {
   delay(100);
   //then resume normal operation
   evaluateMode();
+  // Draw camera number after flashing
+  drawNumber(rotatedNumber, offcolor);
 }
 
 void socket_Connected(const char * payload, size_t length) {
