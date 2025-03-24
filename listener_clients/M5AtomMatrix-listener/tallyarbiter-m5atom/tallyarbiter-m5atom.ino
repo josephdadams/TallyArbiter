@@ -959,6 +959,12 @@ void loop(){
         delay(100);                                         // Introduce a short delay before closing
         preferences.end();                                  // Close the Preferences after saving
     }
+    
+    float accX, accY, accZ;
+
+    M5.IMU.getAccelData(&accX, &accY, &accZ);
+
+    updateDisplayBasedOnOrientation(accX, accY, accZ);
     drawNumber(rotatedNumber, offcolor);
 
     // Lets get some info sent out the serial connection for debugging
