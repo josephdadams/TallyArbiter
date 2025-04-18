@@ -544,6 +544,8 @@ void socket_Flash() {
   //then resume normal operation
   prevType = "socket_Flash"; // Force repaint after socket flash
   evaluateMode();
+  // Draw camera number after flashing
+  drawNumber(rotatedNumber, offcolor);
 }
 
 void socket_Connected(const char * payload, size_t length) {
