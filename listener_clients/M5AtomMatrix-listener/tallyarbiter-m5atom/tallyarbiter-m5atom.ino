@@ -542,6 +542,7 @@ void socket_Flash() {
   drawNumber(icons[1], alloffcolor);
   delay(100);
   //then resume normal operation
+  prevType = "socket_Flash"; // Force repaint after socket flash
   evaluateMode();
   // Draw camera number after flashing
   drawNumber(rotatedNumber, offcolor);
@@ -902,7 +903,6 @@ void rotate270(int source[25], int dest[25]) {
 
 // Screen Update Routine
 void updateDisplayBasedOnOrientation(float accX, float accY, float accZ) {
-
   //Serial.print("Screen Orientation: ");
   //Serial.print("Accel X: ");
   //Serial.print(accX);
@@ -962,11 +962,15 @@ void loop(){
         preferences.end();                                  // Close the Preferences after saving
     }
     
+    // Orientation Sensor Data variables
     float accX, accY, accZ;
 
+    // Read acceleration data
     M5.IMU.getAccelData(&accX, &accY, &accZ);
 
+    // Run the rotation change to the variabne rotatedNumber
     updateDisplayBasedOnOrientation(accX, accY, accZ);
+    
     drawNumber(rotatedNumber, offcolor);
 
     // Lets get some info sent out the serial connection for debugging
@@ -1003,13 +1007,13 @@ void loop(){
   // Check orientation and autorotate the screen
 
     // Orientation Sensor Data variables
-  float accX, accY, accZ;
+  //float accX, accY, accZ;
 
   // Read acceleration data
-  M5.IMU.getAccelData(&accX, &accY, &accZ);
+  //M5.IMU.getAccelData(&accX, &accY, &accZ);
 
   // Run the rotation change to the variabne rotatedNumber
-  updateDisplayBasedOnOrientation(accX, accY, accZ);
+  //updateDisplayBasedOnOrientation(accX, accY, accZ);
     
 //  #else
 //  #endif
