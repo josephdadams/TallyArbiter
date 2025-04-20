@@ -16,12 +16,12 @@ The following source types are supported:
 - OBS Studio
 - Open Sound Control (OSC)
 - Panasonic AV-HS410
-- StudioCoast VMix
 - Riedel SimplyLive
 - Roland Smart Tally
 - Roland VR-50HD-MKII
-- Ross Vision (through GV Contribution Tally Protocol)
 - Ross Carbonite/Carbonite Black/Carbonite Black Solo/Carbonite Ultra/Graphite
+- Ross Vision (through GV Contribution Tally Protocol)
+- StudioCoast VMix
 - TSL 3.1/5.0 UDP/TCP (Ross switchers, Streamstar, FOR-A, etc. - any device that uses the TSL UMD protocol)
 
 When you add a source and the connection to the tally source (video switcher, software, etc.) is successfully made, the source will be green. If there is an error, the source will be red. Look at the logs for more error information.
@@ -46,6 +46,14 @@ It's an older protocol sir, but it checks out. Any Grass Valley switcher that us
 
 You will need the IP address of the Tricaster.
 
+## OBS Studio
+
+For OBS Studio v27 (or older) the `obs-websockets` plugin must be installed and configured in order for Tally Arbiter to connect. You can get the plugin here: https://github.com/Palakis/obs-websocket/releases.
+
+For OBS Studio v28 and later is `obs-websockets` included with OBS Studio. Note that the included `obs-websockets` in OBS Studio uses port 4455. This will cause a port conflict with TallyArbiter. In OBS Studion can an alternative port be configured in Tools -> WebSocket Server Settings. An alternative is to re-configure Tally Aribiter with another port by editing the [config file](../../usage/control-interface.md).
+
+You will need to supply the IP address, port, and password configured in the OBS Websockets plugin.
+
 ## Open Sound Control (OSC)
 
 Incoming OSC data can be used to trigger device tally states. Configure the port as desired.
@@ -60,14 +68,6 @@ OSC paths must be one of the following:
 - `/tally/previewprogram_off`: Turns off both Preview and Program Program mode for the device.
 
 The device source address should be sent as an integer or a string. Send one argument of any type (integer, float, or string). If you send multiple arguments, they will be ignored.
-
-## OBS Studio
-
-For OBS Studio v27 (or older) the `obs-websockets` plugin must be installed and configured in order for Tally Arbiter to connect. You can get the plugin here: https://github.com/Palakis/obs-websocket/releases.
-
-For OBS Studio v28 and later is `obs-websockets` included with OBS Studio. Note that the included `obs-websockets` in OBS Studio uses port 4455. This will cause a port conflict with TallyArbiter. In OBS Studion can an alternative port be configured in Tools -> WebSocket Server Settings. An alternative is to re-configure Tally Aribiter with another port by editing the [config file](../../usage/control-interface.md).
-
-You will need to supply the IP address, port, and password configured in the OBS Websockets plugin.
 
 ## Panasonic AV-HS410
 
@@ -86,13 +86,13 @@ You will need the IP address of the Roland switcher.
 
 You will need the IP address of the Roland switcher.
 
-## Ross Vision (through Contrib Tally)
-
-Some of Ross's older Vision models use the Contribution Tally protocol instead of TSL.
-
 ## Ross Carbonite Models
 
 You will need the IP address of the Ross Carbonite switcher. Your Carbonite must be configured to send the data to Tally Arbiter at the port you specify. All Ross products use the TSL 3.1/5.0 protocols, however this specific source type allows you to process tally information by specific supported busses (ME1, MME1, Auxes, etc.) regardless of the "OnAir" setting that is configured on the Carbonite itself.
+
+## Ross Vision (through Contrib Tally)
+
+Some of Ross's older Vision models use the Contribution Tally protocol instead of TSL.
 
 ## StudioCoast VMix
 
