@@ -7,6 +7,8 @@ import { uuidv4 } from '../_helpers/uuid'
 import { DeviceTallyData } from '../_models/TallyData'
 import { ListenerProvider } from './_ListenerProvider'
 
+import { currentDeviceTallyData } from '../index'
+
 const VMixPort = 8099
 
 @UsesPort(VMixPort)
@@ -58,10 +60,13 @@ export class VMixEmulator extends ListenerProvider {
 			const commandParts = parts[0].split(' ')
 			const activator = commandParts.length >= 2 ? commandParts[1] : 'Unknown'
 			const activator_status = '0'; // static response because tally state is already handled by TALLY OK ##
-			const acts_response = 'ACTS OK ${activator} ${activator_status}\r\n'
+			const acts_response = `ACTS OK ${activator} ${activator_status}\r\n`
 			socket.write(acts_response)
 		} else if (parts[0] === 'QUIT') {
 			socket.destroy()
+		}
+		else if (parts[0] === 'TALLY') {
+			this.updateListenerClients(currentDeviceTallyData)
 		}
 	}
 	private onConnClose(socket: net.Socket) {
