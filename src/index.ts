@@ -186,7 +186,7 @@ var sources: Source[] = [] // the configured tally sources
 export var devices: Device[] = [] // the configured tally devices
 export var device_sources: DeviceSource[] = [] // the configured tally device-source mappings
 var device_actions: DeviceAction[] = [] // the configured device output actions
-var currentDeviceTallyData: DeviceTallyData = {} // tally data (=bus array) per device id (linked busses taken into account)
+export var currentDeviceTallyData: DeviceTallyData = {} // tally data (=bus array) per device id (linked busses taken into account)
 var currentSourceTallyData: SourceTallyData = {} // tally data (=bus array) per device source id
 
 function startUp() {
