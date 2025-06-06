@@ -833,11 +833,19 @@ void setup() {
 
   preferences.end();
 
+  // Initialize rotatedNumber with current orientation
+  float accX, accY, accZ;
+  M5.IMU.getAccelData(&accX, &accY, &accZ);
+  updateDisplayBasedOnOrientation(accX, accY, accZ);  // Initialize rotatedNumber
+
   delay(100); //wait 100ms before moving on
   connectToNetwork(); //starts Wifi connection
   while (!networkConnected) {
     delay(200);
   }  
+
+  // Show camera number after WiFi connection
+  drawNumber(rotatedNumber, offcolor);  
 
   //debug
   //char message[200]; // Adjust the size as needed
