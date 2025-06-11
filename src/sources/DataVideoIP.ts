@@ -182,7 +182,6 @@ export class DataVideoIP extends TallyInput {
             this.socket_request.end()
             setTimeout(() => this.socket_request?.destroy(), 100)
         }
-        this.connected.next(false)
     }
 
     /**
