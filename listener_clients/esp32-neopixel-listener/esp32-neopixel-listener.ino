@@ -279,12 +279,12 @@ void saveParamCallback() {
 
 void WiFiEvent(WiFiEvent_t event) {
   switch (event) {
-    case SYSTEM_EVENT_STA_GOT_IP:
+    case IP_EVENT_STA_GOT_IP:
       logger("Network connected!", "info");
       logger(WiFi.localIP().toString(), "info");
       networkConnected = true;
       break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
+    case WIFI_EVENT_STA_DISCONNECTED:
       logger("Network connection lost!", "info");
       networkConnected = false;
       break;

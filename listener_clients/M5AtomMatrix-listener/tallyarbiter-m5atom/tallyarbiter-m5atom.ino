@@ -13,7 +13,6 @@
 #define DATA_PIN_LED 27 // NeoPixelArray
 
 
-
 // Set to true if you want to compile with the ability to show camera number during pvw and pgm
 #define SHOW_CAMERA_NUMBER_DURING_PVW_AND_PGM false
 
@@ -70,10 +69,13 @@ JSONVar Devices;
 JSONVar DeviceStates;
 String DeviceId = "unassigned";
 String DeviceName = "unassigned";
-String ListenerType = "m5";
+//String ListenerType = "m5";
 const unsigned long reconnectInterval = 5000;
 unsigned long currentReconnectTime = 0;
 bool isReconnecting = false;
+
+//General Variables
+bool networkConnected = false;
 
 #if TALLY_EXTRA_OUTPUT
 const int led_program = 33; //Led for program on pin G33 - if TALLY_EXTRA_OUTPUT set to true at top of file
@@ -312,19 +314,17 @@ void logger(String strLog, String strType) {
 void setDeviceName(){
   for (int i = 0; i < Devices.length(); i++) {
     if (JSON.stringify(Devices[i]["id"]) == "\"" + DeviceId + "\"") {
-      String strDevice = JSON.stringify(Devices[i]["Type"]);
+      String strDevice = JSON.stringify(Devices[i]["name"]);
       DeviceName = strDevice.substring(1, strDevice.length() - 1);
       break;
     }
   }
   preferences.begin("tally-arbiter", false);
   preferences.putString("devicename", DeviceName);
-  preferences.putString("deviceid", DeviceId);
+  //preferences.putString("deviceid", DeviceId);
   preferences.end();
-  logger("-------------------------------------------------", "info-quiet");
   logger("DeviceName: " + String(DeviceName), "info-quiet");
-  logger("DeviceId: " + String(DeviceId), "info-quiet");
-  logger("-------------------------------------------------", "info-quiet");
+  //logger("DeviceId: " + String(DeviceId), "info-quiet");
 }
 
 //---------------------------------------------------------------
@@ -358,9 +358,10 @@ void evaluateMode() {
     int b = strtol(hexstring.substring(5).c_str(), NULL, 16);
     
     if (actualType != "") {
-     int backgroundColorhex = (g << 16) | (r << 8) | b; // Swap positions of RGB to GRB conversion
+      int backgroundColorhex = (g << 16) | (r << 8) | b; // Swap positions of RGB to GRB conversion
       int currColor[] = {backgroundColorhex, numbercolor};
-      logger("Current color: " + String(backgroundColorhex), "info");
+      //debug
+      //logger("Current color: " + String(backgroundColorhex), "info");
       //logger("Current camNumber: " + String(camNumber), "info");
 #if SHOW_CAMERA_NUMBER_DURING_PVW_AND_PGM
       // If you want the camera number displayed during Pgm and Pvw, change the variable at the top of the file
@@ -409,18 +410,16 @@ void startReconnect() {
 }
 
 void connectToServer() {
-  logger("---------------------------------", "info-quiet");
-  logger("Connecting to Tally Arbiter host: " + String(tallyarbiter_host), "info-quiet");
+  logger("Connecting to Tally Arbiter host: " + String(tallyarbiter_host), "info");
   socket.onEvent(socket_event);
   socket.begin(tallyarbiter_host, atol(tallyarbiter_port));
-  logger("---------------------------------", "info-quiet");
 }
 
 // Here are all the socket listen events - messages sent from Tally Arbiter to the M5
 
 void socket_Disconnected(const char * payload, size_t length) {
   logger("Disconnected from server, will try to re-connect: " + String(payload), "info-quiet");
-  Serial.println("disconnected, going to try to reconnect");
+  //Serial.println("disconnected, going to try to reconnect");
   startReconnect();
 }
 
@@ -472,7 +471,7 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
       eventContent = eventMsg.substring(eventType.length() + 4);
       eventContent.remove(eventContent.length() - 1);
 
-      logger("Got event '" + eventType + "', data: " + eventContent, "VERBOSE");
+      logger("Got event '" + eventType + "', data: " + eventContent, "info-quiet");
 
       if (eventType == "bus_options") socket_BusOptions(eventContent);
       if (eventType == "deviceId") socket_DeviceId(eventContent);
@@ -489,8 +488,6 @@ void socket_event(socketIOmessageType_t type, uint8_t * payload, size_t length) 
 }
 
 void socket_Reassign(String payload) {
-  logger("Socket Reassign: " + String(payload), "info-quiet");
-  Serial.println(payload);
   String oldDeviceId = payload.substring(0, payload.indexOf(','));
   String newDeviceId = payload.substring(oldDeviceId.length()+1);
   newDeviceId = newDeviceId.substring(0, newDeviceId.indexOf(','));
@@ -526,6 +523,7 @@ void socket_Reassign(String payload) {
   preferences.end();
   setDeviceName();
 }
+
 void socket_Flash() {
   //flash the screen white 3 times
   logger("The device flashed.", "info-quiet");
@@ -542,42 +540,38 @@ void socket_Flash() {
   drawNumber(icons[1], alloffcolor);
   delay(100);
   //then resume normal operation
+  prevType = "socket_Flash"; // Force repaint after socket flash
   evaluateMode();
+  // Draw camera number after flashing
+  drawNumber(rotatedNumber, offcolor);
 }
 
 void socket_Connected(const char * payload, size_t length) {
-  logger("---------------------------------", "info-quiet");
-  logger("Connected to Tally Arbiter host: " + String(tallyarbiter_host), "info-quiet");
+  logger("Connected to Tally Arbiter server.", "info");
+  logger("DeviceId = " + DeviceId, "info-quiet");
   isReconnecting = false;
   String deviceObj = "{\"deviceId\": \"" + DeviceId + "\", \"listenerType\": \"" + listenerDeviceName.c_str() + "\", \"canBeReassigned\": true, \"canBeFlashed\": true, \"supportsChat\": false }";
-  logger("deviceObj = " + String(deviceObj), "info-quiet");
-  logger("DeviceId = " + String(DeviceId), "info-quiet");
   char charDeviceObj[1024];
   strcpy(charDeviceObj, deviceObj.c_str());
   ws_emit("listenerclient_connect", charDeviceObj);
-  logger("charDeviceObj = " + String(charDeviceObj), "info-quiet");
-  logger("---------------------------------", "info-quiet");
 }
 
 void socket_BusOptions(String payload) {
-  //logger("Socket Message BusOptions: " + String(payload), "info-quiet");
   BusOptions = JSON.parse(payload);
 }
 
 void socket_Devices(String payload) {
-  //logger("Socket Message Devices: " + String(payload), "info-quiet");
   Devices = JSON.parse(payload);
   setDeviceName();
 }
 
 void socket_DeviceId(String payload) {
-  //logger("Socket Message DeviceId: " + String(payload), "info-quiet");
-  DeviceId = strip_quot(String(payload));
+  //DeviceId = strip_quot(String(payload));
+  DeviceId = payload.substring(1, payload.length() - 1);
   setDeviceName();
 }
 
 void socket_DeviceStates(String payload) {
-  //logger("Socket Message DeviceStates: " + String(payload), "VERBOSE");
   DeviceStates = JSON.parse(payload);
   processTallyData();
 }
@@ -681,6 +675,7 @@ void connectToNetwork() {
   } else {
     //if you get here you have connected to the WiFi
     logger("connected...yay :)", "info");
+    networkConnected = true;
 
     // Flash screen if connected to wifi.
     drawNumber(icons[3], wificolor); //1 ring
@@ -750,21 +745,39 @@ void saveParamCallback() {
 
 }
 
+void WiFiEvent(WiFiEvent_t event) {
+  switch (event) {
+    case IP_EVENT_STA_GOT_IP:
+      logger("Network connected!", "info");
+      logger(WiFi.localIP().toString(), "info");
+      networkConnected = true;
+      break;
+    case WIFI_EVENT_STA_DISCONNECTED:
+      logger("Network connection lost!", "info");
+      networkConnected = false;
+      break;
+    default:
+      break;
+  }
+}
+
 // --------------------------------------------------------------------------------------------------------------------
 // Setup is the pre-loop running program
 
 void setup() {
   Serial.begin(115200);
   while (!Serial);
+
+  // Initialize the M5Atom object
   logger("Initializing M5-Atom.", "info-quiet");
   
   //Save battery by turning off BlueTooth
   btStop();
-
+  
   //Initialize WiFi
   WiFi.begin();
 
-    // Initialize IMU (MPU6886) The rotation sensor
+  // Initialize IMU (MPU6886) The rotation sensor
   if (M5.IMU.Init() != 0) {
     Serial.println("MPU6886 initialization failed!");
     while (1) delay(100);
@@ -797,40 +810,50 @@ void setup() {
   drawNumber(icons[9], infocolor);
   delay(400);
   
-  connectToNetwork(); //starts Wifi connection
-
   // Load from non-volatile memory
   preferences.begin("tally-arbiter", false);
 
-    if (preferences.getString("deviceid").length() > 0) {
-      DeviceId = preferences.getString("deviceid");
-      //DeviceId = "unassigned";
-    }
-    if (preferences.getString("devicename").length() > 0) {
-      DeviceName = preferences.getString("devicename");
-      //DeviceName = "unassigned";
-    }
-
-    if(preferences.getString("taHost").length() > 0){
-      String newHost = preferences.getString("taHost");
-      logger("Setting TallyArbiter host as " + newHost, "info-quiet");
-      newHost.toCharArray(tallyarbiter_host, 40);
-    }
-    if(preferences.getString("taPort").length() > 0){
-      String newPort = preferences.getString("taPort");
-      logger("Setting TallyArbiter port as " + newPort, "info-quiet");
-      newPort.toCharArray(tallyarbiter_port, 6);
-    }
-    camNumber = preferences.getInt("camNumber"); // Get camera from memory
+  // added to clear out corrupt prefs
+  //preferences.clear();
+  if (preferences.getString("deviceid").length() > 0) {
+    DeviceId = preferences.getString("deviceid");
+  }
+  if (preferences.getString("devicename").length() > 0) {
+    DeviceName = preferences.getString("devicename");
+  }
+  if(preferences.getString("taHost").length() > 0){
+    String newHost = preferences.getString("taHost");
+    logger("Setting TallyArbiter host as " + newHost, "info-quiet");
+    newHost.toCharArray(tallyarbiter_host, 40);
+  }
+  if(preferences.getString("taPort").length() > 0){
+    String newPort = preferences.getString("taPort");
+    logger("Setting TallyArbiter port as " + newPort, "info-quiet");
+    newPort.toCharArray(tallyarbiter_port, 6);
+  }
+  camNumber = preferences.getInt("camNumber"); // Get camera from memory
 //    SHOW_CAMERA_NUMBER_DURING_PVW_AND_PGM = preferences.getInt("tashownumbersduringtally"); // Get prefrence for Showing numbers during tally (default false)
 
   preferences.end();
 
-  //debug
-    char message[200]; // Adjust the size as needed
-    sprintf(message, "After the preferences.end TA Host is: %s TA Port is: %s", tallyarbiter_host, tallyarbiter_port);
-    logger(message, "info-quiet");
+  // Initialize rotatedNumber with current orientation
+  float accX, accY, accZ;
+  M5.IMU.getAccelData(&accX, &accY, &accZ);
+  updateDisplayBasedOnOrientation(accX, accY, accZ);  // Initialize rotatedNumber
 
+  delay(100); //wait 100ms before moving on
+  connectToNetwork(); //starts Wifi connection
+  while (!networkConnected) {
+    delay(200);
+  }  
+
+  // Show camera number after WiFi connection
+  drawNumber(rotatedNumber, offcolor);  
+
+  //debug
+  //char message[200]; // Adjust the size as needed
+  //sprintf(message, "After the preferences.end TA Host is: %s TA Port is: %s", tallyarbiter_host, tallyarbiter_port);
+  //logger(message, "info-quiet");
 
   ArduinoOTA.setHostname(listenerDeviceName.c_str());
   ArduinoOTA.setPassword("tallyarbiter");
@@ -903,7 +926,6 @@ void rotate270(int source[25], int dest[25]) {
 
 // Screen Update Routine
 void updateDisplayBasedOnOrientation(float accX, float accY, float accZ) {
-
   //Serial.print("Screen Orientation: ");
   //Serial.print("Accel X: ");
   //Serial.print(accX);
@@ -962,17 +984,25 @@ void loop(){
         delay(100);                                         // Introduce a short delay before closing
         preferences.end();                                  // Close the Preferences after saving
     }
+    
+    // Orientation Sensor Data variables
+    float accX, accY, accZ;
+
+    // Read acceleration data
+    M5.IMU.getAccelData(&accX, &accY, &accZ);
+
+    // Run the rotation change to the variabne rotatedNumber
+    updateDisplayBasedOnOrientation(accX, accY, accZ);
+    
     drawNumber(rotatedNumber, offcolor);
 
     // Lets get some info sent out the serial connection for debugging
-    logger("---------------------------------", "info-quiet");
     logger("Button Pressed.", "info-quiet");
     logger("M5Atom IP Address: " + WiFi.localIP().toString(), "info-quiet");
     logger("Tally Arbiter Server: " + String(tallyarbiter_host), "info-quiet");
     logger("Device ID: " + String(DeviceId), "info-quiet");
     logger("Device Name: " + String(DeviceName), "info-quiet");
     logger("Cam Number: " + String(camNumber), "info-quiet");
-    logger("---------------------------------", "info-quiet");
   }
     
   // Is WiFi reset triggered?
@@ -998,13 +1028,13 @@ void loop(){
   // Check orientation and autorotate the screen
 
     // Orientation Sensor Data variables
-  float accX, accY, accZ;
+  //float accX, accY, accZ;
 
   // Read acceleration data
-  M5.IMU.getAccelData(&accX, &accY, &accZ);
+  //M5.IMU.getAccelData(&accX, &accY, &accZ);
 
   // Run the rotation change to the variabne rotatedNumber
-  updateDisplayBasedOnOrientation(accX, accY, accZ);
+  //updateDisplayBasedOnOrientation(accX, accY, accZ);
     
 //  #else
 //  #endif

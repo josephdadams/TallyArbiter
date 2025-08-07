@@ -92,7 +92,7 @@ var serverLoggerOptions = {
 	},
 	file: {
 		filename: logFilePath,
-		maxsize: 3e7, //3MB
+		maxsize: 3e6, //3MB
 		maxFiles: 3,
 		level: 'debug',
 		format: combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), serverLoggerFormat),
@@ -119,7 +119,7 @@ winston.loggers.add('tally', {
 	transports: [
 		new winston.transports.File({
 			filename: tallyDataFilePath,
-			maxsize: 3e7, //3MB
+			maxsize: 3e6, //3MB
 			maxFiles: 3,
 		}),
 	],
