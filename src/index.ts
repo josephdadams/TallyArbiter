@@ -1148,8 +1148,8 @@ function getDeviceStates(deviceId?: string): DeviceState[] {
 							sources: deviceSources
 								.filter(
 									(s) =>
-										Object.entries(SourceClients[s.sourceId]?.tally?.value || [])
-											.filter(([address, busses]) => address == s.address)
+										Object.entries(currentSourceTallyData || [])
+											.filter(([address, busses]) => address == s.sourceId)
 											.findIndex(([address, busses]: [string, string[]]) => busses.includes(b.id)) !== -1,
 								)
 								.map((s) => s.id),
@@ -1168,8 +1168,8 @@ function getDeviceStates(deviceId?: string): DeviceState[] {
 						sources: deviceSources
 							.filter(
 								(s) =>
-									Object.entries(SourceClients[s.sourceId]?.tally?.value || [])
-										.filter(([address, busses]) => address == s.address)
+									Object.entries(currentSourceTallyData || [])
+										.filter(([address, busses]) => address == s.sourceId)
 										.findIndex(([address, busses]: [string, string[]]) => busses.includes(b.id)) !== -1,
 							)
 							.map((s) => s.id),
@@ -1361,10 +1361,8 @@ function UpdateDeviceState(deviceId: string) {
 			// bus is unlinked
 			for (let i = 0; i < deviceSources.length; i++) {
 				let deviceSource = deviceSources[i]
-				let currentSourceTally = currentSourceTallyData?.[deviceSource.sourceId] || []
-				//console.log('currentSourceTallyData', currentSourceTallyData);
-				//console.log('currentSourceTally', currentSourceTally);
-				if (currentSourceTallyData?.[deviceSource.sourceId]?.includes(bus.id)) {
+
+				if (currentSourceTallyData?.[deviceSource.sourceId]?.includes(bus.id)) { //if the current source tally data includes this bus
 					//if the current source tally data includes this bus
 					//console.log('pushing', bus.label);
 					currentDeviceTallyData[device.id].push(bus.id)

@@ -11,8 +11,8 @@ const TSL3Fields: TallyInputConfigField[] = [
 	{ fieldName: 'port', fieldLabel: 'Port', fieldType: 'port' },
 	{ fieldName: 'address', fieldLabel: 'Address', fieldType: 'number' },
 	{ fieldName: 'label', fieldLabel: 'Label', fieldType: 'text' },
-	{ fieldName: 'tally1', fieldLabel: 'Tally 1 (PVW)', fieldType: 'bool' },
-	{ fieldName: 'tally2', fieldLabel: 'Tally 2 (PGM)', fieldType: 'bool' },
+	{ fieldName: 'tally1', fieldLabel: 'Tally 1', fieldType: 'bool' },
+	{ fieldName: 'tally2', fieldLabel: 'Tally 2', fieldType: 'bool' },
 	{ fieldName: 'tally3', fieldLabel: 'Tally 3', fieldType: 'bool' },
 	{ fieldName: 'tally4', fieldLabel: 'Tally 4', fieldType: 'bool' },
 ]
