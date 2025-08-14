@@ -34,7 +34,7 @@
 		"nosleep.js": "^0.12.0",
 		"rxjs": "~7.8.1",
 		"socket.io-client": "^4.7.2",
-		"sweetalert2": "^11.10.1",
+		"sweetalert2": "^11.22.4",
 		"tslib": "^2.6.2",
 		"zone.js": "~0.14.2"
 	},
