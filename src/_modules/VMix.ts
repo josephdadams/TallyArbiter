@@ -59,13 +59,12 @@ export class VMixEmulator extends ListenerProvider {
 			// reacts to ACTS commands, e.g. "ACTS Overlay1" so vMix Listener Devices work correctly (e.g. Hollyland Wireless Tally System)
 			const commandParts = parts[0].split(' ')
 			const activator = commandParts.length >= 2 ? commandParts[1] : 'Unknown'
-			const activator_status = '0'; // static response because tally state is already handled by TALLY OK ##
+			const activator_status = '0' // static response because tally state is already handled by TALLY OK ##
 			const acts_response = `ACTS OK ${activator} ${activator_status}\r\n`
 			socket.write(acts_response)
 		} else if (parts[0] === 'QUIT') {
 			socket.destroy()
-		}
-		else if (parts[0] === 'TALLY') {
+		} else if (parts[0] === 'TALLY') {
 			this.updateListenerClients(currentDeviceTallyData)
 		}
 	}

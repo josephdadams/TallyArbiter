@@ -1362,7 +1362,8 @@ function UpdateDeviceState(deviceId: string) {
 			for (let i = 0; i < deviceSources.length; i++) {
 				let deviceSource = deviceSources[i]
 
-				if (currentSourceTallyData?.[deviceSource.sourceId]?.includes(bus.id)) { //if the current source tally data includes this bus
+				if (currentSourceTallyData?.[deviceSource.sourceId]?.includes(bus.id)) {
+					//if the current source tally data includes this bus
 					//if the current source tally data includes this bus
 					//console.log('pushing', bus.label);
 					currentDeviceTallyData[device.id].push(bus.id)
