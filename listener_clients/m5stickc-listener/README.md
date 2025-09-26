@@ -44,6 +44,7 @@ Done! Now your board is running the latest listener client firmware version. Go 
 Done! Now your board is running the latest listener client firmware version. Go to the _"Setup your device"_ sections to connect the board to the Tally Arbiter server.
 
 The code base is compiled for **M5StickC**, **M5StickC-Plus** or **M5StickC-Plus2** based on the configured **M5Stack Arduino** version in **Board** in Arduino IDE. Only one can be enabled at at time:
+
 - M5Stack Arduino -> M5StickC
 - M5Stack Arduino -> M5StickC-Plus
 - M5Stack Arduino -> M5StickC-Plus2

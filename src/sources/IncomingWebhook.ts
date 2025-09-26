@@ -22,7 +22,7 @@ export class IncomingWebhookSource extends TallyInput {
 		this.server = http.createServer((req, res) => {
 			if (req.method === 'POST' && req.url === path) {
 				let body = ''
-				req.on('data', chunk => {
+				req.on('data', (chunk) => {
 					body += chunk
 				})
 				req.on('end', () => {
@@ -47,7 +47,6 @@ export class IncomingWebhookSource extends TallyInput {
 
 						res.writeHead(200)
 						res.end('OK')
-
 					} catch (e) {
 						res.writeHead(400)
 						res.end('Invalid JSON')
