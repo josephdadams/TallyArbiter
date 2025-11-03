@@ -1,4 +1,4 @@
-# ESP-32 NeoPixel Listener (ESP32 C3 version)
+# ESP32 NeoPixel Listener (ESP32 C3 version)
 
 Tally Arbiter ESP32 C3 NeoPixel Listener is an accessory program that allows you to connect to a Tally Arbiter server and control a NeoPixel device based on the incoming tally information. This listener version had been tested with the widely available ESP-C3-32S devkit with a built-in RGB led. You may need to adjust some parameters for other ESP32 C3 models.
 
