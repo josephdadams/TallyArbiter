@@ -27,9 +27,7 @@
 	],
 	"license": "MIT",
 	"author": "Joseph Adams",
-	"bin": {
-		"tallyarbiter": "bin/tallyarbiter"
-	},
+	"bin": "bin/tallyarbiter",
 	"publishConfig": {
 		"access": "public"
 	},
