@@ -27,7 +27,9 @@
 	],
 	"license": "MIT",
 	"author": "Joseph Adams",
-	"bin": "bin/tallyarbiter",
+	"bin": {
+		"tallyarbiter": "bin/tallyarbiter"
+	},
 	"publishConfig": {
 		"access": "public"
 	},
@@ -62,7 +64,6 @@
 		"bcryptjs": "^2.4.0",
 		"bonjour-service": "^1.0.12",
 		"compression": "^1.7.4",
-		"dmg-license": "^1.0.11",
 		"dotenv": "^16.0.0",
 		"electron-updater": "^6.3.0",
 		"esm": "^3.2.25",
