@@ -110,7 +110,7 @@ export class TSL extends Action {
 				if (this.action.outputTypeId == '7dcd66b5') {
 					// UDP
 					let client = dgram.createSocket('udp4')
-					client.send(bufUMD, this.action.data.port, this.action.data.ip, function (error) {
+					client.send(Uint8Array.from(bufUMD), this.action.data.port, this.action.data.ip, function (error) {
 						if (!error) {
 							logger(`TSL 3.1 UDP Data sent.`, 'info')
 						}
@@ -120,7 +120,7 @@ export class TSL extends Action {
 					// TCP
 					let client = new net.Socket()
 					client.connect(this.action.data.port, this.action.data.ip, () => {
-						client.write(bufUMD)
+						client.write(Uint8Array.from(bufUMD))
 					})
 
 					client.on('data', () => {

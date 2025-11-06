@@ -39,7 +39,7 @@ export class UDP extends Action {
 			let client = dgram.createSocket(this.action.data.type)
 			client.on('message', function (msg, info) {})
 
-			client.send(sendBuf, this.action.data.port, this.action.data.ip, function (error) {
+			client.send(Uint8Array.from(sendBuf), this.action.data.port, this.action.data.ip, function (error) {
 				if (!error) {
 					logger(
 						`Generic UDP sent: ${this.action.data.ip}:${this.action.data.port} : ${this.action.data.string}`,
