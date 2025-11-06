@@ -102,7 +102,7 @@ export class DataVideoIP extends TallyInput {
 		this.socket_request.connect(5009, this.source.data.ip, () => {
 			logger('DataVideoIP: Connected to DVIP port 5009', 'info')
 			// Send handshake/request packet to negotiate realtime port
-			this.socket_request?.write(Buffer.from([0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0xaa, 0x55]))
+			this.socket_request?.write(Uint8Array.from(Buffer.from([0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0xaa, 0x55])))
 		})
 
 		this.socket_request.on('data', (buffer: Buffer) => {
@@ -145,17 +145,20 @@ export class DataVideoIP extends TallyInput {
 		this.socket_realtime.connect(this.realtime_port, this.source.data.ip, () => {
 			logger('DataVideoIP: Connected to DVIP realtime port', 'info')
 			// Send initial null packet to start communication
-			this.socket_realtime?.write(this.null_packet)
+			this.socket_realtime?.write(Uint8Array.from(this.null_packet))
 			this.connected.next(true)
 		})
 
 		this.socket_realtime.on('data', (buffer: Buffer) => {
 			// Always respond with a null packet to keep the connection alive
 			if (this.socket_realtime?.writable) {
-				this.socket_realtime?.write(this.null_packet)
+				this.socket_realtime?.write(Uint8Array.from(this.null_packet))
 			}
 
-			if (!buffer.equals(this.null_packet) && !this.filter_packets.some((pkt) => buffer.equals(pkt))) {
+			if (
+				!buffer.equals(Uint8Array.from(this.null_packet)) &&
+				!this.filter_packets.some((pkt) => buffer.equals(Uint8Array.from(pkt)))
+			) {
 				this.processBuffer(buffer)
 			}
 		})
