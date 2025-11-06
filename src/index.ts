@@ -1148,8 +1148,8 @@ function getDeviceStates(deviceId?: string): DeviceState[] {
 							sources: deviceSources
 								.filter(
 									(s) =>
-										Object.entries(currentSourceTallyData || [])
-											.filter(([address, busses]) => address == s.sourceId)
+										Object.entries(SourceClients[s.sourceId]?.tally?.value || [])
+											.filter(([address, busses]) => address == s.address)
 											.findIndex(([address, busses]: [string, string[]]) => busses.includes(b.id)) !== -1,
 								)
 								.map((s) => s.id),
@@ -1168,8 +1168,8 @@ function getDeviceStates(deviceId?: string): DeviceState[] {
 						sources: deviceSources
 							.filter(
 								(s) =>
-									Object.entries(currentSourceTallyData || [])
-										.filter(([address, busses]) => address == s.sourceId)
+									Object.entries(SourceClients[s.sourceId]?.tally?.value || [])
+										.filter(([address, busses]) => address == s.address)
 										.findIndex(([address, busses]: [string, string[]]) => busses.includes(b.id)) !== -1,
 							)
 							.map((s) => s.id),
