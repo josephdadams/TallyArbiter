@@ -109,7 +109,7 @@ class Blink1simulator:
 
 
 try:
-    from blink1.blink1 import Blink1  # pyright: reportMissingImports=false
+    from blink1.blink1 import Blink1  # type: ignore # pyright: ignore[reportMissingImports]
 
     try:
         b1 = Blink1()
@@ -283,7 +283,7 @@ def processTallyData():
         doBlink(0, 0, 0)
     else:
         try:
-            busses_list.sort(key=lambda x: x["priority"])
+            busses_list.sort(key=lambda x: x["priority"], reverse=True)
         except:
             return
         current_color = hex_to_rgb(busses_list[0]["color"])

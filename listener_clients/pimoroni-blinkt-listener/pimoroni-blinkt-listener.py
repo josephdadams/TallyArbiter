@@ -111,7 +111,7 @@ class Blinktsimulator:
 
 
 try:
-    import blinkt  # pyright: reportMissingImports=false
+    import blinkt  # type: ignore # pyright: ignore[reportMissingImports]
 except ImportError:
     if not args.skip_blinkt:
         print("Blinkt is not installed. Please install it and try again.")
@@ -274,7 +274,7 @@ def processTallyData():
         doBlink(0, 0, 0)
     else:
         try:
-            busses_list.sort(key=lambda x: x["priority"])
+            busses_list.sort(key=lambda x: x["priority"], reverse=True)
         except:
             return
         # TODO: make this work with more than one bus
