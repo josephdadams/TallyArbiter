@@ -172,9 +172,24 @@ function logger(log, type) {
 	}
 }
 
+function cleanupSocket() {
+	if (!socket) return
+	socket.removeAllListeners()
+	socket.disconnect()
+	socket = null
+}
+
 function connectToServer(ip, port) {
 	logger(`Connecting to Tally Arbiter server: ${ip}:${port}`, 'info')
-	socket = io.connect('http://' + ip + ':' + port, { reconnect: true })
+
+	cleanupSocket()
+
+	socket = io.connect('http://' + ip + ':' + port, {
+		reconnect: true,
+		reconnection: true,
+		reconnectionDelay: 1000,
+		reconnectionDelayMax: 5000,
+	})
 
 	socket.on('connect', function () {
 		logger('Connected to Tally Arbiter server.', 'info')
@@ -182,10 +197,6 @@ function connectToServer(ip, port) {
 
 	socket.on('disconnect', function () {
 		logger('Disconnected from Tally Arbiter server.', 'error')
-		//attempt to reconnect after 5 seconds
-		setTimeout(function () {
-			openSocket()
-		}, 5000)
 	})
 
 	socket.on('error', function (error) {
@@ -219,7 +230,7 @@ function connectToServer(ip, port) {
 				)
 				saveConfig()
 
-				socket.emit('listener_reassign_relay', relayGroupId, oldDeviceId, newDeviceId);
+				socket.emit('listener_reassign_relay', relayGroupId, oldDeviceId, newDeviceId)
 			}
 		}
 	})
@@ -235,6 +246,7 @@ function connectToServer(ip, port) {
 		})
 	}
 }
+
 function openSocket() {
 	//listen for device states emit, bus types, reassign, flash
 	//for loop through every relay_group item and make a new socket connection for each
@@ -275,7 +287,7 @@ function getBusTypeById(busId) {
 
 function getRelayGroupById(deviceId) {
 	let groupIndex
-	for (i = 0; i < relay_groups.length; i++) {
+	for (let i = 0; i < relay_groups.length; i++) {
 		if (relay_groups[i].deviceId == deviceId) {
 			groupIndex = i
 			break
@@ -318,25 +330,27 @@ function ProcessTallyData(states) {
 	}
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+async function flashRelay(relaySerial, relayNumber, oldState, intervalMs = 500) {
+	relaySetState(relaySerial, relayNumber, true)
+	await sleep(intervalMs)
+	relaySetState(relaySerial, relayNumber, false)
+	await sleep(intervalMs)
+	relaySetState(relaySerial, relayNumber, true)
+	await sleep(intervalMs)
+	relaySetState(relaySerial, relayNumber, false)
+	await sleep(intervalMs)
+	relaySetState(relaySerial, relayNumber, oldState)
+}
+
 function FlashRelayGroup(relayGroupId) {
 	for (let i = 0; i < relay_groups.length; i++) {
 		if (relay_groups[i].id === relayGroupId) {
 			for (let j = 0; j < relay_groups[i].relays.length; j++) {
 				let currentRelay = relay_groups[i].relays[j]
 				let oldState = relayGetState(currentRelay.relaySerial, currentRelay.relayNumber)
-				relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, true)
-				setTimeout(function () {
-					relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, false)
-					setTimeout(function () {
-						relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, true)
-						setTimeout(function () {
-							relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, false)
-							setTimeout(function () {
-								relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, oldState)
-							}, 500)
-						}, 500)
-					}, 500)
-				}, 500)
+				flashRelay(currentRelay.relaySerial, currentRelay.relayNumber, oldState, 500)
 			}
 			break
 		}
@@ -384,3 +398,8 @@ function relayGetState(relaySerial, relayNumber) {
 }
 
 startUp()
+
+process.on('SIGINT', () => {
+	bonjour.destroy()
+	process.exit(0)
+})
