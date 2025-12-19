@@ -4,6 +4,7 @@ export interface TSLClient {
 	id: string
 	port: number | string
 	transport: string
+	protocol?: string
 	socket?: any
 
 	error?: boolean

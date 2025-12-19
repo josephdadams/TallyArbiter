@@ -1104,6 +1104,13 @@
 				<option value="udp">UDP</option>
 			</select>
 		</div>
+		<div class="mb-3">
+			<label for="tslProtocol" class="form-label">Protocol</label>
+			<select class="form-select" id="tslProtocol" [(ngModel)]="currentTSLClient.protocol">
+				<option value="3.1">3.1</option>
+				<option value="5.0">5.0</option>
+			</select>
+		</div>
 		<div class="d-flex justify-content-end">
 			<button class="btn btn-primary" (click)="saveCurrentTSLClient()">
 				<i class="fas fa-save"></i> {{ editingTSLClient ? 'Save Changes' : 'Add TSL Client' }}

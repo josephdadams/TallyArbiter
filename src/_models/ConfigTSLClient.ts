@@ -3,4 +3,5 @@ export interface ConfigTSLClient {
 	ip: string
 	port: number | string
 	transport: string
+	protocol?: string
 }
