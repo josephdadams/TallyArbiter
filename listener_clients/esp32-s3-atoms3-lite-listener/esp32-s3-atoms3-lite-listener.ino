@@ -19,8 +19,16 @@ String listenerDeviceName = "atomS3Lite-";
 #define LED_BRIGHTNESS 50 // Set BRIGHTNESS (0-255)
 #define NUM_LEDS 1        // Single RGB LED
 
-// Declare the LED array
+// External LED Configuration (optional)
+// Set to -1 to disable external LED, or specify GPIO pin number (e.g., 2, 4, 5, etc.)
+#define EXTERNAL_LED_PIN -1  // GPIO pin for external RGB LED (set to -1 to disable)
+#define EXTERNAL_NUM_LEDS 1  // Number of LEDs in external strip (usually 1 for single LED)
+
+// Declare the LED arrays
 CRGB leds[NUM_LEDS];
+#if EXTERNAL_LED_PIN >= 0
+CRGB externalLeds[EXTERNAL_NUM_LEDS];
+#endif
 
 //Tally Arbiter Server
 char tallyarbiter_host[40] = "192.168.1.2"; //IP address of the Tally Arbiter Server
@@ -63,11 +71,17 @@ void setup() {
   
   // Initialize FastLED for RGB LED control
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
+  
+  // Initialize external LED if configured
+  #if EXTERNAL_LED_PIN >= 0
+    FastLED.addLeds<WS2812B, EXTERNAL_LED_PIN, GRB>(externalLeds, EXTERNAL_NUM_LEDS);
+    logger("External LED enabled on GPIO " + String(EXTERNAL_LED_PIN), "info-quiet");
+  #endif
+  
   FastLED.setBrightness(LED_BRIGHTNESS);
   
   // Set initial LED color to blue (connecting)
-  leds[0] = CRGB::Blue;
-  FastLED.show();
+  setAllLeds(CRGB::Blue);
   
   // Save battery by turning down the CPU clock (if supported)
   // setCpuFrequencyMhz(80);
@@ -149,8 +163,7 @@ void loop() {
     // Keep purple LED on while portal is running (refresh periodically in case it gets overwritten)
     static unsigned long lastPortalLEDUpdate = 0;
     if (millis() - lastPortalLEDUpdate > 1000) { // Refresh every second
-      leds[0] = CRGB::Purple;
-      FastLED.show();
+      setAllLeds(CRGB::Purple);
       lastPortalLEDUpdate = millis();
     }
   }
@@ -197,9 +210,9 @@ void toggleConfigPortal() {
     wm.startWebPortal();
     portalRunning = true;
     // Indicate portal is running with purple LED
-    leds[0] = CRGB::Purple;
-    FastLED.show();
+    setAllLeds(CRGB::Purple);
   }
+}
 }
 
 void logger(String strLog, String strType) {
@@ -245,8 +258,7 @@ void connectToNetwork() {
   if (!res) {
     logger("Failed to connect", "error");
     // Show red LED for connection failure
-    leds[0] = CRGB::Red;
-    FastLED.show();
+    setAllLeds(CRGB::Red);
     // ESP.restart();
     portalRunning = false; // Portal closed after timeout
   } else {
@@ -255,11 +267,9 @@ void connectToNetwork() {
     networkConnected = true;
     
     // Show green LED briefly to indicate successful connection
-    leds[0] = CRGB::Green;
-    FastLED.show();
+    setAllLeds(CRGB::Green);
     delay(500);
-    leds[0] = CRGB::Black;
-    FastLED.show();
+    setAllLeds(CRGB::Black);
     
     // Note: Portal is automatically closed after successful connection
     // User can press button to re-open it anytime
@@ -348,8 +358,7 @@ void WiFiEvent(WiFiEvent_t event) {
       logger("Network connection lost!", "info");
       networkConnected = false;
       // Show red LED when disconnected
-      leds[0] = CRGB::Red;
-      FastLED.show();
+      setAllLeds(CRGB::Red);
       break;
     default:
       break;
@@ -433,11 +442,9 @@ void socket_Flash() {
   //flash the LED white 3 times
   FastLED.setBrightness(255);
   for (int i = 0; i < 3; i++) {
-    leds[0] = CRGB::White;
-    FastLED.show();
+    setAllLeds(CRGB::White);
     delay(500);
-    leds[0] = CRGB::Black;
-    FastLED.show();
+    setAllLeds(CRGB::Black);
     delay(500);
   }
   FastLED.setBrightness(LED_BRIGHTNESS);
@@ -445,13 +452,23 @@ void socket_Flash() {
   showDeviceInfo();
 }
 
+// Helper function to set both onboard and external LEDs to the same color
+void setAllLeds(CRGB color) {
+  leds[0] = color;
+  #if EXTERNAL_LED_PIN >= 0
+    for(int i = 0; i < EXTERNAL_NUM_LEDS; i++) {
+      externalLeds[i] = color;
+    }
+  #endif
+  FastLED.show();
+}
+
 void setColor(uint32_t color) {
   // Convert 0xRRGGBB format to CRGB
   uint8_t r = (color >> 16) & 0xFF;
   uint8_t g = (color >> 8) & 0xFF;
   uint8_t b = color & 0xFF;
-  leds[0] = CRGB(r, g, b);
-  FastLED.show();
+  setAllLeds(CRGB(r, g, b));
 }
 
 String strip_quot(String str) {
@@ -479,11 +496,9 @@ void socket_Reassign(String payload) {
   
   // Flash white twice to indicate reassignment
   for (int i = 0; i < 2; i++) {
-    leds[0] = CRGB::White;
-    FastLED.show();
+    setAllLeds(CRGB::White);
     delay(200);
-    leds[0] = CRGB::Black;
-    FastLED.show();
+    setAllLeds(CRGB::Black);
     delay(200);
   }
   

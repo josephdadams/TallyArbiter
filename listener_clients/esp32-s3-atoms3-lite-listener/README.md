@@ -67,7 +67,9 @@ Button:
 # Features
 
 - **WiFi Station Mode**: Connects to your primary wireless network
-- **RGB LED Display**: Single RGB LED shows tally status with colors from Tally Arbiter
+- **RGB LED Display**: 
+  - Onboard RGB LED shows tally status with colors from Tally Arbiter
+  - Optional external RGB LED support that mirrors the onboard LED (configurable via `EXTERNAL_LED_PIN` in code)
 - **WiFi Configuration Portal**: Web-based configuration interface accessible:
   - Automatically when device creates its own Access Point (first-time setup)
   - On-demand by pressing the button while connected to WiFi (LED turns purple)
@@ -107,6 +109,23 @@ If you get an error saying the sketch is too big:
 - Hold the button for 5 seconds to reset WiFi credentials
 - The device will create an Access Point named 'atomS3Lite-XXXXXX' if it cannot connect to a saved network
 - Check that your WiFi network is 2.4GHz (ESP32-S3 does not support 5GHz)
+
+### External LED Configuration
+
+To connect an external RGB LED (WS2812B/NeoPixel) that mirrors the onboard LED:
+
+1. Connect the external LED:
+   - **VCC/5V** to 5V power source (ensure adequate current for your LED)
+   - **GND** to GND
+   - **Data** to any available GPIO pin (e.g., GPIO 2, 4, 5, etc.)
+
+2. Edit `esp32-s3-atoms3-lite-listener.ino`:
+   - Change `#define EXTERNAL_LED_PIN -1` to your GPIO pin number (e.g., `#define EXTERNAL_LED_PIN 2`)
+   - If using a strip with multiple LEDs, adjust `#define EXTERNAL_NUM_LEDS 1` to match
+
+3. Recompile and upload
+
+The external LED will automatically mirror all states of the onboard LED (tally colors, configuration portal indicator, flash commands, etc.). Set `EXTERNAL_LED_PIN` to `-1` to disable.
 
 # Improvements and Suggestions
 
