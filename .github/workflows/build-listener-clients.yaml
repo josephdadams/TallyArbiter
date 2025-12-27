@@ -70,6 +70,34 @@ jobs:
           name: 'TallyArbiter-Listener-M5Atom'
           path: 'listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom/build/esp32.esp32.m5stack_atom'
 
+  build_esp32-s3-atoms3-lite-listener:
+    name: Build ESP32-S3 AtomS3 Lite Listener
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/compile-sketches@v1
+        with:
+          platforms: |
+            - name: esp32:esp32
+              source-url: https://dl.espressif.com/dl/package_esp32_index.json
+          fqbn: 'esp32:esp32:atomS3Lite'
+          libraries: |
+            - source-url: https://github.com/m5stack/M5AtomS3/archive/refs/heads/main.zip
+            - name: WebSockets
+            - name: WiFiManager
+            - name: Arduino_JSON
+            - name: FastLED
+          cli-compile-flags: |
+            - --export-binaries
+          sketch-paths: |
+            - listener_clients/esp32-s3-atoms3-lite-listener
+          enable-deltas-report: true
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'TallyArbiter-Listener-ESP32-S3-AtomS3-Lite'
+          path: 'listener_clients/esp32-s3-atoms3-lite-listener/build/esp32.esp32.atomS3Lite'
+
   build_esp32-neopixel-listener:
     name: Build ESP32 NeoPixel Listener
     runs-on: ubuntu-latest
