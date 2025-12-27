@@ -23,7 +23,7 @@ String listenerDeviceName = "atomS3Lite-";
 CRGB leds[NUM_LEDS];
 
 //Tally Arbiter Server
-char tallyarbiter_host[40] = "10.10.10.2"; //IP address of the Tally Arbiter Server
+char tallyarbiter_host[40] = "192.168.1.2"; //IP address of the Tally Arbiter Server
 char tallyarbiter_port[6] = "4455";
 
 /* END OF USER CONFIG */
