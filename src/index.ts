@@ -1037,6 +1037,10 @@ function initialSetup() {
 					validateConfig(config)
 						.then((config) => {
 							replaceConfig(config)
+							// Update MQTT service if config changed
+							if (mqttService && config.mqtt) {
+								mqttService.updateConfig(config.mqtt)
+							}
 						})
 						.catch((error) => {
 							socket.emit('error', 'Config is not valid')

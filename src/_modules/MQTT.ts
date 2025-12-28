@@ -53,6 +53,31 @@ export class MQTTService extends EventEmitter {
 		logger('MQTT service stopped.', 'info')
 	}
 
+	public updateConfig(newConfig: MQTTConfig): void {
+		// Check if MQTT config has actually changed
+		// Compare all properties (undefined !== undefined is false, which is correct)
+		const configChanged =
+			!this.config ||
+			this.config.enabled !== newConfig.enabled ||
+			this.config.broker !== newConfig.broker ||
+			this.config.port !== newConfig.port ||
+			(this.config.username || '') !== (newConfig.username || '') ||
+			(this.config.password || '') !== (newConfig.password || '') ||
+			this.config.topicPrefix !== newConfig.topicPrefix ||
+			this.config.retain !== newConfig.retain ||
+			this.config.qos !== newConfig.qos ||
+			(this.config.reconnectPeriod ?? 5000) !== (newConfig.reconnectPeriod ?? 5000) ||
+			(this.config.connectTimeout ?? 10000) !== (newConfig.connectTimeout ?? 10000) ||
+			(this.config.keepalive ?? 60) !== (newConfig.keepalive ?? 60) ||
+			(this.config.clientId || '') !== (newConfig.clientId || '')
+
+		if (configChanged) {
+			logger('MQTT configuration changed, restarting service...', 'info')
+			this.stop()
+			this.start(newConfig)
+		}
+	}
+
 	private connect(): void {
 		if (!this.config) return
 
