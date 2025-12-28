@@ -7,6 +7,7 @@ import { Device } from './Device'
 import { DeviceAction } from './DeviceAction'
 import { DeviceSource } from './DeviceSource'
 import { Source } from './Source'
+import { MQTTConfig } from '../_modules/MQTT'
 
 export interface Config {
 	externalAddress: string
@@ -23,4 +24,5 @@ export interface Config {
 	cloud_keys: string[]
 	bus_options: BusOption[]
 	remoteErrorReporting: boolean
+	mqtt?: MQTTConfig
 }

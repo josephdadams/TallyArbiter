@@ -1,6 +1,7 @@
 import { logger, tslListenerProvider } from '..'
 import { Config } from '../_models/Config'
 import { ConfigTSLClient } from '../_models/ConfigTSLClient'
+import { MQTTConfig } from '../_modules/MQTT'
 import fs from 'fs-extra'
 import path from 'path'
 import { randomBytes } from 'crypto'
@@ -51,6 +52,16 @@ export const ConfigDefaults: Config = {
 	externalAddress: 'http://0.0.0.0:4455/#/tally',
 	remoteErrorReporting: false,
 	uuid: '',
+	mqtt: {
+		enabled: false,
+		broker: 'localhost',
+		port: 1883,
+		username: '',
+		password: '',
+		topicPrefix: 'tallyarbiter',
+		retain: true,
+		qos: 0,
+	},
 }
 
 export let currentConfig: Config = clone(ConfigDefaults)

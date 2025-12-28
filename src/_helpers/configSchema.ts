@@ -295,6 +295,52 @@ export default {
 			description: 'Unique code used to indentify every TallyArbiter instance',
 			type: 'string',
 		},
+		mqtt: {
+			description: 'MQTT configuration',
+			type: 'object',
+			properties: {
+				enabled: {
+					description: 'Enable MQTT integration',
+					type: 'boolean',
+					default: false,
+				},
+				broker: {
+					description: 'MQTT broker hostname or IP address',
+					type: 'string',
+					default: 'localhost',
+				},
+				port: {
+					description: 'MQTT broker port',
+					type: 'number',
+					default: 1883,
+				},
+				username: {
+					description: 'MQTT broker username (optional)',
+					type: 'string',
+				},
+				password: {
+					description: 'MQTT broker password (optional)',
+					type: 'string',
+				},
+				topicPrefix: {
+					description: 'MQTT topic prefix',
+					type: 'string',
+					default: 'tallyarbiter',
+				},
+				retain: {
+					description: 'Retain MQTT messages',
+					type: 'boolean',
+					default: true,
+				},
+				qos: {
+					description: 'MQTT Quality of Service level (0, 1, or 2)',
+					type: 'number',
+					enum: [0, 1, 2],
+					default: 0,
+				},
+			},
+			required: ['enabled', 'broker', 'port', 'topicPrefix', 'retain', 'qos'],
+		},
 	},
 	required: [
 		'security',

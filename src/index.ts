@@ -68,6 +68,7 @@ import {
 import { DeviceState } from './_models/DeviceState'
 import { VMixEmulator } from './_modules/VMix'
 import { TSLListenerProvider } from './_modules/TSL'
+import { MQTTService } from './_modules/MQTT'
 import { ListenerProvider } from './_modules/_ListenerProvider'
 import { InternalTestModeSource } from './sources/InternalTestMode'
 import { authenticate, validateAccessToken, getUsersList, addUser, editUser, deleteUser } from './_helpers/auth'
@@ -155,6 +156,7 @@ const socketupdates_Companion: string[] = [
 var listener_clients = [] //array of connected listener clients (web, python, relay, etc.)
 let vMixEmulator: VMixEmulator
 export let tslListenerProvider: TSLListenerProvider
+let mqttService: MQTTService
 let tsl_clients_interval: NodeJS.Timer | null = null
 
 var cloud_destinations: CloudDestination[] = [] //array of Tally Arbiter Cloud Destinations (host, port, key)
@@ -1075,6 +1077,12 @@ function initialSetup() {
 		provider.start()
 	}
 
+	// Initialize MQTT service
+	mqttService = new MQTTService()
+	if (currentConfig.mqtt && currentConfig.mqtt.enabled) {
+		mqttService.start(currentConfig.mqtt)
+	}
+
 	if (cloud_destinations.length > 0) {
 		logger(`Initiating ${cloud_destinations.length} Cloud Destination Connections.`, 'info')
 
@@ -1396,6 +1404,12 @@ function UpdateDeviceState(deviceId: string) {
 	UpdateListenerClients(deviceId)
 	vMixEmulator?.updateListenerClients(currentDeviceTallyData)
 	tslListenerProvider?.updateListenerClientsForDevice(currentDeviceTallyData, device)
+	
+	// Publish device state to MQTT
+	if (mqttService && mqttService.isServiceConnected()) {
+		const deviceStates = getDeviceStates(deviceId)
+		mqttService.updateDeviceState(deviceId, deviceStates)
+	}
 }
 
 export function logger(log, type: 'info-quiet' | 'info' | 'error' | 'console_action' = 'info-quiet'): void {
