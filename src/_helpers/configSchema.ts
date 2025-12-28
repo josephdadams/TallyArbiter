@@ -338,6 +338,28 @@ export default {
 					enum: [0, 1, 2],
 					default: 0,
 				},
+				reconnectPeriod: {
+					description: 'Time in milliseconds between reconnection attempts',
+					type: 'number',
+					default: 5000,
+					minimum: 1000,
+				},
+				connectTimeout: {
+					description: 'Connection timeout in milliseconds',
+					type: 'number',
+					default: 10000,
+					minimum: 1000,
+				},
+				keepalive: {
+					description: 'Keepalive interval in seconds',
+					type: 'number',
+					default: 60,
+					minimum: 10,
+				},
+				clientId: {
+					description: 'Custom MQTT client ID (optional, auto-generated if not provided)',
+					type: 'string',
+				},
 			},
 			required: ['enabled', 'broker', 'port', 'topicPrefix', 'retain', 'qos'],
 		},

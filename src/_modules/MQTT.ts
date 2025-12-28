@@ -16,6 +16,10 @@ export interface MQTTConfig {
 	topicPrefix: string
 	retain: boolean
 	qos: 0 | 1 | 2
+	reconnectPeriod?: number
+	connectTimeout?: number
+	keepalive?: number
+	clientId?: string
 }
 
 export class MQTTService extends EventEmitter {
@@ -55,10 +59,11 @@ export class MQTTService extends EventEmitter {
 		try {
 			const brokerUrl = `mqtt://${this.config.broker}:${this.config.port}`
 			const options: any = {
-				clientId: `tallyarbiter_${Date.now()}`,
+				clientId: this.config.clientId || `tallyarbiter_${Date.now()}`,
 				clean: true,
-				reconnectPeriod: 5000,
-				connectTimeout: 10000,
+				reconnectPeriod: this.config.reconnectPeriod !== undefined ? this.config.reconnectPeriod : 5000,
+				connectTimeout: this.config.connectTimeout !== undefined ? this.config.connectTimeout : 10000,
+				keepalive: this.config.keepalive !== undefined ? this.config.keepalive : 60,
 			}
 
 			if (this.config.username) {

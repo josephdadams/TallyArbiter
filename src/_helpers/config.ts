@@ -61,6 +61,9 @@ export const ConfigDefaults: Config = {
 		topicPrefix: 'tallyarbiter',
 		retain: true,
 		qos: 0,
+		reconnectPeriod: 5000,
+		connectTimeout: 10000,
+		keepalive: 60,
 	},
 }
 
