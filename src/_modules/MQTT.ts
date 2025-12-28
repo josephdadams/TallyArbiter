@@ -169,6 +169,7 @@ export class MQTTService extends EventEmitter {
 				busId: deviceState.busId,
 				busLabel: bus.label,
 				busType: bus.type,
+				busColor: bus.color,
 				sources: deviceState.sources,
 				timestamp: new Date().toISOString(),
 			})
