@@ -1,7 +1,7 @@
 import { logger, tslListenerProvider } from '..'
 import { Config } from '../_models/Config'
 import { ConfigTSLClient } from '../_models/ConfigTSLClient'
-import { MQTTConfig } from '../_modules/MQTT'
+import { ConfigMQTT } from '../_modules/MQTT'
 import fs from 'fs-extra'
 import path from 'path'
 import { randomBytes } from 'crypto'

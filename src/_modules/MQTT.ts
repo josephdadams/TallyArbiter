@@ -7,7 +7,7 @@ import { DeviceState } from '../_models/DeviceState'
 import { Device } from '../_models/Device'
 import { devices } from '../index'
 
-export interface MQTTConfig {
+export interface ConfigMQTT {
 	enabled: boolean
 	broker: string
 	port: number
@@ -24,11 +24,11 @@ export interface MQTTConfig {
 
 export class MQTTService extends EventEmitter {
 	private client: MqttClient | null = null
-	private config: MQTTConfig | null = null
+	private config: ConfigMQTT | null = null
 	private isConnected: boolean = false
 	private reconnectTimer: NodeJS.Timeout | null = null
 
-	public start(config: MQTTConfig): void {
+	public start(config: ConfigMQTT): void {
 		if (!config.enabled) {
 			logger('MQTT service is disabled.', 'info-quiet')
 			return
@@ -53,7 +53,7 @@ export class MQTTService extends EventEmitter {
 		logger('MQTT service stopped.', 'info')
 	}
 
-	public updateConfig(newConfig: MQTTConfig): void {
+	public updateConfig(newConfig: ConfigMQTT): void {
 		// Check if MQTT config has actually changed
 		// Compare all properties (undefined !== undefined is false, which is correct)
 		const configChanged =
