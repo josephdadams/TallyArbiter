@@ -458,6 +458,41 @@
 						<i class="fas fa-exclamation-triangle"></i> Please note that updating your config manually shouldn't be
 						necesary and it's not recommended. Continue at your own risk.
 					</div>
+					<div class="row" *ngIf="configWarnings.length > 0">
+						<h3>Config Warnings</h3>
+						<div class="alert alert-warning" role="alert">
+							<div class="d-flex justify-content-between align-items-center mb-3">
+								<p class="mb-0"><i class="fas fa-exclamation-triangle"></i> Some configuration properties are missing and will use default values.</p>
+								<button 
+									class="btn btn-warning" 
+									(click)="fixAllConfigWarnings()"
+									[title]="'Apply all default values (' + configWarnings.length + ' fixes)'"
+								>
+									<i class="fas fa-wrench"></i> Fix All ({{ configWarnings.length }})
+								</button>
+							</div>
+							<div *ngFor="let warning of configWarnings" class="mb-2">
+								<div class="d-flex align-items-center">
+									<i 
+										class="fas fa-exclamation-circle text-warning me-2" 
+										style="cursor: pointer; font-size: 1.2em;"
+										[title]="warning.message + ' Double-click to apply fix.'"
+										(dblclick)="fixConfigWarning(warning)"
+									></i>
+									<span class="flex-grow-1">
+										<strong>{{ warning.path }}:</strong> {{ warning.message }}
+									</span>
+									<button 
+										class="btn btn-sm btn-warning ms-2" 
+										(click)="fixConfigWarning(warning)"
+										[title]="'Apply default value for ' + warning.path"
+									>
+										<i class="fas fa-wrench"></i> Fix
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
 					<div class="row">
 						<h3>Config editor</h3>
 						<json-editor
