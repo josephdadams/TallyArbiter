@@ -67,7 +67,7 @@ export function SaveConfig() {
 				tslClientObj.ip = tslListenerProvider.tsl_clients[i].ip
 				tslClientObj.port = tslListenerProvider.tsl_clients[i].port
 				tslClientObj.transport = tslListenerProvider.tsl_clients[i].transport
-				tslClientObj.protocol = tslListenerProvider.tsl_clients[i].protocol
+				tslClientObj.protocol = tslListenerProvider.tsl_clients[i].protocol || '3.1'
 				tsl_clients_clean.push(tslClientObj)
 			}
 		}
