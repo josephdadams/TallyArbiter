@@ -74,6 +74,7 @@
 		"jquery": "^3.6.0",
 		"jsonwebtoken": "^9.0.0",
 		"jspack": "^0.0.4",
+		"mqtt": "^5.14.1",
 		"node-emberplus": "^3.0.5",
 		"obs-websocket-js": "npm:obs-websocket-js@^4.0.3",
 		"obs-websocket-js-5": "npm:obs-websocket-js@^5.0.6",
@@ -104,6 +105,7 @@
 	"devDependencies": {
 		"@types/find-package-json": "^1.2.2",
 		"@types/find-remove": "^2.0.1",
+		"@types/mqtt": "^0.0.34",
 		"@types/node": "^17.0.31",
 		"@types/xml2js": "^0.4.11",
 		"electron": "^35.7.5",
