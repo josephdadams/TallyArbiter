@@ -11,6 +11,7 @@ Tally Arbiter is software that allows you to combine incoming tally data from mu
 - Supports many different tally sources/switchers
 - Supports output of tally data to several different types (web/phone, blink(1) USB light, relay, GPO, M5StickC/Arduino)
 - Outgoing webhooks, TCP messages, or OSC based on tally states
+- MQTT for home automation and IoT systems (Home Assistant, openHAB, etc.)
 - Unlimited tally sources and devices
 - Cloud Support - send data from your closed production network to a server in the cloud
 - Feedbacks and Control through Bitfocus Companion - view tally data live on your stream deck!
