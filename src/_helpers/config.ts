@@ -68,6 +68,7 @@ export function SaveConfig() {
 				tslClientObj.port = tslListenerProvider.tsl_clients[i].port
 				tslClientObj.transport = tslListenerProvider.tsl_clients[i].transport
 				tslClientObj.protocol = tslListenerProvider.tsl_clients[i].protocol || '3.1'
+				tslClientObj.protocolOptions = tslListenerProvider.tsl_clients[i].protocolOptions || {}
 				tsl_clients_clean.push(tslClientObj)
 			}
 		}

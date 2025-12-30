@@ -697,8 +697,32 @@ export class SettingsComponent {
 
 	public addTSLClient(modal: any) {
 		this.editingTSLClient = false
-		this.currentTSLClient = {} as TSLClient
+		this.currentTSLClient = this.createDefaultTSLClient() as TSLClient
 		this.modalService.open(modal)
+	}
+
+	private createDefaultTSLClient(): any {
+		return {
+			ip: '127.0.0.1',
+			port: 5720,
+			transport: 'udp',
+			protocol: '3.1',
+			protocolOptions: {
+				brightness: 3,
+
+				// 3.1 defaults
+				tally1: 'pvw',
+				tally2: 'pgm',
+				tally3: 'off',
+				tally4: 'off',
+
+				// 5.0 defaults
+				lh_tally: 'pgm',
+				rh_tally: 'pvw',
+				text_tally: 'off',
+				sequence: 'default',
+			},
+		}
 	}
 
 	public addCloudDestination(modal: any) {
@@ -769,13 +793,61 @@ export class SettingsComponent {
 		} as Device
 		this.modalService.open(modal)
 	}
+
+	public onProtocolChanged(protocol: '3.1' | '5.0') {
+		this.currentTSLClient.protocolOptions ??= {}
+
+		if (protocol === '3.1') {
+			this.currentTSLClient.protocolOptions.tally1 ??= 'pvw'
+			this.currentTSLClient.protocolOptions.tally2 ??= 'pgm'
+			this.currentTSLClient.protocolOptions.tally3 ??= 'off'
+			this.currentTSLClient.protocolOptions.tally4 ??= 'off'
+		} else {
+			this.currentTSLClient.protocolOptions.lh_tally ??= 'pgm'
+			this.currentTSLClient.protocolOptions.rh_tally ??= 'pvw'
+			this.currentTSLClient.protocolOptions.text_tally ??= 'pgm'
+			this.currentTSLClient.protocolOptions.sequence ??= 'default'
+		}
+
+		this.currentTSLClient.protocolOptions.brightness ??= 3
+	}
+
 	public editTSLClient(tslClient: TSLClient, modal: any) {
 		this.editingTSLClient = true
-		this.currentTSLClient = {
-			...tslClient,
-		} as TSLClient
+		this.currentTSLClient = this.normalizeTSLClient({ ...tslClient }) as TSLClient
 		this.modalService.open(modal)
 	}
+
+	private normalizeTSLClient(client: any): any {
+		const out = { ...client }
+
+		//if protocol is missing, default to "3.1"
+		out.protocol ??= '3.1'
+
+		//if transport is missing, default to "udp"
+		out.transport ??= 'udp'
+
+		// Ensure protocolOptions exists
+		out.protocolOptions ??= {}
+
+		// Always-safe defaults (only fill if missing)
+		out.protocolOptions.brightness ??= 3
+
+		// 3.1 default mapping
+		out.protocolOptions.tally1 ??= 'pvw'
+		out.protocolOptions.tally2 ??= 'pgm'
+		out.protocolOptions.tally3 ??= 'off'
+		out.protocolOptions.tally4 ??= 'off'
+
+		// 5.0 default mapping
+		out.protocolOptions.lh_tally ??= 'pgm'
+		out.protocolOptions.rh_tally ??= 'pvw'
+		out.protocolOptions.text_tally ??= 'off'
+		out.protocolOptions.sequence ??= 'default'
+
+		return out
+	}
+
 	public editCloudDestination(cloudDestination: CloudDestination, modal: any) {
 		this.editingCloudDestination = true
 		this.currentCloudDestination = {
@@ -836,7 +908,7 @@ export class SettingsComponent {
 				if (editorJson) {
 					// Trigger validation
 					editorJson.validate()
-					
+
 					// Try to access validation errors from the editor
 					// jsoneditor uses Ajv internally and stores errors in validateSchema.errors
 					if (editorJson.validateSchema && editorJson.validateSchema.errors) {
@@ -852,8 +924,7 @@ export class SettingsComponent {
 		} catch (e) {
 			console.error('Error accessing validation errors:', e)
 		}
-		
-		
+
 		if (errors && errors.length > 0) {
 			this.updatedConfigValid = false
 		} else {
@@ -867,16 +938,16 @@ export class SettingsComponent {
 
 	private checkConfigWarnings(config: any, schemaErrors: any[] = []) {
 		const warnings: Array<{ path: string; message: string; fix: () => void }> = []
-		
+
 		// Check for missing top-level properties
 		const defaults = this.getConfigDefaults()
 		this.findMissingProperties(config, defaults, '', warnings)
-		
+
 		// Check for missing required properties from schema validation errors
 		if (schemaErrors && schemaErrors.length > 0) {
 			this.parseSchemaValidationErrors(schemaErrors, config, warnings)
 		}
-		
+
 		this.configWarnings = warnings
 	}
 
@@ -923,10 +994,15 @@ export class SettingsComponent {
 		}
 	}
 
-	private findMissingProperties(config: any, defaults: any, path: string, warnings: Array<{ path: string; message: string; fix: () => void }>) {
+	private findMissingProperties(
+		config: any,
+		defaults: any,
+		path: string,
+		warnings: Array<{ path: string; message: string; fix: () => void }>,
+	) {
 		for (const [key, defaultValue] of Object.entries(defaults)) {
 			const currentPath = path ? `${path}.${key}` : key
-			
+
 			// Check if property exists in config
 			if (config[key] === undefined) {
 				// Property is missing
@@ -949,9 +1025,10 @@ export class SettingsComponent {
 					})
 				} else {
 					// Primitive value
-					const displayValue = typeof defaultValue === 'string' && defaultValue.length > 50 
-						? defaultValue.substring(0, 50) + '...' 
-						: JSON.stringify(defaultValue)
+					const displayValue =
+						typeof defaultValue === 'string' && defaultValue.length > 50
+							? defaultValue.substring(0, 50) + '...'
+							: JSON.stringify(defaultValue)
 					warnings.push({
 						path: currentPath,
 						message: `Property "${currentPath}" is missing. Default value: ${displayValue}`,
@@ -960,7 +1037,13 @@ export class SettingsComponent {
 						},
 					})
 				}
-			} else if (defaultValue !== null && typeof defaultValue === 'object' && !Array.isArray(defaultValue) && typeof config[key] === 'object' && !Array.isArray(config[key])) {
+			} else if (
+				defaultValue !== null &&
+				typeof defaultValue === 'object' &&
+				!Array.isArray(defaultValue) &&
+				typeof config[key] === 'object' &&
+				!Array.isArray(config[key])
+			) {
 				// Both are objects - recurse to check nested properties
 				this.findMissingProperties(config[key], defaultValue, currentPath, warnings)
 			}
@@ -968,47 +1051,51 @@ export class SettingsComponent {
 		}
 	}
 
-	private parseSchemaValidationErrors(errors: any[], config: any, warnings: Array<{ path: string; message: string; fix: () => void }>) {
+	private parseSchemaValidationErrors(
+		errors: any[],
+		config: any,
+		warnings: Array<{ path: string; message: string; fix: () => void }>,
+	) {
 		if (!errors || errors.length === 0) {
 			return
 		}
-		
+
 		const arrayItemDefaults = this.getArrayItemDefaults()
-		
+
 		for (const error of errors) {
-			
 			// Only handle "required" errors (missing required properties)
 			if (error.keyword === 'required' && error.params && error.params.missingProperty) {
 				const missingProperty = error.params.missingProperty
 				// Try different path properties (AJV v6 vs v7+)
 				const dataPath = error.dataPath || error.instancePath || error.path || ''
-				
+
 				// Parse the dataPath - format is ".device_sources[0]"
 				// Remove leading dot and extract property name and index
 				const cleanPath = dataPath.replace(/^\.+/, '')
 				const match = cleanPath.match(/^([^[\]]+)\[(\d+)\]$/)
-				
+
 				if (!match) {
 					console.warn(`Unexpected path format: ${dataPath}`)
 					continue
 				}
-				
+
 				const pathParts = [match[1], match[2]] // ["device_sources", "0"]
 				const displayPath = `${match[1]}[${match[2]}].${missingProperty}`
 				const defaultValue = this.getDefaultValueForProperty(pathParts, missingProperty, arrayItemDefaults)
-				
+
 				// Create fix function
 				const fix = () => {
 					this.applyPropertyDefaultFromPath(pathParts, missingProperty, defaultValue)
 				}
-				
+
 				// Check if we already have a warning for this path
-				const existingWarning = warnings.find(w => w.path === displayPath)
+				const existingWarning = warnings.find((w) => w.path === displayPath)
 				if (!existingWarning) {
-					const displayValue = typeof defaultValue === 'string' && defaultValue.length > 50 
-						? defaultValue.substring(0, 50) + '...' 
-						: JSON.stringify(defaultValue)
-					
+					const displayValue =
+						typeof defaultValue === 'string' && defaultValue.length > 50
+							? defaultValue.substring(0, 50) + '...'
+							: JSON.stringify(defaultValue)
+
 					warnings.push({
 						path: displayPath,
 						message: `Missing required property "${missingProperty}". Default value: ${displayValue}`,
@@ -1018,7 +1105,7 @@ export class SettingsComponent {
 			}
 		}
 	}
-	
+
 	private getArrayItemDefaults(): any {
 		// Default values for properties within array items
 		return {
@@ -1042,7 +1129,7 @@ export class SettingsComponent {
 			},
 		}
 	}
-	
+
 	private getDefaultValueForProperty(pathParts: string[], propertyName: string, arrayItemDefaults: any): any {
 		// If this is an array item (pathParts has a numeric last part)
 		if (pathParts.length >= 2) {
@@ -1052,7 +1139,7 @@ export class SettingsComponent {
 				return itemDefaults[propertyName]
 			}
 		}
-		
+
 		// Default based on property name patterns
 		if (propertyName.includes('interval') || propertyName.includes('Interval')) {
 			return 5000
@@ -1060,7 +1147,12 @@ export class SettingsComponent {
 		if (propertyName.includes('reconnect') || propertyName.includes('Reconnect')) {
 			return 5
 		}
-		if (propertyName.includes('enabled') || propertyName.includes('Enabled') || propertyName.includes('active') || propertyName.includes('Active')) {
+		if (
+			propertyName.includes('enabled') ||
+			propertyName.includes('Enabled') ||
+			propertyName.includes('active') ||
+			propertyName.includes('Active')
+		) {
 			return false
 		}
 		if (propertyName.includes('rename') || propertyName.includes('Rename')) {
@@ -1073,25 +1165,25 @@ export class SettingsComponent {
 		if (propertyName === 'bus' || propertyName === 'address' || propertyName === 'name' || propertyName === 'label') {
 			return ''
 		}
-		
+
 		// Generic defaults - return empty string for unknown properties (safer than null)
 		// This prevents type errors when the schema expects a string but gets null
 		return ''
 	}
-	
+
 	private applyPropertyDefaultFromPath(pathParts: string[], propertyName: string, defaultValue: any) {
 		// Create a working copy to avoid mutating the original during navigation
 		let target: any = this.updatedConfig
-		
+
 		console.log(`Applying fix: path=${pathParts.join('.')}, property=${propertyName}, value=${defaultValue}`)
-		
+
 		// Navigate to the target object
 		for (let i = 0; i < pathParts.length; i++) {
 			const part = pathParts[i]
 			// Check if part is a numeric index (array)
 			const index = parseInt(part, 10)
 			const isNumericIndex = !isNaN(index) && part === index.toString()
-			
+
 			if (isNumericIndex) {
 				// It's a numeric index - target should be an array
 				if (!Array.isArray(target)) {
@@ -1129,16 +1221,16 @@ export class SettingsComponent {
 				target = target[part]
 			}
 		}
-		
+
 		// Set the property value on the array item object
 		target[propertyName] = defaultValue
-		
+
 		// Create a deep copy to ensure Angular detects the change
 		const newConfig = JSON.parse(JSON.stringify(this.updatedConfig))
 		this.updatedConfig = newConfig
 		this.config = newConfig
 		this.updatedRawConfig = JSON.stringify(newConfig, null, 2)
-		
+
 		// Revalidate after editor updates
 		setTimeout(() => {
 			this.configUpdated(newConfig)
@@ -1148,7 +1240,7 @@ export class SettingsComponent {
 	private applyPropertyDefault(path: string, defaultValue: any) {
 		const pathParts = path.split('.')
 		let target: any = this.updatedConfig
-		
+
 		// Navigate to the parent object
 		for (let i = 0; i < pathParts.length - 1; i++) {
 			const part = pathParts[i]
@@ -1157,10 +1249,10 @@ export class SettingsComponent {
 			}
 			target = target[part]
 		}
-		
+
 		// Set the value
 		const finalKey = pathParts[pathParts.length - 1]
-		
+
 		// If it's an object, merge with existing values
 		if (defaultValue !== null && typeof defaultValue === 'object' && !Array.isArray(defaultValue)) {
 			target[finalKey] = {
@@ -1170,15 +1262,15 @@ export class SettingsComponent {
 		} else {
 			target[finalKey] = defaultValue
 		}
-		
+
 		// Create a deep copy to ensure we have a fresh object reference
 		const newConfig = JSON.parse(JSON.stringify(this.updatedConfig))
-		
+
 		// Update all config references with the new deep copy
 		this.updatedConfig = newConfig
-		this.config = newConfig  // This is bound to [data] in the template, so updating it will update the editor
+		this.config = newConfig // This is bound to [data] in the template, so updating it will update the editor
 		this.updatedRawConfig = JSON.stringify(newConfig, null, 2)
-		
+
 		// Trigger validation and recheck warnings after Angular updates the editor
 		setTimeout(() => {
 			this.configUpdated(newConfig)
@@ -1224,11 +1316,15 @@ export class SettingsComponent {
 				const arrayName = pathMatch[1]
 				const index = parseInt(pathMatch[2], 10)
 				const propertyName = pathMatch[3]
-				
+
 				// Get the default value
 				const arrayItemDefaults = this.getArrayItemDefaults()
-				const defaultValue = this.getDefaultValueForProperty([arrayName, index.toString()], propertyName, arrayItemDefaults)
-				
+				const defaultValue = this.getDefaultValueForProperty(
+					[arrayName, index.toString()],
+					propertyName,
+					arrayItemDefaults,
+				)
+
 				// Apply the fix directly
 				if (config[arrayName] && Array.isArray(config[arrayName]) && config[arrayName][index]) {
 					config[arrayName][index][propertyName] = defaultValue
@@ -1248,7 +1344,7 @@ export class SettingsComponent {
 		// Revalidate after all fixes are applied
 		setTimeout(() => {
 			this.configUpdated(newConfig)
-			
+
 			// Show summary of changes
 			let summaryHtml = `<div style="text-align: left;"><p><strong>Applied ${changes.length} fixes:</strong></p><ul style="margin-top: 10px; max-height: 400px; overflow-y: auto;">`
 			for (const change of changes) {
@@ -1309,12 +1405,12 @@ export class SettingsComponent {
 						this.config = JSON.parse(result)
 						this.updatedConfig = this.config
 						this.updatedRawConfig = JSON.stringify(this.config, null, 2)
-						
+
 						// Update the JSON editor with the new config
 						if (this.configEditor) {
 							this.configEditor.set(this.config as any)
 						}
-						
+
 						// Trigger validation and check for warnings after import
 						setTimeout(() => {
 							let errors: any[] = []
@@ -1335,18 +1431,18 @@ export class SettingsComponent {
 							} catch (err) {
 								console.error('Error validating imported config:', err)
 							}
-							
+
 							// Update validation status
 							if (errors && errors.length > 0) {
 								this.updatedConfigValid = false
 							} else {
 								this.updatedConfigValid = true
 							}
-							
+
 							// Check for warnings with validation errors
 							this.checkConfigWarnings(this.config, errors)
 						}, 100)
-						
+
 						this.socketService.socket.emit('set_config', this.config)
 					}
 				}

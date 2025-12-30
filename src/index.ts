@@ -2287,6 +2287,7 @@ function TallyArbiter_Edit_TSL_Client(obj: Manage): ManageResponse {
 			currentConfig.tsl_clients[i].port = tslClientObj.port
 			currentConfig.tsl_clients[i].transport = tslClientObj.transport
 			currentConfig.tsl_clients[i].protocol = tslClientObj.protocol || '3.1'
+			currentConfig.tsl_clients[i].protocolOptions = tslClientObj.protocolOptions || {}
 			setTimeout(() => tslListenerProvider.startTSLClientConnection(currentConfig.tsl_clients[i]), 5000) //opens the port again after 5 seconds to give the old port time to close
 			break
 		}

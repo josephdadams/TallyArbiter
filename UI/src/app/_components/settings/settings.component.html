@@ -199,7 +199,7 @@
 							<label class="form-check-label" for="chkTSLClients_1SecUpdate">1-Second Updates</label>
 						</div>
 						<span class="text-muted mt-3 d-block" *ngIf="socketService.tslClients.length == 0"
-							>No TSL clients configured.</span
+							>No TSL Listener Clients configured.</span
 						>
 						<div class="table-responsive">
 							<table class="table table-hover align-middle" *ngIf="socketService.tslClients.length > 0">
@@ -207,6 +207,7 @@
 									<tr>
 										<th>IP</th>
 										<th>Port</th>
+										<th>Protocol</th>
 										<th>Transport</th>
 										<th></th>
 									</tr>
@@ -215,7 +216,12 @@
 									<tr *ngFor="let tslClient of socketService.tslClients" [class.text-success]="tslClient.connected">
 										<td>{{ tslClient.ip }}</td>
 										<td>{{ tslClient.port }}</td>
-										<td>{{ tslClient.transport }}</td>
+										<td>
+											{{
+												tslClient.protocol == '3.1' ? 'TSL 3.1' : tslClient.protocol == '5.0' ? 'TSL 5.0' : 'TSL 3.1'
+											}}
+										</td>
+										<td>{{ tslClient.transport == 'tcp' ? 'TCP' : 'UDP' }}</td>
 										<td class="text-center">
 											<button
 												class="btn btn-sm btn-secondary mx-1 my-1"
@@ -462,9 +468,12 @@
 						<h3>Config Warnings</h3>
 						<div class="alert alert-warning" role="alert">
 							<div class="d-flex justify-content-between align-items-center mb-3">
-								<p class="mb-0"><i class="fas fa-exclamation-triangle"></i> Some configuration properties are missing and will use default values.</p>
-								<button 
-									class="btn btn-warning" 
+								<p class="mb-0">
+									<i class="fas fa-exclamation-triangle"></i> Some configuration properties are missing and will use
+									default values.
+								</p>
+								<button
+									class="btn btn-warning"
 									(click)="fixAllConfigWarnings()"
 									[title]="'Apply all default values (' + configWarnings.length + ' fixes)'"
 								>
@@ -473,17 +482,17 @@
 							</div>
 							<div *ngFor="let warning of configWarnings" class="mb-2">
 								<div class="d-flex align-items-center">
-									<i 
-										class="fas fa-exclamation-circle text-warning me-2" 
-										style="cursor: pointer; font-size: 1.2em;"
+									<i
+										class="fas fa-exclamation-circle text-warning me-2"
+										style="cursor: pointer; font-size: 1.2em"
 										[title]="warning.message + ' Double-click to apply fix.'"
 										(dblclick)="fixConfigWarning(warning)"
 									></i>
 									<span class="flex-grow-1">
 										<strong>{{ warning.path }}:</strong> {{ warning.message }}
 									</span>
-									<button 
-										class="btn btn-sm btn-warning ms-2" 
+									<button
+										class="btn btn-sm btn-warning ms-2"
 										(click)="fixConfigWarning(warning)"
 										[title]="'Apply default value for ' + warning.path"
 									>
@@ -1141,10 +1150,157 @@
 		</div>
 		<div class="mb-3">
 			<label for="tslProtocol" class="form-label">Protocol</label>
-			<select class="form-select" id="tslProtocol" [(ngModel)]="currentTSLClient.protocol">
-				<option value="3.1">3.1</option>
-				<option value="5.0">5.0</option>
+			<select
+				class="form-select"
+				id="tslProtocol"
+				[(ngModel)]="currentTSLClient.protocol"
+				(ngModelChange)="onProtocolChanged($event)"
+			>
+				<option value="3.1">TSL 3.1</option>
+				<option value="5.0">TSL 5.0</option>
 			</select>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">Protocol Options</label>
+
+			<!-- TSL 3.1 options -->
+			<ng-container *ngIf="currentTSLClient.protocol === '3.1'">
+				<div class="card">
+					<div class="card-body">
+						<div class="row g-3">
+							<div class="col-md-3">
+								<label for="tsl31Tally1Role" class="form-label">Tally 1</label>
+								<select class="form-select" id="tsl31Tally1Role" [(ngModel)]="currentTSLClient.protocolOptions.tally1">
+									<option value="off">Off</option>
+									<option value="pvw">PVW</option>
+									<option value="pgm">PGM</option>
+								</select>
+							</div>
+
+							<div class="col-md-3">
+								<label for="tsl31Tally2Role" class="form-label">Tally 2</label>
+								<select class="form-select" id="tsl31Tally2Role" [(ngModel)]="currentTSLClient.protocolOptions.tally2">
+									<option value="off">Off</option>
+									<option value="pvw">PVW</option>
+									<option value="pgm">PGM</option>
+								</select>
+							</div>
+
+							<div class="col-md-3">
+								<label for="tsl31Tally3Role" class="form-label">Tally 3</label>
+								<select class="form-select" id="tsl31Tally3Role" [(ngModel)]="currentTSLClient.protocolOptions.tally3">
+									<option value="off">Off</option>
+									<option value="pvw">PVW</option>
+									<option value="pgm">PGM</option>
+								</select>
+							</div>
+
+							<div class="col-md-3">
+								<label for="tsl31Tally4Role" class="form-label">Tally 4</label>
+								<select class="form-select" id="tsl31Tally4Role" [(ngModel)]="currentTSLClient.protocolOptions.tally4">
+									<option value="off">Off</option>
+									<option value="pvw">PVW</option>
+									<option value="pgm">PGM</option>
+								</select>
+							</div>
+
+							<div class="col-md-6">
+								<label for="tsl31Brightness" class="form-label">Brightness</label>
+								<select
+									class="form-select"
+									id="tsl31Brightness"
+									[(ngModel)]="currentTSLClient.protocolOptions.brightness"
+								>
+									<option [ngValue]="0">0</option>
+									<option [ngValue]="1">1</option>
+									<option [ngValue]="2">2</option>
+									<option [ngValue]="3">3</option>
+								</select>
+							</div>
+						</div>
+
+						<div class="form-text mt-2">
+							Map PVW/PGM state to the four TSL 3.1 tally bits. Defaults match the current behavior (Tally 1 = PVW,
+							Tally 2 = PGM).
+						</div>
+					</div>
+				</div>
+			</ng-container>
+
+			<!-- TSL 5.0 options -->
+			<ng-container *ngIf="currentTSLClient.protocol === '5.0'">
+				<div class="card">
+					<div class="card-body">
+						<div class="row g-3">
+							<div class="col-md-4">
+								<label for="tsl5LeftTallyRole" class="form-label">Left Tally</label>
+								<select
+									class="form-select"
+									id="tsl5LeftTallyRole"
+									[(ngModel)]="currentTSLClient.protocolOptions.lh_tally"
+								>
+									<option value="off">Off</option>
+									<option value="pgm">PGM</option>
+									<option value="pvw">PVW</option>
+								</select>
+							</div>
+
+							<div class="col-md-4">
+								<label for="tsl5RightTallyRole" class="form-label">Right Tally</label>
+								<select
+									class="form-select"
+									id="tsl5RightTallyRole"
+									[(ngModel)]="currentTSLClient.protocolOptions.rh_tally"
+								>
+									<option value="off">Off</option>
+									<option value="pgm">PGM</option>
+									<option value="pvw">PVW</option>
+								</select>
+							</div>
+
+							<div class="col-md-4">
+								<label for="tsl5TextTallyRole" class="form-label">Text Tally</label>
+								<select
+									class="form-select"
+									id="tsl5TextTallyRole"
+									[(ngModel)]="currentTSLClient.protocolOptions.text_tally"
+								>
+									<option value="off">Off</option>
+									<option value="pgm">PGM</option>
+									<option value="pvw">PVW</option>
+								</select>
+							</div>
+
+							<div class="col-md-6">
+								<label for="tsl5Brightness" class="form-label">Brightness</label>
+								<select
+									class="form-select"
+									id="tsl5Brightness"
+									[(ngModel)]="currentTSLClient.protocolOptions.brightness"
+								>
+									<option [ngValue]="0">0</option>
+									<option [ngValue]="1">1</option>
+									<option [ngValue]="2">2</option>
+									<option [ngValue]="3">3</option>
+								</select>
+							</div>
+
+							<div class="col-md-6">
+								<label for="tsl5Sequence" class="form-label">DLE/STX sequence</label>
+								<select class="form-select" id="tsl5Sequence" [(ngModel)]="currentTSLClient.protocolOptions.sequence">
+									<option value="ON">On</option>
+									<option value="OFF">Off</option>
+								</select>
+							</div>
+						</div>
+
+						<div class="form-text mt-2">
+							Tally roles map Tally Arbiter state to TSL 5.0 regions. Example: if device is in PVW and Left Tally is set
+							to PVW, the left tally will illuminate.
+						</div>
+					</div>
+				</div>
+			</ng-container>
 		</div>
 		<div class="d-flex justify-content-end">
 			<button class="btn btn-primary" (click)="saveCurrentTSLClient()">

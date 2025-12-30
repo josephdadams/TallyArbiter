@@ -1,3 +1,5 @@
+import { TSLClientProtocolOptions } from './ConfigTSLClient'
+
 export interface TSLClient {
 	connected: boolean
 	ip: string
@@ -5,6 +7,7 @@ export interface TSLClient {
 	port: number | string
 	transport: string
 	protocol?: string
+	protocolOptions: TSLClientProtocolOptions
 	socket?: any
 
 	error?: boolean
