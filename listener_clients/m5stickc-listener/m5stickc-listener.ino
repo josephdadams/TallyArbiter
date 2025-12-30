@@ -97,6 +97,11 @@ String listenerDeviceHW = "M5StickC";
     Change the following variables before compiling and sending the code to your device.
 */
 
+// WiFi Power Management
+// Set to true to disable WiFi sleep mode (recommended for real-time tally updates)
+// Set to false to allow WiFi sleep mode (saves battery but may cause message delays)
+#define DISABLE_WIFI_SLEEP true
+
 bool LAST_MSG = false;  // true = show log on tally screen
 
 //Tally Arbiter Server
@@ -403,6 +408,9 @@ WiFiManagerParameter *custom_taServer;
 WiFiManagerParameter *custom_taPort;
 
 void connectToNetwork() {
+#if DISABLE_WIFI_SLEEP
+  WiFi.setSleep(false); // Disable WiFi sleep mode
+#endif
   WiFi.mode(WIFI_STA);  // explicitly set mode, esp defaults to STA+AP
   logger("Connecting to SSID: " + String(WiFi.SSID()), "info");
 
