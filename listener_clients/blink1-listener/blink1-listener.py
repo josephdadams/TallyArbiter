@@ -283,7 +283,7 @@ def processTallyData():
         doBlink(0, 0, 0)
     else:
         try:
-            busses_list.sort(key=lambda x: x["priority"])
+            busses_list.sort(key=lambda x: x["priority"], reverse=True)
         except:
             return
         current_color = hex_to_rgb(busses_list[0]["color"])
