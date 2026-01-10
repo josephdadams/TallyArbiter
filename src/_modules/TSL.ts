@@ -284,7 +284,9 @@ export class TSLListenerProvider extends ListenerProvider {
 
 		const umd = new TSLUMDv5()
 
-		const bufUMD = umd.createUMDBuffer(tally, sequence)
+		const bufUMD = umd.constructPacket(tally, sequence)
+
+		//console.log(bufUMD)
 
 		return bufUMD
 	}
