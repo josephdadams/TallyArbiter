@@ -720,7 +720,7 @@ export class SettingsComponent {
 				lh_tally: 'pgm',
 				rh_tally: 'pvw',
 				text_tally: 'off',
-				sequence: 'default',
+				sequence: 'ON',
 			},
 		}
 	}
@@ -806,7 +806,7 @@ export class SettingsComponent {
 			this.currentTSLClient.protocolOptions.lh_tally ??= 'pgm'
 			this.currentTSLClient.protocolOptions.rh_tally ??= 'pvw'
 			this.currentTSLClient.protocolOptions.text_tally ??= 'pgm'
-			this.currentTSLClient.protocolOptions.sequence ??= 'default'
+			this.currentTSLClient.protocolOptions.sequence ??= 'ON'
 		}
 
 		this.currentTSLClient.protocolOptions.brightness ??= 3
@@ -843,7 +843,7 @@ export class SettingsComponent {
 		out.protocolOptions.lh_tally ??= 'pgm'
 		out.protocolOptions.rh_tally ??= 'pvw'
 		out.protocolOptions.text_tally ??= 'off'
-		out.protocolOptions.sequence ??= 'default'
+		out.protocolOptions.sequence ??= 'ON'
 
 		return out
 	}
