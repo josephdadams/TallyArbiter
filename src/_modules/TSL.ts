@@ -226,10 +226,10 @@ export class TSLListenerProvider extends ListenerProvider {
 
 		// Map TA state -> TSL tally bits based on client config
 		const opts = tslClient.protocolOptions
-		data.tally1 = this.roleActive(opts.tally1, isPvw, isPgm)
-		data.tally2 = this.roleActive(opts.tally2, isPvw, isPgm)
-		data.tally3 = this.roleActive(opts.tally3, isPvw, isPgm)
-		data.tally4 = this.roleActive(opts.tally4, isPvw, isPgm)
+		data.tally1 = this.roleActive(opts.tally1 ?? 'pvw', isPvw, isPgm)
+		data.tally2 = this.roleActive(opts.tally2 ?? 'pgm', isPvw, isPgm)
+		data.tally3 = this.roleActive(opts.tally3 ?? '', isPvw, isPgm)
+		data.tally4 = this.roleActive(opts.tally4 ?? '', isPvw, isPgm)
 
 		// Byte 1: bits 7-6 brightness, bits 0-3 tally 1-4
 		const brightness = (opts.brightness ?? 3) & 0b11
