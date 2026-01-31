@@ -9,7 +9,7 @@ export interface ConfigTSLClient {
 
 export interface TSLClientProtocolOptions {
 	brightness?: number
-	
+
 	tally1?: string
 	tally2?: string
 	tally3?: string

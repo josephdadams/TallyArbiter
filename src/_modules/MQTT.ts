@@ -226,4 +226,3 @@ export class MQTTService extends EventEmitter {
 		return this.isConnected
 	}
 }
-

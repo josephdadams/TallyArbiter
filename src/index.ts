@@ -1408,7 +1408,7 @@ function UpdateDeviceState(deviceId: string) {
 	UpdateListenerClients(deviceId)
 	vMixEmulator?.updateListenerClients(currentDeviceTallyData)
 	tslListenerProvider?.updateListenerClientsForDevice(currentDeviceTallyData, device)
-	
+
 	// Publish device state to MQTT
 	if (mqttService && mqttService.isServiceConnected()) {
 		const deviceStates = getDeviceStates(deviceId)

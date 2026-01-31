@@ -32,19 +32,19 @@ MQTT can be configured through the Tally Arbiter settings interface or by editin
 
 ```json
 {
-  "mqtt": {
-    "enabled": true,
-    "broker": "192.168.1.100",
-    "port": 1883,
-    "username": "tallyarbiter",
-    "password": "your_password",
-    "topicPrefix": "tallyarbiter",
-    "retain": true,
-    "qos": 1,
-    "reconnectPeriod": 5000,
-    "connectTimeout": 10000,
-    "keepalive": 60
-  }
+	"mqtt": {
+		"enabled": true,
+		"broker": "192.168.1.100",
+		"port": 1883,
+		"username": "tallyarbiter",
+		"password": "your_password",
+		"topicPrefix": "tallyarbiter",
+		"retain": true,
+		"qos": 1,
+		"reconnectPeriod": 5000,
+		"connectTimeout": 10000,
+		"keepalive": 60
+	}
 }
 ```
 
@@ -61,35 +61,38 @@ Tally Arbiter publishes device states to several MQTT topics following a structu
 For each device, Tally Arbiter publishes:
 
 1. **`{topicPrefix}/device/{deviceId}/state`**: Complete device state as JSON
+
    ```json
    {
-     "deviceId": "device-123",
-     "deviceName": "Camera 1",
-     "states": [
-       {
-         "busId": "bus-1",
-         "busLabel": "Program",
-         "sources": ["source-1", "source-2"]
-       }
-     ],
-     "timestamp": "2024-01-15T10:30:00.000Z"
+   	"deviceId": "device-123",
+   	"deviceName": "Camera 1",
+   	"states": [
+   		{
+   			"busId": "bus-1",
+   			"busLabel": "Program",
+   			"sources": ["source-1", "source-2"]
+   		}
+   	],
+   	"timestamp": "2024-01-15T10:30:00.000Z"
    }
    ```
 
 2. **`{topicPrefix}/device/{deviceId}/bus/{busId}`**: Individual bus state as JSON
+
    ```json
    {
-     "state": "ON",
-     "busId": "bus-1",
-     "busLabel": "Program",
-     "busType": "program",
-     "busColor": "#ff0000",
-     "sources": ["source-1"],
-     "timestamp": "2024-01-15T10:30:00.000Z"
+   	"state": "ON",
+   	"busId": "bus-1",
+   	"busLabel": "Program",
+   	"busType": "program",
+   	"busColor": "#ff0000",
+   	"sources": ["source-1"],
+   	"timestamp": "2024-01-15T10:30:00.000Z"
    }
    ```
 
 3. **`{topicPrefix}/device/{deviceId}/bus/{busId}/state`**: Simple bus state (`ON` or `OFF`)
+
    - This topic contains just the state string, making it ideal for Home Assistant binary sensors
 
 4. **`{topicPrefix}/device/{deviceId}/status`**: Device availability status (`online`)
@@ -113,30 +116,30 @@ The MQTT integration is designed to work seamlessly with Home Assistant. You can
 ```yaml
 # binary_sensor.yaml
 - platform: mqtt
-  name: "Camera 1 Program Tally"
-  state_topic: "tallyarbiter/device/camera-1/bus/program-bus/state"
-  payload_on: "ON"
-  payload_off: "OFF"
+  name: 'Camera 1 Program Tally'
+  state_topic: 'tallyarbiter/device/camera-1/bus/program-bus/state'
+  payload_on: 'ON'
+  payload_off: 'OFF'
   device_class: running
 
 # sensor.yaml
 - platform: mqtt
-  name: "Camera 1 Tally State"
-  state_topic: "tallyarbiter/device/camera-1/state"
+  name: 'Camera 1 Tally State'
+  state_topic: 'tallyarbiter/device/camera-1/state'
   value_template: "{{ value_json.states[0].busLabel if value_json.states else 'Clear' }}"
-  json_attributes_topic: "tallyarbiter/device/camera-1/state"
-  json_attributes_template: "{{ value_json | tojson }}"
+  json_attributes_topic: 'tallyarbiter/device/camera-1/state'
+  json_attributes_template: '{{ value_json | tojson }}'
 ```
 
 ### Home Assistant Automation Example
 
 ```yaml
 # automation.yaml
-- alias: "Turn on studio lights when camera 1 is on program"
+- alias: 'Turn on studio lights when camera 1 is on program'
   trigger:
     - platform: mqtt
-      topic: "tallyarbiter/device/camera-1/bus/program-bus/state"
-      payload: "ON"
+      topic: 'tallyarbiter/device/camera-1/bus/program-bus/state'
+      payload: 'ON'
   action:
     - service: light.turn_on
       target:
@@ -172,4 +175,3 @@ You can use Node-RED to subscribe to MQTT topics and create custom automations:
 - **Connection failures**: Verify network connectivity and broker credentials
 - **Missing device states**: Ensure devices are configured and have sources assigned
 - **Check logs**: Tally Arbiter logs MQTT connection events and errors to help diagnose issues
-
