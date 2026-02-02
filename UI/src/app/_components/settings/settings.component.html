@@ -835,7 +835,10 @@
 			<input type="text" class="form-control" id="deviceDescription" [(ngModel)]="currentDevice.description" />
 		</div>
 		<div class="mb-3">
-			<label for="deviceTSLAddress" class="form-label">TSL Address</label>
+			<label for="deviceTSLAddress" class="form-label">
+				TSL Address
+				<span class="ta-tooltip" data-tip="This is the address used for TSL Client connections.">ⓘ</span>
+			</label>
 			<input
 				type="number"
 				[min]="0"
