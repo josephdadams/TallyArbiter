@@ -10,19 +10,29 @@ jobs:
     name: Build Desktop on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
+      # Install root deps
       - name: Install dependencies
-        run: yarn install --production
+        run: npm ci
 
-      # macOS-specific steps for code signing and notarization
+      # 🔧 Build UI explicitly
+      - name: Build UI
+        run: |
+          cd UI
+          npm ci
+          npm run build
+
+      # 🍎 macOS signing
       - name: Import Apple Developer Certificate (macOS only)
         if: matrix.os == 'macos-latest'
         env:
@@ -41,6 +51,7 @@ jobs:
         run: |
           security find-identity -v -p codesigning
 
+      # 📦 Build desktop + release
       - name: Build and Release
         uses: samuelmeuli/action-electron-builder@v1.6.0
         with:
