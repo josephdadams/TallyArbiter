@@ -95,7 +95,7 @@
 	"scripts": {
 		"start": "ts-node-dev src/index.ts --dev",
 		"format": "prettier -w .",
-		"prepare": "cd UI && npm i && npm run build",
+		"build-ui": "cd UI && npm i && npm run build",
 		"redundancyjs": "redundancyjs",
 		"build": "tsc",
 		"prepack": "npm run build",
