@@ -43,7 +43,7 @@ export class AWLivecoreSource extends TallyInput {
 	private port: number // AnalogWay Livecore TCP port number
 	private last_heartbeat: number
 	private tallydata_AWLivecore: any[] = []
-	private heartbeat_interval: NodeJS.Timer
+	private heartbeat_interval: NodeJS.Timeout
 
 	constructor(source: Source) {
 		super(source)

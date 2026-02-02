@@ -8,7 +8,7 @@ import { TallyInput } from './_Source'
 	{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
 ])
 export class RolandSmartTallySource extends TallyInput {
-	private interval: NodeJS.Timer
+	private interval: NodeJS.Timeout
 	constructor(source: Source) {
 		super(source)
 		this.connected.next(true)

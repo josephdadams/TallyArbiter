@@ -49,7 +49,7 @@ const sourceTypesPanasonic = [
 export class PanasonicAVHS410Source extends TallyInput {
 	private client: any
 	private multi: dgram.Socket
-	private keepAliveInterval: NodeJS.Timer
+	private keepAliveInterval: NodeJS.Timeout
 	constructor(source: Source) {
 		super(source)
 

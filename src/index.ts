@@ -157,7 +157,7 @@ var listener_clients = [] //array of connected listener clients (web, python, re
 let vMixEmulator: VMixEmulator
 export let tslListenerProvider: TSLListenerProvider
 let mqttService: MQTTService
-let tsl_clients_interval: NodeJS.Timer | null = null
+let tsl_clients_interval: NodeJS.Timeout | null = null
 
 var cloud_destinations: CloudDestination[] = [] //array of Tally Arbiter Cloud Destinations (host, port, key)
 var cloud_destinations_sockets: CloudDestinationSocket[] = [] //array of actual socket connections
