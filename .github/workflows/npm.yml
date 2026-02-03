@@ -1,9 +1,14 @@
 name: Publish to NPM
 
 on:
-  workflow_dispatch:
   release:
     types: [published]
+
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (ex: v3.2.0)'
+        required: true
 
 permissions:
   id-token: write
@@ -36,7 +41,13 @@ jobs:
       - name: Get release tag version
         id: tag
         run: |
-          TAG=${GITHUB_REF#refs/tags/v}
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            TAG=${{ github.event.inputs.tag }}
+          else
+            TAG=${GITHUB_REF#refs/tags/v}
+          fi
+
+          TAG=${TAG#v}
           echo "version=$TAG" >> $GITHUB_OUTPUT
 
       - name: Verify versions match
