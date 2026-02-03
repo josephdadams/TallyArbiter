@@ -5,34 +5,82 @@ on:
   release:
     types: [published]
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
-  build_cli:
+  publish:
     name: Build and Publish to NPM
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: 'npm'
+
+      # -----------------------
+      # Version sanity check
+      # -----------------------
+
+      - name: Get package.json version
+        id: pkg
+        run: |
+          echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Get release tag version
+        id: tag
+        run: |
+          TAG=${GITHUB_REF#refs/tags/v}
+          echo "version=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Verify versions match
+        run: |
+          echo "Package: ${{ steps.pkg.outputs.version }}"
+          echo "Tag:     ${{ steps.tag.outputs.version }}"
+
+          if [ "${{ steps.pkg.outputs.version }}" != "${{ steps.tag.outputs.version }}" ]; then
+            echo "❌ Version mismatch!"
+            exit 1
+          fi
+
+      # -----------------------
+      # Install & build
+      # -----------------------
+
       - name: Install dependencies
-        run: npm i -f
+        run: npm ci
+
       - name: Create env file
         run: |
           touch .env
           echo SENTRY_ENABLED=1 >> .env
           echo SENTRY_DSN=${{ secrets.SENTRY_DSN }} >> .env
+
       - name: Build
-        run: npm pack
-      - name: NPM Publish
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_ACCESS_TOKEN }}
-##    - uses: Saionaro/extract-package-version@v1.0.6
-##      id: package-version
-##    - name: Upload Artifact
-##      uses: actions/upload-artifact@v2
-##      with:
-##        name: 'TallyArbiter-${{ steps.package-version.outputs.version }}'
-##        path: 'TallyArbiter-${{ steps.package-version.outputs.version }}.tgz'
+        run: npm run build --if-present
+
+      # -----------------------
+      # Check if version already exists
+      # -----------------------
+
+      - name: Check if version is already published
+        run: |
+          if npm view tallyarbiter@${{ steps.pkg.outputs.version }} version > /dev/null 2>&1; then
+            echo "❌ Version already exists on NPM!"
+            exit 1
+          else
+            echo "✅ Version not yet published"
+          fi
+
+      # -----------------------
+      # Publish
+      # -----------------------
+
+      - name: Publish to NPM
+        run: npm publish --access public --provenance
