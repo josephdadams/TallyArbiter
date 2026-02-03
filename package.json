@@ -27,7 +27,7 @@
 		"gpio"
 	],
 	"license": "MIT",
-	"author": "Joseph Adams",
+	"author": "Joseph Adams. <joseph@josephadams.dev>",
 	"bin": {
 		"tallyarbiter": "bin/tallyarbiter"
 	},
@@ -106,7 +106,10 @@
 			"hardenedRuntime": true,
 			"gatekeeperAssess": true,
 			"entitlements": "entitlements.mac.plist",
-			"entitlementsInherit": "entitlements.mac.plist"
+			"entitlementsInherit": "entitlements.mac.plist",
+			"notarize": {
+				"teamId": "R2PY2DC3A4"
+			}
 		},
 		"win": {
 			"target": [
