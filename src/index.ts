@@ -226,6 +226,24 @@ function initialSetup() {
 	app.use(bodyParser.json({ type: 'application/json' }))
 	app.use(compression())
 
+	// --------------------
+	// Health + Version
+	// --------------------
+
+	app.get('/health', (req, res) => {
+		res.status(200).send('ok')
+	})
+
+	app.get('/version', (req, res) => {
+		res.json({
+			version: process.env.APP_VERSION || version || 'dev',
+		})
+	})
+
+	// --------------------
+	// UI routes
+	// --------------------
+
 	//about the author, this program, etc.
 	app.get('/', (req, res) => {
 		limiterServeUI
@@ -241,6 +259,7 @@ function initialSetup() {
 	//serve up any files in the ui-dist folder
 	app.use(express.static(uiDistPath))
 
+	//404 catch-all
 	app.use((req, res) => {
 		res.status(404).send({ error: true, url: req.originalUrl + ' not found.' })
 	})
