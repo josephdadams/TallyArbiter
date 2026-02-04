@@ -103,5 +103,8 @@ jobs:
       # Publish
       # -----------------------
 
+      - name: Who Am I
+        run: npm whoami
+
       - name: Publish to NPM
         run: npm publish --access public --provenance
