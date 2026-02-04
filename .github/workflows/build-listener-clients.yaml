@@ -126,6 +126,8 @@ jobs:
           platforms: |
             - name: esp32:esp32
               source-url: https://dl.espressif.com/dl/package_esp32_index.json
+            - name: LilyGo:esp32
+              source-url: https://raw.githubusercontent.com/Xinyuan-LilyGO/Arduino-ESP32/master/package_esp32_index.json
           fqbn: ${{ matrix.board.fqbn }}
           libraries: |
             - name: WebSockets
