@@ -69,12 +69,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # 🔧 Build UI
+      - name: Build UI
+        run: |
+          cd UI
+          npm ci
+          npm run build
+
       - name: Create env file
         run: |
           touch .env
           echo SENTRY_ENABLED=1 >> .env
           echo SENTRY_DSN=${{ secrets.SENTRY_DSN }} >> .env
 
+      # Build backend
       - name: Build
         run: npm run build --if-present
 
