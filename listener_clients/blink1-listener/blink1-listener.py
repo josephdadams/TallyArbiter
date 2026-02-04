@@ -344,7 +344,7 @@ class TallyArbiterServerListener:
 
 
 try:
-    if "useMDNS" in config["DEFAULT"] and config["DEFAULT"]["useMDNS"]:
+    if "useMDNS" in config["DEFAULT"] and str(config["DEFAULT"]["useMDNS"]).lower() == "true":
         zeroconf = Zeroconf()
         listener = TallyArbiterServerListener()
         browser = ServiceBrowser(zeroconf, "_tally-arbiter._tcp.local.", listener)
