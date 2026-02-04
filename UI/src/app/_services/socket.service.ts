@@ -7,6 +7,7 @@ import { CloudClient } from '../_models/CloudClient'
 import { CloudDestination } from '../_models/CloudDestination'
 import { Message } from '../_models/Message'
 import { Device } from '../_models/Device'
+import { CameraModel } from '../_models/CameraModels'
 import { DeviceAction } from '../_models/DeviceAction'
 import { DeviceSource } from '../_models/DeviceSource'
 import { ListenerClient } from '../_models/ListenerClient'
@@ -34,6 +35,7 @@ import { User } from '../_models/User'
 export class SocketService {
 	public socket: Socket
 	public devices: Device[] = []
+	public cameraModels: CameraModel[] = []
 	public device_states: DeviceState[] = []
 	public currentDeviceIdx?: number
 	public mode_preview?: boolean
@@ -238,6 +240,7 @@ export class SocketService {
 				busOptions: BusOption[],
 				sourcesData: Source[],
 				devicesData: Device[],
+				cameraModels: CameraModel[],
 				deviceSources: DeviceSource[],
 				deviceActions: DeviceAction[],
 				device_states: DeviceState[],
@@ -256,6 +259,7 @@ export class SocketService {
 				this.busOptionsVisible = busOptions.filter((b) => b.visible == true || b.visible == undefined)
 				this.sources = this.prepareSources(sourcesData)
 				this.devices = devicesData
+				this.cameraModels = cameraModels.filter((cm) => cm.visible == true || cm.visible == undefined)
 				this.deviceSources = deviceSources
 				this.deviceActions = deviceActions
 				this.device_states = device_states

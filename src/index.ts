@@ -15,6 +15,8 @@ import { BehaviorSubject } from 'rxjs'
 import { default as dotenv } from 'dotenv'
 dotenv.config()
 
+import axios from 'axios'
+
 //TypeScript models
 import { TallyInput } from './sources/_Source'
 import { CloudClient } from './_models/CloudClient'
@@ -29,6 +31,7 @@ import { BusOption } from './_models/BusOption'
 import { DeviceSource } from './_models/DeviceSource'
 import { DeviceAction } from './_models/DeviceAction'
 import { Device } from './_models/Device'
+import { CameraModels } from './_models/CameraModels'
 import { AddressTallyData, DeviceTallyData, SourceTallyData } from './_models/TallyData'
 import { OutputType } from './_models/OutputType'
 import { TSLClient } from './_models/TSLClient'
@@ -465,6 +468,7 @@ function initialSetup() {
 						currentConfig.bus_options,
 						getSources(),
 						devices,
+						CameraModels,
 						device_sources,
 						device_actions,
 						getDeviceStates(),
@@ -1409,6 +1413,9 @@ function UpdateDeviceState(deviceId: string) {
 	vMixEmulator?.updateListenerClients(currentDeviceTallyData)
 	tslListenerProvider?.updateListenerClientsForDevice(currentDeviceTallyData, device)
 
+	//update any camera model attached to the Device
+	UpdateCamera(deviceId)
+
 	// Publish device state to MQTT
 	if (mqttService && mqttService.isServiceConnected()) {
 		const deviceStates = getDeviceStates(deviceId)
@@ -2083,6 +2090,8 @@ function TallyArbiter_Edit_Device(obj: Manage): ManageResponse {
 			devices[i].name = deviceObj.name
 			devices[i].description = deviceObj.description
 			devices[i].tslAddress = deviceObj.tslAddress
+			devices[i].cameraIP = deviceObj.cameraIP
+			devices[i].cameraModel = deviceObj.cameraModel
 			devices[i].enabled = deviceObj.enabled
 			devices[i].linkedBusses = deviceObj.linkedBusses
 		}
@@ -2749,6 +2758,46 @@ function MessageListenerClient(
 		}
 	} else {
 		return { result: 'message-not-sent', listenerClientId: listenerClientId, error: 'listener-client-not-found' }
+	}
+}
+
+function UpdateCamera(deviceId: string) {
+	const device = GetDeviceByDeviceId(deviceId)
+
+	if (!device.cameraIP || !device.cameraModel) {
+		//only proceed if both camera IP and model are set
+		return	
+	}
+
+	logger(`Updating camera for device: ${device.name} (Camera: ${device.cameraModel})`, 'info-quiet')
+
+	const deviceState = getDeviceStates(deviceId)
+
+	const pgmBus = deviceState.find((bus) => bus.busId === '334e4eda')
+	const pvwBus = deviceState.find((bus) => bus.busId === 'e393251c')
+
+	const inPgm = pgmBus && pgmBus.sources.length > 0
+	const inPvw = pvwBus && pvwBus.sources.length > 0
+
+	switch (device.cameraModel) {
+		case 'canon_xc':
+			//clear all tallies first
+			axios.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=off`)
+			
+			if (inPgm) {
+				logger(`Sending Canon XC command to set camera ON AIR`, 'info-quiet')
+				//send command to camera IP to set tally program
+				axios.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=program`)
+			}
+			
+			if (inPvw) {
+				logger(`Sending Canon XC command to set camera PREVIEW`, 'info-quiet')
+				//send command to camera IP to set tally preview
+				axios.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=preview`)
+			}
+			break
+		default:
+			console.log(`Camera model ${device.cameraModel} not supported for tally updates.`)
 	}
 }
 

@@ -11,4 +11,6 @@ export interface Device {
 	listenerCount?: number
 	modePreview?: boolean
 	modeProgram?: boolean
+	cameraIP?: string
+	cameraModel?: string
 }
