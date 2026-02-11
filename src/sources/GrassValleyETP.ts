@@ -31,6 +31,9 @@ import { TallyInputConfigField } from '../_types/TallyInputConfigField'
 import net from 'net'
 import xml2js from 'xml2js'
 
+import path from 'path'
+import fs from 'fs'
+
 import { version } from '../../package.json'
 
 /** TA config fields shown in the UI for this source type. */
@@ -112,6 +115,10 @@ export class GrassValleyETP extends TallyInput {
 
 	// Cache of last received VPEOutputContribution for re-application on input changes
 	private lastVpeOutputContribution: any = null
+
+	// map logical sources to engineering sources
+	private logicalToEngineeringMap = new Map<string, string>() // logical ID → ENG ID
+	private engineeringSourceMap: Map<string, string> = new Map()
 
 	/** Fixed heartbeat timer handle (5000ms) */
 	private heartbeatTimer?: NodeJS.Timeout
@@ -272,12 +279,14 @@ export class GrassValleyETP extends TallyInput {
 				'Heartbeat', // server heartbeat (rare); can ignore
 				'Heartbeat-Request', // server asks for heartbeat → respond with <Heartbeat/>
 				'LogicalSourceMap', // id/name list of logical sources (use these as "inputs" in TA)
+				'EngineeringSourceMap', // id list of engineering sources
 				'VPEInputContribution', // maps VPE input names (Bkgd/Key fills/cuts → logical sources)
 				'VPEOutputContribution', // describes which VPE inputs contribute to outputs (PgmA/PvwA etc.)
+				'OutputTally', // 
 				'SetComplete', // **commit point**: publish after a Full/Update batch is finished
 			])
 			if (!tag) {
-				//console.warn('Unknown ETP frame received:', etp)
+				//console.warn('Unknown ETP frame received:', JSON.stringify(etp, null, 2))
 				return
 			}
 
@@ -291,15 +300,27 @@ export class GrassValleyETP extends TallyInput {
 					break
 
 				case 'LogicalSourceMap':
+					//console.log('LogicalSourceMap received')
 					this.applyLogicalSourceMap(etp['LogicalSourceMap'][0])
 					break
 
+				case 'EngineeringSourceMap':
+					//console.log('EngineeringSourceMap received')
+					this.applyEngineeringSourceMap(etp['EngineeringSourceMap'][0])
+					break
+
 				case 'VPEInputContribution':
+					//console.log('VPEInputContribution received')
 					this.applyVpeInputContribution(etp['VPEInputContribution'][0])
 					break
 
 				case 'VPEOutputContribution':
+					//console.log('VPEOutputContribution received')
 					this.applyVpeOutputContribution(etp['VPEOutputContribution'][0])
+					break
+
+				case 'OutputTally':
+					//console.log('OutputTally received')
 					break
 
 				case 'SetComplete':
@@ -315,33 +336,65 @@ export class GrassValleyETP extends TallyInput {
 	/*                          Table Reducers / State                        */
 	/* ====================================================================== */
 
-	/** Merge LogicalSourceMap rows into our id→name map and TA address registry */
 	private applyLogicalSourceMap(node: any): void {
 		const rows = toArray(node.LogSrc)
-		for (const r of rows) {
-			const id = r?.$?.ID?.toString() // logical source ID
-			const name = (r?.Name?.[0] ?? '').toString() // user-visible label (if present)
-			if (!id) continue
 
-			const label = name || id // safety: fall back to ID if Name is missing
+		//only apply if this is our suite
+		const suite = node.$.Suite || '1'
 
-			this.logicalSourceMap.set(id, label)
+		//console.log(`Received Suite: ${suite}`)
 
-			// Always update the address label, even if it already existed
-			this.removeAddress(id)
-			this.addAddress(`${id} - ${label}`, id)
-
-			//now sort the addresses by address
-			this.addresses.next(
-				this.addresses.value.sort((a, b) => {
-					if (isNaN(parseInt(a.address))) {
-						return a.address.localeCompare(b.address)
-					} else {
-						return parseInt(a.address) - parseInt(b.address)
-					}
-				}),
-			)
+		if (suite !== this.suite) {
+			//console.log(`[ETP] Suite does not match (expected ${this.suite}, got ${suite}), skipping VPEInputContribution`)
+			return
 		}
+
+		for (const r of rows) {
+			const logicalId = r?.$?.ID?.toString()
+			if (!logicalId) continue
+
+			// Still useful for logging/debug
+			const name = (r?.Name?.[0] ?? '').toString()
+			//if logical id is less than 10, log it to console
+			if (parseInt(logicalId) < 10) {
+				console.log(`LogicalSourceMap entry: ${logicalId} → ${name}`)
+			}
+			
+			this.logicalSourceMap.set(logicalId, name || logicalId)
+		}
+	}
+
+	private applyEngineeringSourceMap(node: any): void {
+		const rows = toArray(node.EngSrc)
+
+		this.engineeringSourceMap.clear()
+
+		for (const r of rows) {
+			const engId = r?.$?.ID?.toString()
+			const name = r?.$?.Name?.toString() || engId
+
+			if (!engId) continue
+
+			this.engineeringSourceMap.set(name, engId)
+
+			// UI: show only ENG-based addresses
+			this.removeAddress(engId)
+			this.addAddress(`${engId} - ${name}`, engId)
+		}
+
+		// Sort by ENG ID (numerically if possible)
+		this.addresses.next(
+			this.addresses.value.sort((a, b) => {
+				const aNum = parseInt(a.address)
+				const bNum = parseInt(b.address)
+
+				if (isNaN(aNum) || isNaN(bNum)) {
+					return a.address.localeCompare(b.address)
+				} else {
+					return aNum - bNum
+				}
+			}),
+		)
 	}
 
 	private applyVpeInputContribution(node: any): void {
@@ -448,12 +501,18 @@ export class GrassValleyETP extends TallyInput {
 
 			//console.log(`[ETP] Processing Output: ${outName} with inputs: ${inputNames.join(', ')}`)
 
+			//console.log(this.engineeringSourceMap)
+
 			if (outName === this.pgm_bus) {
 				for (const inputName of inputNames) {
 					const sourceId = this.vpeInputContributions.get(inputName)
+					const engName = this.logicalSourceMap.get(sourceId)
 					if (sourceId) {
-						addressPGM.add(sourceId)
-						console.log(`[ETP][PGM] ${inputName} → ${sourceId}`)
+						const engId = this.engineeringSourceMap.get(engName)
+						if (engId) {
+							console.log(`[ETP][PGM] ${inputName} → ${sourceId} (Engineering Name: ${engName} (${engId}))`)
+							addressPGM.add(engId)
+						}
 					}
 				}
 			}
@@ -461,9 +520,13 @@ export class GrassValleyETP extends TallyInput {
 			if (outName === this.pvw_bus) {
 				for (const inputName of inputNames) {
 					const sourceId = this.vpeInputContributions.get(inputName)
+					const engName = this.logicalSourceMap.get(sourceId)
 					if (sourceId) {
-						addressPVW.add(sourceId)
-						console.log(`[ETP][PVW] ${inputName} → ${sourceId}`)
+						const engId = this.engineeringSourceMap.get(engName)
+						if (engId) {
+							console.log(`[ETP][PVW] ${inputName} → ${sourceId} (Engineering Name: ${engName} (${engId}))`)
+							addressPVW.add(engId)
+						}
 					}
 				}
 			}
