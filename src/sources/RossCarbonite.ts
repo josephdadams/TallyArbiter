@@ -465,7 +465,7 @@ export class RossCarboniteSource extends TallyInput {
 				let busses = this.tallydata_RossCarbonite.find(({ address }) => address === device_sources[i].address).busses
 
 				for (let j = 0; j < busses.length; j++) {
-					let bus = RossCarboniteBusAdresses[this.source.sourceTypeId].find(
+					let bus = RossSwitcherBusAddresses[this.source.sourceTypeId].find(
 						(busAddress) => busAddress.address === busses[j],
 					)
 					if (bus) {
