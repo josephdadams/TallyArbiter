@@ -7,7 +7,6 @@
 ![Publish to NPM](https://github.com/josephdadams/TallyArbiter/actions/workflows/npm.yml/badge.svg)
 ![Docker Pulls](https://img.shields.io/docker/pulls/josephdadams/tallyarbiter)
 
-
 > A camera tally lights system capable of listening to and aggregating tally data from multiple sources and video switchers, then arbitrating Preview and Program states for connected devices.
 
 Tally Arbiter supports a wide range of switchers, protocols, and tally output methods. It is designed for flexibility, reliability, and ease of integration in live production environments.
@@ -32,7 +31,7 @@ tallyarbiter
 ### Docker
 
 ```yaml
-version: "3.8"
+version: '3.8'
 
 services:
   tallyarbiter:
@@ -40,9 +39,9 @@ services:
     container_name: tallyarbiter
     restart: unless-stopped
     ports:
-      - "4455:4455"
-      - "8099:8099"
-      - "5958:5958"
+      - '4455:4455'
+      - '8099:8099'
+      - '5958:5958'
     environment:
       - SENTRY_ENABLED=1
       - SENTRY_DSN=your_dsn_here

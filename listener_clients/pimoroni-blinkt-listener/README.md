@@ -59,7 +59,6 @@ The Tally Arbiter Python Listener Client uses the following libraries:
 These will have to be installed on the Pi in order for the script to function correctly.
 
 1. In your SSH terminal session, run the following:
-
    - `curl https://get.pimoroni.com/blinkt | bash`L This library is used to communicate with a blinkt! device connected to the GPIO pins.
    - `sudo pip3 install "python-socketio[client]<5"`: This library is used to communicate with a Tally Arbiter server over websockets.
    - `sudo pip3 install zeroconf`: This library is used to capture command line arguments and reference them as variables.

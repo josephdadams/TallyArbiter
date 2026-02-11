@@ -92,7 +92,6 @@ For each device, Tally Arbiter publishes:
    ```
 
 3. **`{topicPrefix}/device/{deviceId}/bus/{busId}/state`**: Simple bus state (`ON` or `OFF`)
-
    - This topic contains just the state string, making it ideal for Home Assistant binary sensors
 
 4. **`{topicPrefix}/device/{deviceId}/status`**: Device availability status (`online`)

@@ -23,24 +23,24 @@ nav.nav.nav-tabs .nav-link {
 }
 
 .ta-tooltip {
-  margin-left: 6px;
-  cursor: help;
-  color: #7aa2ff;
-  position: relative;
-  font-weight: bold;
+	margin-left: 6px;
+	cursor: help;
+	color: #7aa2ff;
+	position: relative;
+	font-weight: bold;
 }
 
 .ta-tooltip:hover::after {
-  content: attr(data-tip);
-  position: absolute;
-  top: 130%;
-  left: 0;
-  background: #1f1f1f;
-  color: #fff;
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-  z-index: 1000;
+	content: attr(data-tip);
+	position: absolute;
+	top: 130%;
+	left: 0;
+	background: #1f1f1f;
+	color: #fff;
+	padding: 6px 10px;
+	border-radius: 4px;
+	font-size: 12px;
+	white-space: nowrap;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+	z-index: 1000;
 }

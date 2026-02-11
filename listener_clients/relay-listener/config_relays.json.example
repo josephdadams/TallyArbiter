@@ -3,7 +3,7 @@
 		"ip": "localhost",
 		"port": 4455,
 		"useMDNS": true
-	 },
+	},
 	"relay_groups": [
 		{
 			"id": "1",

@@ -56,7 +56,7 @@
 		"monkzz",
 		"Greg Oseid"
 	],
-		"build": {
+	"build": {
 		"appId": "dev.josephadams.tallyarbiter",
 		"productName": "Tally Arbiter",
 		"artifactName": "tallyarbiter-v${version}-${os}-${arch}.${ext}",
@@ -83,8 +83,12 @@
 		"directories": {
 			"output": "./release/"
 		},
-		"publish": ["github"],
-		"extraResources": ["build/**"],
+		"publish": [
+			"github"
+		],
+		"extraResources": [
+			"build/**"
+		],
 		"asar": true,
 		"mac": {
 			"category": "public.app-category.video",

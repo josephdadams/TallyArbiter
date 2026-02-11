@@ -59,7 +59,6 @@ The Tally Arbiter Python Listener Client uses the following libraries:
 These will have to be installed on the Pi in order for the script to function correctly.
 
 1. In your SSH terminal session, run the following:
-
    - `sudo apt install libudev-dev libusb-1.0-0-dev`: The `libusb` library is necessary to communicate with the blink(1) device over USB.
    - `sudo pip3 install blink1`: This is the base library to use with the blink(1).
    - `sudo pip3 install "python-socketio[client]<5"`: This library is used to communicate with a Tally Arbiter server over websockets.
