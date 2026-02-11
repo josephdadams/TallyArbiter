@@ -191,7 +191,7 @@ const RossCarboniteUltraBusAddresses = [
 
 const RossSwitcherBusAddresses = {
 	'039bb9d6': RossCarboniteBusAdresses,
-	e1c46de9: RossCarboniteBlackSoloBusAddresses,
+	'e1c46de9': RossCarboniteBlackSoloBusAddresses,
 	'63d7ebc6': RossGraphiteBusAddresses,
 	'22d507ab': RossCarboniteBlackSoloSDHDBusAddresses,
 	'7da3b524': RossCarboniteUltraBusAddresses,
