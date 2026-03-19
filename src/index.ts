@@ -1551,7 +1551,15 @@ function initializeSource(source: Source): TallyInput {
 			//console.log('device_source', device_source);
 			//console.log('busses', busses);
 			if (device_source) {
-				tallyData[device_source.sourceId] = busses
+				if (!tallyData[source.id]) {
+					tallyData[source.id] = []
+				}
+				// Merge busses, avoiding duplicates
+				for (const bus of busses) {
+					if (!tallyData[source.id].includes(bus)) {
+						tallyData[source.id].push(bus)
+					}
+				}
 			}
 		}
 		//console.log('tallyData', tallyData);
