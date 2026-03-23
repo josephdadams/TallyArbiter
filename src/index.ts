@@ -1389,37 +1389,22 @@ function UpdateDeviceState(deviceId: string) {
 				}
 			}
 		} else {
-			// bus is unlinked
-			for (let i = 0; i < deviceSources.length; i++) {
-				let deviceSource = deviceSources[i]
+			// bus is unlinked – active if ANY device source is on this bus (OR logic)
+			const anySourceInBus = deviceSources.some((deviceSource) => {
+				const data = SourceClients[deviceSource.sourceId]?.tally?.value || []
+				return !!data?.[deviceSource.address]?.includes(bus.id)
+			})
 
-				let data = SourceClients[deviceSource.sourceId]?.tally?.value || []
-
-				if (data?.[deviceSource.address]?.includes(bus.id)) {
-					//if the current source tally data includes this bus
-					//if the current source tally data includes this bus
-					//console.log('pushing', bus.label);
-					currentDeviceTallyData[device.id].push(bus.id)
-					if (!previousBusses.includes(bus.id)) {
-						RunAction(deviceId, bus.id, true)
-					}
-				} else {
-					if (previousBusses.includes(bus.id)) {
-						RunAction(deviceId, bus.id, false)
-					}
-				}
-			}
-			/*if (deviceSources.findIndex((s) => currentSourceTallyData?.[s.sourceId]?.includes(bus.id)) !== -1) { //if the current source tally data includes this bus
-				console.log('pushing', bus.label);
-				currentDeviceTallyData[device.id].push(bus.id);
+			if (anySourceInBus) {
+				currentDeviceTallyData[device.id].push(bus.id)
 				if (!previousBusses.includes(bus.id)) {
-					RunAction(deviceId, bus.id, true);
+					RunAction(deviceId, bus.id, true)
 				}
 			} else {
 				if (previousBusses.includes(bus.id)) {
-					RunAction(deviceId, bus.id, false);
+					RunAction(deviceId, bus.id, false)
 				}
-			}*/
+			}
 		}
 	}
 
