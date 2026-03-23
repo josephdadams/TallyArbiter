@@ -1168,7 +1168,7 @@ function getDeviceStates(deviceId?: string): DeviceState[] {
 					// TODO: Check if this can be replaced with deviceSources.findIndex((s) and refactored to reduce duplicated code.
 					let num = 0
 					for (let i = 0; i < deviceSources.length; i++) {
-						if (currentSourceTallyData?.[deviceSources[i].sourceId]?.includes(b.id)) {
+						if (currentSourceTallyData?.[deviceSources[i].id]?.includes(b.id)) {
 							num++
 						}
 					}
@@ -1371,7 +1371,7 @@ function UpdateDeviceState(deviceId: string) {
 			// TODO: This should be replaced with deviceSources.findIndex((s).
 			let num = 0
 			for (let i = 0; i < deviceSources.length; i++) {
-				if (currentSourceTallyData?.[deviceSources[i].sourceId]?.includes(bus.id)) {
+				if (currentSourceTallyData?.[deviceSources[i].id]?.includes(bus.id)) {
 					//if the current tally data includes this bus
 					num++
 				}
@@ -1551,7 +1551,7 @@ function initializeSource(source: Source): TallyInput {
 			//console.log('device_source', device_source);
 			//console.log('busses', busses);
 			if (device_source) {
-				tallyData[device_source.sourceId] = busses
+				tallyData[device_source.id] = busses
 			}
 		}
 		//console.log('tallyData', tallyData);
