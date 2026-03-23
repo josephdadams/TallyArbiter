@@ -1,89 +1,343 @@
-# Tally Arbiter Blink(1) Listener
+# Tally Arbiter – Blink(1) Listener
 
-Tally Arbiter Blink(1) Listener was written by Joseph Adams and is distributed under the MIT License.
+A cross-platform listener client for [Tally Arbiter](https://github.com/josephdadams/TallyArbiter) that drives a [blink(1)](https://blink1.thingm.com/) USB RGB indicator light based on live tally data.
 
-Tally Arbiter Blink(1) Listener is an accessory program that allows you to connect to a Tally Arbiter server and control blink(1) devices (by Thingm) based on the incoming tally information.
+Written in Python · MIT License · by Joseph Adams
 
-It is written in Python and designed to run on a Pi Zero with minimal configuration needed. It uses the `python-socketio[client]` library to communicate with the Tally Arbiter server.
+---
 
-To learn more about the Tally Arbiter project, [click here](http://github.com/josephdadams/tallyarbiter).
+## Overview
 
-It is not sold, authorized, or associated with any other company or product.
+The blink(1) Listener connects to a Tally Arbiter 3.x server and lights up the blink(1) USB device in the color of the highest-priority active tally bus assigned to the configured device. When no tally is active the light turns off.
 
-You can buy a Blink(1) here:
-[Amazon (US)](https://www.amazon.com/ThingM-Blink-USB-RGB-BLINK1MK3/dp/B07Q8944QK/ref=sr_1_1?keywords=blink+1&qid=1637449295&sr=8-1),
-[getDigital.de (EU)](https://www.getdigital.de/blink-1-mk2.html),
-[Seeed Studio (China)](https://www.seeedstudio.com/Blink-1-mk2-p-2367.html).
+On desktop systems, a **system tray icon** mirrors the current color so you can see the tally state at a glance even when the blink(1) is not in sight. The listener can also be run completely headlessly on a Raspberry Pi or inside a Docker container.
 
-To [report a bug](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=bug&template=bug.yaml&title=%5BBug%5D%3A+) or open a [feature request](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=feature&template=feature.yaml&title=%5BFeature+Request%5D%3A+), please go to our [issues](https://github.com/josephdadams/TallyArbiter/issues/new/choose) page.
-If you would like to see more of @josephdadams's projects or send a word of encouragement his way, please visit [techministry.blog](https://techministry.blog/).
+---
 
-## Getting Started
+## Features
 
-A lot of these instructions on getting started are available all over the internet. Some highlights are listed here that should cover it from a top-level:
+| Feature                 | Details                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Tally color control** | Lights the blink(1) in the bus color defined in Tally Arbiter; priority-sorted when multiple buses are active |
+| **mDNS auto-discovery** | Finds the Tally Arbiter server on the local network automatically; no IP address required                     |
+| **Fixed host/port**     | Connect directly to a known address with `--host` / `--port`                                                  |
+| **System tray icon**    | Color indicator in the system notification area on Linux (AppIndicator3), macOS, and Windows (pystray)        |
+| **Device reassignment** | Server can move this listener to a different device from the Tally Arbiter UI                                 |
+| **Flash command**       | Listener flashes white when triggered from the Tally Arbiter UI                                               |
+| **Persistent config**   | `config.ini` stores host, port, device ID, and a stable client UUID across restarts                           |
+| **Graceful shutdown**   | Responds to SIGTERM and SIGINT; suitable for systemd services                                                 |
+| **Simulator mode**      | `--skip-blink1` runs without physical hardware for development and testing                                    |
+| **Standalone binary**   | `build.sh` produces a self-contained executable via PyInstaller                                               |
 
-1. The Raspberry Pi OS Lite version is sufficient for this use. You can download it here: https://www.raspberrypi.org/downloads/raspbian/
-1. Use Balena Etcher to write the image to your microSD card: https://www.balena.io/etcher/
-1. Once the image is written, mount the card to your computer and enable SSH by adding a blank file named `SSH` to the root of the `boot` volume oef the card. If you're using MacOS, an easy way to do this is to open Terminal, type `cd /Volumes/boot` and then `touch ssh`. This will create an empty file. You do not need to put anything in the file, it just needs to exist.
-1. Add another file to the root of the `boot` volume named `wpa_supplicant.conf`. Again, in terminal, just type `touch wpa_supplicant.conf` while you're in the root of the `boot` volume and it will be created.
-1. The new `wpa_supplicant.conf` file needs to be edited. Use `sudo nano wpa_supplicant.conf`. This file should contain the following:
+---
 
-   ```
-   ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-   update_config=1
-   country=US
+## Requirements
 
-   network={
-   	ssid="Your network name/SSID"
-   	psk="Your WPA/WPA2 security key"
-   	key_mgmt=WPA-PSK
-   }
-   ```
+### Hardware
 
-   Edit `country=`, `ssid=` and `psk=` with your information and save the file by pressing `CTRL + X`.
+- A [blink(1) mk2 or mk3](https://blink1.thingm.com/) USB device (optional – see Simulator mode)
 
-1. At this point, you can eject the card and put into the Pi and turn it on.
-1. Now you can SSH into the Pi to continue configuration. You'll need the IP address of the Pi. You can usually get this in your router admin page, or you might need to do more depending on your network.
-1. In the terminal window, type `ssh pi@192.168.1.5` (replace with your actual Pi IP address). It will prompt for a password. The default is usually `raspberry`.
-1. Once you're connected to the Pi via SSH, it's a good idea to go ahead and change the default password. You can do this by running the `sudo raspi-config` tool, Option 1. Reboot the Pi when you're done by using `sudo shutdown -r now`. Your connection to the Pi will be terminated and you can reconnect once it has booted back up.
-1. Go ahead and update the Pi to the latest OS updates by running `sudo apt-get update -y` followed by `sudo apt-get upgrade -y`
+### Software
 
-## Installing Python Libraries and Script
+| Platform                | System packages                                 |
+| ----------------------- | ----------------------------------------------- |
+| **Linux**               | `libudev-dev libusb-1.0-0-dev`                  |
+| **Linux** (system tray) | `python3-gi gir1.2-ayatana-appindicator3-0.1` ¹ |
+| **macOS**               | `libusb hidapi` (via Homebrew)                  |
+| **Windows**             | no additional system packages required          |
 
-The Tally Arbiter Python Listener Client uses the following libraries:
+¹ On older systems use `gir1.2-appindicator3-0.1` instead. Install via:
 
-- `blink1`
-- `python-socketio[client]`
-- `zeroconf`
+```bash
+sudo apt install python3-gi gir1.2-ayatana-appindicator3-0.1
+```
 
-These will have to be installed on the Pi in order for the script to function correctly.
+### Python packages
 
-1. In your SSH terminal session, run the following:
-   - `sudo apt install libudev-dev libusb-1.0-0-dev`: The `libusb` library is necessary to communicate with the blink(1) device over USB.
-   - `sudo pip3 install blink1`: This is the base library to use with the blink(1).
-   - `sudo pip3 install "python-socketio[client]<5"`: This library is used to communicate with a Tally Arbiter server over websockets.
-   - `sudo pip3 install zeroconf`: This library helps with auto discovery of services
+All Python dependencies are in `requirements.txt`:
 
-   _If `pip3` is not installed, you can get it by running `sudo apt-get install python3-pip`._
+```
+blink1
+python-socketio[client]
+zeroconf
+Pillow
+pystray
+pygobject
+```
 
-1. Now that all the necessary libraries are installed and compiled, you need to copy the `tallyarbiter-blink1listener.py` file to your Pi. You can do this a number of ways, but one simple way is to execute this command through your SSH connection: `wget https://raw.githubusercontent.com/josephdadams/TallyArbiter/master/listener_clients/blink1-listener/blink1-listener.py`. This will copy the file into your current folder (you should still be the home folder for the `pi` account).
-1. Once the Python script has been copied over, go ahead and test it out to make sure everything is working properly. Run this in the SSH session: `sudo python3 tallyarbiter-blink1listener.py 192.168.1.6 4455`
+---
 
-   Be sure to replace the IP address `192.168.1.6` with the IP of your Tally Arbiter server. If you leave off the port, it will attempt to connect using port `4455`.
+## Installation
 
-1. If it is working properly, the blink(1) will flash green twice as it connects to the server. You can also view the newly added listener client in the Tally Arbiter Settings page. Use the "flash" button if you want to see the server communicate with the listener client.
+### From source
 
-## Setting up the script to start at boot
+```bash
+# 1. Install system packages (Linux example)
+sudo apt install libudev-dev libusb-1.0-0-dev
 
-Now that it is working properly, you will want to set up the script to run on boot so that all you have to do is turn on the Pi and wait for it to launch and connect to the server. There are several different methods in the Raspberry Pi OS to do this. The following describes how to do it using the `rc.local` file.
+# 2. Clone or download the listener
+wget https://raw.githubusercontent.com/josephdadams/TallyArbiter/master/listener_clients/blink1-listener/blink1-listener.py
+wget https://raw.githubusercontent.com/josephdadams/TallyArbiter/master/listener_clients/blink1-listener/requirements.txt
 
-1. In your SSH session, type `sudo nano /etc/rc.local`.
-1. Just before the last line of this file (`exit 0`), add the following: `sudo python3 /home/pi/tallyarbiter-blink1listener.py 192.168.1.6 4455 &`. The `&` is important because it allows the script to launch in a separate thread since we want the program to continue running in the background.
-1. Now reboot the Pi to test that the script runs on boot: `sudo reboot`. This will end your SSH session.
+# 3. Create a virtual environment and install Python dependencies
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-The program should now launch every time the Pi boots up, and automatically connect to your Tally Arbiter server once the server is available. The blink(1) device will flash white until it successfully connects to the server.
+On a headless system (Raspberry Pi, server, Docker) you only need the core dependencies:
 
-# Improvements and Suggestions
+```bash
+pip install blink1 "python-socketio[client]" zeroconf
+```
 
-We are welcome to improvements and suggestions.
-Feel free to contact us on Github Discussions or open a PR.
+The system tray packages (`Pillow`, `pystray`, `pygobject`) are optional and the listener will fall back to terminal-only mode if they are missing.
+
+### Standalone binary (no Python required on target)
+
+See [Building a standalone binary](#building-a-standalone-binary) below.
+
+---
+
+## Usage
+
+When running from source, activate the virtual environment first:
+
+```bash
+source .venv/bin/activate
+```
+
+### Auto-discovery (recommended)
+
+```bash
+python3 blink1-listener.py
+```
+
+The listener broadcasts an mDNS query and connects to the first Tally Arbiter 3.x server it finds on the local network.
+
+### Fixed server address
+
+```bash
+python3 blink1-listener.py --host 192.168.1.10 --port 4455
+```
+
+Providing `--host` or `--port` disables mDNS and connects directly. The values are persisted in `config.ini`.
+
+### Headless / terminal-only mode
+
+```bash
+python3 blink1-listener.py --no-tray
+```
+
+Suppresses the system tray entirely. Useful on Raspberry Pi, servers, or inside containers. If the tray libraries are not installed, this mode is used automatically.
+
+---
+
+## Command-Line Reference
+
+```
+usage: blink1-listener.py [--host HOST] [--port PORT] [--device-id ID]
+                           [--no-tray] [--disable-reassign] [--disable-flash]
+                           [--disable-status-blink] [--skip-blink1] [--debug]
+```
+
+| Argument                 | Default     | Description                                                             |
+| ------------------------ | ----------- | ----------------------------------------------------------------------- |
+| `--host HOST`            | from config | Hostname or IP of the Tally Arbiter server. Setting this disables mDNS. |
+| `--port PORT`            | from config | Server port (default `4455`). Setting this disables mDNS.               |
+| `--device-id ID`         | from config | Tally Arbiter device ID to listen for.                                  |
+| `--no-tray`              | off         | Disable the system tray; run in terminal-only mode.                     |
+| `--disable-reassign`     | off         | Reject device reassignment requests from the server.                    |
+| `--disable-flash`        | off         | Ignore flash commands from the server.                                  |
+| `--disable-status-blink` | off         | Suppress connection status blinks (connect, disconnect, error).         |
+| `--skip-blink1`          | off         | Use the built-in `Blink1Simulator` instead of a real device.            |
+| `--debug`                | off         | Print verbose debug information.                                        |
+
+---
+
+## Configuration
+
+On first launch, `config.ini` is created automatically in the working directory:
+
+```ini
+[DEFAULT]
+deviceid =
+host = localhost
+port = 4455
+usemdns = True
+clientuuid = <auto-generated UUID>
+```
+
+| Key             | Description                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| `deviceid`      | Tally Arbiter device this listener is assigned to. Updated automatically on reassignment from the UI. |
+| `host` / `port` | Fallback connection target when mDNS is disabled.                                                     |
+| `usemdns`       | `True` by default; set to `False` automatically when `--host` or `--port` is provided.                |
+| `clientuuid`    | Stable identifier for this listener instance. Generated once and never changed.                       |
+
+The file is **not** tracked by git. Delete it to reset to defaults.
+
+---
+
+## System Tray
+
+When the required libraries are available and `--no-tray` is not set, a tray icon appears in the system notification area.
+
+**Icon states:**
+
+| Icon             | Meaning                                            |
+| ---------------- | -------------------------------------------------- |
+| Colored circle   | Active tally – color matches the Tally Arbiter bus |
+| Grey circle      | Connected, no active tally                         |
+| Black background | Disconnected or device off                         |
+
+The tray menu provides a single **Quit** entry for a clean shutdown.
+
+**Platform notes:**
+
+- **Linux** – Uses AppIndicator3 / AyatanaAppIndicator3 directly (GTK3). The `pystray` library is _not_ used on Linux because of a long-standing icon-not-showing bug on most desktop environments ([pystray#175](https://github.com/moses-palmer/pystray/issues/175)).
+- **macOS** – Uses pystray backed by Cocoa. Runs as a menu-bar agent (no Dock icon).
+- **Windows** – Uses pystray.
+
+If the tray libraries are not installed, the listener falls back to terminal-only mode automatically and prints install instructions.
+
+---
+
+## Status Blinks
+
+Unless `--disable-status-blink` is set, the blink(1) blinks to signal connection events:
+
+| Event            | Blink pattern  |
+| ---------------- | -------------- |
+| Connected        | 2x green flash |
+| Reconnected      | 2x green flash |
+| Disconnected     | 1x white flash |
+| Connection error | 1x grey flash  |
+
+---
+
+## blink(1) USB Access Without `sudo`
+
+On Linux, USB access requires elevated privileges by default. Add a udev rule to allow access for all users:
+
+```bash
+echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="27b8", MODE="0666"' | \
+    sudo tee /etc/udev/rules.d/51-blink1.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger
+```
+
+Unplug and reconnect the blink(1) after applying the rule.
+
+---
+
+## Running as a systemd Service
+
+Create `/etc/systemd/system/blink1-listener.service`:
+
+```ini
+[Unit]
+Description=Tally Arbiter Blink(1) Listener
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/home/pi/blink1-listener/.venv/bin/python /home/pi/blink1-listener/blink1-listener.py --no-tray
+WorkingDirectory=/home/pi/blink1-listener
+Restart=on-failure
+RestartSec=10
+User=pi
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now blink1-listener
+
+# View live log
+journalctl -u blink1-listener -f
+```
+
+Adjust `User=` and the paths as needed. Using the standalone binary instead of the venv Python works equally well.
+
+---
+
+## Building a Standalone Binary
+
+A self-contained executable can be built with PyInstaller using the included build scripts (`build.sh` on Linux/macOS, `build.ps1` on Windows). The resulting binary runs on systems without a Python installation.
+
+### Prerequisites
+
+**Linux:**
+
+```bash
+sudo apt install libudev-dev libusb-1.0-0-dev libgirepository1.0-dev gir1.2-appindicator3-0.1
+```
+
+**macOS:**
+
+```bash
+brew install libusb hidapi
+```
+
+**Windows:**
+
+No additional system packages required.
+
+### Build
+
+`build.sh` / `build.ps1` create a virtual environment in `.venv`, install all dependencies (including PyInstaller), and build the executable. No system-wide pip install needed.
+
+```bash
+./build.sh            # build for the current platform
+./build.sh --clean    # remove dist/, build/ and .venv, then rebuild
+```
+
+**Windows (PowerShell):**
+
+```powershell
+.\build.ps1              # build
+.\build.ps1 -Clean       # remove dist/, build/ and .venv, then rebuild
+```
+
+### Output
+
+| Platform    | Artifact                                                                         |
+| ----------- | -------------------------------------------------------------------------------- |
+| **Linux**   | `dist/blink1-listener` – single executable                                       |
+| **macOS**   | `dist/Tally Arbiter Blink(1) Listener.app` – menu-bar app bundle (ad-hoc signed) |
+| **Windows** | `dist\blink1-listener.exe` – single executable                                   |
+
+The macOS app bundle is configured with `LSUIElement = 1` (no Dock icon) and `NSHighResolutionCapable = True`.
+
+---
+
+## Simulator Mode
+
+If you do not have a blink(1) device – or want to test on a machine where no device is connected – pass `--skip-blink1`:
+
+```bash
+python3 blink1-listener.py --skip-blink1
+```
+
+The built-in `Blink1Simulator` prints color-coded output to the terminal instead of driving real hardware. The system tray icon still updates normally.
+
+---
+
+## Buying a blink(1)
+
+- [Amazon (US)](https://www.amazon.com/ThingM-Blink-USB-RGB-BLINK1MK3/dp/B07Q8944QK/)
+- [getDigital.de (EU)](https://www.getdigital.de/blink-1-mk2.html)
+- [Seeed Studio (China)](https://www.seeedstudio.com/Blink-1-mk2-p-2367.html)
+
+---
+
+## Improvements and Suggestions
+
+We welcome improvements and suggestions.
+Feel free to join the discussion on [GitHub Discussions](https://github.com/josephdadams/TallyArbiter/discussions) or open a pull request.
+
+To [report a bug](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=bug&template=bug.yaml&title=%5BBug%5D%3A+) or submit a [feature request](https://github.com/josephdadams/TallyArbiter/issues/new?assignees=JTF4&labels=feature&template=feature.yaml&title=%5BFeature+Request%5D%3A+), please visit the [issues page](https://github.com/josephdadams/TallyArbiter/issues/new/choose).
+
+If you'd like to see more of @josephdadams's projects, visit [techministry.blog](https://techministry.blog/).
