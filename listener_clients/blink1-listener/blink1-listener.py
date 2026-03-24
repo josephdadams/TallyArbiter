@@ -1,12 +1,9 @@
-## Tally Arbiter Blink(1) Listener
-
+# Tally Arbiter Blink(1) Listener
 # File name: blink1-listener.py
 # Author: Joseph Adams
 # Email: josephdadams@gmail.com
 # Notes: This file is a part of the Tally Arbiter project. For more information, visit tallyarbiter.com
 
-from signal import signal, SIGINT
-from sys import exit
 import sys
 import os
 import time
@@ -21,9 +18,10 @@ if not os.path.isfile("config.ini"):
     deviceId = ""
     if os.path.isfile("deviceid.txt"):
         print("blink1-listener has been updated since the last time you used it.")
-        print("Please read the new documentation to use this program property.")
+        print("Please read the new documentation to use this program properly.")
         print("Reading device ID from deviceid.txt")
-        deviceId = open("deviceid.txt", "r").read()
+        with open("deviceid.txt", "r") as f:
+            deviceId = f.read()
     config["DEFAULT"] = {
         "deviceId": deviceId,
         "host": "localhost",
@@ -42,22 +40,22 @@ if os.path.isfile("deviceid.txt"):
 parser = argparse.ArgumentParser(description="Tally Arbiter Blink(1) Listener")
 parser.add_argument(
     "--host",
-    default=config["DEFAULT"]["host"],
-    help="Hostname or IP address of the server. Adding this flag, MDNS discovery will be disabled.",
+    default=None,
+    help="Hostname or IP address of the server. Providing this flag disables MDNS discovery.",
 )
 parser.add_argument(
     "--port",
-    default=config["DEFAULT"]["port"],
-    help="Port of the server. Adding this flag, MDNS discovery will be disabled.",
+    default=None,
+    help="Port of the server. Providing this flag disables MDNS discovery.",
 )
 parser.add_argument("--device-id", default=None, help="Load with custom device id")
 parser.add_argument(
-    "--debug", action="store_true", help="Show advanced logs usefull for debugging"
+    "--debug", action="store_true", help="Show advanced logs useful for debugging"
 )
 parser.add_argument(
     "--disable-reassign",
     action="store_true",
-    help="Disable device reassignmend from UI",
+    help="Disable device reassignment from UI",
 )
 parser.add_argument(
     "--disable-flash", action="store_true", help="Disable client listener flash"
@@ -68,9 +66,19 @@ parser.add_argument(
 parser.add_argument(
     "--skip-blink1",
     action="store_true",
-    help="Skip the Blink(1) requirment and simulate it (only for debugging)",
+    help="Skip the Blink(1) requirement and simulate it (only for debugging)",
 )
 args = parser.parse_args()
+
+# If --host or --port is explicitly provided, disable MDNS discovery
+if args.host is not None or args.port is not None:
+    config["DEFAULT"]["useMDNS"] = "false"
+
+# Fall back to config values when not provided on the command line
+if args.host is None:
+    args.host = config["DEFAULT"]["host"]
+if args.port is None:
+    args.port = config["DEFAULT"]["port"]
 
 
 def debug(message=None):
@@ -84,12 +92,11 @@ def debug(message=None):
 debug(args)
 
 
-class Blink1simulator:
+class Blink1Simulator:
     def __init__(self):
         self.r = 0
         self.g = 0
         self.b = 0
-        self.set_rgb(0, 0, 0)
 
     def set_rgb(self, r, g, b):
         self.r = r
@@ -113,20 +120,21 @@ try:
 
     try:
         b1 = Blink1()
-    except:
+    except Exception:
         print("No blink(1) devices found.")
+        b1 = Blink1Simulator()
 except ImportError:
     if not args.skip_blink1:
         print("blink1 is not installed. Please install it and try again.")
         print(
-            "If you want to try this program simulating blink1 add the flag --skip-blink1"
+            "If you want to try this program simulating blink1, add the flag --skip-blink1"
         )
-        exit(1)
-    b1 = Blink1simulator()
+        sys.exit(1)
+    b1 = Blink1Simulator()
 
 device_states = []
 bus_options = []
-debounce = False  # used to keep calls from happing concurrently
+debounce = False  # used to keep calls from happening concurrently
 
 server_uuid = False
 
@@ -138,11 +146,8 @@ if not args.device_id:
         config["DEFAULT"]["deviceId"] = "null"
     args.device_id = config["DEFAULT"]["deviceId"]
 
-# SocketIO Connections
+# SocketIO Connection
 sio = socketio.Client()
-
-# ZeroConf instance
-zeroconf = Zeroconf()
 
 
 @sio.event
@@ -150,7 +155,7 @@ def connect():
     print("Connected to Tally Arbiter server:", args.host, args.port)
     sio.emit(
         "listenerclient_connect",
-        {  # start listening for the device
+        {
             "deviceId": config["DEFAULT"]["deviceId"],
             "listenerType": "blink1_" + config["DEFAULT"]["clientUUID"],
             "canBeReassigned": not args.disable_reassign,
@@ -160,9 +165,7 @@ def connect():
     )
     if args.disable_status_blink:
         return
-    repeatNumber = 2
-    while repeatNumber:
-        repeatNumber = repeatNumber - 1
+    for _ in range(2):
         doBlink(0, 255, 0)
         time.sleep(0.3)
         doBlink(0, 255, 0)
@@ -196,9 +199,7 @@ def reconnect():
     print("Reconnected to Tally Arbiter server:", args.host, args.port)
     if args.disable_status_blink:
         return
-    repeatNumber = 2
-    while repeatNumber:
-        repeatNumber = repeatNumber - 1
+    for _ in range(2):
         doBlink(0, 255, 0)
         time.sleep(0.3)
         doBlink(0, 0, 0)
@@ -284,7 +285,7 @@ def processTallyData():
     else:
         try:
             busses_list.sort(key=lambda x: x["priority"], reverse=True)
-        except:
+        except (KeyError, TypeError):
             return
         current_color = hex_to_rgb(busses_list[0]["color"])
         debug(
@@ -298,8 +299,8 @@ def processTallyData():
 
 
 def doBlink(r, g, b):
-    global debounce, args
-    if debounce != True:
+    global debounce
+    if not debounce:
         debounce = True
         b1.fade_to_rgb(100, r, g, b)
         debounce = False
@@ -329,9 +330,9 @@ class TallyArbiterServerListener:
                 "Please update Tally Arbiter to latest version or use an older version of this client."
             )
             return
-        while 1:
+        while True:
             try:
-                print("Tally Arbiter Blink1 Listener Running. Press CTRL-C to exit.")
+                print("Tally Arbiter Blink(1) Listener Running. Press CTRL-C to exit.")
                 print(
                     "Attempting to connect to Tally Arbiter server: {}:{} (UUID {}, server version {})".format(
                         info.server, str(info.port), server_uuid, server_version
@@ -344,37 +345,33 @@ class TallyArbiterServerListener:
 
 
 try:
-    if "useMDNS" in config["DEFAULT"] and str(config["DEFAULT"]["useMDNS"]).lower() == "true":
-        zeroconf = Zeroconf()
+    use_mdns = str(config["DEFAULT"].get("useMDNS", "false")).lower() == "true"
+    if use_mdns:
+        zc = Zeroconf()
         listener = TallyArbiterServerListener()
-        browser = ServiceBrowser(zeroconf, "_tally-arbiter._tcp.local.", listener)
+        browser = ServiceBrowser(zc, "_tally-arbiter._tcp.local.", listener)
         while True:
             time.sleep(0.1)
     else:
-        while 1:
+        while True:
             try:
-                print("Tally Arbiter Blink1 Listener Running. Press CTRL-C to exit.")
+                print("Tally Arbiter Blink(1) Listener Running. Press CTRL-C to exit.")
                 print(
                     "Attempting to connect to Tally Arbiter server: {}:{}".format(
-                        config["DEFAULT"]["host"], str(config["DEFAULT"]["port"])
+                        args.host, str(args.port)
                     )
                 )
-                sio.connect(
-                    "http://"
-                    + config["DEFAULT"]["host"]
-                    + ":"
-                    + str(config["DEFAULT"]["port"])
-                )
+                sio.connect("http://" + args.host + ":" + str(args.port))
                 sio.wait()
             except socketio.exceptions.ConnectionError:
                 doBlink(0, 0, 0)
                 time.sleep(15)
 except KeyboardInterrupt:
-    print("Exiting Tally Arbiter Blink1 Listener.")
+    print("Exiting Tally Arbiter Blink(1) Listener.")
     doBlink(0, 0, 0)
-    exit(0)
-except:
-    print("Unexpected error:", sys.exc_info()[0])
+    sys.exit(0)
+except Exception as e:
+    print("Unexpected error:", e)
     print("An error occurred internally.")
     doBlink(0, 0, 0)
-    exit(0)
+    sys.exit(1)
