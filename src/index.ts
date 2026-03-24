@@ -1168,7 +1168,7 @@ function getDeviceStates(deviceId?: string): DeviceState[] {
 					// TODO: Check if this can be replaced with deviceSources.findIndex((s) and refactored to reduce duplicated code.
 					let num = 0
 					for (let i = 0; i < deviceSources.length; i++) {
-						if (currentSourceTallyData?.[deviceSources[i].sourceId]?.includes(b.id)) {
+						if (currentSourceTallyData?.[deviceSources[i].id]?.includes(b.id)) {
 							num++
 						}
 					}
@@ -1371,7 +1371,7 @@ function UpdateDeviceState(deviceId: string) {
 			// TODO: This should be replaced with deviceSources.findIndex((s).
 			let num = 0
 			for (let i = 0; i < deviceSources.length; i++) {
-				if (currentSourceTallyData?.[deviceSources[i].sourceId]?.includes(bus.id)) {
+				if (currentSourceTallyData?.[deviceSources[i].id]?.includes(bus.id)) {
 					//if the current tally data includes this bus
 					num++
 				}
@@ -1389,37 +1389,22 @@ function UpdateDeviceState(deviceId: string) {
 				}
 			}
 		} else {
-			// bus is unlinked
-			for (let i = 0; i < deviceSources.length; i++) {
-				let deviceSource = deviceSources[i]
+			// bus is unlinked – active if ANY device source is on this bus (OR logic)
+			const anySourceInBus = deviceSources.some((deviceSource) => {
+				const data = SourceClients[deviceSource.sourceId]?.tally?.value || []
+				return !!data?.[deviceSource.address]?.includes(bus.id)
+			})
 
-				let data = SourceClients[deviceSource.sourceId]?.tally?.value || []
-
-				if (data?.[deviceSource.address]?.includes(bus.id)) {
-					//if the current source tally data includes this bus
-					//if the current source tally data includes this bus
-					//console.log('pushing', bus.label);
-					currentDeviceTallyData[device.id].push(bus.id)
-					if (!previousBusses.includes(bus.id)) {
-						RunAction(deviceId, bus.id, true)
-					}
-				} else {
-					if (previousBusses.includes(bus.id)) {
-						RunAction(deviceId, bus.id, false)
-					}
-				}
-			}
-			/*if (deviceSources.findIndex((s) => currentSourceTallyData?.[s.sourceId]?.includes(bus.id)) !== -1) { //if the current source tally data includes this bus
-				console.log('pushing', bus.label);
-				currentDeviceTallyData[device.id].push(bus.id);
+			if (anySourceInBus) {
+				currentDeviceTallyData[device.id].push(bus.id)
 				if (!previousBusses.includes(bus.id)) {
-					RunAction(deviceId, bus.id, true);
+					RunAction(deviceId, bus.id, true)
 				}
 			} else {
 				if (previousBusses.includes(bus.id)) {
-					RunAction(deviceId, bus.id, false);
+					RunAction(deviceId, bus.id, false)
 				}
-			}*/
+			}
 		}
 	}
 
@@ -1551,7 +1536,7 @@ function initializeSource(source: Source): TallyInput {
 			//console.log('device_source', device_source);
 			//console.log('busses', busses);
 			if (device_source) {
-				tallyData[device_source.sourceId] = busses
+				tallyData[device_source.id] = busses
 			}
 		}
 		//console.log('tallyData', tallyData);
