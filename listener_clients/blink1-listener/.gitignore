@@ -1,0 +1,24 @@
+# Build output
+dist/
+build/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Runtime config (generated on first run)
+config.ini
+deviceid.txt
+
+# Virtual environments
+venv/
+env/
+.env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

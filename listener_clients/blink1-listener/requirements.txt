@@ -1,0 +1,11 @@
+blink1
+python-socketio[client]
+zeroconf
+
+# System tray support (optional – falls back to terminal mode if unavailable)
+# Linux system packages also required:
+#   sudo apt install python3-gi gir1.2-ayatana-appindicator3-0.1
+#   # or on older systems: gir1.2-appindicator3-0.1
+pystray; sys_platform != "linux"
+Pillow; sys_platform != "linux"
+pygobject; sys_platform == "linux"
