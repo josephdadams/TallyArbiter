@@ -849,6 +849,22 @@
 				[(ngModel)]="currentDevice.tslAddress"
 			/>
 		</div>
+		<hr class="my-3">
+		<div class="mb-3">
+			<label for="deviceCameraIP" class="form-label">
+				Camera IP
+				<span class="ta-tooltip" data-tip="If your camera supports tally natively, use this feature to send tally commands directly to it.">ⓘ</span>
+			</label>
+			<input type="text" class="form-control" id="deviceCameraIP" [(ngModel)]="currentDevice.cameraIP" />
+			<label for="deviceCameraModel" class="form-label mt-2">Camera Model</label>
+			<select class="form-select" id="deviceCameraModel" [(ngModel)]="currentDevice.cameraModel">
+				<option value="">-- Select Model --</option>
+				<option *ngFor="let cameraModel of socketService.cameraModels" [value]="cameraModel.id">
+					{{ cameraModel.label }}
+				</option>
+			</select>
+		</div>
+		<hr class="my-3">
 		<div class="mb-3">
 			<b>Linked Busses:</b><br />
 			<small>
