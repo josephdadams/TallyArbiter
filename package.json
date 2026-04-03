@@ -195,7 +195,7 @@
 		"@types/mqtt": "^0.0.34",
 		"@types/node": "^20.0.0",
 		"@types/xml2js": "^0.4.11",
-		"electron": "^35.7.5",
+		"electron": "^39.8.4",
 		"electron-builder": "^24.9.1",
 		"prettier": "^3.4.2",
 		"redundancyjs": "^0.1.0",
