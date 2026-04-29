@@ -1,34 +1,41 @@
-FROM node:18.19.1-alpine
+FROM node:20-alpine AS builder
 
-# Version stamping
 ARG APP_VERSION
 ENV APP_VERSION=$APP_VERSION
 
 WORKDIR /app
 
-# Copy built output
-COPY package.json package-lock.json dist ./
-COPY ui-dist /app/ui-dist
+RUN apk add --no-cache git
 
-# Native build deps
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    wget \
-  && npm install -g node-gyp \
-  && npm i --omit=dev \
-  && npm uninstall bcryptjs \
-  && npm install bcryptjs \
-  && node-gyp -C node_modules/@julusian/freetype2 rebuild \
-  && npm uninstall -g node-gyp \
-  && apk del make g++
+COPY package.json package-lock.json tsconfig.json ./
+COPY src ./src
+COPY UI ./UI
 
-# Ports
+RUN npm ci
+RUN npm run build
+RUN npm run build-ui
+
+
+FROM node:20-alpine
+
+ARG APP_VERSION
+ENV APP_VERSION=$APP_VERSION
+ENV NODE_ENV=production
+
+WORKDIR /app
+
+RUN apk add --no-cache wget
+
+COPY package.json package-lock.json ./
+COPY bin ./bin
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/ui-dist ./ui-dist
+
+RUN npm ci --omit=dev
+
 EXPOSE 4455 8099 5958
 
-# Healthcheck (hit app)
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD wget -qO- http://localhost:4455/health || exit 1
 
-CMD ["node", "index.js"]
+CMD ["node", "dist/index.js"]

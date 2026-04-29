@@ -30,22 +30,7 @@ tallyarbiter
 
 ### Docker
 
-```yaml
-version: '3.8'
-
-services:
-  tallyarbiter:
-    image: josephdadams/tallyarbiter:latest
-    container_name: tallyarbiter
-    restart: unless-stopped
-    ports:
-      - '4455:4455'
-      - '8099:8099'
-      - '5958:5958'
-    environment:
-      - SENTRY_ENABLED=1
-      - SENTRY_DSN=your_dsn_here
-```
+Use the included docker-compose.yml file or Dockerfile.
 
 Run with:
 
