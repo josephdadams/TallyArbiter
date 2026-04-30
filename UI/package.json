@@ -2,8 +2,8 @@
 	"name": "tallyarbiter-ui",
 	"version": "3.1.1",
 	"scripts": {
-		"prestart": "node git.version.js && cd .. && npm run redundancyjs",
-		"prebuild": "node git.version.js && cd .. && npm run redundancyjs",
+		"prestart": "node git.version.js && cd .. && npm run sync-ui-shared",
+		"prebuild": "node git.version.js && cd .. && npm run sync-ui-shared",
 		"ng": "ng",
 		"start": "ng serve",
 		"build": "ng build",
@@ -12,16 +12,16 @@
 	},
 	"private": true,
 	"dependencies": {
-		"@angular/animations": "17.3.12",
+		"@angular/animations": "21.2.9",
 		"@angular/common": "21.2.9",
-		"@angular/compiler": "17.3.12",
-		"@angular/core": "17.3.12",
+		"@angular/compiler": "21.2.9",
+		"@angular/core": "21.2.9",
 		"@angular/forms": "21.2.9",
 		"@angular/platform-browser": "21.2.9",
 		"@angular/platform-browser-dynamic": "21.2.9",
 		"@angular/router": "21.2.9",
 		"@angular/service-worker": "21.2.9",
-		"@angular/localize": "17.3.12",
+		"@angular/localize": "21.2.9",
 		"@fortawesome/fontawesome-free": "^6.5.1",
 		"@ng-bootstrap/ng-bootstrap": "^20.0.0",
 		"@popperjs/core": "^2.11.8",
@@ -37,20 +37,20 @@
 		"socket.io-client": "^4.7.2",
 		"sweetalert2": "^11.22.4",
 		"tslib": "^2.6.2",
-		"zone.js": "~0.14.2"
+		"zone.js": "~0.15.0"
 	},
 	"devDependencies": {
 		"@angular-devkit/build-angular": "21.2.7",
 		"@angular/cli": "21.2.7",
-		"@angular/compiler-cli": "17.3.12",
+		"@angular/compiler-cli": "21.2.9",
 		"@types/jasmine": "~5.1.4",
-		"@types/node": "^20.10.5",
+		"@types/node": "^22.10.5",
 		"jasmine-core": "~5.1.1",
 		"karma": "~6.4.2",
 		"karma-chrome-launcher": "~3.2.0",
 		"karma-coverage": "~2.2.1",
 		"karma-jasmine": "~5.1.0",
 		"karma-jasmine-html-reporter": "^2.1.0",
-		"typescript": "~5.2.2"
+		"typescript": "~5.9.0"
 	}
 }

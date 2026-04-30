@@ -1,6 +1,8 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core'
-import { Confirmable } from 'src/app/_decorators/confirmable.decorator'
+import { CommonModule } from '@angular/common'
+import { Component, OnInit } from '@angular/core'
+import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
+import { Confirmable } from 'src/app/_decorators/confirmable.decorator'
 import { SocketService } from 'src/app/_services/socket.service'
 import { ErrorReportsListElement } from 'src/app/_models/ErrorReportsListElement'
 import { NavbarVisibilityService } from 'src/app/_services/navbar-visibility.service'
@@ -8,6 +10,8 @@ import { LocationBackService } from 'src/app/_services/locationBack.service'
 
 @Component({
 	selector: 'app-error-reports-list',
+	standalone: true,
+	imports: [CommonModule, FormsModule],
 	templateUrl: './error-reports-list.component.html',
 	styleUrls: ['./error-reports-list.component.scss'],
 })

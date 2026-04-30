@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms'
 import { BrowserModule } from '@angular/platform-browser'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { QrCodeModule } from 'ng-qrcode'
-import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap'
+import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap/nav'
 import { NgJsonEditorModule } from 'ang-jsoneditor'
 
 import { AppRoutingModule } from './app-routing.module'
@@ -23,7 +23,16 @@ import { ErrorReportsListComponent } from './_components/error-reports-list/erro
 import { RequireRoleDirective } from './_directives/requireRole'
 
 @NgModule({
-	declarations: [
+	declarations: [],
+	imports: [
+		BrowserModule,
+		BrowserAnimationsModule,
+		AppRoutingModule,
+		QrCodeModule,
+		NgbNavModule,
+		NgJsonEditorModule,
+		FormsModule,
+
 		AppComponent,
 		HomeComponent,
 		ProducerComponent,
@@ -36,19 +45,9 @@ import { RequireRoleDirective } from './_directives/requireRole'
 		ErrorReportComponent,
 		ErrorReportsListComponent,
 		RequireRoleDirective,
-	],
-	imports: [
-		BrowserModule,
-		BrowserAnimationsModule,
-		AppRoutingModule,
-		QrCodeModule,
-		NgbNavModule,
-		NgJsonEditorModule,
-		FormsModule,
+
 		ServiceWorkerModule.register('ngsw-worker.js', {
 			enabled: environment.production,
-			// Register the ServiceWorker as soon as the app is stable
-			// or after 30 seconds (whichever comes first).
 			registrationStrategy: 'registerWhenStable:30000',
 		}),
 	],

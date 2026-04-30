@@ -1,8 +1,11 @@
+import { CommonModule } from '@angular/common'
 import { Component, Input } from '@angular/core'
 import { DarkModeService } from '../../_services/darkmode.service'
 
 @Component({
 	selector: 'app-theme-selector',
+	standalone: true,
+	imports: [CommonModule],
 	templateUrl: './theme-selector.component.html',
 	styleUrls: ['./theme-selector.component.scss'],
 })

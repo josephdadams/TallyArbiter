@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 ARG APP_VERSION
 ENV APP_VERSION=$APP_VERSION
@@ -16,7 +16,7 @@ RUN npm run build
 RUN npm run build-ui
 
 
-FROM node:20-alpine
+FROM node:22-alpine
 
 ARG APP_VERSION
 ENV APP_VERSION=$APP_VERSION
@@ -27,7 +27,6 @@ WORKDIR /app
 RUN apk add --no-cache wget
 
 COPY package.json package-lock.json ./
-COPY bin ./bin
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/ui-dist ./ui-dist
 

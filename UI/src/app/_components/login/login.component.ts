@@ -1,9 +1,13 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core'
+import { CommonModule } from '@angular/common'
+import { Component, ElementRef, ViewChild } from '@angular/core'
+import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { AuthService, LoginResponse } from 'src/app/_services/auth.service'
 
 @Component({
 	selector: 'app-login',
+	standalone: true,
+	imports: [CommonModule, FormsModule],
 	templateUrl: './login.component.html',
 	styleUrls: ['./login.component.scss'],
 })
@@ -22,21 +26,15 @@ export class LoginComponent {
 		private authService: AuthService,
 	) {
 		this.route.params.subscribe((params) => {
-			if (params.redirect) {
-				this.redirectParam = params.redirect
-			}
-			if (params.extraParam) {
-				this.extraParam = params.extraParam
-			}
+			if (params.redirect) this.redirectParam = params.redirect
+			if (params.extraParam) this.extraParam = params.extraParam
 		})
-		//console.log(this.redirectParam);
-		//console.log(this.extraParam);
+
 		switch (this.redirectParam) {
 			case 'producer':
 			case 'errors':
 			case 'settings':
 				break
-
 			default:
 				this.redirectParam = 'home'
 				this.extraParam = ''
@@ -49,6 +47,7 @@ export class LoginComponent {
 		this.authService.login(this.username, this.password).then((response: LoginResponse) => {
 			this.loginResponse = response
 			this.loading = false
+
 			if (response.loginOk === true) {
 				let navigateParams = [this.redirectParam]
 				if (this.extraParam !== '') navigateParams.push(this.extraParam)

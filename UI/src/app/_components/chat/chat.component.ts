@@ -1,8 +1,12 @@
+import { CommonModule } from '@angular/common'
 import { Component, ElementRef, Input, ViewChild } from '@angular/core'
+import { FormsModule } from '@angular/forms'
 import { SocketService } from 'src/app/_services/socket.service'
 
 @Component({
 	selector: 'app-chat',
+	standalone: true,
+	imports: [CommonModule, FormsModule],
 	templateUrl: './chat.component.html',
 	styleUrls: ['./chat.component.scss'],
 })
@@ -10,6 +14,7 @@ export class ChatComponent {
 	public message = ''
 	@Input() type: 'producer' | any
 	@ViewChild('chatContainer') private chatContainer!: ElementRef
+
 	constructor(public socketService: SocketService) {
 		this.socketService.scrollChatSubject.subscribe(() => {
 			this.scrollToBottom(this.chatContainer)

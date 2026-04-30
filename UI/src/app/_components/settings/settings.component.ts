@@ -1,6 +1,18 @@
+import { CommonModule } from '@angular/common'
+
 import { Component, ElementRef, ViewChild } from '@angular/core'
+
+import { FormsModule } from '@angular/forms'
+
 import { Router } from '@angular/router'
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
+
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap/modal'
+
+import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap/nav'
+
+import { NgJsonEditorModule } from 'ang-jsoneditor'
+
+import { RequireRoleDirective } from 'src/app/_directives/requireRole'
 import { Confirmable } from 'src/app/_decorators/confirmable.decorator'
 import { CloudClient } from 'src/app/_models/CloudClient'
 import { CloudDestination } from 'src/app/_models/CloudDestination'
@@ -22,7 +34,7 @@ import { SourceTypeBus } from 'src/app/_models/SourceTypeBus'
 import { User } from 'src/app/_models/User'
 import { AuthService } from 'src/app/_services/auth.service'
 import { JsonEditorComponent, JsonEditorOptions } from 'ang-jsoneditor'
-import { default as configSchema } from '../../../../../src/_helpers/configSchema'
+import { default as configSchema } from 'src/app/_schemas/configSchema'
 
 const globalSwalOptions = {
 	confirmButtonColor: '#2a70c7',
@@ -52,6 +64,14 @@ type LogLevel = { title: string; id: string }
 
 @Component({
 	selector: 'app-settings',
+	standalone: true,
+	imports: [
+		CommonModule,
+		FormsModule,
+		NgbNavModule,
+		NgJsonEditorModule,
+		RequireRoleDirective,
+	],
 	templateUrl: './settings.component.html',
 	styleUrls: ['./settings.component.scss'],
 })

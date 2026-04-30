@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common'
 import { Component, OnInit, OnDestroy, AfterViewInit, Renderer2, ElementRef } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { SocketService } from 'src/app/_services/socket.service'
@@ -9,6 +10,8 @@ import { versions } from 'src/environments/versions'
 
 @Component({
 	selector: 'app-error-report',
+	standalone: true,
+	imports: [CommonModule],
 	templateUrl: './error-report.component.html',
 	styleUrls: ['./error-report.component.scss'],
 })
@@ -45,12 +48,11 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
 	checkIfIssuesEnabled(url: string) {
 		/* @ts-ignore: All code paths resolve the promise */
 		return new Promise<boolean>((resolve, reject) => {
-			if (new URL(url).host !== 'github.com/') resolve(false)
+			if (new URL(url).host !== 'github.com') resolve(false)
 			let repo = url.split('github.com/')[1].split('/', 2).join('/').toLowerCase()
 
 			switch (repo) {
 				case 'josephdadams/tallyarbiter':
-					//assume that our repo has always issues enabled
 					resolve(true)
 					break
 
@@ -81,14 +83,8 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
 		stacktrace: string,
 		runningRecursive: boolean = false,
 	): string {
-		//https://medium.com/@DylanAttal/truncate-a-string-in-javascript-41f33171d5a8
 		function truncateString(str: string, num: number) {
-			// If the length of str is less than or equal to num
-			// just return str--don't truncate it.
-			if (str.length <= num) {
-				return str
-			}
-			// Return str truncated with '...' concatenated to the end of str.
+			if (str.length <= num) return str
 			return str.slice(0, num) + '...'
 		}
 
