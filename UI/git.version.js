@@ -1,14 +1,23 @@
-//based on https://stackoverflow.com/a/42199863
+// based on https://stackoverflow.com/a/42199863
 
 const { writeFileSync } = require('fs')
 const { promisify } = require('util')
 const { exec } = require('child_process')
 const exec_promise = promisify(exec)
 
+async function git(cmd, fallback) {
+	try {
+		const result = await exec_promise(cmd)
+		return result.stdout.toString().trim() || fallback
+	} catch {
+		return fallback
+	}
+}
+
 async function createVersionsFile(filename) {
-	const revision = (await exec_promise('git rev-parse --short HEAD')).stdout.toString().trim()
-	const branch = (await exec_promise('git rev-parse --abbrev-ref HEAD')).stdout.toString().trim()
-	const remote_url = (await exec_promise('git config --get remote.origin.url')).stdout.toString().trim()
+	const revision = await git('git rev-parse --short HEAD', process.env.APP_VERSION || 'docker')
+	const branch = await git('git rev-parse --abbrev-ref HEAD', 'docker')
+	const remote_url = await git('git config --get remote.origin.url', 'https://github.com/josephdadams/TallyArbiter.git')
 
 	console.log(`revision: '${revision}', branch: '${branch}', remote_url: '${remote_url}'`)
 
