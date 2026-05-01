@@ -8,6 +8,7 @@ WORKDIR /app
 RUN apk add --no-cache git
 
 COPY package.json package-lock.json tsconfig.json ./
+COPY scripts ./scripts
 COPY src ./src
 COPY UI ./UI
 
