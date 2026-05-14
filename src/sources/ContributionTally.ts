@@ -163,8 +163,8 @@ export class CTPSource extends TallyInput {
 				this.processCTPData(data)
 			})
 
-			this.server.on('listening', function () {
-				var address = this.server.address()
+			this.server.on('listening', () => {
+				const address = this.server.address()
 				console.log('listening on :' + address.address + ':' + address.port)
 			})
 
