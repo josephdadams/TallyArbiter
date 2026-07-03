@@ -69,6 +69,8 @@ OSC paths must be one of the following:
 
 The device source address should be sent as an integer or a string. Send one argument of any type (integer, float, or string). If you send multiple arguments, they will be ignored.
 
+Community project: [GPI-to-OSC](https://github.com/simply-Gamic/GPI-to-OSC) converts GPI tally outputs from older/incompatible video switchers into OSC messages using a Raspberry Pi (or ESP32), allowing them to be used as a Tally Arbiter source wirelessly.
+
 ## Panasonic AV-HS410
 
 You will need the IP address of the switcher. Multicast must also be enabled on the switcher and your network in order to receive the tally data, therefore Tally Arbiter and the Panasonic device must reside on the same subnet.
