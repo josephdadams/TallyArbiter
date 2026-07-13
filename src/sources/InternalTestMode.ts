@@ -1,5 +1,4 @@
 import { currentConfig } from '../_helpers/config'
-import { timeStamp } from 'console'
 import { RegisterTallyInput } from '../_decorators/RegisterTallyInput.decorator'
 import { Source } from '../_models/Source'
 import { TallyInput } from './_Source'
@@ -61,7 +60,7 @@ export class InternalTestModeSource extends TallyInput {
 		this.addresses.next(
 			this.addresses.value.filter((a) => {
 				let current_test_address_number = parseInt(a.address.replace('TEST_', ''))
-				return current_test_address_number <= this.source.data.addressesNumber
+				return current_test_address_number < this.source.data.addressesNumber
 			}),
 		)
 		this.sendTallyData()
