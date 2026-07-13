@@ -31,6 +31,32 @@ function processError(err) {
 
 process.on('uncaughtException', processError)
 
+// The embedded server (dist/index, running in this same process) publishes
+// an mDNS advertisement on startup using a stable, UUID-derived name. If we
+// let Electron tear the process down without unpublishing it first, the
+// stale record can trip the OS's mDNS conflict detection on the next
+// launch ("This computer's localhost name is already in use."). All of our
+// quit paths (tray "Quit", powerMonitor's shutdown event, and the
+// window-all-closed confirmation) funnel through app.quit(), so hooking
+// before-quit here covers them all. We block the actual quit just long
+// enough to let the server unpublish, then let it proceed.
+let mdnsCleanupDone = false
+
+app.on('before-quit', (event) => {
+	if (mdnsCleanupDone || !server || typeof server.shutdown !== 'function') {
+		return
+	}
+
+	event.preventDefault()
+	Promise.resolve()
+		.then(() => server.shutdown())
+		.catch(() => {})
+		.then(() => {
+			mdnsCleanupDone = true
+			app.quit()
+		})
+})
+
 function createWindow() {
 	mainWindow = new BrowserWindow({
 		width: WindowProperties.width,
