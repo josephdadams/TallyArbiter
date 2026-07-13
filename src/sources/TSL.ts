@@ -1,3 +1,4 @@
+import { logger } from '..'
 import { RegisterTallyInput } from '../_decorators/RegisterTallyInput.decorator'
 import { FreePort, UsePort } from '../_decorators/UsesPort.decorator'
 import { Source } from '../_models/Source'
@@ -238,13 +239,21 @@ export class TSL5UDPSource extends TSL5Base {
 
 		UsePort(port, this.source.id)
 		this.server = dgram.createSocket('udp4')
-		this.server.bind(port)
+
+		this.server.on('error', (err) => {
+			logger(`Source: ${source.name} TSL 5.0 UDP Error: ${err}`, 'error')
+			this.connected.next(false)
+		})
+
+		this.server.on('listening', () => {
+			this.connected.next(true)
+		})
 
 		this.server.on('message', (message) => {
 			this.processTSL5Tally(message)
 		})
 
-		this.connected.next(true)
+		this.server.bind(port)
 	}
 
 	public exit(): void {
