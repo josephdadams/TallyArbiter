@@ -61,11 +61,13 @@ These allow privilege escalation, data exposure, or auth bypass.
 12. [ ] **Unvalidated `listenerclient_connect` payload throws uncaught exceptions.**
     `src/index.ts:412-417`. `obj !== null` is dead code (`typeof null === 'object'`), so a literal `null` payload skips the reparse and then `obj.deviceId` throws on `null`. A non-object, non-JSON payload throws a `SyntaxError` from `JSON.parse` with no surrounding try/catch — both triggerable purely by client-supplied socket data.
 
-13. [ ] **`cloud_devices` handler copies fields from the wrong array index.**
+13. [x] **`cloud_devices` handler copies fields from the wrong array index.**
     `src/index.ts:775-786`. Matches on `data[i].id === devices[j].id` but then reads `data[j].name/description/tslAddress/enabled` instead of `data[i]` — corrupts a matched device with fields from an unrelated array element (or throws if array lengths differ). The adjacent `cloud_sources` handler (`:715-765`) does this correctly with `data[i]`.
+   **Status:** Fixed in PR #1030.
 
-14. [ ] **`TallyArbiter_Add_User` treats a Promise as a synchronous boolean.**
+14. [x] **`TallyArbiter_Add_User` treats a Promise as a synchronous boolean.**
     `src/index.ts:2501-2508`. `addUser()` returns a `Promise` (always truthy), so `if (addUser(obj.user))` always takes the success branch — the "user already exists" error is unreachable, and the rejected promise on failure goes unhandled.
+   **Status:** Fixed in PR #1029.
 
 15. [ ] **`CheckListenerClients` guard is always false.**
     `src/index.ts:2899-2912`. `GetDeviceByDeviceId` (`:2538-2553`) always falls back to a synthetic `{id: 'unassigned', ...}` object rather than returning falsy, so `!GetDeviceByDeviceId(...)` never fires and stale listener clients are never reassigned.
@@ -119,7 +121,8 @@ These allow privilege escalation, data exposure, or auth bypass.
 25. [x] **`_helpers/uuid.ts:3-6` — the app's general-purpose ID generator truncates a v4 UUID to 32 bits** (`uuid().split('-')[0]`), discarding ~90 bits of entropy. Used for sources, devices, listener clients, error reports, cloud clients — birthday-paradox collisions become plausible after tens of thousands of IDs and silently alias unrelated records.
    **Status:** Fixed in PR #1027.
 
-26. [ ] **`_helpers/logger.ts` — the rotating `tallyLogger` (with `maxsize`/`maxFiles`) is dead code; the file actually used has no size cap.** Tally data is appended via a raw `fs.openSync` fd (`:51`, used at `src/index.ts:1448`) with no rotation — grows unbounded for the process lifetime.
+26. [x] **`_helpers/logger.ts` — the rotating `tallyLogger` (with `maxsize`/`maxFiles`) is dead code; the file actually used has no size cap.** Tally data is appended via a raw `fs.openSync` fd (`:51`, used at `src/index.ts:1448`) with no rotation — grows unbounded for the process lifetime.
+   **Status:** Fixed in PR #1032.
 
 27. [x] **`_helpers/networkInterfaces.ts:12` — interface name truncated on first space** (`networkInterface.split(' ')[0]`), which can collapse distinct Windows adapters (`"Ethernet"`, `"Ethernet 2"`) to the same reported name.
    **Status:** Fixed in PR #1028.
