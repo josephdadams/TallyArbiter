@@ -37,7 +37,7 @@ export class InternalTestModeSource extends TallyInput {
 	currentAddressNumber = 0
 	currentAddressIterations = 0
 
-	busses = currentConfig.bus_options.map((bus) => bus.id)
+	busses = currentConfig.bus_options.filter((bus) => bus.visible !== false).map((bus) => bus.id)
 
 	testModeInterval: NodeJS.Timeout
 
@@ -46,6 +46,7 @@ export class InternalTestModeSource extends TallyInput {
 	constructor(source: Source) {
 		super(source)
 
+		if (!this.source.data) this.source.data = {}
 		if (!this.source.data.interval) this.source.data.interval = 100
 		if (!this.source.data.changeMode) this.source.data.changeMode = 'one-at-a-time'
 		if (!this.source.data.addressesNumber) this.source.data.addressesNumber = 10
