@@ -1220,23 +1220,17 @@ function getDeviceStates(deviceId?: string): DeviceState[] {
 }
 
 function getSourceTypeDataFields(): SourceTypeDataFields[] {
-	return Object.entries(TallyInputs).map(
-		([id, data]) =>
-			({
-				sourceTypeId: id,
-				fields: data.configFields,
-			}) as SourceTypeDataFields,
-	)
+	return Object.entries(TallyInputs).map(([id, data]) => ({
+		sourceTypeId: id,
+		fields: data.configFields,
+	}))
 }
 
 function getOutputTypeDataFields(): OutputTypeDataFields[] {
-	return Object.entries(Actions).map(
-		([id, data]) =>
-			({
-				outputTypeId: id,
-				fields: data.configFields,
-			}) as OutputTypeDataFields,
-	)
+	return Object.entries(Actions).map(([id, data]) => ({
+		outputTypeId: id,
+		fields: data.configFields,
+	}))
 }
 
 function getSourceTypes(): SourceType[] {
