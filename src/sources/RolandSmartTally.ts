@@ -23,6 +23,8 @@ export class RolandSmartTallySource extends TallyInput {
 			axios
 				.get(`http://${ip}/tally/${address}/status`)
 				.then((response) => {
+					this.connected.next(true)
+
 					let tallyObj: any = {}
 					tallyObj.address = address
 					tallyObj.label = address
@@ -48,6 +50,7 @@ export class RolandSmartTallySource extends TallyInput {
 					this.sendTallyData()
 				})
 				.catch((error) => {
+					this.connected.next(false)
 					logger(`Source: ${this.source.name}  Roland Smart Tally Error: ${error}`, 'error')
 				})
 		}
