@@ -38,29 +38,46 @@ oscUDP.on('ready', function () {
 ])
 export class OSC extends Action {
 	public run(): void {
-		let args = []
 		let data = []
 
 		const isNumeric = (string) => /^[+-]?\d+(\.\d+)?$/.test(string)
 
 		if (this.action.data.args !== '') {
-			args = this.action.data.args.split(' ')
+			// Quote-aware tokenizer: a double-quoted span (which may contain
+			// spaces) is treated as a single argument; everything else is
+			// split on whitespace, matching the documented behavior that
+			// "Strings must be encapsulated by double quotes."
+			const tokens: { value: string; quoted: boolean }[] = []
+			const tokenRegex = /"([^"]*)"|(\S+)/g
+			let match: RegExpExecArray | null
+
+			while ((match = tokenRegex.exec(this.action.data.args)) !== null) {
+				if (match[1] !== undefined) {
+					tokens.push({ value: match[1], quoted: true })
+				} else {
+					tokens.push({ value: match[2], quoted: false })
+				}
+			}
+
 			let arg: any
 
-			for (let i = 0; i < args.length; i++) {
-				// Check if OSC-string
-				if (!isNumeric(args[i])) {
+			for (let i = 0; i < tokens.length; i++) {
+				const { value, quoted } = tokens[i]
+				// Check if OSC-string. A quoted argument is always treated as a
+				// string, even if its contents look numeric, since quoting is
+				// how the user explicitly opts into string type.
+				if (quoted || !isNumeric(value)) {
 					arg = {
 						type: 's',
-						value: args[i].replace(/"/g, '').replace(/'/g, ''),
+						value: value.replace(/"/g, '').replace(/'/g, ''),
 					}
 					data.push(arg)
 				}
 				// Check if float32
-				else if (args[i].toString().indexOf('.') > -1) {
+				else if (value.toString().indexOf('.') > -1) {
 					arg = {
 						type: 'f',
-						value: parseFloat(args[i]),
+						value: parseFloat(value),
 					}
 					data.push(arg)
 				}
@@ -68,7 +85,7 @@ export class OSC extends Action {
 				else {
 					arg = {
 						type: 'i',
-						value: parseInt(args[i]),
+						value: parseInt(value),
 					}
 					data.push(arg)
 				}
