@@ -1642,12 +1642,30 @@ function initializeSource(source: Source): TallyInput {
 	return sourceClient
 }
 
+// Some sources (e.g. VMix) report their entire cumulative tally state on every
+// message, even when only one address actually changed. Comparing against the
+// previously cached busses per-address lets us avoid re-broadcasting/re-logging
+// state that hasn't actually changed. Bus order isn't significant, so this
+// compares as sets (same approach as the areSetsEqual helper in BlackmagicATEM.ts).
+function areBussesEqual(a: string[] | undefined, b: string[] | undefined): boolean {
+	if (a === b) return true
+	if (!a || !b) return false
+	if (a.length !== b.length) return false
+	const setA = new Set(a)
+	return b.every((bus) => setA.has(bus))
+}
+
 function processSourceTallyData(sourceId: string, tallyData: SourceTallyData) {
 	writeTallyDataFile(tallyData)
 
 	for (const [address, busses] of Object.entries(tallyData)) {
 		//console.log('tally_data', sourceId, address, busses);
-		io.to('settings').emit('tally_data', sourceId, address, busses)
+		// Only emit if this specific address's busses actually changed since the
+		// last time we processed data for it (an absent previous value counts as
+		// "changed" so the first real update for an address still fires).
+		if (!areBussesEqual(currentSourceTallyData[address], busses)) {
+			io.to('settings').emit('tally_data', sourceId, address, busses)
+		}
 	}
 
 	currentSourceTallyData = {
