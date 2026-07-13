@@ -118,6 +118,15 @@ export function readConfig(): void {
 		currentConfig.uuid = uuidv4()
 		SaveConfig() //uuid added if missing on config save
 	}
+	if (!loadedConfig.security || typeof loadedConfig.security !== 'object') {
+		// the top-level security section is missing/corrupted; fall back to the
+		// default (empty) section so the jwt_private_key check below can safely
+		// dereference it and will regenerate a fresh key, rather than throwing
+		// and leaving currentConfig.security.jwt_private_key as the empty default.
+		logger('Security configuration section missing or invalid; recreating it.', 'info-quiet')
+		loadedConfig.security = clone(ConfigDefaults.security)
+		currentConfig.security = clone(ConfigDefaults.security)
+	}
 	if (!loadedConfig.security.jwt_private_key || typeof loadedConfig.security.jwt_private_key !== 'string') {
 		logger('Adding a private key for JWT authentication.', 'info-quiet')
 		currentConfig.security.jwt_private_key = randomBytes(256).toString('base64')
@@ -145,10 +154,7 @@ export function readConfig(): void {
 }
 
 export function getConfigRedacted(): Config {
-	let config: Config = {} as Config
-	try {
-		config = JSON.parse(fs.readFileSync(config_file).toString())
-	} catch (e) {}
+	const config: Config = clone(currentConfig)
 	config['security'] = {
 		jwt_private_key: '',
 	}
