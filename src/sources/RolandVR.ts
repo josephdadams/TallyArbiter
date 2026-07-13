@@ -29,7 +29,7 @@ export class RolandVRSource extends TallyInput {
 					//clear out any old tally values
 					this.removeBusFromAllAddresses('program')
 					//now enter the new PGM value based on the received data
-					const address = dataString.substring(dataString.length - 1, dataString.length - 2)
+					const address = dataString.charAt(dataString.length - 2)
 					this.addBusToAddress(address, 'program')
 					this.sendTallyData()
 				}
