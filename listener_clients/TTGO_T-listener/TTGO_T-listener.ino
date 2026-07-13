@@ -51,9 +51,15 @@ bool LAST_MSG = true; // true = show messages on tally screen
 #define TALLY_EXTRA_OUTPUT false
 
 #if TALLY_EXTRA_OUTPUT
-const int led_program = 10;
-const int led_preview = 26; //OPTIONAL Led for preview on pin G26
-const int led_aux = 36;     //OPTIONAL Led for aux on pin G36
+// NOTE: TALLY_EXTRA_OUTPUT requires free, output-capable GPIOs. The original pins
+// didn't work on the TTGO T-Display: G10 is an SPI-flash-integration pin not
+// recommended (and typically not broken out) on WROOM modules, G26 collides with
+// led_blue's onboard status LED below, and G36 is input-only (no output driver).
+// G25/G27/G32 are free, output-capable, and don't conflict with the display or
+// onboard peripherals defined in this file.
+const int led_program = 25;
+const int led_preview = 27; //OPTIONAL Led for preview on pin G27
+const int led_aux = 32;     //OPTIONAL Led for aux on pin G32
 #endif
 const int led_blue = 26;     //blue led  connected with 270ohm resistor
 
