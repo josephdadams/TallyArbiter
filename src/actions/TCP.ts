@@ -29,8 +29,7 @@ export class TCP extends Action {
 			tcpClient.on('connect', () => {
 				let sendBuf = Buffer.from(unescape(this.action.data.string) + this.action.data.end, 'latin1')
 				tcpClient.write(Uint8Array.from(sendBuf))
-				tcpClient.end()
-				tcpClient.destroy() // kill client after sending data
+				tcpClient.end() // flushes pending writes, then closes the connection
 				logger(`Generic TCP sent: ${this.action.data.ip}:${this.action.data.port} : ${this.action.data.string}`, 'info')
 			})
 

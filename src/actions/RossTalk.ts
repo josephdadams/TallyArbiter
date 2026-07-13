@@ -16,8 +16,7 @@ export class RossTalk extends Action {
 
 			tcpClient.on('connect', () => {
 				tcpClient.write(this.action.data.string + '\r\n')
-				tcpClient.end()
-				tcpClient.destroy() // kill client after sending data
+				tcpClient.end() // flushes pending writes, then closes the connection
 				logger(`RossTalk sent: ${this.action.data.ip}:${this.action.data.port} : ${this.action.data.string}`, 'info')
 			})
 
