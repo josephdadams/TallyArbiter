@@ -12,6 +12,7 @@ import net from 'net'
 export class BlackmagicVideoHubSource extends TallyInput {
 	private client: net.Socket
 	private port = 9990 // Fixed VideoHub TCP port number
+	private static readonly MAX_RECEIVE_BUFFER_SIZE = 65536 // 64KB, generous for the small VideoHub protocol messages
 	private receiveBuffer: string
 	private command: any
 	private stash: any[]
@@ -37,6 +38,15 @@ export class BlackmagicVideoHubSource extends TallyInput {
 				line = '',
 				offset = 0
 			this.receiveBuffer += chunk
+
+			if (this.receiveBuffer.length > BlackmagicVideoHubSource.MAX_RECEIVE_BUFFER_SIZE) {
+				logger(
+					`VideoHub receive buffer exceeded ${BlackmagicVideoHubSource.MAX_RECEIVE_BUFFER_SIZE} bytes without a line delimiter. Resetting buffer.`,
+					'error',
+				)
+				this.receiveBuffer = ''
+				return
+			}
 
 			while ((j = this.receiveBuffer.indexOf('\n', offset)) !== -1) {
 				line = this.receiveBuffer.substr(offset, j - offset)
@@ -97,6 +107,14 @@ export class BlackmagicVideoHubSource extends TallyInput {
 		this.labels[source] = name
 	}
 
+	private parseDestinationList(value: string): number[] {
+		if (!value) return []
+		return value
+			.split(',')
+			.map((s) => parseInt(s.trim(), 10))
+			.filter((n) => !isNaN(n))
+	}
+
 	private processVideoHubTally(destination: number, src: number) {
 		//this builds the tallydata array and makes sure it has an initial state
 		let tallyFound = false
@@ -154,10 +172,10 @@ export class BlackmagicVideoHubSource extends TallyInput {
 
 		for (let i = 0; i < this.destinations.length; i++) {
 			if (this.destinations[i].source === src) {
-				if (this.source.data.destinations_pvw.includes(this.destinations[i].destination)) {
+				if (this.parseDestinationList(this.source.data.destinations_pvw).includes(this.destinations[i].destination)) {
 					inPreview = true
 				}
-				if (this.source.data.destinations_pgm.includes(this.destinations[i].destination)) {
+				if (this.parseDestinationList(this.source.data.destinations_pgm).includes(this.destinations[i].destination)) {
 					inProgram = true
 				}
 			}
@@ -175,10 +193,10 @@ export class BlackmagicVideoHubSource extends TallyInput {
 			for (let j = 0; j < this.destinations.length; j++) {
 				if (this.destinations[j].source === recheck_sources[i]) {
 					//check and see if this destination is a pvw or pgm type
-					if (this.source.data.destinations_pvw.includes(this.destinations[j].destination)) {
+					if (this.parseDestinationList(this.source.data.destinations_pvw).includes(this.destinations[j].destination)) {
 						inPreview = true
 					}
-					if (this.source.data.destinations_pgm.includes(this.destinations[j].destination)) {
+					if (this.parseDestinationList(this.source.data.destinations_pgm).includes(this.destinations[j].destination)) {
 						inProgram = true
 					}
 				}
