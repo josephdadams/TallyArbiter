@@ -3,6 +3,8 @@ import { logger } from '..'
 import { RegisterAction } from '../_decorators/RegisterAction'
 import { Action } from './_Action'
 import { EmberClientEvent } from 'node-emberplus'
+import type { Parameter } from 'node-emberplus/lib/common/parameter'
+import type { QualifiedParameter } from 'node-emberplus/lib/common/qualified-parameter'
 
 @RegisterAction('48c73ee4', 'Ember+', [
 	{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
@@ -25,8 +27,8 @@ export class Ember extends Action {
 	// code.  MCX 6.4.x uses an int64 value for virtul GPI/O.  MCX 10.x uses an actual boolean type.
 	// this code is compatible with both.  However, if you intend to set a string value, the results could be
 	// unpredictable.  This code might need to be refactored if string support is required in the future.
-	private static emberConnections = {}
-	private static emberConnectionStatus = {}
+	private static emberConnections: Record<string, EmberClient> = {}
+	private static emberConnectionStatus: Record<string, boolean> = {}
 
 	private getConnection() {
 		const connection = `${this.action.data.ip}:${this.action.data.port}`
@@ -51,7 +53,11 @@ export class Ember extends Action {
 			.on(EmberClientEvent.DISCONNECTED, async (e) => {
 				Ember.emberConnectionStatus[connection] = false
 				logger(`Ember+ client disconnected - reconnecting: erorr: ${e}`)
-				await this.getConnection().connectAsync()
+				try {
+					await this.getConnection().connectAsync()
+				} catch (error) {
+					logger(`Ember+ reconnection error: ${error}`, 'error')
+				}
 			})
 			.on(EmberClientEvent.CONNECTED, () => {
 				logger(`Ember+ Connected.`)
@@ -78,7 +84,7 @@ export class Ember extends Action {
 	}
 
 	private async setGPI() {
-		if (!this.isConnected) {
+		if (!this.isConnected()) {
 			logger(`Ember+ error: not connected.  Ignoring request.`, 'error')
 			return
 		}
@@ -98,7 +104,7 @@ export class Ember extends Action {
 				emberValue = this.action.data.value
 			}
 
-			await this.getConnection().setValueAsync(node, emberValue)
+			await this.getConnection().setValueAsync(node as Parameter | QualifiedParameter, emberValue)
 		} catch (error) {
 			logger(`Ember+ error, giving up sending: ${error}`, 'error')
 		}
@@ -110,17 +116,17 @@ export class Ember extends Action {
 			logger(`Ember+ Creating new connection.`)
 			try {
 				this.newConnection()
-				this.connect()
 			} catch (error) {
 				logger(`Ember+ Caught error trying to create new connection: ${error}`, 'error')
 			}
+			this.connect().catch((error) => {
+				logger(`Ember+ Caught error trying to connect: ${error}`, 'error')
+			})
 		}
 
 		// send message
-		try {
-			this.setGPI()
-		} catch (error) {
+		this.setGPI().catch((error) => {
 			logger(`Ember+ An error occured sending Ember+: ${error}`, 'error')
-		}
+		})
 	}
 }
