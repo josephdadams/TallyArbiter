@@ -52,7 +52,7 @@ import { Actions } from './_globals/Actions'
 
 // Helpers
 import { uuidv4 } from './_helpers/uuid'
-import { logFilePath, Logs, serverLogger, tallyDataFile } from './_helpers/logger'
+import { logFilePath, Logs, serverLogger, tallyLogger } from './_helpers/logger'
 import { getNetworkInterfaces } from './_helpers/networkInterfaces'
 import { loadClassesFromFolder } from './_helpers/fileLoader'
 import { UsePort } from './_decorators/UsesPort.decorator'
@@ -1510,7 +1510,10 @@ export function logger(log, type: 'info-quiet' | 'info' | 'error' | 'console_act
 function writeTallyDataFile(log) {
 	try {
 		const logLine = JSON.stringify(log) + ','
-		fs.appendFileSync(tallyDataFile, logLine + '\n')
+		// Routed through the rotating winston tallyLogger (maxsize/maxFiles) instead of
+		// appending to a raw, uncapped file descriptor, so the tally data file can no
+		// longer grow unbounded for the life of the process.
+		tallyLogger.info(logLine)
 	} catch (error) {
 		logger(`Error saving logs to file: ${error}`, 'error')
 	}
