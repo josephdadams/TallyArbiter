@@ -1,10 +1,12 @@
 import { CommonModule } from '@angular/common'
 
-import { Component, ElementRef, ViewChild } from '@angular/core'
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core'
 
 import { FormsModule } from '@angular/forms'
 
 import { Router } from '@angular/router'
+
+import { Subscription } from 'rxjs'
 
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap/modal'
 
@@ -75,7 +77,7 @@ type LogLevel = { title: string; id: string }
 	templateUrl: './settings.component.html',
 	styleUrls: ['./settings.component.scss'],
 })
-export class SettingsComponent {
+export class SettingsComponent implements OnInit, OnDestroy {
 	@ViewChild('logsContainer') private logsContainer!: ElementRef
 	@ViewChild('tallyDataContainer') private tallyDataContainer!: ElementRef
 
@@ -136,6 +138,51 @@ export class SettingsComponent {
 
 	public activeNavTab = 'sources_devices'
 
+	private subscriptions: Subscription[] = []
+
+	// Named references to socket event handlers registered in the constructor, so that
+	// they can be removed again (via socket.off) in ngOnDestroy and don't leak across
+	// re-navigations to this component.
+	private handleServerError = (id: string) => {
+		this.show_error(id)
+	}
+
+	private handleUnreadErrorReports = (list: any[]) => {
+		if (list.length > 0) {
+			this.show_errors_list()
+		}
+	}
+
+	private handleConfigReceived = (config: any) => {
+		this.config = config
+		this.updatedConfig = config
+		this.updatedRawConfig = JSON.stringify(config, null, 2)
+		this.configLoaded = true
+		// Check for warnings on initial load - validation will happen when editor is ready
+		// Use setTimeout to ensure editor is initialized
+		setTimeout(() => {
+			let errors: any[] = []
+			try {
+				if (this.configEditor) {
+					const editorJson = this.configEditor.getEditor()
+					if (editorJson) {
+						editorJson.validate()
+						if (editorJson.validateSchema && editorJson.validateSchema.errors) {
+							errors = editorJson.validateSchema.errors || []
+						} else if (editorJson.validator && editorJson.validator.errors) {
+							errors = editorJson.validator.errors || []
+						} else if ((editorJson as any).ajv && (editorJson as any).ajv.errors) {
+							errors = (editorJson as any).ajv.errors || []
+						}
+					}
+				}
+			} catch (e) {
+				console.error('Error validating config on load:', e)
+			}
+			this.checkConfigWarnings(config, errors)
+		}, 100)
+	}
+
 	constructor(
 		private modalService: NgbModal,
 		public socketService: SocketService,
@@ -143,63 +190,35 @@ export class SettingsComponent {
 		public authService: AuthService,
 	) {
 		this.socketService.joinAdmins()
-		this.socketService.closeModals.subscribe(() => this.modalService.dismissAll())
-		this.socketService.scrollTallyDataSubject.subscribe(() => this.scrollToBottom(this.tallyDataContainer))
-		this.socketService.deviceStateChanged.subscribe((deviceStates) => {
-			for (const device of this.socketService.devices) {
-				this.deviceBusColors[device.id] = deviceStates
-					.filter((d) => d.deviceId == device.id && d.sources.length > 0)
-					.map((d) => d.busId)
-			}
-		})
-		this.socketService.newLogsSubject.subscribe(() => {
-			this.filterLogs()
-			this.scrollToBottom(this.logsContainer)
-		})
-		if (this.authService.requireRole('admin')) {
-			this.socketService.socket.on('server_error', (id: string) => {
-				this.show_error(id)
-			})
-			this.socketService.socket.on('unread_error_reports', (list) => {
-				if (list.length > 0) {
-					this.show_errors_list()
+		this.subscriptions.push(this.socketService.closeModals.subscribe(() => this.modalService.dismissAll()))
+		this.subscriptions.push(
+			this.socketService.scrollTallyDataSubject.subscribe(() => this.scrollToBottom(this.tallyDataContainer)),
+		)
+		this.subscriptions.push(
+			this.socketService.deviceStateChanged.subscribe((deviceStates) => {
+				for (const device of this.socketService.devices) {
+					this.deviceBusColors[device.id] = deviceStates
+						.filter((d) => d.deviceId == device.id && d.sources.length > 0)
+						.map((d) => d.busId)
 				}
-			})
+			}),
+		)
+		this.subscriptions.push(
+			this.socketService.newLogsSubject.subscribe(() => {
+				this.filterLogs()
+				this.scrollToBottom(this.logsContainer)
+			}),
+		)
+		if (this.authService.requireRole('admin')) {
+			this.socketService.socket.on('server_error', this.handleServerError)
+			this.socketService.socket.on('unread_error_reports', this.handleUnreadErrorReports)
 			this.socketService.socket.emit('get_unread_error_reports')
 		}
 		if (this.authService.requireRole('settings:users')) {
 			this.socketService.socket.emit('users')
 		}
 		if (this.authService.requireRole('settings:config')) {
-			this.socketService.socket.on('config', (config) => {
-				this.config = config
-				this.updatedConfig = config
-				this.updatedRawConfig = JSON.stringify(config, null, 2)
-				this.configLoaded = true
-				// Check for warnings on initial load - validation will happen when editor is ready
-				// Use setTimeout to ensure editor is initialized
-				setTimeout(() => {
-					let errors: any[] = []
-					try {
-						if (this.configEditor) {
-							const editorJson = this.configEditor.getEditor()
-							if (editorJson) {
-								editorJson.validate()
-								if (editorJson.validateSchema && editorJson.validateSchema.errors) {
-									errors = editorJson.validateSchema.errors || []
-								} else if (editorJson.validator && editorJson.validator.errors) {
-									errors = editorJson.validator.errors || []
-								} else if ((editorJson as any).ajv && (editorJson as any).ajv.errors) {
-									errors = (editorJson as any).ajv.errors || []
-								}
-							}
-						}
-					} catch (e) {
-						console.error('Error validating config on load:', e)
-					}
-					this.checkConfigWarnings(config, errors)
-				}, 100)
-			})
+			this.socketService.socket.on('config', this.handleConfigReceived)
 			this.socketService.socket.emit('get_unread_error_reports')
 			this.socketService.socket.emit('get_config')
 			this.jsonEditorOptions.schema = configSchema
@@ -264,14 +283,38 @@ export class SettingsComponent {
 		this.setLogLevel(this.currentLogLevel)
 	}
 
+	public ngOnDestroy() {
+		for (const subscription of this.subscriptions) {
+			subscription.unsubscribe()
+		}
+		this.subscriptions = []
+
+		this.socketService.socket.off('server_error', this.handleServerError)
+		this.socketService.socket.off('unread_error_reports', this.handleUnreadErrorReports)
+		this.socketService.socket.off('config', this.handleConfigReceived)
+	}
+
 	public saveDeviceSource() {
+		if (
+			this.currentDeviceSource.sourceIdx === undefined ||
+			this.currentDeviceSource.sourceIdx === -1 ||
+			!this.socketService.sources[this.currentDeviceSource.sourceIdx]
+		) {
+			Swal.fire({
+				icon: 'error',
+				text: 'Please select a source!',
+				title: 'Error',
+				...globalSwalOptions,
+			})
+			return
+		}
 		this.editingDeviceSource = false
 		const deviceSourceObj = {
 			// is fine, the override is intentionally
 			// @ts-ignore
 			deviceId: this.currentDevice.id,
 			...this.currentDeviceSource,
-			sourceId: this.socketService.sources[this.currentDeviceSource.sourceIdx!].id,
+			sourceId: this.socketService.sources[this.currentDeviceSource.sourceIdx].id,
 		} as DeviceSource
 
 		let arbiterObj = {
@@ -318,13 +361,26 @@ export class SettingsComponent {
 	}
 
 	public saveDeviceAction() {
+		if (
+			this.currentDeviceAction.outputTypeIdx === undefined ||
+			this.currentDeviceAction.outputTypeIdx === -1 ||
+			!this.socketService.outputTypes[this.currentDeviceAction.outputTypeIdx]
+		) {
+			Swal.fire({
+				icon: 'error',
+				text: 'Please select an output type!',
+				title: 'Error',
+				...globalSwalOptions,
+			})
+			return
+		}
 		this.editingDeviceAction = false
 		const deviceActionObj = {
 			// is fine, the override is intentionally
 			// @ts-ignore
 			deviceId: this.currentDevice.id,
 			...this.currentDeviceAction,
-			outputTypeId: this.socketService.outputTypes[this.currentDeviceAction.outputTypeIdx!].id,
+			outputTypeId: this.socketService.outputTypes[this.currentDeviceAction.outputTypeIdx].id,
 		} as DeviceAction
 
 		let arbiterObj = {
@@ -367,7 +423,7 @@ export class SettingsComponent {
 				focusCancel: true,
 				...globalSwalOptions,
 			})
-			if (!result) {
+			if (!result.isConfirmed) {
 				return
 			}
 		}
@@ -567,7 +623,17 @@ export class SettingsComponent {
 			})
 			return
 		}
-		for (const field of this.getOptionFields(this.socketService.sourceTypes[this.currentSourceSelectedTypeIdx!])) {
+		const sourceTypeIdx = this.currentSourceSelectedTypeIdx
+		if (sourceTypeIdx === undefined || sourceTypeIdx === -1 || !this.socketService.sourceTypes[sourceTypeIdx]) {
+			Swal.fire({
+				icon: 'error',
+				text: 'Please select a source type!',
+				title: 'Error',
+				...globalSwalOptions,
+			})
+			return
+		}
+		for (const field of this.getOptionFields(this.socketService.sourceTypes[sourceTypeIdx])) {
 			if (field.fieldName != 'info' && !field.optional) {
 				if (
 					this.currentSource.data[field.fieldName] === null ||
@@ -597,7 +663,7 @@ export class SettingsComponent {
 		}
 		const sourceObj = {
 			...this.currentSource,
-			sourceTypeId: this.socketService.sourceTypes[this.currentSourceSelectedTypeIdx!].id,
+			sourceTypeId: this.socketService.sourceTypes[sourceTypeIdx].id,
 		} as any
 		if (!this.editingSource) {
 			sourceObj.reconnect = true
