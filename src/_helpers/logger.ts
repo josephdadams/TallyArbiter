@@ -48,7 +48,6 @@ export const logFilePath = getLogFilePath()
 export const Logs = [] //Used for loading logs in settings page
 
 var tallyDataFilePath = getTallyDataPath()
-export const tallyDataFile = fs.openSync(tallyDataFilePath, 'w') // Setup TallyData File
 
 const serverLoggerLevels = {
 	levels: {
