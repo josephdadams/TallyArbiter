@@ -544,6 +544,46 @@ export class OBSSource extends TallyInput {
 			})
 		})
 
+		this.obsClient5.on('SceneItemEnableStateChanged', (data) => {
+			this.obsClient5
+				.call('GetSceneItemList', { sceneName: data.sceneName })
+				.then((sceneItems) => this.findSceneItemSourceName5(sceneItems.sceneItems, data.sceneItemId))
+				.then((sourceName) => {
+					if (!sourceName) {
+						logger(
+							`Source: ${this.source.name}  Could not resolve scene item ${data.sceneItemId} in scene "${data.sceneName}" to a source name`,
+							'error',
+						)
+						return
+					}
+
+					const parentSceneBusses = this.tally.getValue()[data.sceneName] //Yes, I know that doing this is not good with RxJS, but I don't want to update the entire codebase just for this
+					if (!parentSceneBusses) {
+						//Scene not yet tracked in tally (e.g. event fired before initial sync completed); nothing to update
+						return
+					}
+
+					if (data.sceneItemEnabled) {
+						if (parentSceneBusses.includes('program')) {
+							this.addBusToAddress(sourceName, 'program')
+						}
+						if (parentSceneBusses.includes('preview')) {
+							this.addBusToAddress(sourceName, 'preview')
+						}
+					} else {
+						this.removeBusFromAddress(sourceName, 'preview')
+						this.removeBusFromAddress(sourceName, 'program')
+					}
+					this.sendTallyData()
+				})
+				.catch((error) => {
+					logger(
+						`Source: ${this.source.name}  Error while handling scene item visibility change in scene "${data.sceneName}": ${error}`,
+						'error',
+					)
+				})
+		})
+
 		this.obsClient5.on('InputCreated', (data) => {
 			this.obsClient5
 				.call('GetInputVolume', { inputName: data.inputName })
@@ -700,27 +740,86 @@ export class OBSSource extends TallyInput {
 	 * @param bus - Bus to assign (preview/program).
 	 */
 	private processSceneChange5(sceneName: string, bus: string): void {
-		// No support for specific handling for Groups since Group usage is discouraged in OBS, see https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md#getsceneitemlist
-		this.obsClient5.call('GetSceneItemList', { sceneName: sceneName }).then((sceneItems) => {
-			let sceneSources = 0
-			for (let i = 0; i < sceneItems.sceneItems.length; i++) {
-				// All scene source items to the bus
-				// Should a check be done for audio input if they are enabled?
-				this.addBusToAddress(sceneItems.sceneItems[i].sourceName as string, bus)
-				if (sceneItems.sceneItems[i].sourceType == 'OBS_SOURCE_TYPE_INPUT') {
-					sceneSources++
-				} else if (sceneItems.sceneItems[i].sourceType == 'OBS_SOURCE_TYPE_SCENE') {
-					// Nested scene, dig deeper...
-					this.processSceneChange5(sceneItems.sceneItems[i].sourceName as string, bus)
-				}
-			}
+		this.obsClient5
+			.call('GetSceneItemList', { sceneName: sceneName })
+			.then((sceneItems) => {
+				this.processSceneItemList5(sceneItems.sceneItems, bus)
+			})
+			.catch((error) => {
+				logger(
+					`Source: ${this.source.name}  Error while getting scene item list for scene "${sceneName}": ${error}`,
+					'error',
+				)
+			})
+	}
 
-			// If this scene doesn't contain a scene then we trigger this.sendTallyData().
-			// The check is done to keep uncessary updates to a minimum.
-			if (sceneSources == sceneItems.sceneItems.length) {
-				this.sendTallyData()
+	/** Adds a bus for each item in a scene item list (as returned by GetSceneItemList/GetGroupSceneItemList),
+	 * recursing into nested scenes and groups.
+	 *
+	 * Groups report sourceType 'OBS_SOURCE_TYPE_SCENE', the same as a genuine nested scene, but OBS websocket
+	 * rejects GetSceneItemList for a group (it requires GetGroupSceneItemList instead) - see the `isGroup` field
+	 * documented at https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md#getsceneitemlist
+	 * @param sceneItems - Array of scene items (SceneItem) as returned by GetSceneItemList/GetGroupSceneItemList.
+	 * @param bus - Bus to assign (preview/program).
+	 */
+	private processSceneItemList5(sceneItems: any[], bus: string): void {
+		let sceneSources = 0
+		for (let i = 0; i < sceneItems.length; i++) {
+			const sceneItem = sceneItems[i]
+			// All scene source items to the bus
+			// Should a check be done for audio input if they are enabled?
+			this.addBusToAddress(sceneItem.sourceName as string, bus)
+			if (sceneItem.isGroup) {
+				// Group: enumerate its children via GetGroupSceneItemList, not GetSceneItemList.
+				this.obsClient5
+					.call('GetGroupSceneItemList', { sceneName: sceneItem.sourceName as string })
+					.then((groupItems) => {
+						this.processSceneItemList5(groupItems.sceneItems, bus)
+					})
+					.catch((error) => {
+						logger(
+							`Source: ${this.source.name}  Error while getting group scene item list for group "${sceneItem.sourceName}": ${error}`,
+							'error',
+						)
+					})
+			} else if (sceneItem.sourceType == 'OBS_SOURCE_TYPE_INPUT') {
+				sceneSources++
+			} else if (sceneItem.sourceType == 'OBS_SOURCE_TYPE_SCENE') {
+				// Nested scene, dig deeper...
+				this.processSceneChange5(sceneItem.sourceName as string, bus)
 			}
-		})
+		}
+
+		// If this scene doesn't contain a nested scene or group then we trigger this.sendTallyData().
+		// The check is done to keep uncessary updates to a minimum.
+		if (sceneSources == sceneItems.length) {
+			this.sendTallyData()
+		}
+	}
+
+	/** Recursively searches a scene item list (and any groups within it) for the item with the given numeric ID,
+	 * returning the underlying source name.
+	 * @param sceneItems - Array of scene items (SceneItem) as returned by GetSceneItemList/GetGroupSceneItemList.
+	 * @param sceneItemId - Numeric ID of the scene item to find.
+	 */
+	private findSceneItemSourceName5(sceneItems: any[], sceneItemId: number): Promise<string | undefined> {
+		const directMatch = sceneItems.find((sceneItem) => sceneItem.sceneItemId === sceneItemId)
+		if (directMatch) {
+			return Promise.resolve(directMatch.sourceName as string)
+		}
+
+		const groups = sceneItems.filter((sceneItem) => sceneItem.isGroup)
+
+		return groups.reduce<Promise<string | undefined>>(
+			(promise, group) =>
+				promise.then((found) => {
+					if (found) return found
+					return this.obsClient5
+						.call('GetGroupSceneItemList', { sceneName: group.sourceName as string })
+						.then((groupItems) => this.findSceneItemSourceName5(groupItems.sceneItems, sceneItemId))
+				}),
+			Promise.resolve(undefined as string | undefined),
+		)
 	}
 
 	/** Adds audio input to addresses, to the "audioInputs" list and change tally bus if it's not muted. */
