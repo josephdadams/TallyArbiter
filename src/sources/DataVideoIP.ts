@@ -97,6 +97,7 @@ export class DataVideoIP extends TallyInput {
 
 		this.socket_request.on('error', (err) => {
 			logger(`DataVideoIP: Network error: ${err.message}`, 'error')
+			this.connected.next(false)
 		})
 
 		this.socket_request.connect(5009, this.source.data.ip, () => {
@@ -117,10 +118,10 @@ export class DataVideoIP extends TallyInput {
 
 					this.setupConnection()
 				} else {
-					this.reconnect()
+					this.connected.next(false)
 				}
 			} else {
-				this.reconnect()
+				this.connected.next(false)
 			}
 		})
 	}
@@ -166,10 +167,27 @@ export class DataVideoIP extends TallyInput {
 
 	/**
 	 * Reconnects by cleaning up and re-initializing TCP connections after a short delay.
-	 * If the reconnection happens to fast, the vision mixer may crash
+	 * If the reconnection happens to fast, the vision mixer may crash.
+	 *
+	 * Note: this deliberately does NOT call this.exit(), which would reset the base
+	 * class's `tryReconnecting` flag and cause the next `connected.next(false)` to be
+	 * treated as a fresh "startup" event instead of a reconnect-worthy disconnect. That
+	 * would stop the base class from scheduling any further reconnect attempts after
+	 * this one. Sockets are cleaned up directly instead, and listeners are removed
+	 * first so a delayed/stale 'close' or 'error' event from the old socket can't fire
+	 * an extra, duplicate connected.next(false) after we've already moved on.
 	 */
 	public reconnect(): void {
-		this.exit()
+		if (this.socket_realtime) {
+			this.socket_realtime.removeAllListeners()
+			this.socket_realtime.destroy()
+			delete this.socket_realtime
+		}
+		if (this.socket_request) {
+			this.socket_request.removeAllListeners()
+			this.socket_request.destroy()
+			delete this.socket_request
+		}
 		setTimeout(() => this.initTCP(), 500)
 	}
 
@@ -198,6 +216,15 @@ export class DataVideoIP extends TallyInput {
 	 */
 	processBuffer(buffer: Buffer) {
 		// logger(`DataVideoIP: Received buffer: ${buffer.toString('hex')}`, 'info-quiet');
+
+		// Minimum valid frame is an 8-byte header (commandId lives at offset 4-7).
+		// A short/malformed TCP segment could otherwise throw a RangeError here.
+		// Each 'data' event is treated as a self-contained frame (there is no
+		// cross-event carry-over buffer in this class), so we simply drop/ignore
+		// anything shorter than a header rather than attempting to parse it.
+		if (buffer.length < 8) {
+			return
+		}
 
 		// Parse command ID (little-endian, offset 4)
 		const commandId = buffer.readInt32LE(4)
