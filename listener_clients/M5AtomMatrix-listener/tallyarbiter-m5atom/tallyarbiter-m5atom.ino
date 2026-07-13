@@ -608,12 +608,24 @@ int getBusPriorityById(String busId) {
 
 void processTallyData() {
   bool typeChanged = false;
+  // Sentinel lower than any valid bus priority (priorities are >= 0), so the
+  // first active bus encountered always wins the initial comparison below.
+  int bestPriority = -1;
   for (int i = 0; i < DeviceStates.length(); i++) {
     if (DeviceStates[i]["sources"].length() > 0) {
-      typeChanged = true;
-      actualType = getBusTypeById(JSON.stringify(DeviceStates[i]["busId"]));
-      actualColor = getBusColorById(JSON.stringify(DeviceStates[i]["busId"]));
-      actualPriority = getBusPriorityById(JSON.stringify(DeviceStates[i]["busId"]));
+      String busId = JSON.stringify(DeviceStates[i]["busId"]);
+      int busPriority = getBusPriorityById(busId);
+      // Only adopt this bus's tally if it outranks the highest-priority
+      // active bus seen so far (higher priority number = higher precedence,
+      // e.g. Program=200 outranks Aux=100), instead of always taking the
+      // last active bus in DeviceStates regardless of its priority.
+      if (busPriority > bestPriority) {
+        typeChanged = true;
+        bestPriority = busPriority;
+        actualType = getBusTypeById(busId);
+        actualColor = getBusColorById(busId);
+        actualPriority = busPriority;
+      }
     }
   }
   if(!typeChanged) {
