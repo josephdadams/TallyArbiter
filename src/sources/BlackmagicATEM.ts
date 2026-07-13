@@ -99,8 +99,8 @@ export class BlackmagicATEMSource extends TallyInput {
 			this.processATEMTally()
 		})
 
-		// this.atemClient.on('info', console.log);
-		this.atemClient.on('error', console.error)
+		// this.atemClient.on('info', (info) => logger(`Source: ${source.name} ATEM info: ${info}`, 'info-quiet'));
+		this.atemClient.on('error', (error) => logger(`Source: ${source.name} ATEM Error: ${error}`, 'error'))
 
 		this.atemClient.connect(atemIP)
 	}
@@ -139,7 +139,7 @@ export class BlackmagicATEMSource extends TallyInput {
 			case RecordingStatus.Stopping:
 				this.prvList.add('{{RECORDING}}')
 				break
-			case RecordingStatus.Stopping:
+			case RecordingStatus.Recording:
 				this.pgmList.add('{{RECORDING}}')
 				break
 			default:
