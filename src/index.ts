@@ -206,6 +206,14 @@ function startUp() {
 			generateAndSendErrorReport(err)
 		}
 	})
+
+	process.on('SIGINT', () => {
+		shutdown().finally(() => process.exit(0))
+	})
+
+	process.on('SIGTERM', () => {
+		shutdown().finally(() => process.exit(0))
+	})
 }
 
 //Sentry Monitoring Setup
@@ -2999,6 +3007,43 @@ function generateAndSendErrorReport(error: Error) {
 	io.emit('server_error', id)
 }
 
+// Unpublishes the mDNS advertisement (and tears down the underlying mDNS
+// server) so that a stable, UUID-derived service name doesn't linger as a
+// stale record after this process exits. Used both by the SIGINT/SIGTERM
+// handlers above and by the Electron wrapper's before-quit handler, since
+// the latter runs the server in-process and has no OS signal to rely on.
+// A safety timeout guarantees this always resolves, even if the mDNS
+// server can't reach the network to send its goodbye packets.
+let shuttingDown = false
+function shutdown(): Promise<void> {
+	if (shuttingDown) {
+		return Promise.resolve()
+	}
+	shuttingDown = true
+
+	return new Promise((resolve) => {
+		let settled = false
+		const finish = () => {
+			if (settled) return
+			settled = true
+			resolve()
+		}
+
+		const safetyTimer = setTimeout(finish, 2000)
+
+		try {
+			bonjour.unpublishAll(() => {
+				clearTimeout(safetyTimer)
+				bonjour.destroy()
+				finish()
+			})
+		} catch (err) {
+			clearTimeout(safetyTimer)
+			finish()
+		}
+	})
+}
+
 startUp()
 
-export { logFilePath, getConfigRedacted, generateAndSendErrorReport }
+export { logFilePath, getConfigRedacted, generateAndSendErrorReport, shutdown }
