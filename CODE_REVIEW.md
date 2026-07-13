@@ -244,15 +244,20 @@ Two systemic issues affect multiple files:
 53. [x] **`UDP.ts:39-49`** — no `.on('error', ...)` on the dgram client (throws uncaught on send failure), and the `client.send()` callback is a plain `function`, not an arrow function — `this` is `undefined` inside it in strict-mode ESM, so the success-path logging throws `TypeError` on **every successful send**.
    **Status:** Fixed in PR #1046.
 
-54. [ ] **`TSL.ts:121-131`** — the raw TCP socket for "TSL 3.1 TCP" has no `.on('error', ...)` handler, unlike the equivalent sockets in `TCP.ts:37` and `RossTalk.ts:24`.
+54. [x] **`TSL.ts:121-131`** — the raw TCP socket for "TSL 3.1 TCP" has no `.on('error', ...)` handler, unlike the equivalent sockets in `TCP.ts:37` and `RossTalk.ts:24`.
+   **Status:** Fixed in PR #1055.
 
-55. [ ] **`TSL.ts:163`** — typo `data.sequnece` instead of `sequence` — the "OFF" DLE/STX sequence option can never take effect.
+55. [x] **`TSL.ts:163`** — typo `data.sequnece` instead of `sequence` — the "OFF" DLE/STX sequence option can never take effect.
+   **Status:** Fixed in PR #1055.
 
-56. [ ] **`TSL.ts:146-151`** — missing `return` after logging "IP and Port must be given" — falls through and sends to invalid destination data anyway.
+56. [x] **`TSL.ts:146-151`** — missing `return` after logging "IP and Port must be given" — falls through and sends to invalid destination data anyway.
+   **Status:** Fixed in PR #1055.
 
-57. [ ] **`TSL.ts:152-158,167-173`** — `!this.action.data.index` treats a legitimate `index: 0` as "not given," and a later unconditional `Object.entries` copy overwrites the "default to 1" logic anyway whenever the key exists at all.
+57. [x] **`TSL.ts:152-158,167-173`** — `!this.action.data.index` treats a legitimate `index: 0` as "not given," and a later unconditional `Object.entries` copy overwrites the "default to 1" logic anyway whenever the key exists at all.
+   **Status:** Fixed in PR #1055.
 
-58. [ ] **`TSL.ts:90-92`** — `bufUMD[0] = 0x80 + parseInt(address)` has no bounds check; an out-of-range address silently truncates into the byte (Buffer index masking) instead of erroring, corrupting the packet.
+58. [x] **`TSL.ts:90-92`** — `bufUMD[0] = 0x80 + parseInt(address)` has no bounds check; an out-of-range address silently truncates into the byte (Buffer index masking) instead of erroring, corrupting the packet.
+   **Status:** Fixed in PR #1055.
 
 59. [x] **`OSC.ts:36` vs `:46-47`** — help text claims quoted args with spaces are supported, but `args.split(' ')` splits before quote-stripping, so `"hello world"` becomes two malformed tokens instead of one string argument.
    **Status:** Fixed in PR #1053.
