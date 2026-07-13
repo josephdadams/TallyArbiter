@@ -55,11 +55,13 @@ These allow privilege escalation, data exposure, or auth bypass.
     `src/_helpers/auth.ts:55-64`. On any invalid/expired JWT, execution falls through to `resolve(decoded.user)` where `decoded` is `undefined` — throws inside an async callback, i.e. an **uncaught exception that can crash the whole process**, not just a rejected promise. This fires on essentially every authenticated socket event (`requireRole`, `TallyArbiter_Manage`), so any expired token can take the server down.
    **Status:** Fixed in PR #1019.
 
-11. [ ] **`typeof x === undefined` typo — dead guard.**
+11. [x] **`typeof x === undefined` typo — dead guard.**
     `src/index.ts:291`: `typeof tmpSocketAccessTokens[socket.id] === undefined` can never be true (`typeof` returns the string `"undefined"`). The intended "Access token required" error path never runs.
+   **Status:** Fixed in PR #1033.
 
-12. [ ] **Unvalidated `listenerclient_connect` payload throws uncaught exceptions.**
+12. [x] **Unvalidated `listenerclient_connect` payload throws uncaught exceptions.**
     `src/index.ts:412-417`. `obj !== null` is dead code (`typeof null === 'object'`), so a literal `null` payload skips the reparse and then `obj.deviceId` throws on `null`. A non-object, non-JSON payload throws a `SyntaxError` from `JSON.parse` with no surrounding try/catch — both triggerable purely by client-supplied socket data.
+   **Status:** Fixed in PR #1033.
 
 13. [x] **`cloud_devices` handler copies fields from the wrong array index.**
     `src/index.ts:775-786`. Matches on `data[i].id === devices[j].id` but then reads `data[j].name/description/tslAddress/enabled` instead of `data[i]` — corrupts a matched device with fields from an unrelated array element (or throws if array lengths differ). The adjacent `cloud_sources` handler (`:715-765`) does this correctly with `data[i]`.
@@ -69,20 +71,25 @@ These allow privilege escalation, data exposure, or auth bypass.
     `src/index.ts:2501-2508`. `addUser()` returns a `Promise` (always truthy), so `if (addUser(obj.user))` always takes the success branch — the "user already exists" error is unreachable, and the rejected promise on failure goes unhandled.
    **Status:** Fixed in PR #1029.
 
-15. [ ] **`CheckListenerClients` guard is always false.**
+15. [x] **`CheckListenerClients` guard is always false.**
     `src/index.ts:2899-2912`. `GetDeviceByDeviceId` (`:2538-2553`) always falls back to a synthetic `{id: 'unassigned', ...}` object rather than returning falsy, so `!GetDeviceByDeviceId(...)` never fires and stale listener clients are never reassigned.
+   **Status:** Fixed in PR #1033.
 
-16. [ ] **Off-by-one splice bug repeated across several cleanup loops.**
+16. [x] **Off-by-one splice bug repeated across several cleanup loops.**
     `removeTestDeviceSource()` (`:1341-1356`, duplicated twice), and the cloud-sync stale-entry cleanups for `cloud_sources` (`:742-758`), `cloud_devices` (`:795-811`), `cloud_device_sources` (`:842-858`), `cloud_listeners` (`:896-912`) all do `arr.splice(i, 1)` inside a forward `for` loop without `i--` — consecutive stale entries aren't fully removed in one pass. `ToggleTestMode` (`:1326-1330`) shows the correct pattern for comparison.
+   **Status:** Fixed in PR #1033.
 
-17. [ ] **`SourceClients` map entries leak forever.**
+17. [x] **`SourceClients` map entries leak forever.**
     Set at `src/index.ts:1571`, never deleted. `TallyArbiter_Delete_Source` only calls `.exit()` on the client (`:2028-2072`, via `:1742-1746`) but leaves the map entry (and its RxJS subscriptions/timers) referenced indefinitely — unbounded growth on servers that add/remove sources repeatedly.
+   **Status:** Fixed in PR #1033.
 
-18. [ ] **`tmpSocketAccessTokens` never cleaned up on disconnect.**
+18. [x] **`tmpSocketAccessTokens` never cleaned up on disconnect.**
     Declared as `string[]` (`:285`) but used as a `socket.id`-keyed map; the `disconnect` handler (`:1077-1081`) never deletes the entry — unbounded memory leak over a long-running server's life.
+   **Status:** Fixed in PR #1033.
 
-19. [ ] **Hardcoded default bus UUIDs break camera tally after bus edits.**
+19. [x] **Hardcoded default bus UUIDs break camera tally after bus edits.**
     `src/index.ts:2780-2781` compares `bus.busId` against hardcoded default Program/Preview UUIDs from `ConfigDefaults.bus_options`. Since bus options are user-editable/deletable, a user who recreates their Program/Preview buses silently breaks `UpdateCamera`. Prefer `bus_options.find(b => b.type === 'program')`.
+   **Status:** Fixed in PR #1033.
 
 ### Improvements
 - Misleading comment: `:2698` says "runs every 5 minutes" for a `setTimeout(..., 5 * 1000)` (5 seconds).
@@ -127,7 +134,8 @@ These allow privilege escalation, data exposure, or auth bypass.
 27. [x] **`_helpers/networkInterfaces.ts:12` — interface name truncated on first space** (`networkInterface.split(' ')[0]`), which can collapse distinct Windows adapters (`"Ethernet"`, `"Ethernet 2"`) to the same reported name.
    **Status:** Fixed in PR #1028.
 
-28. [ ] **`_types/TallyInputConfigField` vs `SourceTypeDataFields`/`OutputTypeDataFields` — duplicated field-type unions have drifted.** Both independently re-declared unions omit `'bool'`, forcing `as SourceTypeDataFields`/`as OutputTypeDataFields` casts in `src/index.ts:1228,1238` that silently defeat the type checker even though `actions/Ember.ts` and `actions/TSL.ts` use `fieldType: 'bool'`.
+28. [x] **`_types/TallyInputConfigField` vs `SourceTypeDataFields`/`OutputTypeDataFields` — duplicated field-type unions have drifted.** Both independently re-declared unions omit `'bool'`, forcing `as SourceTypeDataFields`/`as OutputTypeDataFields` casts in `src/index.ts:1228,1238` that silently defeat the type checker even though `actions/Ember.ts` and `actions/TSL.ts` use `fieldType: 'bool'`.
+   **Status:** Fixed in PR #1034.
 
 ### Improvements
 - `_helpers/clone.ts` — homegrown deep-clone via `obj.constructor()` + mutate-then-restore marker; breaks on non-plain objects, doesn't truly handle circular refs, throws on frozen input. Prefer `structuredClone()` (Node ≥ 17).
