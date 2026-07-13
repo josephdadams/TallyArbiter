@@ -27,6 +27,10 @@ export class OSCSource extends TallyInput {
 		})
 
 		this.server.on('message', (oscMsg, timeTag, info) => {
+			if (!oscMsg.args?.length) {
+				return
+			}
+
 			logger(
 				`Source: ${source.name} OSC message received: ${oscMsg.address} ${oscMsg.args[0].value.toString()}`,
 				'info-quiet',
@@ -61,6 +65,7 @@ export class OSCSource extends TallyInput {
 
 		this.server.on('error', (error) => {
 			logger(`Source: ${source.name} OSC Error: ${error}`, 'error')
+			this.connected.next(false)
 		})
 
 		this.server.on('ready', () => {
