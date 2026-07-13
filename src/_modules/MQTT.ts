@@ -26,7 +26,6 @@ export class MQTTService extends EventEmitter {
 	private client: MqttClient | null = null
 	private config: ConfigMQTT | null = null
 	private isConnected: boolean = false
-	private reconnectTimer: NodeJS.Timeout | null = null
 
 	public start(config: ConfigMQTT): void {
 		if (!config.enabled) {
@@ -39,11 +38,6 @@ export class MQTTService extends EventEmitter {
 	}
 
 	public stop(): void {
-		if (this.reconnectTimer) {
-			clearTimeout(this.reconnectTimer)
-			this.reconnectTimer = null
-		}
-
 		if (this.client) {
 			this.client.end()
 			this.client = null
@@ -106,8 +100,6 @@ export class MQTTService extends EventEmitter {
 				this.isConnected = true
 				logger('MQTT broker connected successfully.', 'info')
 				this.publishStatus('online')
-				// Publish initial state for all devices
-				this.publishAllDeviceStates()
 			})
 
 			this.client.on('error', (error) => {
@@ -186,11 +178,6 @@ export class MQTTService extends EventEmitter {
 		this.publish(availabilityTopic, 'online')
 	}
 
-	private publishAllDeviceStates(): void {
-		// This will be called by the main index.ts after device states are available
-		// For now, we'll rely on updateDeviceState being called for each device
-	}
-
 	private publishStatus(status: 'online' | 'offline'): void {
 		if (!this.config) return
 
@@ -209,7 +196,7 @@ export class MQTTService extends EventEmitter {
 				payloadString,
 				{
 					qos: this.config.qos || 0,
-					retain: this.config.retain !== undefined ? this.config.retain : false,
+					retain: this.config.retain !== undefined ? this.config.retain : true,
 				},
 				(error) => {
 					if (error) {
