@@ -131,7 +131,7 @@ export class SocketService {
 				.map((l: any) => {
 					l.ipAddress = l.ipAddress.replace('::ffff:', '')
 					l.device = this.devices.find((d) => d.id == l.deviceId)
-					if (!l.inactive) l.device.listenerCount += 1
+					if (!l.inactive && l.device) l.device.listenerCount += 1
 					return l
 				})
 				.sort((a: any, b: any) => (a.inactive === b.inactive ? 0 : a.inactive ? 1 : -1))
@@ -167,13 +167,11 @@ export class SocketService {
 		})
 
 		this.socket.on('interfaces', (interfaces: any[]) => {
-			interfaces.forEach((net_interface) => {
-				this.interfaces.push({
-					name: net_interface.name,
-					address: net_interface.address,
-					url: `http://${net_interface.address}:4455/#/tally`,
-				})
-			})
+			this.interfaces = interfaces.map((net_interface) => ({
+				name: net_interface.name,
+				address: net_interface.address,
+				url: `http://${net_interface.address}:4455/#/tally`,
+			}))
 		})
 		this.socket.on('logs', (logs: LogItem[]) => {
 			this.logs = logs
@@ -271,12 +269,6 @@ export class SocketService {
 				this.deviceStateChanged.next(this.device_states)
 			},
 		)
-		this.socket.on('listener_clients', (listenerClients: ListenerClient[]) => {
-			this.listenerClients = listenerClients.map((l) => {
-				l.ipAddress = l.ipAddress.replace('::ffff:', '')
-				return l
-			})
-		})
 		this.socket.on('manage_response', (response: any) => {
 			switch (response.result) {
 				case 'source-added-successfully':
@@ -388,7 +380,6 @@ export class SocketService {
 		this.socket.emit('uiVersion')
 		this.socket.emit('externalAddress')
 		this.socket.emit('interfaces')
-		this.socket.emit('get_error_reports')
 	}
 
 	private prepareSources(sources: Source[]): Source[] {
