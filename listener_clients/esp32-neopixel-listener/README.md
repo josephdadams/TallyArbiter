@@ -30,8 +30,9 @@ Done! Now your board is running the latest listener client firmware version. Go 
 
 ## 2. Using the Arduino IDE
 
-1. Go to https://docs.m5stack.com/en/arduino/arduino_development follow the instructions under heading "Boards Manager"
-2. Open tallyarbiter-m5atom.ino in Arduino IDE
+1. Go to https://docs.m5stack.com/en/arduino/arduino_development follow the instructions under heading "Boards Manager" to install the **ESP32** board package.
+   Under Tools > Board, select an actual **ESP32** board (e.g. "ESP32 Dev Module"). Do **not** select an ESP8266/NodeMCU board — this project depends on `Preferences.h` and `ESPmDNS.h`, which are only bundled with the ESP32 Arduino core.
+2. Open esp32-neopixel-listener.ino in Arduino IDE
 3. In Library Manager install FastLED, SocketIoClient, Arduino_JSON, WebSockets version 2.3.4, WifiManager (by tzapu) and MultiButton
 4. Plug your board into the computer.
 5. In the IDE go to Sketch -> Upload.
@@ -43,7 +44,7 @@ Done! Now your board is running the latest listener client firmware version. Go 
 
 1. Plug the device in a power source
 2. Wait for the boot animation to finish, if there is no saved AP it will startup an Access Point where you can configure one.
-3. Connect to the 'm5Atom-1xxxxxxx' Access Point via phone and go to 192.168.4.1 (or wait a bit, a captive portal page should open).
+3. Connect to the 'neoPixel-xxxxxxxx' Access Point via phone and go to 192.168.4.1 (or wait a bit, a captive portal page should open).
 4. Set your Tally Arbiter server ip by going to _"Setup"_ page.
 5. Go back, then go to the "Configure WiFi" page and set your WiFi credentials. The board should reboot.
 6. If the connection is successful a WiFi animation and a green tick mark will show. If not a red cross will be shown and you can reboot the device to try again.
