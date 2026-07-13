@@ -4,15 +4,12 @@ import fs from 'fs'
 import winston from 'winston'
 import { io } from 'socket.io-client'
 import { LogItem } from '../_models/LogItem'
+import { getAppDataFolder } from './appDataFolder'
 
 function getLogFilePath(): string {
 	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, '-')
 
-	const logFolder = path.join(
-		process.env.APPDATA ||
-			(process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + '/.local/share/'),
-		'TallyArbiter/logs',
-	)
+	const logFolder = path.join(getAppDataFolder(), 'logs')
 
 	findRemoveSync(logFolder, { age: { seconds: 604800 }, extensions: '.talog', limit: 100 })
 
@@ -26,11 +23,7 @@ function getLogFilePath(): string {
 function getTallyDataPath(): string {
 	var today = new Date().toISOString().replace('T', ' ').replace(/\..+/, '').replace(/:/g, '-')
 
-	const TallyDataFolder = path.join(
-		process.env.APPDATA ||
-			(process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + '/.local/share/'),
-		'TallyArbiter/TallyData',
-	)
+	const TallyDataFolder = path.join(getAppDataFolder(), 'TallyData')
 
 	findRemoveSync(TallyDataFolder, { age: { seconds: 604800 }, extensions: '.tadata', limit: 100 })
 

@@ -4,16 +4,11 @@ import { ErrorReportsListElement } from '../_models/ErrorReportsListElement'
 import { ErrorReport } from '../_models/ErrorReport'
 import { logger, logFilePath, getConfigRedacted } from '..'
 import { uuidv4 } from './uuid'
+import { getAppDataFolder } from './appDataFolder'
 
 export function getErrorReportsList(): ErrorReportsListElement[] {
 	try {
-		const ErrorReportsFolder = path.join(
-			process.env.APPDATA ||
-				(process.platform == 'darwin'
-					? process.env.HOME + '/Library/Preferences/'
-					: process.env.HOME + '/.local/share/'),
-			'TallyArbiter/ErrorReports',
-		)
+		const ErrorReportsFolder = path.join(getAppDataFolder(), 'ErrorReports')
 		const ErrorReportsFiles = fs.readdirSync(ErrorReportsFolder)
 		let errorReports = []
 		ErrorReportsFiles.forEach((file) => {
@@ -29,13 +24,7 @@ export function getErrorReportsList(): ErrorReportsListElement[] {
 
 export function getReadErrorReports(): string[] {
 	try {
-		const readErrorReportsFilePath = path.join(
-			process.env.APPDATA ||
-				(process.platform == 'darwin'
-					? process.env.HOME + '/Library/Preferences/'
-					: process.env.HOME + '/.local/share/'),
-			'TallyArbiter/readErrorReports.json',
-		)
+		const readErrorReportsFilePath = path.join(getAppDataFolder(), 'readErrorReports.json')
 		return JSON.parse(fs.readFileSync(readErrorReportsFilePath, 'utf8'))
 	} catch (e) {
 		return []
@@ -44,13 +33,7 @@ export function getReadErrorReports(): string[] {
 
 export function markErrorReportAsRead(errorReportId: string): boolean {
 	try {
-		const readErrorReportsFilePath = path.join(
-			process.env.APPDATA ||
-				(process.platform == 'darwin'
-					? process.env.HOME + '/Library/Preferences/'
-					: process.env.HOME + '/.local/share/'),
-			'TallyArbiter/readErrorReports.json',
-		)
+		const readErrorReportsFilePath = path.join(getAppDataFolder(), 'readErrorReports.json')
 		let readErrorReportsList = getReadErrorReports()
 		readErrorReportsList.push(errorReportId)
 		fs.writeFileSync(readErrorReportsFilePath, JSON.stringify(readErrorReportsList))
@@ -71,13 +54,7 @@ export function getUnreadErrorReportsList(): ErrorReportsListElement[] {
 export function getErrorReport(reportId: string): ErrorReport | false {
 	try {
 		if (!reportId.match(/^[a-zA-Z0-9]+$/i)) return false
-		const ErrorReportsFolder = path.join(
-			process.env.APPDATA ||
-				(process.platform == 'darwin'
-					? process.env.HOME + '/Library/Preferences/'
-					: process.env.HOME + '/.local/share/'),
-			'TallyArbiter/ErrorReports',
-		)
+		const ErrorReportsFolder = path.join(getAppDataFolder(), 'ErrorReports')
 		const ErrorReportFile = path.join(ErrorReportsFolder, reportId + '.json')
 		return JSON.parse(fs.readFileSync(ErrorReportFile, 'utf8'))
 	} catch (e) {
@@ -86,11 +63,7 @@ export function getErrorReport(reportId: string): ErrorReport | false {
 }
 
 export function getErrorReportPath(id: string): string {
-	const ErrorReportsFolder = path.join(
-		process.env.APPDATA ||
-			(process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + '/.local/share/'),
-		'TallyArbiter/ErrorReports',
-	)
+	const ErrorReportsFolder = path.join(getAppDataFolder(), 'ErrorReports')
 
 	if (!fs.existsSync(ErrorReportsFolder)) {
 		fs.mkdirSync(ErrorReportsFolder, { recursive: true })
@@ -123,23 +96,11 @@ export function generateErrorReport(error: Error) {
 
 export function markErrorReportsAsRead() {
 	try {
-		const ErrorReportsFolder = path.join(
-			process.env.APPDATA ||
-				(process.platform == 'darwin'
-					? process.env.HOME + '/Library/Preferences/'
-					: process.env.HOME + '/.local/share/'),
-			'TallyArbiter/ErrorReports',
-		)
+		const ErrorReportsFolder = path.join(getAppDataFolder(), 'ErrorReports')
 		const ErrorReportsFiles = fs.readdirSync(ErrorReportsFolder).map((file) => {
 			return file.replace(/\.[^/.]+$/, '')
 		})
-		const readErrorReportsFilePath = path.join(
-			process.env.APPDATA ||
-				(process.platform == 'darwin'
-					? process.env.HOME + '/Library/Preferences/'
-					: process.env.HOME + '/.local/share/'),
-			'TallyArbiter/readErrorReports.json',
-		)
+		const readErrorReportsFilePath = path.join(getAppDataFolder(), 'readErrorReports.json')
 		fs.writeFileSync(readErrorReportsFilePath, JSON.stringify(ErrorReportsFiles))
 		return true
 	} catch (e) {
@@ -148,16 +109,8 @@ export function markErrorReportsAsRead() {
 }
 
 export function deleteEveryErrorReport() {
-	const ErrorReportsFolder = path.join(
-		process.env.APPDATA ||
-			(process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + '/.local/share/'),
-		'TallyArbiter/ErrorReports',
-	)
+	const ErrorReportsFolder = path.join(getAppDataFolder(), 'ErrorReports')
 	fs.emptyDirSync(ErrorReportsFolder)
-	const readErrorReportsFilePath = path.join(
-		process.env.APPDATA ||
-			(process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences/' : process.env.HOME + '/.local/share/'),
-		'TallyArbiter/readErrorReports.json',
-	)
+	const readErrorReportsFilePath = path.join(getAppDataFolder(), 'readErrorReports.json')
 	fs.writeFileSync(readErrorReportsFilePath, '[]')
 }
