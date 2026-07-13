@@ -1,3 +1,4 @@
+import { logger } from '..'
 import { RegisterTallyInput } from '../_decorators/RegisterTallyInput.decorator'
 import { FreePort, UsePort } from '../_decorators/UsesPort.decorator'
 import { Source } from '../_models/Source'
@@ -18,7 +19,15 @@ export class SimplyLivePSource extends TallyInput {
 
 		UsePort(port, this.source.id)
 		this.server = dgram.createSocket('udp4')
-		this.server.bind(port)
+
+		this.server.on('error', (err) => {
+			logger(`Source: ${source.name} SimplyLive Error: ${err}`, 'error')
+			this.connected.next(false)
+		})
+
+		this.server.on('listening', () => {
+			this.connected.next(true)
+		})
 
 		this.server.on('message', (message) => {
 			if (message.length >= 12) {
@@ -55,7 +64,7 @@ export class SimplyLivePSource extends TallyInput {
 			}
 		})
 
-		this.connected.next(true)
+		this.server.bind(port)
 	}
 
 	public exit(): void {
