@@ -12,6 +12,7 @@ export function hashPassword(password: string): Promise<string> {
 		bcrypt.hash(password, 10, (err, hash) => {
 			if (err) {
 				reject(err)
+				return
 			}
 			resolve(hash)
 		})
@@ -29,26 +30,29 @@ export function authenticate(username: string, password: string): Promise<Authen
 			let user = clone(user_original)
 			if (username === user.username) {
 				userFound = true
-				checkPassword(password, user.password).then((password_valid) => {
-					if (!password_valid) {
-						reject(new Error('Password is incorrect'))
-					} else {
-						delete user['password']
-						jwt.sign({ user }, currentConfig.security.jwt_private_key, { expiresIn: '2 days' }, (err, token) => {
-							if (err) {
-								reject(err)
-							}
-							resolve({
-								access_token: token,
-								user: user,
+				checkPassword(password, user.password)
+					.then((password_valid) => {
+						if (!password_valid) {
+							reject(new Error('Invalid username or password'))
+						} else {
+							delete user['password']
+							jwt.sign({ user }, currentConfig.security.jwt_private_key, { expiresIn: '2 days' }, (err, token) => {
+								if (err) {
+									reject(err)
+									return
+								}
+								resolve({
+									access_token: token,
+									user: user,
+								})
 							})
-						})
-						return true
-					}
-				})
+							return true
+						}
+					})
+					.catch(reject)
 			}
 		})
-		if (!userFound) reject(new Error('User not found'))
+		if (!userFound) reject(new Error('Invalid username or password'))
 	})
 }
 
@@ -57,13 +61,14 @@ export function validateAccessToken(access_token: string): Promise<User> {
 		jwt.verify(access_token, currentConfig.security.jwt_private_key, (err, decoded) => {
 			if (err) {
 				reject(err)
+				return
 			}
 			resolve(decoded.user)
 		})
 	})
 }
 
-export function getUsersList(removePassword = false): User[] {
+export function getUsersList(removePassword = true): User[] {
 	let users = clone(currentConfig.users)
 	if (removePassword) {
 		users.forEach((user) => {
@@ -95,11 +100,16 @@ export function addUser(user: User): Promise<boolean> {
 	})
 }
 
+const BCRYPT_HASH_PATTERN = /^\$2[aby]?\$\d{2}\$/
+
 export function editUser(user: User) {
 	let userFound = false
 	currentConfig.users.forEach((user_original, index) => {
 		if (user.username === user_original.username) {
 			userFound = true
+			if (user.password && !BCRYPT_HASH_PATTERN.test(user.password)) {
+				user.password = bcrypt.hashSync(user.password, 10)
+			}
 			currentConfig.users[index] = user
 		}
 	})
