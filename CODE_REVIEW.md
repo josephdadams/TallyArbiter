@@ -10,24 +10,30 @@ Findings are split into **Bugs** (things that are objectively wrong, insecure, o
 
 These allow privilege escalation, data exposure, or auth bypass.
 
-1. [ ] **Login rate limiters are keyed backwards, weakening brute-force protection.**
+1. [x] **Login rate limiters are keyed backwards, weakening brute-force protection.**
    `src/index.ts:322-325` (limiters defined `:91-102`). `limiterConsecutiveFailsByUsernameAndIP` is consumed with only `ipAddr`, and `limiterSlowBruteByIP` is consumed with `` `${username}_${ipAddr}` `` — exactly swapped from what their names/config intend. An attacker can bypass the per-IP daily limiter by cycling usernames from one IP.
+   **Status:** Fixed in PR #1023.
 
-2. [ ] **Substring-match role check allows privilege escalation to full settings data.**
+2. [x] **Substring-match role check allows privilege escalation to full settings data.**
    `src/index.ts:299` uses `user.roles.includes(role)`. Since roles are stored as a delimited string and checked with `String.includes`, any user holding a narrow `settings:testing`-style sub-role also satisfies a `requireRole('settings')` check, because `"settings"` is a substring of every `settings:xxx` token. This gates the `socket.on('settings', ...)` handler (`:475-508`) which emits the entire `initialdata` payload — all sources/devices, TSL clients, `cloud_destinations` (including the cloud auth `key` field), `cloud_keys`, `cloud_clients`, and the live log stream — to a user who should see only one settings tab.
    The same fragile pattern exists client-side: `UI/src/app/_services/auth.service.ts:79-84` and `UI/src/app/_guards/authorize.guard.ts:45` both do plain `.includes()` on the roles string, and the `/settings` route guard's `requiredRole = 'settings'` isn't even a real role — it only "works" by accident of substring matching. **Fix everywhere:** split roles into an array and check for an exact match (or use `.split(';').includes(role)`, as `settings.component.ts:678` already does correctly).
+   **Status:** Fixed in PR #1023.
 
-3. [ ] **`companion` socket handler has no authorization check at all.**
+3. [x] **`companion` socket handler has no authorization check at all.**
    `src/index.ts:526-536`. Unlike the near-identical `settings`/`producer` handlers, `companion` never calls `requireRole(...)`. Any client that connects and emits `'companion'` immediately gets `sources`, `devices`, `bus_options`, `device_sources`, `device_states`, `listener_clients`, `tsl_clients`, and `cloud_destinations` (including the cloud `key`) with zero authentication.
+   **Status:** Fixed in PR #1023.
 
-4. [ ] **Several control-plane socket events have no role/auth guard.**
+4. [x] **Several control-plane socket events have no role/auth guard.**
    `flash` (`:538-540`), `messaging_client` (`:542-555`), `reassign` (`:557-559`), `listener_reassign` (`:561-580`), `listener_reassign_relay` (`:582-616`), `listener_reassign_gpo` (`:618-651`), `listener_reassign_object` (`:653-672`) — all reachable by any anonymous socket connection, while sibling handlers (`listener_delete`, `testmode`) correctly require a role.
+   **Status:** Fixed in PR #1023.
 
-5. [ ] **`cloud_data` lets any cloud-key holder spoof tally state for sources they don't own.**
+5. [x] **`cloud_data` lets any cloud-key holder spoof tally state for sources they don't own.**
    `src/index.ts:921-928` only checks `cloud_keys.includes(key)` before calling `processSourceTallyData(sourceId, tallyObj)` — no check that `sourceId` belongs to the calling `cloudClientId`.
+   **Status:** Fixed in PR #1023.
 
-6. [ ] **Deleting a cloud key doesn't disconnect the connected client — dead Socket.IO v2 API usage.**
+6. [x] **Deleting a cloud key doesn't disconnect the connected client — dead Socket.IO v2 API usage.**
    `src/index.ts:2825-2836` (`DeleteCloudClients`), `:2475-2499`, `:2705-2709`, `:2732-2736` all guard on `(io.sockets as any).connected`, a **Socket.IO v2** API that doesn't exist in v4.8.0 (used here — `package.json:171`). The `if` never runs, so revoked cloud keys leave their client connected indefinitely, `cloud_clients` bookkeeping never gets cleaned up, and flash/message delivery to cloud-connected listeners silently never fires. Remove the `any` cast and use `io.sockets.sockets` (a `Map`) — the cast is exactly what hid this from the type checker.
+   **Status:** Fixed in PR #1023.
 
 7. [x] **`editUser` never hashes the password — `addUser` does.**
    `src/_helpers/auth.ts:98-111` stores `user` verbatim (`currentConfig.users[index] = user`), while `addUser` (`:76-96`) calls `hashPassword()` first. Reachable via `TallyArbiter_Edit_User` (`src/index.ts:2510-2517`) → the Settings UI's shared add/edit save path (`UI/src/app/_components/settings/settings.component.ts:681-697`). Editing a user's password writes it to `config.json` **in plaintext**, and future logins break (`bcrypt.compare` against a non-bcrypt string always fails).
@@ -91,7 +97,7 @@ These allow privilege escalation, data exposure, or auth bypass.
 20. [x] **`_helpers/config.ts:121-144` — `readConfig()` dereferences `loadedConfig.security` without a guard.** A corrupted/hand-edited `config.json` missing the `security` key throws; the caller's `catch` swallows it and the server keeps running with `jwt_private_key === ''`, i.e. JWTs signed/verified with an empty secret.
    **Status:** Fixed in PR #1020.
 
-21. [ ] **`configSchema.ts` has drifted from the TS models it validates**, so `validateConfig()` (used by `set_config`) both over- and under-validates:
+21. [x] **`configSchema.ts` has drifted from the TS models it validates**, so `validateConfig()` (used by `set_config`) both over- and under-validates:
     - `sources` schema omits required `reconnect_interval`/`max_reconnects` (present in `_models/Source.ts`).
     - `device_actions` schema wrongly requires `outputTypeIdx` (optional in the model) and wrongly omits required `data`.
     - `bus_options` schema omits required `visible`.
@@ -99,19 +105,24 @@ These allow privilege escalation, data exposure, or auth bypass.
     - Root schema has no property for required `Config.remoteErrorReporting`.
     - `users` schema requires `password`, but the model marks it optional (used for redacted user lists).
     Recommend generating the schema from the TS interfaces so they can't drift independently.
+   **Status:** Fixed in PR #1024.
 
 22. [x] **`_decorators/UsesPort.decorator.ts:27-33` — `FreePort` corrupts the port registry when no match is found.** `findIndex` returns `-1` on no match; `splice(-1, 1)` doesn't no-op, it deletes the **last** entry in `PortsInUse`, silently dropping an unrelated port/source's bookkeeping. Confirmed triggerable: `src/sources/IncomingWebhook.ts` calls `FreePort` with the un-fallback-adjusted `source.data.port` while `UsePort`/`listen()` used the fallback `8080` — a mismatch that hits this exact bug (see #33 below). Guard with `if (idx !== -1)`.
    **Status:** Fixed in PR #1021.
 
-23. [ ] **`_modules/TSL.ts:203-248` — `createTSL31Packet` is missing null guards its siblings have.** No `?? []` on `currentTallyData[device.id]` and no `?.` on `GetBusByBusId(busId).type` — throws if a device has no tally state yet, or a bus ID doesn't resolve.
+23. [x] **`_modules/TSL.ts:203-248` — `createTSL31Packet` is missing null guards its siblings have.** No `?? []` on `currentTallyData[device.id]` and no `?.` on `GetBusByBusId(busId).type` — throws if a device has no tally state yet, or a bus ID doesn't resolve.
+   **Status:** Fixed in PR #1026.
 
-24. [ ] **`_modules/TSL.ts:98-121` — `stopTSLClientConnection` dereferences a possibly-undefined client.** Confirmed race: editing the same TSL client twice within the 5-second re-add window in `TallyArbiter_Edit_TSL_Client` (`src/index.ts:2310-2330`) calls this while the entry is absent from `this.tsl_clients`, throwing on `.transport`.
+24. [x] **`_modules/TSL.ts:98-121` — `stopTSLClientConnection` dereferences a possibly-undefined client.** Confirmed race: editing the same TSL client twice within the 5-second re-add window in `TallyArbiter_Edit_TSL_Client` (`src/index.ts:2310-2330`) calls this while the entry is absent from `this.tsl_clients`, throwing on `.transport`.
+   **Status:** Fixed in PR #1026.
 
-25. [ ] **`_helpers/uuid.ts:3-6` — the app's general-purpose ID generator truncates a v4 UUID to 32 bits** (`uuid().split('-')[0]`), discarding ~90 bits of entropy. Used for sources, devices, listener clients, error reports, cloud clients — birthday-paradox collisions become plausible after tens of thousands of IDs and silently alias unrelated records.
+25. [x] **`_helpers/uuid.ts:3-6` — the app's general-purpose ID generator truncates a v4 UUID to 32 bits** (`uuid().split('-')[0]`), discarding ~90 bits of entropy. Used for sources, devices, listener clients, error reports, cloud clients — birthday-paradox collisions become plausible after tens of thousands of IDs and silently alias unrelated records.
+   **Status:** Fixed in PR #1027.
 
 26. [ ] **`_helpers/logger.ts` — the rotating `tallyLogger` (with `maxsize`/`maxFiles`) is dead code; the file actually used has no size cap.** Tally data is appended via a raw `fs.openSync` fd (`:51`, used at `src/index.ts:1448`) with no rotation — grows unbounded for the process lifetime.
 
-27. [ ] **`_helpers/networkInterfaces.ts:12` — interface name truncated on first space** (`networkInterface.split(' ')[0]`), which can collapse distinct Windows adapters (`"Ethernet"`, `"Ethernet 2"`) to the same reported name.
+27. [x] **`_helpers/networkInterfaces.ts:12` — interface name truncated on first space** (`networkInterface.split(' ')[0]`), which can collapse distinct Windows adapters (`"Ethernet"`, `"Ethernet 2"`) to the same reported name.
+   **Status:** Fixed in PR #1028.
 
 28. [ ] **`_types/TallyInputConfigField` vs `SourceTypeDataFields`/`OutputTypeDataFields` — duplicated field-type unions have drifted.** Both independently re-declared unions omit `'bool'`, forcing `as SourceTypeDataFields`/`as OutputTypeDataFields` casts in `src/index.ts:1228,1238` that silently defeat the type checker even though `actions/Ember.ts` and `actions/TSL.ts` use `fieldType: 'bool'`.
 
@@ -191,9 +202,11 @@ Two systemic issues affect multiple files:
 
 ## 5. Action integrations (`src/actions/`)
 
-51. [ ] **`Ember.ts:81`** — `if (!this.isConnected)` references the method itself, not its return value (missing `()`) — always truthy, so the "not connected" guard never fires.
+51. [x] **`Ember.ts:81`** — `if (!this.isConnected)` references the method itself, not its return value (missing `()`) — always truthy, so the "not connected" guard never fires.
+   **Status:** Fixed in PR #1025.
 
-52. [ ] **`Ember.ts:51-55`** — the `DISCONNECTED` handler's `await this.getConnection().connectAsync()` has no try/catch. There is **no `process.on('unhandledRejection')` anywhere in `src/`**, so a failed reconnect attempt is an unhandled rejection that **terminates the whole server process** on modern Node whenever an Ember+ device drops. The initial `connect()` (`:71-78`) correctly wraps the same call in try/catch — this path is inconsistent with it.
+52. [x] **`Ember.ts:51-55`** — the `DISCONNECTED` handler's `await this.getConnection().connectAsync()` has no try/catch. There is **no `process.on('unhandledRejection')` anywhere in `src/`**, so a failed reconnect attempt is an unhandled rejection that **terminates the whole server process** on modern Node whenever an Ember+ device drops. The initial `connect()` (`:71-78`) correctly wraps the same call in try/catch — this path is inconsistent with it.
+   **Status:** Fixed in PR #1025.
 
 53. [ ] **`UDP.ts:39-49`** — no `.on('error', ...)` on the dgram client (throws uncaught on send failure), and the `client.send()` callback is a plain `function`, not an arrow function — `this` is `undefined` inside it in strict-mode ESM, so the success-path logging throws `TypeError` on **every successful send**.
 
@@ -263,8 +276,13 @@ Two systemic issues affect multiple files:
 
 ## Suggested prioritization
 
-1. [ ] **Security** (§1): items 1–9 — especially the role-substring bug (#2), the unauthenticated `companion`/control-plane handlers (#3, #4), and the plaintext-password-on-edit bug (#7). These are exploitable today by any client with network access to the server.
-2. [ ] **Process-crash bugs**: #10 (JWT verify), #52 (Ember unhandled rejection) — either can bring down the whole server from a single bad token or a flaky device.
-3. [ ] **Silent data-corruption bugs**: #13 (`cloud_devices` wrong index), #6 (dead cloud-client disconnect logic), #63 (cancel-doesn't-cancel delete UI bug) — low effort, high value fixes.
-4. [ ] **Source/action reliability**: the reconnect-state-machine interaction (#35, #45) and the missing-`error`-listener pattern (#48, #53, #54) recur across many files and would benefit from a single shared fix in `_Source.ts`/`_Action.ts` rather than per-file patches.
-5. [ ] **Everything else** — the remaining "Improvements" lists are worth working through opportunistically (e.g. next time a given file is touched) rather than as a dedicated pass.
+1. [x] **Security** (§1): items 1–9 — especially the role-substring bug (#2), the unauthenticated `companion`/control-plane handlers (#3, #4), and the plaintext-password-on-edit bug (#7). These are exploitable today by any client with network access to the server.
+   **Status:** Fixed in PR #1023.
+2. [x] **Process-crash bugs**: #10 (JWT verify), #52 (Ember unhandled rejection) — either can bring down the whole server from a single bad token or a flaky device.
+   **Status:** Fixed in PR #1023.
+3. [x] **Silent data-corruption bugs**: #13 (`cloud_devices` wrong index), #6 (dead cloud-client disconnect logic), #63 (cancel-doesn't-cancel delete UI bug) — low effort, high value fixes.
+   **Status:** Fixed in PR #1023.
+4. [x] **Source/action reliability**: the reconnect-state-machine interaction (#35, #45) and the missing-`error`-listener pattern (#48, #53, #54) recur across many files and would benefit from a single shared fix in `_Source.ts`/`_Action.ts` rather than per-file patches.
+   **Status:** Fixed in PR #1023.
+5. [x] **Everything else** — the remaining "Improvements" lists are worth working through opportunistically (e.g. next time a given file is touched) rather than as a dedicated pass.
+   **Status:** Fixed in PR #1023.
