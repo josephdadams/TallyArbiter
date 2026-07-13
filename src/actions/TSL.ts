@@ -88,7 +88,16 @@ export class TSL extends Action {
 			// TSL 3.1
 			try {
 				let bufUMD = Buffer.alloc(18, 0) //ignores spec and pad with 0 for better aligning on Decimator etc
-				bufUMD[0] = 0x80 + parseInt(this.action.data.address)
+
+				let address = parseInt(this.action.data.address)
+				if (isNaN(address) || address < 0 || address > 126) {
+					logger(
+						`Error in TSL 3.1 ${this.action.outputTypeId == '7dcd66b5' ? 'UDP' : 'TCP'} Action. Address must be a number between 0 and 126.`,
+						'error',
+					)
+					return
+				}
+				bufUMD[0] = 0x80 + address
 				bufUMD.write(this.action.data.label, 2)
 
 				let bufTally = 0x30
@@ -119,12 +128,19 @@ export class TSL extends Action {
 				} else {
 					// TCP
 					let client = new net.Socket()
+					client.setTimeout(5000, () => {
+						client.destroy() // kill client if the destination never responds
+					})
 					client.connect(this.action.data.port, this.action.data.ip, () => {
 						client.write(Uint8Array.from(bufUMD))
 					})
 
 					client.on('data', () => {
 						client.destroy() // kill client after server's response
+					})
+
+					client.on('error', (error) => {
+						logger(`An error occured sending the TSL 3.1 TCP Message: ${error}`, 'error')
 					})
 
 					client.on('close', () => {})
@@ -148,8 +164,18 @@ export class TSL extends Action {
 						`Error in TSL 5 ${this.action.outputTypeId == '8b99d588' ? 'UDP' : 'TCP'} Action. IP and Port must be given`,
 						'error',
 					)
+					return
 				}
-				if (!this.action.data.index) {
+
+				for (const [key, value] of Object.entries(this.action.data)) {
+					if (display_fields.includes(key)) {
+						tally.display[key] = value
+					} else {
+						tally[key] = value
+					}
+				}
+
+				if (this.action.data.index === undefined || this.action.data.index === null) {
 					logger(
 						`TSL 5 ${this.action.outputTypeId == '8b99d588' ? 'UDP' : 'TCP'} Action. No index given. Using index 1 by default`,
 						'info',
@@ -160,16 +186,8 @@ export class TSL extends Action {
 				if (this.action.data.sequence == 'ON') {
 					sequence = true
 				}
-				if (this.action.data.sequnece == 'OFF') {
+				if (this.action.data.sequence == 'OFF') {
 					sequence = false
-				}
-
-				for (var [key, value] of Object.entries(this.action.data)) {
-					if (display_fields.includes(key)) {
-						tally.display[key] = value
-					} else {
-						tally[key] = value
-					}
 				}
 
 				if (this.action.outputTypeId == '8b99d588') {
