@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common'
-import { Component } from '@angular/core'
+import { Component, OnDestroy } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
+import { Subscription } from 'rxjs'
 import { BusOption } from 'src/app/_models/BusOption'
 import { SocketService } from 'src/app/_services/socket.service'
 import { ChatComponent } from '../chat/chat.component'
@@ -13,7 +14,7 @@ import { ChatComponent } from '../chat/chat.component'
 	templateUrl: './tally.component.html',
 	styleUrls: ['./tally.component.scss'],
 })
-export class TallyComponent {
+export class TallyComponent implements OnDestroy {
 	public currentDeviceIdx?: number
 	public currentBus?: BusOption
 	private supportsVibrate?: boolean = false
@@ -23,6 +24,13 @@ export class TallyComponent {
 	}
 
 	public enableChatOptions = true
+
+	private deviceStateChangedSubscription: Subscription
+
+	private reassignHandler = (oldDeviceId: string, deviceId: string) => {
+		this.socketService.socket.emit('listener_reassign', oldDeviceId, deviceId)
+		this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id === deviceId)
+	}
 
 	constructor(
 		private router: Router,
@@ -63,7 +71,7 @@ export class TallyComponent {
 			}, 500)
 		})
 
-		this.socketService.deviceStateChanged.subscribe((deviceStates) => {
+		this.deviceStateChangedSubscription = this.socketService.deviceStateChanged.subscribe((deviceStates) => {
 			if (this.currentDeviceIdx === undefined) return
 
 			const currentDevice = this.socketService.devices[this.currentDeviceIdx]
@@ -92,10 +100,7 @@ export class TallyComponent {
 			this.currentBus = hightestPriorityBus
 		})
 
-		this.socketService.socket.on('reassign', (oldDeviceId: string, deviceId: string) => {
-			this.socketService.socket.emit('listener_reassign', oldDeviceId, deviceId)
-			this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id === deviceId)
-		})
+		this.socketService.socket.on('reassign', this.reassignHandler)
 	}
 
 	public selectDevice(id: any) {
@@ -114,5 +119,7 @@ export class TallyComponent {
 
 	public ngOnDestroy() {
 		this.socketService.socket.off('flash')
+		this.socketService.socket.off('reassign', this.reassignHandler)
+		this.deviceStateChangedSubscription?.unsubscribe()
 	}
 }
