@@ -42,7 +42,16 @@ export class AuthorizeGuard {
 			this.router.navigate(destination)
 			return false
 		} else {
-			let checkRole = this.authService.requireRole(requiredRole)
+			// The /settings route hosts every settings tab, so anyone holding any
+			// 'settings:*' sub-role (or admin) should reach the page shell; individual
+			// tabs/sections gate more granularly on their specific sub-role.
+			let checkRole: boolean
+			if (requiredRole === 'settings') {
+				const profileRoles: string[] = this.authService.profile.roles.split(';')
+				checkRole = profileRoles.includes('admin') || profileRoles.some((r) => r.startsWith('settings:'))
+			} else {
+				checkRole = this.authService.requireRole(requiredRole)
+			}
 			if (checkRole) {
 				return true
 			} else {

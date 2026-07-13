@@ -44,7 +44,14 @@ export class AuthService {
 
 	public loadProfile() {
 		let now = Date.now().valueOf() / 1000
-		let decoded: any = jwtDecode(this.access_token)
+		let decoded: any
+		try {
+			decoded = jwtDecode(this.access_token)
+		} catch (e) {
+			this.removeToken()
+			this.profile = undefined
+			return false
+		}
 		if (typeof decoded.exp !== 'undefined' && decoded.exp < now) {
 			return false
 		}
@@ -78,8 +85,8 @@ export class AuthService {
 
 	public requireRole(role: string) {
 		if (this.profile === undefined) return false
-		if (this.profile.roles.includes('admin')) return true
-		if (!this.profile.roles.includes(role)) return false
-		return true
+		const roles: string[] = this.profile.roles.split(';')
+		if (roles.includes('admin')) return true
+		return roles.includes(role)
 	}
 }
