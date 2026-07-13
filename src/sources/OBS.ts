@@ -35,6 +35,9 @@ export class OBSSource extends TallyInput {
 	private obsClient5: ObsWebSocket5
 	private scenes5: string[] = []
 	private obsSupportedRpcVersion = 1
+	/** Set right before this source intentionally disconnects (e.g. via exit()), so a resulting
+	 * normal-closure (code 1000) ConnectionClosed event doesn't redundantly re-emit connected.next(false). */
+	private isIntentionalDisconnect = false
 
 	constructor(source: Source) {
 		super(source)
@@ -126,7 +129,7 @@ export class OBSSource extends TallyInput {
 					this.sendTallyData()
 				})
 				.catch((error) => {
-					console.error(error)
+					logger(`Source: ${this.source.name}  Error while initializing OBS data: ${error}`, 'error')
 				})
 		})
 
@@ -163,6 +166,12 @@ export class OBSSource extends TallyInput {
 		})
 
 		this.obsClient4.on('TransitionEnd', (data) => {
+			if (!this.currentTransitionToScene || !this.currentTransitionFromScene) {
+				//Out-of-order TransitionBegin/TransitionEnd events (or a transition ending before the
+				//first TransitionBegin was received) can leave these unset; nothing to process yet
+				this.isTransitionFinished = true
+				return
+			}
 			let scene = this.scenes4.find((scene) => scene.name === data['to-scene'])
 			if (scene?.sources) {
 				this.scenes4.forEach((scene) => {
@@ -260,6 +269,10 @@ export class OBSSource extends TallyInput {
 				})
 			})
 			const parentSceneBusses = this.tally.getValue()[data['scene-name']] //Yes, I know that doing this is not good with RxJS, but I don't want to update the entire codebase just for this
+			if (!parentSceneBusses) {
+				//Scene not yet tracked in tally (e.g. event fired before initial sync completed); nothing to update
+				return
+			}
 			if (data['item-visible']) {
 				if (parentSceneBusses.includes('program') && !this.studioModeEnabled) {
 					this.addBusToAddress(data['item-name'], 'program')
@@ -357,7 +370,8 @@ export class OBSSource extends TallyInput {
 			switch (error.code) {
 				case 4009:
 					logger(`Source: ${this.source.name}  OBS Authentication failed`, 'error')
-					this.exit()
+					//Don't call this.exit() here: that would set tryReconnecting = false and, per the base
+					//class's connected subscriber, permanently disable auto-reconnect for this source.
 					this.connected.next(false)
 					break
 
@@ -366,7 +380,6 @@ export class OBSSource extends TallyInput {
 						`Source: ${this.source.name}  OBS Websocket client is incompatible with this version of TallyArbiter. Please, update TA or fill a bug report.`,
 						'error',
 					)
-					this.exit()
 					this.connected.next(false)
 					break
 
@@ -375,11 +388,18 @@ export class OBSSource extends TallyInput {
 						`Source: ${this.source.name}  TallyArbiter was kicked out by OBS Websocket clicking on the button in the connections list.`,
 						'error',
 					)
-					this.exit()
 					this.connected.next(false)
 					break
 
 				case 1000:
+					//Normal closure. If this wasn't triggered by our own exit(), it means OBS itself was
+					//closed/quit (or the connection dropped normally) without TallyArbiter initiating it,
+					//so we still need to reflect the disconnect and let the reconnect flow kick in.
+					if (!this.isIntentionalDisconnect) {
+						logger(`Source: ${this.source.name}  OBS websocket connection closed normally.`, 'info-quiet')
+						this.connected.next(false)
+					}
+					this.isIntentionalDisconnect = false
 					break
 
 				default:
@@ -387,7 +407,6 @@ export class OBSSource extends TallyInput {
 						`Source: ${this.source.name}  OBS websocket connection error (error code ${error.code}). Is OBS Websocket version 5 installed?`,
 						'error',
 					)
-					this.exit()
 					this.connected.next(false)
 					break
 			}
@@ -765,6 +784,9 @@ export class OBSSource extends TallyInput {
 		if (this.obsProtocolVersion === 4) {
 			this.obsClient4.disconnect()
 		} else if (this.obsProtocolVersion === 5) {
+			//Mark this disconnect as intentional so the resulting normal-closure (code 1000)
+			//ConnectionClosed event doesn't redundantly re-emit connected.next(false).
+			this.isIntentionalDisconnect = true
 			this.obsClient5.disconnect()
 		}
 	}
