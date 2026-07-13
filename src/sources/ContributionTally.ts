@@ -165,7 +165,12 @@ export class CTPSource extends TallyInput {
 
 			this.server.on('listening', () => {
 				const address = this.server.address()
-				console.log('listening on :' + address.address + ':' + address.port)
+				logger('Contribution Tally Source: listening on :' + address.address + ':' + address.port, 'info')
+			})
+
+			this.server.on('error', (error) => {
+				logger(`Contribution Tally Source: UDP Error: ${error}`, 'error')
+				this.connected.next(false)
 			})
 
 			this.server.bind(port)
@@ -192,42 +197,46 @@ export class CTPSource extends TallyInput {
 	}
 
 	private processCTPData(data: Buffer) {
-		const sections = this.parseHexData(data.toString('hex'))
+		try {
+			const sections = this.parseHexData(data.toString('hex'))
 
-		//parseHexData will call the various other functions (parseMEContribution, parseExternalProcContribution, etc) and return an array of objects based on the command code
+			//parseHexData will call the various other functions (parseMEContribution, parseExternalProcContribution, etc) and return an array of objects based on the command code
 
-		sections.forEach((section, index) => {
-			switch (section.commandCode) {
-				case 0x8: // ME Contribution
-					this.processTally('me', section.data)
-					break
-				case 0x9: // External Proc Contribution
-					//console.log("External Proc Contribution", section);
-					break
-				case 0xa: // Still Store Contribution
-					//console.log("Still Store Contribution", section);
-					break
-				case 0xb: // Outputs Status
-					this.processTally('output', section.data)
-					break
-				case 0xc: // Source Name
-					this.renameAddress(
-						section.data.sourceId.toString(),
-						section.data.sourceId.toString(),
-						section.data.sourceId.toString() + ': ' + section.data.name,
-					)
-					//console.log(section.data);
-					break
-				case 0xd: // Update
-					//console.log("Update", section);
-					break
-				default:
-					//console.log("Unknown Command", section);
-					break
-			}
-		})
+			sections.forEach((section, index) => {
+				switch (section.commandCode) {
+					case 0x8: // ME Contribution
+						this.processTally('me', section.data)
+						break
+					case 0x9: // External Proc Contribution
+						//logger('External Proc Contribution: ' + JSON.stringify(section), 'info');
+						break
+					case 0xa: // Still Store Contribution
+						//logger('Still Store Contribution: ' + JSON.stringify(section), 'info');
+						break
+					case 0xb: // Outputs Status
+						this.processTally('output', section.data)
+						break
+					case 0xc: // Source Name
+						this.renameAddress(
+							section.data.sourceId.toString(),
+							section.data.sourceId.toString(),
+							section.data.sourceId.toString() + ': ' + section.data.name,
+						)
+						//logger('Source Name: ' + JSON.stringify(section.data), 'info');
+						break
+					case 0xd: // Update
+						//logger('Update: ' + JSON.stringify(section), 'info');
+						break
+					default:
+						//logger('Unknown Command: ' + JSON.stringify(section), 'info');
+						break
+				}
+			})
 
-		this.sendTallyData() // send the tally data now that it has all been processed (prevents multiple sends)
+			this.sendTallyData() // send the tally data now that it has all been processed (prevents multiple sends)
+		} catch (error) {
+			logger(`Contribution Tally Source: Error processing incoming data: ${error}`, 'error')
+		}
 	}
 
 	private parseHexData(hexData: string) {
@@ -762,8 +771,8 @@ export class CTPSource extends TallyInput {
 				}
 			}
 
-			this.checkBusssesForAddress(addressPGM)
-			this.checkBusssesForAddress(addressPVW)
+			this.checkBussesForAddress(addressPGM)
+			this.checkBussesForAddress(addressPVW)
 		} else if (tallyDataType === 'output') {
 			//we will process this similar to ME data but only as a program bus. maybe later we can add proper aux support
 			//loop through the data array, it will be 8 entries, one for each output
@@ -797,7 +806,7 @@ export class CTPSource extends TallyInput {
 					}
 				}
 
-				this.checkBusssesForAddress(address)
+				this.checkBussesForAddress(address)
 			}
 		}
 	}
@@ -835,7 +844,7 @@ export class CTPSource extends TallyInput {
 		}
 	}
 
-	private checkBusssesForAddress(address: string) {
+	private checkBussesForAddress(address: string) {
 		//get array of unique device_source addresses for this source
 		let uniqueAddresses = [
 			...new Set(device_sources.filter((obj) => obj.sourceId === this.source.id).map((obj) => obj.address)),
