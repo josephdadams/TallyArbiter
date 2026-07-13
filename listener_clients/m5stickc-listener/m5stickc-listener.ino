@@ -771,7 +771,14 @@ void evaluateMode() {
 
     if (actualType != "") {
       m5_setTextColor(BLACK);
-      m5_fillScreen(M5.Lcd.color565(r, g, b));
+#if defined(STICK_C_PLUS2)
+      // StickCP2.Display (Arduino_GFX) expects a full 24-bit RGB888 value,
+      // not a 16-bit RGB565-packed one.
+      uint32_t fillColor = ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+#else
+      uint32_t fillColor = (uint32_t)M5.Lcd.color565(r, g, b);
+#endif
+      m5_fillScreen(fillColor);
       m5_println(DeviceName);
 
     } else {
