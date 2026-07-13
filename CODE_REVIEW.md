@@ -29,21 +29,25 @@ These allow privilege escalation, data exposure, or auth bypass.
 6. [ ] **Deleting a cloud key doesn't disconnect the connected client — dead Socket.IO v2 API usage.**
    `src/index.ts:2825-2836` (`DeleteCloudClients`), `:2475-2499`, `:2705-2709`, `:2732-2736` all guard on `(io.sockets as any).connected`, a **Socket.IO v2** API that doesn't exist in v4.8.0 (used here — `package.json:171`). The `if` never runs, so revoked cloud keys leave their client connected indefinitely, `cloud_clients` bookkeeping never gets cleaned up, and flash/message delivery to cloud-connected listeners silently never fires. Remove the `any` cast and use `io.sockets.sockets` (a `Map`) — the cast is exactly what hid this from the type checker.
 
-7. [ ] **`editUser` never hashes the password — `addUser` does.**
+7. [x] **`editUser` never hashes the password — `addUser` does.**
    `src/_helpers/auth.ts:98-111` stores `user` verbatim (`currentConfig.users[index] = user`), while `addUser` (`:76-96`) calls `hashPassword()` first. Reachable via `TallyArbiter_Edit_User` (`src/index.ts:2510-2517`) → the Settings UI's shared add/edit save path (`UI/src/app/_components/settings/settings.component.ts:681-697`). Editing a user's password writes it to `config.json` **in plaintext**, and future logins break (`bcrypt.compare` against a non-bcrypt string always fails).
+   **Status:** Fixed in PR #1019.
 
-8. [ ] **`getUsersList()` defaults to leaking bcrypt hashes to the client.**
+8. [x] **`getUsersList()` defaults to leaking bcrypt hashes to the client.**
    `src/_helpers/auth.ts:66-74` — `removePassword` defaults to `false`. `src/index.ts:1040` calls it with no argument, so `socket.emit('users', ...)` ships every user's password hash to any client with `settings:users`. Flip the default, or always strip.
+   **Status:** Fixed in PR #1019.
 
-9. [ ] **Username enumeration + unhandled rejection in `authenticate()`.**
+9. [x] **Username enumeration + unhandled rejection in `authenticate()`.**
    `src/_helpers/auth.ts:25-53` returns distinguishable errors (`'Password is incorrect'` vs `'User not found'`), and the `checkPassword(...).then(...)` chain has no `.catch()` — a `bcrypt.compare` rejection hangs the login request forever with no response.
+   **Status:** Fixed in PR #1019.
 
 ---
 
 ## 2. Server core (`src/index.ts`) — correctness bugs
 
-10. [ ] **`validateAccessToken` missing `return` after `reject(err)`.**
+10. [x] **`validateAccessToken` missing `return` after `reject(err)`.**
     `src/_helpers/auth.ts:55-64`. On any invalid/expired JWT, execution falls through to `resolve(decoded.user)` where `decoded` is `undefined` — throws inside an async callback, i.e. an **uncaught exception that can crash the whole process**, not just a rejected promise. This fires on essentially every authenticated socket event (`requireRole`, `TallyArbiter_Manage`), so any expired token can take the server down.
+   **Status:** Fixed in PR #1019.
 
 11. [ ] **`typeof x === undefined` typo — dead guard.**
     `src/index.ts:291`: `typeof tmpSocketAccessTokens[socket.id] === undefined` can never be true (`typeof` returns the string `"undefined"`). The intended "Access token required" error path never runs.
@@ -84,7 +88,8 @@ These allow privilege escalation, data exposure, or auth bypass.
 
 ## 3. Server infrastructure (`_helpers`, `_modules`, `_globals`, `_decorators`, `_types`, `_models`)
 
-20. [ ] **`_helpers/config.ts:121-144` — `readConfig()` dereferences `loadedConfig.security` without a guard.** A corrupted/hand-edited `config.json` missing the `security` key throws; the caller's `catch` swallows it and the server keeps running with `jwt_private_key === ''`, i.e. JWTs signed/verified with an empty secret.
+20. [x] **`_helpers/config.ts:121-144` — `readConfig()` dereferences `loadedConfig.security` without a guard.** A corrupted/hand-edited `config.json` missing the `security` key throws; the caller's `catch` swallows it and the server keeps running with `jwt_private_key === ''`, i.e. JWTs signed/verified with an empty secret.
+   **Status:** Fixed in PR #1020.
 
 21. [ ] **`configSchema.ts` has drifted from the TS models it validates**, so `validateConfig()` (used by `set_config`) both over- and under-validates:
     - `sources` schema omits required `reconnect_interval`/`max_reconnects` (present in `_models/Source.ts`).
@@ -95,7 +100,8 @@ These allow privilege escalation, data exposure, or auth bypass.
     - `users` schema requires `password`, but the model marks it optional (used for redacted user lists).
     Recommend generating the schema from the TS interfaces so they can't drift independently.
 
-22. [ ] **`_decorators/UsesPort.decorator.ts:27-33` — `FreePort` corrupts the port registry when no match is found.** `findIndex` returns `-1` on no match; `splice(-1, 1)` doesn't no-op, it deletes the **last** entry in `PortsInUse`, silently dropping an unrelated port/source's bookkeeping. Confirmed triggerable: `src/sources/IncomingWebhook.ts` calls `FreePort` with the un-fallback-adjusted `source.data.port` while `UsePort`/`listen()` used the fallback `8080` — a mismatch that hits this exact bug (see #33 below). Guard with `if (idx !== -1)`.
+22. [x] **`_decorators/UsesPort.decorator.ts:27-33` — `FreePort` corrupts the port registry when no match is found.** `findIndex` returns `-1` on no match; `splice(-1, 1)` doesn't no-op, it deletes the **last** entry in `PortsInUse`, silently dropping an unrelated port/source's bookkeeping. Confirmed triggerable: `src/sources/IncomingWebhook.ts` calls `FreePort` with the un-fallback-adjusted `source.data.port` while `UsePort`/`listen()` used the fallback `8080` — a mismatch that hits this exact bug (see #33 below). Guard with `if (idx !== -1)`.
+   **Status:** Fixed in PR #1021.
 
 23. [ ] **`_modules/TSL.ts:203-248` — `createTSL31Packet` is missing null guards its siblings have.** No `?? []` on `currentTallyData[device.id]` and no `?.` on `GetBusByBusId(busId).type` — throws if a device has no tally state yet, or a bus ID doesn't resolve.
 
