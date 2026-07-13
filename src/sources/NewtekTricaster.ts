@@ -12,6 +12,10 @@ export class NewtekTricasterSource extends TallyInput {
 	private client: any
 	private port = 5951 // Fixed Newtek Tricaster TCP port number
 	private tallydata_TC: any[] = []
+	private receiveBuffer = ''
+	// Safety net: if we somehow never see a closing tag (e.g. malformed/unexpected
+	// data from the switcher) don't let the buffer grow forever.
+	private static readonly MAX_BUFFER_SIZE = 1_000_000
 	constructor(source: Source) {
 		super(source)
 
@@ -25,48 +29,49 @@ export class NewtekTricasterSource extends TallyInput {
 
 		this.client.on('data', (data) => {
 			logger(`Source: ${source.name}  Tricaster data received.`, 'info-quiet')
-			try {
-				data = '<data>' + data.toString() + '</data>'
 
-				let parseString = xml2js.parseString
+			// The Tricaster sends raw TCP data with no guarantee that a full XML
+			// message arrives in a single 'data' event - a message can be split
+			// across multiple TCP segments. Buffer chunks until we can see a
+			// complete <shortcut_states>...</shortcut_states> message, similar to
+			// how BlackmagicVideoHub.ts buffers partial lines until it sees '\n'.
+			this.receiveBuffer += data.toString()
 
-				parseString(data, (error, result) => {
-					if (error) {
-						//the Tricaster will send a lot of data that will not parse correctly when it first connects
-						//console.log('error:' + error);
-					} else {
-						let shortcut_states = Object.entries(result['data']['shortcut_states'])
+			const openingTag = '<shortcut_states'
+			const closingTag = '</shortcut_states>'
 
-						// Loop through the data and set preview and program based on received data.
-						// Example input from page 62: https://downloads.newtek.com/LiveProductionSystems/VMC1/Automation%20and%20Integration%20Guide.pdf
-						//
-						// <shortcut_states>
-						//   <shortcut_state name="program_tally" value="INPUT1|BFR2|DDR3" type="" sender="" />
-						//   <shortcut_state name="preview_tally" value="INPUT7" type="" sender="" />
-						// </shortcut_states>
-						//
-						// In this example, INPUT1, BFR1, DDR3 are identified as being on Program output, while INPUT7 is on Preview.
-						//
-						// For testing can the above data been fed into TallyArbiter via the SocketTest v3.0.0 application
-						//
-						for (const [name, value] of shortcut_states) {
-							let shortcut_state = value['shortcut_state']
-							for (let j = 0; j < shortcut_state.length; j++) {
-								switch (shortcut_state[j]['$'].name) {
-									case 'program_tally':
-									case 'preview_tally':
-										let tallyValue = shortcut_state[j]['$'].value
-										let addresses = tallyValue.split('|')
-										this.processTricasterTally(source, addresses, shortcut_state[j]['$'].name)
-										break
-									default:
-										break
-								}
-							}
-						}
-					}
-				})
-			} catch (error) {}
+			// The Tricaster is known to send non-XML preamble/noise data right
+			// after connecting (before the first real <shortcut_states> message
+			// arrives). Drop anything before a recognized message start so it
+			// doesn't get glued onto a real message and break its parsing. Keep
+			// a short tail in case the opening tag itself is split across chunks.
+			const openingIndex = this.receiveBuffer.indexOf(openingTag)
+			if (openingIndex > 0) {
+				this.receiveBuffer = this.receiveBuffer.slice(openingIndex)
+			} else if (openingIndex === -1 && this.receiveBuffer.length > openingTag.length) {
+				this.receiveBuffer = this.receiveBuffer.slice(-openingTag.length)
+			}
+
+			let closingIndex: number
+
+			while ((closingIndex = this.receiveBuffer.indexOf(closingTag)) !== -1) {
+				const messageEnd = closingIndex + closingTag.length
+				const message = this.receiveBuffer.slice(0, messageEnd)
+
+				// Drop the consumed message (and any leading whitespace/separators
+				// before the next one) from the buffer.
+				this.receiveBuffer = this.receiveBuffer.slice(messageEnd).replace(/^\s+/, '')
+
+				this.parseTricasterMessage(source, message)
+			}
+
+			if (this.receiveBuffer.length > NewtekTricasterSource.MAX_BUFFER_SIZE) {
+				logger(
+					`Source: ${source.name}  Tricaster receive buffer exceeded ${NewtekTricasterSource.MAX_BUFFER_SIZE} bytes without a complete message; discarding buffered data.`,
+					'error'
+				)
+				this.receiveBuffer = ''
+			}
 		})
 
 		this.client.on('close', () => {
@@ -78,6 +83,57 @@ export class NewtekTricasterSource extends TallyInput {
 		})
 
 		this.connect()
+	}
+
+	private parseTricasterMessage(source: Source, message: string): void {
+		try {
+			const wrapped = '<data>' + message + '</data>'
+
+			let parseString = xml2js.parseString
+
+			parseString(wrapped, (error, result) => {
+				if (error) {
+					const preview = message.length > 500 ? message.slice(0, 500) + '...(truncated)' : message
+					logger(
+						`Source: ${source.name}  Tricaster XML failed to parse: ${error} - data: ${preview}`,
+						'error'
+					)
+				} else {
+					let shortcut_states = Object.entries(result['data']['shortcut_states'])
+
+					// Loop through the data and set preview and program based on received data.
+					// Example input from page 62: https://downloads.newtek.com/LiveProductionSystems/VMC1/Automation%20and%20Integration%20Guide.pdf
+					//
+					// <shortcut_states>
+					//   <shortcut_state name="program_tally" value="INPUT1|BFR2|DDR3" type="" sender="" />
+					//   <shortcut_state name="preview_tally" value="INPUT7" type="" sender="" />
+					// </shortcut_states>
+					//
+					// In this example, INPUT1, BFR1, DDR3 are identified as being on Program output, while INPUT7 is on Preview.
+					//
+					// For testing can the above data been fed into TallyArbiter via the SocketTest v3.0.0 application
+					//
+					for (const [name, value] of shortcut_states) {
+						let shortcut_state = value['shortcut_state']
+						for (let j = 0; j < shortcut_state.length; j++) {
+							switch (shortcut_state[j]['$'].name) {
+								case 'program_tally':
+								case 'preview_tally':
+									let tallyValue = shortcut_state[j]['$'].value
+									let addresses = tallyValue.split('|')
+									this.processTricasterTally(source, addresses, shortcut_state[j]['$'].name)
+									break
+								default:
+									break
+							}
+						}
+					}
+				}
+			})
+		} catch (error) {
+			const preview = message.length > 500 ? message.slice(0, 500) + '...(truncated)' : message
+			logger(`Source: ${source.name}  Tricaster XML parsing threw an exception: ${error} - data: ${preview}`, 'error')
+		}
 	}
 
 	public processTricasterTally(sourceId, sourceArray, tallyType?) {
