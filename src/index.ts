@@ -296,7 +296,7 @@ function initialSetup() {
 				let access_token = tmpSocketAccessTokens[socket.id]
 				validateAccessToken(access_token)
 					.then((user) => {
-						if (user.roles.includes(role) || user.roles.includes('admin')) {
+						if (user.roles.split(';').includes(role) || user.roles.split(';').includes('admin')) {
 							resolve(user)
 						} else {
 							let error_msg = 'Access denied. You are not authorized to do this.'
@@ -320,8 +320,8 @@ function initialSetup() {
 					logger(`User ${username} (ip addr ${ipAddr}) has attempted a login (${error})`)
 					//wrong credentials
 					Promise.all([
-						limiterConsecutiveFailsByUsernameAndIP.consume(ipAddr),
-						limiterSlowBruteByIP.consume(`${username}_${ipAddr}`),
+						limiterConsecutiveFailsByUsernameAndIP.consume(`${username}_${ipAddr}`),
+						limiterSlowBruteByIP.consume(ipAddr),
 					])
 						.then((values) => {
 							//rate limits not exceeded
@@ -524,19 +524,31 @@ function initialSetup() {
 		})
 
 		socket.on('companion', () => {
-			socket.join('companion')
-			socket.emit('sources', getSources())
-			socket.emit('devices', devices)
-			socket.emit('bus_options', currentConfig.bus_options)
-			socket.emit('device_sources', device_sources)
-			socket.emit('device_states', getDeviceStates())
-			socket.emit('listener_clients', listener_clients)
-			socket.emit('tsl_clients', tslListenerProvider.tsl_clients)
-			socket.emit('cloud_destinations', cloud_destinations)
+			requireRole('producer')
+				.then((user) => {
+					socket.join('companion')
+					socket.emit('sources', getSources())
+					socket.emit('devices', devices)
+					socket.emit('bus_options', currentConfig.bus_options)
+					socket.emit('device_sources', device_sources)
+					socket.emit('device_states', getDeviceStates())
+					socket.emit('listener_clients', listener_clients)
+					socket.emit('tsl_clients', tslListenerProvider.tsl_clients)
+					socket.emit('cloud_destinations', cloud_destinations)
+				})
+				.catch((e) => {
+					console.error(e)
+				})
 		})
 
 		socket.on('flash', (clientId) => {
-			FlashListenerClient(clientId)
+			requireRole('producer')
+				.then((user) => {
+					FlashListenerClient(clientId)
+				})
+				.catch((e) => {
+					console.error(e)
+				})
 		})
 
 		socket.on(
@@ -550,125 +562,161 @@ function initialSetup() {
 				socketid: string,
 				message: string,
 			) => {
-				MessageListenerClient(clientId, type, socketid, message)
+				requireRole('producer')
+					.then((user) => {
+						MessageListenerClient(clientId, type, socketid, message)
+					})
+					.catch((e) => {
+						console.error(e)
+					})
 			},
 		)
 
 		socket.on('reassign', (clientId: string, oldDeviceId: string, deviceId: string) => {
-			ReassignListenerClient(clientId, oldDeviceId, deviceId)
+			requireRole('producer')
+				.then((user) => {
+					ReassignListenerClient(clientId, oldDeviceId, deviceId)
+				})
+				.catch((e) => {
+					console.error(e)
+				})
 		})
 
 		socket.on('listener_reassign', (oldDeviceId: string, deviceId: string) => {
-			socket.leave('device-' + oldDeviceId)
-			socket.join('device-' + deviceId)
+			requireRole('producer')
+				.then((user) => {
+					socket.leave('device-' + oldDeviceId)
+					socket.join('device-' + deviceId)
 
-			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].socketId === socket.id) {
-					listener_clients[i].deviceId = deviceId
-					listener_clients[i].inactive = false
-					break
-				}
-			}
+					for (let i = 0; i < listener_clients.length; i++) {
+						if (listener_clients[i].socketId === socket.id) {
+							listener_clients[i].deviceId = deviceId
+							listener_clients[i].inactive = false
+							break
+						}
+					}
 
-			let oldDeviceName = GetDeviceByDeviceId(oldDeviceId).name
-			let deviceName = GetDeviceByDeviceId(deviceId).name
+					let oldDeviceName = GetDeviceByDeviceId(oldDeviceId).name
+					let deviceName = GetDeviceByDeviceId(deviceId).name
 
-			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info')
-			UpdateSockets('listener_clients')
-			UpdateCloud('listener_clients')
-			socket.emit('device_states', getDeviceStates())
+					logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info')
+					UpdateSockets('listener_clients')
+					UpdateCloud('listener_clients')
+					socket.emit('device_states', getDeviceStates())
+				})
+				.catch((e) => {
+					console.error(e)
+				})
 		})
 
 		socket.on('listener_reassign_relay', (relayGroupId, oldDeviceId, deviceId) => {
-			let canRemove = true
-			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].socketId === socket.id) {
-					if (listener_clients[i].deviceId === oldDeviceId) {
-						if (listener_clients[i].internalId !== relayGroupId) {
-							canRemove = false
-							break
+			requireRole('producer')
+				.then((user) => {
+					let canRemove = true
+					for (let i = 0; i < listener_clients.length; i++) {
+						if (listener_clients[i].socketId === socket.id) {
+							if (listener_clients[i].deviceId === oldDeviceId) {
+								if (listener_clients[i].internalId !== relayGroupId) {
+									canRemove = false
+									break
+								}
+							}
 						}
 					}
-				}
-			}
-			if (canRemove) {
-				//no other relay groups on this socket are using the old device ID, so we can safely leave that room
-				socket.leave('device-' + oldDeviceId)
-			}
-
-			socket.join('device-' + deviceId)
-
-			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].socketId === socket.id) {
-					if (listener_clients[i].internalId === relayGroupId) {
-						listener_clients[i].deviceId = deviceId
+					if (canRemove) {
+						//no other relay groups on this socket are using the old device ID, so we can safely leave that room
+						socket.leave('device-' + oldDeviceId)
 					}
-				}
-			}
 
-			let oldDeviceName = GetDeviceByDeviceId(oldDeviceId).name
-			let deviceName = GetDeviceByDeviceId(deviceId).name
+					socket.join('device-' + deviceId)
 
-			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info')
-			UpdateSockets('listener_clients')
-			UpdateCloud('listener_clients')
-			socket.emit('device_states', getDeviceStates())
+					for (let i = 0; i < listener_clients.length; i++) {
+						if (listener_clients[i].socketId === socket.id) {
+							if (listener_clients[i].internalId === relayGroupId) {
+								listener_clients[i].deviceId = deviceId
+							}
+						}
+					}
+
+					let oldDeviceName = GetDeviceByDeviceId(oldDeviceId).name
+					let deviceName = GetDeviceByDeviceId(deviceId).name
+
+					logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info')
+					UpdateSockets('listener_clients')
+					UpdateCloud('listener_clients')
+					socket.emit('device_states', getDeviceStates())
+				})
+				.catch((e) => {
+					console.error(e)
+				})
 		})
 
 		socket.on('listener_reassign_gpo', (gpoGroupId, oldDeviceId, deviceId) => {
-			let canRemove = true
-			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].socketId === socket.id) {
-					if (listener_clients[i].deviceId === oldDeviceId) {
-						if (listener_clients[i].internalId !== gpoGroupId) {
-							canRemove = false
-							break
+			requireRole('producer')
+				.then((user) => {
+					let canRemove = true
+					for (let i = 0; i < listener_clients.length; i++) {
+						if (listener_clients[i].socketId === socket.id) {
+							if (listener_clients[i].deviceId === oldDeviceId) {
+								if (listener_clients[i].internalId !== gpoGroupId) {
+									canRemove = false
+									break
+								}
+							}
 						}
 					}
-				}
-			}
-			if (canRemove) {
-				//no other gpo groups on this socket are using the old device ID, so we can safely leave that room
-				socket.leave('device-' + oldDeviceId)
-			}
-
-			socket.join('device-' + deviceId)
-
-			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].socketId === socket.id) {
-					if (listener_clients[i].internalId === gpoGroupId) {
-						listener_clients[i].deviceId = deviceId
+					if (canRemove) {
+						//no other gpo groups on this socket are using the old device ID, so we can safely leave that room
+						socket.leave('device-' + oldDeviceId)
 					}
-				}
-			}
 
-			let oldDeviceName = GetDeviceByDeviceId(oldDeviceId).name
-			let deviceName = GetDeviceByDeviceId(deviceId).name
+					socket.join('device-' + deviceId)
 
-			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info')
-			UpdateSockets('listener_clients')
-			UpdateCloud('listener_clients')
+					for (let i = 0; i < listener_clients.length; i++) {
+						if (listener_clients[i].socketId === socket.id) {
+							if (listener_clients[i].internalId === gpoGroupId) {
+								listener_clients[i].deviceId = deviceId
+							}
+						}
+					}
+
+					let oldDeviceName = GetDeviceByDeviceId(oldDeviceId).name
+					let deviceName = GetDeviceByDeviceId(deviceId).name
+
+					logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info')
+					UpdateSockets('listener_clients')
+					UpdateCloud('listener_clients')
+				})
+				.catch((e) => {
+					console.error(e)
+				})
 		})
 
 		socket.on('listener_reassign_object', (reassignObj) => {
-			socket.leave('device-' + reassignObj.oldDeviceId)
-			socket.join('device-' + reassignObj.newDeviceId)
+			requireRole('producer')
+				.then((user) => {
+					socket.leave('device-' + reassignObj.oldDeviceId)
+					socket.join('device-' + reassignObj.newDeviceId)
 
-			for (let i = 0; i < listener_clients.length; i++) {
-				if (listener_clients[i].socketId === socket.id) {
-					listener_clients[i].deviceId = reassignObj.newDeviceId
-					listener_clients[i].inactive = false
-					break
-				}
-			}
+					for (let i = 0; i < listener_clients.length; i++) {
+						if (listener_clients[i].socketId === socket.id) {
+							listener_clients[i].deviceId = reassignObj.newDeviceId
+							listener_clients[i].inactive = false
+							break
+						}
+					}
 
-			let oldDeviceName = GetDeviceByDeviceId(reassignObj.oldDeviceId).name
-			let deviceName = GetDeviceByDeviceId(reassignObj.newDeviceId).name
+					let oldDeviceName = GetDeviceByDeviceId(reassignObj.oldDeviceId).name
+					let deviceName = GetDeviceByDeviceId(reassignObj.newDeviceId).name
 
-			logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info')
-			UpdateSockets('listener_clients')
-			UpdateCloud('listener_clients')
-			socket.emit('device_states', getDeviceStates())
+					logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info')
+					UpdateSockets('listener_clients')
+					UpdateCloud('listener_clients')
+					socket.emit('device_states', getDeviceStates())
+				})
+				.catch((e) => {
+					console.error(e)
+				})
 		})
 
 		socket.on('listener_delete', (clientId) => {
@@ -920,7 +968,17 @@ function initialSetup() {
 
 		socket.on('cloud_data', (key: string, sourceId: string, tallyObj: SourceTallyData) => {
 			if (cloud_keys.includes(key)) {
-				processSourceTallyData(sourceId, tallyObj)
+				let cloudClientId = GetCloudClientBySocketId(socket.id)?.id
+				let source = GetSourceBySourceId(sourceId)
+
+				if (cloudClientId && source && source.cloudClientId === cloudClientId) {
+					processSourceTallyData(sourceId, tallyObj)
+				} else {
+					logger(
+						`Cloud Client (key: ${key}) attempted to send tally data for a source it does not own: ${sourceId}`,
+						'info',
+					)
+				}
 			} else {
 				socket.emit('invalidkey')
 				socket.disconnect()
@@ -1623,7 +1681,7 @@ function TallyArbiter_Manage(obj: Manage, access_token: string = ''): Promise<Ma
 	return new Promise((resolve, reject) => {
 		validateAccessToken(access_token).then((user) => {
 			const validate_user_role = (role) => {
-				if (!user.roles.includes(role) && !user.roles.includes('admin')) {
+				if (!user.roles.split(';').includes(role) && !user.roles.split(';').includes('admin')) {
 					resolve({ result: 'error', error: 'Access denied. You are not authorized to do this.' })
 					return false
 				} else {
@@ -2481,8 +2539,9 @@ function TallyArbiter_Remove_Cloud_Client(obj: Manage): ManageResponse {
 			//disconnect the cloud client
 			ipAddress = cloud_clients[i].ipAddress
 			key = cloud_clients[i].key
-			if ((io.sockets as any).connected && (io.sockets as any).connected.includes(cloud_clients[i].socketId)) {
-				;(io.sockets as any).connected[cloud_clients[i].socketId].disconnect(true)
+			const clientSocket = io.sockets.sockets.get(cloud_clients[i].socketId)
+			if (clientSocket) {
+				clientSocket.disconnect(true)
 				clientRemoved = true
 			}
 			cloud_clients.splice(i, 1)
@@ -2704,8 +2763,9 @@ function FlashListenerClient(listenerClientId): FlashListenerClientResponse | vo
 	if (listenerClientObj) {
 		if (listenerClientObj.cloudConnection) {
 			let cloudClientSocketId = GetCloudClientById(listenerClientObj.cloudClientId).socketId
-			if ((io.sockets as any).connected && (io.sockets as any).connected.includes(cloudClientSocketId)) {
-				;(io.sockets as any).connected[cloudClientSocketId].emit('flash', listenerClientId)
+			const cloudClientSocket = io.sockets.sockets.get(cloudClientSocketId)
+			if (cloudClientSocket) {
+				cloudClientSocket.emit('flash', listenerClientId)
 			}
 		} else {
 			if (listenerClientObj.canBeFlashed) {
@@ -2731,14 +2791,9 @@ function MessageListenerClient(
 	if (listenerClientObj) {
 		if (listenerClientObj.cloudConnection) {
 			let cloudClientSocketId = GetCloudClientById(listenerClientObj.cloudClientId).socketId
-			if ((io.sockets as any).connected && (io.sockets as any).connected.includes(cloudClientSocketId)) {
-				;(io.sockets as any).connected[cloudClientSocketId].emit(
-					'messaging_client',
-					listenerClientId,
-					type,
-					socketid,
-					message,
-				)
+			const cloudClientSocket = io.sockets.sockets.get(cloudClientSocketId)
+			if (cloudClientSocket) {
+				cloudClientSocket.emit('messaging_client', listenerClientId, type, socketid, message)
 			}
 		} else {
 			if (listenerClientObj.canBeFlashed) {
@@ -2825,10 +2880,11 @@ function AddCloudClient(socketId, key, ipAddress, datetimeConnected) {
 function DeleteCloudClients(key) {
 	for (let i = cloud_clients.length - 1; i >= 0; i--) {
 		if (cloud_clients[i].key === key) {
-			if ((io.sockets as any).connected && (io.sockets as any).connected.includes(cloud_clients[i].socketId)) {
-				;(io.sockets as any).connected[cloud_clients[i].socketId].disconnect(true)
-				cloud_clients.splice(i, 1)
+			const clientSocket = io.sockets.sockets.get(cloud_clients[i].socketId)
+			if (clientSocket) {
+				clientSocket.disconnect(true)
 			}
+			cloud_clients.splice(i, 1)
 		}
 	}
 
