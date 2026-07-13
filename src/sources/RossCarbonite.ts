@@ -465,7 +465,15 @@ export class RossCarboniteSource extends TallyInput {
 			if (device_sources[i].address === address) {
 				//this device_source has this address in it, so let's loop through the tallydata_carbonite array
 				//   and find all the busses that match this address
-				let busses = this.tallydata_RossCarbonite.find(({ address }) => address === device_sources[i].address).busses
+				const tallyEntry = this.tallydata_RossCarbonite.find(({ address }) => address === device_sources[i].address)
+				if (!tallyEntry) {
+					logger(
+						`RossCarbonite: No tally data found for address ${device_sources[i].address}; skipping update.`,
+						'error',
+					)
+					continue
+				}
+				let busses = tallyEntry.busses
 
 				for (let j = 0; j < busses.length; j++) {
 					let bus = RossSwitcherBusAddresses[this.source.sourceTypeId].find(
