@@ -9,7 +9,12 @@ export function getNetworkInterfaces(): NetworkInterface[] {
 	for (const networkInterface in networkInterfaces) {
 		let numberOfAddresses = networkInterfaces[networkInterface].length
 		let v4Addresses = []
-		let iface = networkInterface.split(' ')[0]
+		// Use the full OS-reported interface name as-is. Splitting on the first
+		// space previously truncated distinct Windows adapters (e.g. "Ethernet",
+		// "Ethernet 2", "Ethernet 3") down to the same string, causing collisions,
+		// since the `${i}` suffix below only disambiguates multiple addresses
+		// within the same OS-level key, not across differently-named adapters.
+		let iface = networkInterface
 
 		for (let i = 0; i < numberOfAddresses; i++) {
 			if (networkInterfaces[networkInterface][i]['family'] === 'IPv4') {
