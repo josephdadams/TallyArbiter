@@ -278,23 +278,30 @@ Two systemic issues affect multiple files:
 
 ## 6. Angular client (`UI/src/app/`)
 
-61. [ ] **Duplicate `'listener_clients'` socket handler — the second silently discards the first's work.** `UI/src/app/_services/socket.service.ts:126-138` and `:274-279` both register the same event. The second (registered later) overwrites `this.listenerClients` with a version lacking the `.device` reference and active/inactive sort, on every single update. The first handler's `l.device.listenerCount += 1` also has no null-guard — throws if a listener's `deviceId` no longer matches any device (e.g. device deleted while listener still connected).
+61. [x] **Duplicate `'listener_clients'` socket handler — the second silently discards the first's work.** `UI/src/app/_services/socket.service.ts:126-138` and `:274-279` both register the same event. The second (registered later) overwrites `this.listenerClients` with a version lacking the `.device` reference and active/inactive sort, on every single update. The first handler's `l.device.listenerCount += 1` also has no null-guard — throws if a listener's `deviceId` no longer matches any device (e.g. device deleted while listener still connected).
+   **Status:** Fixed in PR #1059.
 
-62. [ ] **Wake-lock click handler is never removed — calls a nonexistent DOM API.** `UI/src/app/_services/wake-lock.service.ts:11-17` calls `document.removeAllListeners?.('click')` — that's a Node.js `EventEmitter` method, not a DOM API; it's `undefined` in a browser and the optional-chaining silently no-ops. The `'click'` listener from `init()` is never removed, so `noSleep.enable()` fires on every click for the app's entire lifetime.
+62. [x] **Wake-lock click handler is never removed — calls a nonexistent DOM API.** `UI/src/app/_services/wake-lock.service.ts:11-17` calls `document.removeAllListeners?.('click')` — that's a Node.js `EventEmitter` method, not a DOM API; it's `undefined` in a browser and the optional-chaining silently no-ops. The `'click'` listener from `init()` is never removed, so `noSleep.enable()` fires on every click for the app's entire lifetime.
+   **Status:** Fixed in PR #1056.
 
-63. [ ] **Cancelling the "listeners connected, delete anyway?" dialog does not stop deletion.** `UI/src/app/_components/settings/settings.component.ts:358-380` checks `if (!result) { return }`, but `Swal.fire()` always resolves to an object (even on cancel/dismiss) — `!result` is always `false`. Compare with the correctly implemented `_decorators/confirmable.decorator.ts:16`, which checks `res.isConfirmed`. **Clicking Cancel still deletes the device.**
+63. [x] **Cancelling the "listeners connected, delete anyway?" dialog does not stop deletion.** `UI/src/app/_components/settings/settings.component.ts:358-380` checks `if (!result) { return }`, but `Swal.fire()` always resolves to an object (even on cancel/dismiss) — `!result` is always `false`. Compare with the correctly implemented `_decorators/confirmable.decorator.ts:16`, which checks `res.isConfirmed`. **Clicking Cancel still deletes the device.**
+   **Status:** Fixed in PR #1061.
 
-64. [ ] **Unbounded recursion risk generating bug-report URLs with a large stack trace.** `UI/src/app/_components/error-report/error-report.component.ts:78-110` truncates title/logs/config when the encoded URL is too long, but never truncates `stacktrace`. If the URL stays oversized purely due to a large stack trace, the recursive retry computes an identically-sized URL forever → `RangeError: Maximum call stack size exceeded`.
+64. [x] **Unbounded recursion risk generating bug-report URLs with a large stack trace.** `UI/src/app/_components/error-report/error-report.component.ts:78-110` truncates title/logs/config when the encoded URL is too long, but never truncates `stacktrace`. If the URL stays oversized purely due to a large stack trace, the recursive retry computes an identically-sized URL forever → `RangeError: Maximum call stack size exceeded`.
+   **Status:** Fixed in PR #1062.
 
-65. [ ] **Missing `return` + no rejection handling in `checkIfIssuesEnabled`.** `error-report.component.ts:48-76` — falls through after `resolve(false)` into code that throws on a non-GitHub URL (only "works" because a settled promise ignores the second resolution); `reject` is never invoked and no `.catch()` exists up the chain, so a malformed configured URL leaves `bugReportUrlLoaded` silently stuck `false`.
+65. [x] **Missing `return` + no rejection handling in `checkIfIssuesEnabled`.** `error-report.component.ts:48-76` — falls through after `resolve(false)` into code that throws on a non-GitHub URL (only "works" because a settled promise ignores the second resolution); `reject` is never invoked and no `.catch()` exists up the chain, so a malformed configured URL leaves `bugReportUrlLoaded` silently stuck `false`.
+   **Status:** Fixed in PR #1062.
 
 66. [ ] **Un-correlated request/response socket calls can resolve with the wrong data under concurrency.** `UI/src/app/_services/auth.service.ts:58-68` (`login`) and `socket.service.ts:432-443` (`getErrorReportById`) use bare `.once(eventName, cb)` with no correlation ID — a double-submit or fast navigation stacks multiple listeners, and the first response resolves *all* pending calls with the same payload. Use socket.io ack callbacks or a request ID instead.
+   **Status:** Not fixed. Investigated during the socket.service.ts cleanup (PR #1059) — the server (`src/index.ts`) has no ack-callback support on any socket.io handler (confirmed via grep), so a proper fix requires a server-side change (either wire up socket.io ack callbacks, or add an explicit request-id to the payload/response) in addition to the client change. Left open as a follow-up requiring coordinated client+server work.
 
-67. [ ] **Widespread missing `ngOnDestroy` → socket-listener/RxJS leaks on every re-navigation**, compounding across:
+67. [x] **Widespread missing `ngOnDestroy` → socket-listener/RxJS leaks on every re-navigation**, compounding across:
     - `error-reports-list.component.ts:22-35` — registers `'unread_error_reports'` in the constructor, never removed; array never cleared before pushing (duplicates on repeat events).
     - `tally.component.ts:115-117` — `ngOnDestroy` only removes `'flash'`, leaving the `'reassign'` listener and a `deviceStateChanged` subscription registered every time the component is recreated (extra `navigator.vibrate()` calls pile up).
     - `chat.component.ts:18-22` — subscribes to a shared Subject with no `ngOnDestroy` at all; since it's nested in routed components, every visit leaks a closure referencing a destroyed component's DOM ref.
     - `producer.component.ts:16-27` and `settings.component.ts:139-207` — neither implements `OnDestroy`; `SettingsComponent` alone leaks up to seven long-lived registrations per visit.
+   **Status:** Fixed in PR #1061.
 
 68. [x] **Role checks use fragile substring matching on both client and server** (already covered as a critical security issue in §1.2 — listed here too because the client-side instances are: `auth.service.ts:79-84`, `authorize.guard.ts:45`).
    **Status:** Fixed in PR #1022.
