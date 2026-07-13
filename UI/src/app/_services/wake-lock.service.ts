@@ -6,13 +6,15 @@ import NoSleep from 'nosleep.js'
 })
 export class WakeLockService {
 	private noSleep?: NoSleep
+	private clickHandler = () => this.enableWakeLock()
+
 	public init() {
 		this.noSleep = new NoSleep()
-		document.addEventListener('click', () => this.enableWakeLock())
+		document.addEventListener('click', this.clickHandler)
 	}
 
 	private enableWakeLock() {
-		document.removeAllListeners?.('click')
+		document.removeEventListener('click', this.clickHandler)
 		this.noSleep?.enable()
 	}
 }
