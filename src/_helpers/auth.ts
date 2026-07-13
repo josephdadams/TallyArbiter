@@ -7,15 +7,8 @@ import { clone } from './clone'
 import { AuthenticateSuccessResponse } from '../_models/AuthenticateSuccessResponse'
 import { User } from '../_models/User'
 
-export function hashPassword(password: string): Promise<string> {
-	return new Promise((resolve, reject) => {
-		bcrypt.hash(password, 10, (err, hash) => {
-			if (err) {
-				reject(err)
-			}
-			resolve(hash)
-		})
-	})
+export function hashPassword(password: string): string {
+	return bcrypt.hashSync(password, 10)
 }
 
 export function checkPassword(input_password: string, original_password: string): Promise<boolean> {
@@ -73,26 +66,22 @@ export function getUsersList(removePassword = false): User[] {
 	return users
 }
 
-export function addUser(user: User): Promise<boolean> {
-	return new Promise((resolve, reject) => {
-		let userFound = false
-		currentConfig.users.forEach((user_original) => {
-			if (user.username === user_original.username) {
-				userFound = true
-			}
-		})
-		if (!userFound) {
-			hashPassword(user.password).then((hashed_password) => {
-				user.password = hashed_password
-				currentConfig.users.push(user)
-				SaveConfig()
-				logger(`Added new user ${user.username}.`)
-				resolve(true)
-			})
-		} else {
-			reject()
+export function addUser(user: User): boolean {
+	let userFound = false
+	currentConfig.users.forEach((user_original) => {
+		if (user.username === user_original.username) {
+			userFound = true
 		}
 	})
+	if (!userFound) {
+		user.password = hashPassword(user.password)
+		currentConfig.users.push(user)
+		SaveConfig()
+		logger(`Added new user ${user.username}.`)
+		return true
+	} else {
+		return false
+	}
 }
 
 export function editUser(user: User) {

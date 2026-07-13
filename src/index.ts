@@ -288,7 +288,7 @@ function initialSetup() {
 
 		const requireRole = (role: string) => {
 			return new Promise((resolve, reject) => {
-				if (typeof tmpSocketAccessTokens[socket.id] === undefined) {
+				if (typeof tmpSocketAccessTokens[socket.id] === 'undefined') {
 					let error_msg = 'Access token required. Please login to use this feature.'
 					socket.emit('error', error_msg)
 					reject(error_msg)
@@ -409,9 +409,17 @@ function initialSetup() {
 			supportsChat (bool)
 			*/
 
-			if (typeof obj !== 'object' && obj !== null) {
-				logger(`Received JSON object: ${obj}`, 'info-quiet') //Log the raw JSON to console
-				obj = JSON.parse(String(obj)) //Re-parse JSON
+			try {
+				if (typeof obj !== 'object' || obj === null) {
+					logger(`Received JSON object: ${obj}`, 'info-quiet') //Log the raw JSON to console
+					obj = JSON.parse(String(obj)) //Re-parse JSON
+				}
+				if (typeof obj !== 'object' || obj === null) {
+					throw new Error('Invalid listenerclient_connect payload')
+				}
+			} catch (e) {
+				logger(`Invalid listenerclient_connect payload: ${e}`, 'error')
+				return
 			}
 
 			let deviceId = obj.deviceId
@@ -753,6 +761,7 @@ function initialSetup() {
 						if (!found) {
 							//the client was deleted on the local source, so we should delete it here as well
 							sources.splice(i, 1)
+							i--
 						}
 					}
 				}
@@ -775,10 +784,10 @@ function initialSetup() {
 					for (let j = 0; j < devices.length; j++) {
 						if (data[i].id === devices[j].id) {
 							found = true
-							devices[j].name = data[j].name
-							devices[j].description = data[j].description
-							devices[j].tslAddress = data[j].tslAddress
-							devices[j].enabled = data[j].enabled
+							devices[j].name = data[i].name
+							devices[j].description = data[i].description
+							devices[j].tslAddress = data[i].tslAddress
+							devices[j].enabled = data[i].enabled
 							devices[j].cloudConnection = true
 							devices[j].cloudClientId = cloudClientId
 							break
@@ -806,6 +815,7 @@ function initialSetup() {
 						if (!found) {
 							//the client was deleted on the local source, so we should delete it here as well
 							devices.splice(i, 1)
+							i--
 						}
 					}
 				}
@@ -853,6 +863,7 @@ function initialSetup() {
 						if (!found) {
 							//the client was deleted on the local source, so we should delete it here as well
 							device_sources.splice(i, 1)
+							i--
 						}
 					}
 				}
@@ -907,6 +918,7 @@ function initialSetup() {
 						if (!found) {
 							//the client was deleted on the local source, so we should delete it here as well
 							listener_clients.splice(i, 1)
+							i--
 						}
 					}
 				}
@@ -969,7 +981,7 @@ function initialSetup() {
 					ToggleTestMode(value, interval)
 				})
 				.catch((err) => {
-					console.error(err)
+					logger(err, 'error')
 				})
 		})
 
@@ -981,7 +993,7 @@ function initialSetup() {
 					TSLClients_1SecUpdate(value)
 				})
 				.catch((err) => {
-					console.error(err)
+					logger(err, 'error')
 				})
 		})
 
@@ -999,7 +1011,7 @@ function initialSetup() {
 					socket.emit('unread_error_reports', getUnreadErrorReportsList())
 				})
 				.catch((err) => {
-					console.error(err)
+					logger(err, 'error')
 				})
 		})
 
@@ -1010,7 +1022,7 @@ function initialSetup() {
 					socket.emit('error_report', getErrorReport(errorReportId))
 				})
 				.catch((err) => {
-					console.error(err)
+					logger(err, 'error')
 				})
 		})
 
@@ -1020,7 +1032,7 @@ function initialSetup() {
 					markErrorReportsAsRead()
 				})
 				.catch((err) => {
-					console.error(err)
+					logger(err, 'error')
 				})
 		})
 
@@ -1030,7 +1042,7 @@ function initialSetup() {
 					deleteEveryErrorReport()
 				})
 				.catch((err) => {
-					console.error(err)
+					logger(err, 'error')
 				})
 		})
 
@@ -1040,7 +1052,7 @@ function initialSetup() {
 					socket.emit('users', getUsersList())
 				})
 				.catch((err) => {
-					console.error(err)
+					logger(err, 'error')
 				})
 		})
 
@@ -1050,7 +1062,7 @@ function initialSetup() {
 					socket.emit('config', currentConfig)
 				})
 				.catch((err) => {
-					console.error(err)
+					logger(err, 'error')
 				})
 		})
 
@@ -1070,7 +1082,7 @@ function initialSetup() {
 						})
 				})
 				.catch((err) => {
-					console.error(err)
+					logger(err, 'error')
 				})
 		})
 
@@ -1078,6 +1090,7 @@ function initialSetup() {
 			// emitted when any socket.io client disconnects from the server
 			DeactivateListenerClient(socket.id)
 			CheckCloudClients(socket.id)
+			delete tmpSocketAccessTokens[socket.id]
 		})
 
 		socket.on('remote_error_opt', (optStatus: boolean) => {
@@ -1342,13 +1355,7 @@ function removeTestDeviceSource() {
 	for (let i = 0; i < device_sources.length; i++) {
 		if (device_sources[i].sourceId === 'TEST') {
 			device_sources.splice(i, 1)
-			UpdateSockets('device_sources')
-			UpdateCloud('device_sources')
-		}
-	}
-	for (let i = 0; i < device_sources.length; i++) {
-		if (device_sources[i].sourceId === 'TEST') {
-			device_sources.splice(i, 1)
+			i--
 			UpdateSockets('device_sources')
 			UpdateCloud('device_sources')
 		}
@@ -2034,6 +2041,7 @@ function TallyArbiter_Delete_Source(obj: Manage): ManageResponse {
 			sourceName = sources[i].name
 			if (sourceId !== 'TEST') {
 				StopConnection(sourceId)
+				delete SourceClients[sourceId]
 				sources.splice(i, 1)
 			} else {
 				ToggleTestMode(false)
@@ -2695,7 +2703,7 @@ function DeleteInactiveListenerClients() {
 		UpdateCloud('listener_clients')
 	}
 
-	setTimeout(DeleteInactiveListenerClients, 5 * 1000) // runs every 5 minutes
+	setTimeout(DeleteInactiveListenerClients, 5 * 1000) // runs every 5 seconds
 }
 
 function FlashListenerClient(listenerClientId): FlashListenerClientResponse | void {
@@ -2777,8 +2785,11 @@ function UpdateCamera(deviceId: string) {
 
 	const deviceState = getDeviceStates(deviceId)
 
-	const pgmBus = deviceState.find((bus) => bus.busId === '334e4eda')
-	const pvwBus = deviceState.find((bus) => bus.busId === 'e393251c')
+	const pgmBusOption = currentConfig.bus_options.find((b) => b.type === 'program')
+	const pvwBusOption = currentConfig.bus_options.find((b) => b.type === 'preview')
+
+	const pgmBus = pgmBusOption && deviceState.find((bus) => bus.busId === pgmBusOption.id)
+	const pvwBus = pvwBusOption && deviceState.find((bus) => bus.busId === pvwBusOption.id)
 
 	const inPgm = pgmBus && pgmBus.sources.length > 0
 	const inPvw = pvwBus && pvwBus.sources.length > 0
@@ -2904,7 +2915,7 @@ function CheckListenerClients() {
 	}
 
 	for (let i = 0; i < listener_clients.length; i++) {
-		if (!GetDeviceByDeviceId(listener_clients[i].deviceId)) {
+		if (GetDeviceByDeviceId(listener_clients[i].deviceId).id === 'unassigned') {
 			//this device has been removed, so reassign it to the first index
 			ReassignListenerClient(listener_clients[i].id, listener_clients[i].deviceId, newDeviceId)
 		}
