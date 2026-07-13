@@ -97,6 +97,9 @@ export class TSLListenerProvider extends ListenerProvider {
 
 	public stopTSLClientConnection(tslClientId) {
 		const tslClient = this.tsl_clients.find((t) => t.id == tslClientId)
+		if (!tslClient) {
+			return
+		}
 		switch (tslClient.transport) {
 			case 'udp':
 				logger(
@@ -210,10 +213,11 @@ export class TSLListenerProvider extends ListenerProvider {
 		bufUMD[0] = 0x80 + tslAddress
 		bufUMD.write(device.name, 2)
 
-		for (const busId of currentTallyData[device.id]) {
-			if (GetBusByBusId(busId).type === 'preview') {
+		for (const busId of currentTallyData[device.id] ?? []) {
+			const bus = GetBusByBusId(busId)
+			if (bus?.type === 'preview') {
 				mode_preview = true
-			} else if (GetBusByBusId(busId).type === 'program') {
+			} else if (bus?.type === 'program') {
 				mode_program = true
 			}
 			//could add support for other states here like tally3, tally4, whatever the TSL protocol supports
