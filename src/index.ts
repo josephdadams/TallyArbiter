@@ -2210,8 +2210,21 @@ function TallyArbiter_Add_Device_Source(obj: Manage): ManageResponse {
 	deviceSourceObj.id = uuidv4()
 	device_sources.push(deviceSourceObj)
 
-	let deviceName = GetDeviceByDeviceId(deviceSourceObj.deviceId).name
-	let sourceName = GetSourceBySourceId(deviceSourceObj.sourceId).name
+	let deviceName = ''
+	try {
+		deviceName = GetDeviceByDeviceId(deviceSourceObj.deviceId).name
+	} catch (error) {
+		//sometimes the device is already deleted, so we can't get the name
+		deviceName = 'Unknown'
+	}
+
+	let sourceName = ''
+	try {
+		sourceName = GetSourceBySourceId(deviceSourceObj.sourceId).name
+	} catch (error) {
+		//sometimes the source is already deleted, so we can't get the name
+		sourceName = 'Unknown'
+	}
 
 	UpdateCloud('device_sources')
 
