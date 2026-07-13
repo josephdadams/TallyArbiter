@@ -73,10 +73,14 @@ export class BlackmagicATEMSource extends TallyInput {
 			this.processATEMState(this.atemClient.state)
 			this.processATEMTally()
 			if (this.atemClient.state.recording) {
-				this.addAddress('{{RECORDING}}', '{{RECORDING}}')
+				if (!this.addresses.value.some((a) => a.address === '{{RECORDING}}')) {
+					this.addAddress('{{RECORDING}}', '{{RECORDING}}')
+				}
 			}
 			if (this.atemClient.state.streaming) {
-				this.addAddress('{{STREAMING}}', '{{STREAMING}}')
+				if (!this.addresses.value.some((a) => a.address === '{{STREAMING}}')) {
+					this.addAddress('{{STREAMING}}', '{{STREAMING}}')
+				}
 			}
 		})
 
@@ -89,6 +93,8 @@ export class BlackmagicATEMSource extends TallyInput {
 				if (path.indexOf('video.mixEffects') > -1 || path.indexOf('video.downstreamKeyers') > -1) {
 					this.processATEMState(state)
 				} else if (path.indexOf('video.auxilliaries') > -1) {
+					this.processATEMState(state)
+				} else if (path.indexOf('video.superSources') > -1) {
 					this.processATEMState(state)
 				} else if (path == 'streaming.status') {
 					this.processATEMState(state)
