@@ -40,14 +40,19 @@ export class DarkModeService {
 		}
 	}
 
+	private registerAutoModeListener() {
+		window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+			this.updatePageStyle()
+		})
+	}
+
 	public init() {
 		if (!this.getDarkMode()) {
 			this.setDarkMode('auto')
+			this.registerAutoModeListener()
 		} else {
 			if (this.getDarkMode() === 'auto') {
-				window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-					this.updatePageStyle()
-				})
+				this.registerAutoModeListener()
 			}
 			this.updatePageStyle()
 		}
