@@ -187,6 +187,22 @@ export class TSL5DataParser {
 }
 
 class TSL5Base extends TallyInput {
+	//Decodes a single 2-bit TSL 5.0 tally value into its preview/program state.
+	//0 = off, 1 = program (red), 2 = preview (green), 3 = both.
+	private static decodeTallyBusState(value: number): { inPreview: number; inProgram: number } {
+		switch (value) {
+			case 1:
+				return { inPreview: 0, inProgram: 1 }
+			case 2:
+				return { inPreview: 1, inProgram: 0 }
+			case 3:
+				return { inPreview: 1, inProgram: 1 }
+			case 0:
+			default:
+				return { inPreview: 0, inProgram: 0 }
+		}
+	}
+
 	protected processTSL5Tally(data) {
 		if (data.length >= 12) {
 			let tallyobj: any = TSL5DataParser.parseTSL5Data(data)
@@ -195,27 +211,15 @@ class TSL5Base extends TallyInput {
 				this.renameAddress(tallyobj.INDEX[0].toString(), tallyobj.INDEX[0].toString(), tallyobj.TEXT.toString().trim())
 			}
 
-			let inPreview = 0
-			let inProgram = 0
+			//Some TSL 5.0 senders (e.g. Panasonic Kairos) only pulse text_tally briefly
+			//around a cut and drive their steady-state on-air indication through
+			//rh_tally/lh_tally instead, so all three fields are combined with OR logic.
+			const rhState = TSL5Base.decodeTallyBusState(tallyobj.control.rh_tally)
+			const textState = TSL5Base.decodeTallyBusState(tallyobj.control.text_tally)
+			const lhState = TSL5Base.decodeTallyBusState(tallyobj.control.lh_tally)
 
-			switch (tallyobj.control.text_tally) {
-				case 0:
-					inPreview = 0
-					inProgram = 0
-					break
-				case 1:
-					inPreview = 0
-					inProgram = 1
-					break
-				case 2:
-					inPreview = 1
-					inProgram = 0
-					break
-				case 3:
-					inPreview = 1
-					inProgram = 1
-					break
-			}
+			const inPreview = rhState.inPreview || textState.inPreview || lhState.inPreview
+			const inProgram = rhState.inProgram || textState.inProgram || lhState.inProgram
 
 			const busses = []
 			if (inPreview) {
