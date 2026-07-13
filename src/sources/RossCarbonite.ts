@@ -227,7 +227,7 @@ const RossSwitcherBusAddresses = {
 	{ bus: 'aux7', name: 'Aux 7' },
 	{ bus: 'aux8', name: 'Aux 8' },
 	{ bus: 'aux9', name: 'Aux 9' },
-	{ bus: 'au10', name: 'Aux 10' },
+	{ bus: 'aux10', name: 'Aux 10' },
 	{ bus: 'aux11', name: 'Aux 11' },
 	{ bus: 'aux12', name: 'Aux 12' },
 	{ bus: 'aux13', name: 'Aux 13' },
@@ -252,7 +252,7 @@ const RossSwitcherBusAddresses = {
 	{ bus: 'aux7', name: 'Aux 7' },
 	{ bus: 'aux8', name: 'Aux 8' },
 	{ bus: 'aux9', name: 'Aux 9' },
-	{ bus: 'au10', name: 'Aux 10' },
+	{ bus: 'aux10', name: 'Aux 10' },
 	{ bus: 'aux11', name: 'Aux 11' },
 	{ bus: 'aux12', name: 'Aux 12' },
 	{ bus: 'aux13', name: 'Aux 13' },
@@ -282,7 +282,7 @@ const RossSwitcherBusAddresses = {
 	{ bus: 'aux7', name: 'Aux 7' },
 	{ bus: 'aux8', name: 'Aux 8' },
 	{ bus: 'aux9', name: 'Aux 9' },
-	{ bus: 'au10', name: 'Aux 10' },
+	{ bus: 'aux10', name: 'Aux 10' },
 	{ bus: 'aux11', name: 'Aux 11' },
 	{ bus: 'aux12', name: 'Aux 12' },
 	{ bus: 'aux13', name: 'Aux 13' },
@@ -312,7 +312,7 @@ const RossSwitcherBusAddresses = {
 	{ bus: 'aux7', name: 'Aux 7' },
 	{ bus: 'aux8', name: 'Aux 8' },
 	{ bus: 'aux9', name: 'Aux 9' },
-	{ bus: 'au10', name: 'Aux 10' },
+	{ bus: 'aux10', name: 'Aux 10' },
 	{ bus: 'aux11', name: 'Aux 11' },
 	{ bus: 'aux12', name: 'Aux 12' },
 	{ bus: 'aux13', name: 'Aux 13' },
@@ -457,6 +457,9 @@ export class RossCarboniteSource extends TallyInput {
 		let found = false
 
 		for (let i = 0; i < device_sources.length; i++) {
+			if (device_sources[i].sourceId !== this.source.id) {
+				continue
+			}
 			inPreview = false
 			inProgram = false
 			if (device_sources[i].address === address) {
