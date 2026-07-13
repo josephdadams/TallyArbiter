@@ -11,21 +11,45 @@ import { logger } from '..'
 ])
 export class IncomingWebhookSource extends TallyInput {
 	private server: http.Server
+	private port: number
+
+	private static readonly MAX_BODY_SIZE = 1024 * 1024 // 1MB
 
 	constructor(source: Source) {
 		super(source)
 		const port = source.data.port || 8080
 		const path = source.data.path || '/webhook'
 
-		UsePort(port, this.source.id)
+		this.port = port
+
+		UsePort(this.port, this.source.id)
 
 		this.server = http.createServer((req, res) => {
 			if (req.method === 'POST' && req.url === path) {
 				let body = ''
+				let bodySize = 0
+				let tooLarge = false
 				req.on('data', (chunk) => {
+					if (tooLarge) {
+						return
+					}
+
+					bodySize += chunk.length
+
+					if (bodySize > IncomingWebhookSource.MAX_BODY_SIZE) {
+						tooLarge = true
+						res.writeHead(413)
+						res.end('Payload Too Large')
+						req.destroy()
+						return
+					}
+
 					body += chunk
 				})
 				req.on('end', () => {
+					if (tooLarge) {
+						return
+					}
 					try {
 						interface IncomingWebhookData {
 							[address: string]: string[]
@@ -58,9 +82,9 @@ export class IncomingWebhookSource extends TallyInput {
 			}
 		})
 
-		this.server.listen(port, () => {
+		this.server.listen(this.port, () => {
 			this.connected.next(true)
-			logger(`Incoming Webhook listening on port ${port}${path}`, 'info')
+			logger(`Incoming Webhook listening on port ${this.port}${path}`, 'info')
 		})
 
 		this.server.on('error', (err) => {
@@ -71,7 +95,7 @@ export class IncomingWebhookSource extends TallyInput {
 	public exit(): void {
 		super.exit()
 		this.server.close()
-		FreePort(this.source.data.port, this.source.id)
+		FreePort(this.port, this.source.id)
 		this.connected.next(false)
 	}
 }
