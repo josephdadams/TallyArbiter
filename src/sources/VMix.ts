@@ -54,7 +54,7 @@ export class VMixSource extends TallyInput {
 				//we received some other command, so lets process it
 				if (data[0].indexOf('ACTS OK Recording ') > -1) {
 					this.setBussesForAddress('{{RECORDING}}', [])
-					if (data.indexOf('ACTS OK Recording 1') > -1) {
+					if (data[0].indexOf('ACTS OK Recording 1') > -1) {
 						this.setBussesForAddress('{{RECORDING}}', ['program'])
 					}
 					this.sendTallyData()
@@ -62,7 +62,7 @@ export class VMixSource extends TallyInput {
 
 				if (data[0].indexOf('ACTS OK Streaming ') > -1) {
 					this.setBussesForAddress('{{STREAMING}}', [])
-					if (data.indexOf('ACTS OK Streaming 1') > -1) {
+					if (data[0].indexOf('ACTS OK Streaming 1') > -1) {
 						this.setBussesForAddress('{{STREAMING}}', ['program'])
 						this.sendTallyData()
 					}
@@ -93,5 +93,7 @@ export class VMixSource extends TallyInput {
 	public exit(): void {
 		super.exit()
 		this.client.write('QUIT\r\n')
+		this.client.end()
+		this.client.destroy()
 	}
 }
