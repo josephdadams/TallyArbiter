@@ -822,7 +822,12 @@ export class CTPSource extends TallyInput {
 		}
 
 		//get the busType based on the busId
-		let busType = currentConfig.bus_options.find((obj) => obj.id === busId).type
+		const busOption = currentConfig.bus_options.find((obj) => obj.id === busId)
+		if (!busOption) {
+			logger(`Contribution Tally Source: No bus_option found for busId ${busId}; skipping tally add.`, 'error')
+			return
+		}
+		let busType = busOption.type
 
 		if (!found) {
 			//if there was not an entry in the array for this address and bus and busId

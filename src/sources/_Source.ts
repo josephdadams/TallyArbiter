@@ -140,12 +140,13 @@ export class TallyInput extends EventEmitter {
 
 	protected addBusToAddress(address: string, bus: string) {
 		//replace bus with its real id if it is "preview" or "program" or "aux"
-		if (bus === 'preview') {
-			bus = currentConfig.bus_options.find((b) => b.type === 'preview').id
-		} else if (bus === 'program') {
-			bus = currentConfig.bus_options.find((b) => b.type === 'program').id
-		} else if (bus === 'aux') {
-			bus = currentConfig.bus_options.find((b) => b.type === 'aux').id
+		if (bus === 'preview' || bus === 'program' || bus === 'aux') {
+			const busOption = currentConfig.bus_options.find((b) => b.type === bus)
+			if (!busOption) {
+				logger(`No bus of type '${bus}' is configured; skipping addBusToAddress.`, 'error')
+				return
+			}
+			bus = busOption.id
 		}
 
 		if (!Array.isArray(this.tallyData[address])) {
@@ -158,12 +159,13 @@ export class TallyInput extends EventEmitter {
 
 	protected removeBusFromAddress(address: string, bus: string) {
 		//replace bus with its real id if it is "preview" or "program" or "aux"
-		if (bus === 'preview') {
-			bus = currentConfig.bus_options.find((b) => b.type === 'preview').id
-		} else if (bus === 'program') {
-			bus = currentConfig.bus_options.find((b) => b.type === 'program').id
-		} else if (bus === 'aux') {
-			bus = currentConfig.bus_options.find((b) => b.type === 'aux').id
+		if (bus === 'preview' || bus === 'program' || bus === 'aux') {
+			const busOption = currentConfig.bus_options.find((b) => b.type === bus)
+			if (!busOption) {
+				logger(`No bus of type '${bus}' is configured; skipping removeBusFromAddress.`, 'error')
+				return
+			}
+			bus = busOption.id
 		}
 
 		if (!Array.isArray(this.tallyData[address])) {
@@ -175,12 +177,13 @@ export class TallyInput extends EventEmitter {
 
 	protected removeBusFromAllAddresses(bus: string) {
 		//replace bus with its real id if it is "preview" or "program" or "aux"
-		if (bus === 'preview') {
-			bus = currentConfig.bus_options.find((b) => b.type === 'preview').id
-		} else if (bus === 'program') {
-			bus = currentConfig.bus_options.find((b) => b.type === 'program').id
-		} else if (bus === 'aux') {
-			bus = currentConfig.bus_options.find((b) => b.type === 'aux').id
+		if (bus === 'preview' || bus === 'program' || bus === 'aux') {
+			const busOption = currentConfig.bus_options.find((b) => b.type === bus)
+			if (!busOption) {
+				logger(`No bus of type '${bus}' is configured; skipping removeBusFromAllAddresses.`, 'error')
+				return
+			}
+			bus = busOption.id
 		}
 
 		for (const address of Object.keys(this.tallyData)) {
@@ -192,12 +195,13 @@ export class TallyInput extends EventEmitter {
 		//if bus is "preview" or "program", find its real bus id and use that instead because many source types use those words instead of the actual busId
 		let realBusses = []
 		for (let bus of busses) {
-			if (bus === 'preview') {
-				realBusses.push(currentConfig.bus_options.find((b) => b.type === 'preview').id)
-			} else if (bus === 'program') {
-				realBusses.push(currentConfig.bus_options.find((b) => b.type === 'program').id)
-			} else if (bus === 'aux') {
-				realBusses.push(currentConfig.bus_options.find((b) => b.type === 'aux').id)
+			if (bus === 'preview' || bus === 'program' || bus === 'aux') {
+				const busOption = currentConfig.bus_options.find((b) => b.type === bus)
+				if (!busOption) {
+					logger(`No bus of type '${bus}' is configured; skipping this bus for address ${address}.`, 'error')
+					continue
+				}
+				realBusses.push(busOption.id)
 			} else {
 				realBusses.push(bus)
 			}
@@ -222,12 +226,13 @@ export class TallyInput extends EventEmitter {
 		//if bus is "preview" or "program", find its real bus id and use that instead because many source types use those words instead of the actual busId
 		let realBusses = []
 		for (let bus of busses) {
-			if (bus === 'preview') {
-				realBusses.push(currentConfig.bus_options.find((b) => b.type === 'preview').id)
-			} else if (bus === 'program') {
-				realBusses.push(currentConfig.bus_options.find((b) => b.type === 'program').id)
-			} else if (bus === 'aux') {
-				realBusses.push(currentConfig.bus_options.find((b) => b.type === 'aux').id)
+			if (bus === 'preview' || bus === 'program' || bus === 'aux') {
+				const busOption = currentConfig.bus_options.find((b) => b.type === bus)
+				if (!busOption) {
+					logger(`No bus of type '${bus}' is configured; skipping this bus for address ${address}.`, 'error')
+					continue
+				}
+				realBusses.push(busOption.id)
 			} else {
 				realBusses.push(bus)
 			}
