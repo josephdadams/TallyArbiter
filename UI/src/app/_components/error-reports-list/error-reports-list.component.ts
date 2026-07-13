@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, OnInit } from '@angular/core'
+import { Component, OnDestroy, OnInit } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { Confirmable } from 'src/app/_decorators/confirmable.decorator'
@@ -15,9 +15,14 @@ import { LocationBackService } from 'src/app/_services/locationBack.service'
 	templateUrl: './error-reports-list.component.html',
 	styleUrls: ['./error-reports-list.component.scss'],
 })
-export class ErrorReportsListComponent implements OnInit {
+export class ErrorReportsListComponent implements OnInit, OnDestroy {
 	public unread_error_reports: any = []
 	public errorReportsLoaded: boolean = false
+
+	private unreadErrorReportsHandler = (list: ErrorReportsListElement[]) => {
+		this.unread_error_reports = list.map((report) => report.id)
+		this.errorReportsLoaded = true
+	}
 
 	constructor(
 		private router: Router,
@@ -25,12 +30,7 @@ export class ErrorReportsListComponent implements OnInit {
 		public navbarVisibilityService: NavbarVisibilityService,
 		public locationBackService: LocationBackService,
 	) {
-		this.socketService.socket.on('unread_error_reports', (list) => {
-			list.forEach((report: ErrorReportsListElement) => {
-				this.unread_error_reports.push(report.id)
-			})
-			this.errorReportsLoaded = true
-		})
+		this.socketService.socket.on('unread_error_reports', this.unreadErrorReportsHandler)
 		this.socketService.socket.emit('get_unread_error_reports')
 	}
 
@@ -48,4 +48,8 @@ export class ErrorReportsListComponent implements OnInit {
 	}
 
 	ngOnInit(): void {}
+
+	ngOnDestroy(): void {
+		this.socketService.socket.off('unread_error_reports', this.unreadErrorReportsHandler)
+	}
 }

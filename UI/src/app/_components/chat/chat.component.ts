@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common'
-import { Component, ElementRef, Input, ViewChild } from '@angular/core'
+import { Component, ElementRef, Input, OnDestroy, ViewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { Subscription } from 'rxjs'
 import { SocketService } from 'src/app/_services/socket.service'
 
 @Component({
@@ -10,15 +11,21 @@ import { SocketService } from 'src/app/_services/socket.service'
 	templateUrl: './chat.component.html',
 	styleUrls: ['./chat.component.scss'],
 })
-export class ChatComponent {
+export class ChatComponent implements OnDestroy {
 	public message = ''
 	@Input() type: 'producer' | any
 	@ViewChild('chatContainer') private chatContainer!: ElementRef
 
+	private scrollChatSubscription: Subscription
+
 	constructor(public socketService: SocketService) {
-		this.socketService.scrollChatSubject.subscribe(() => {
+		this.scrollChatSubscription = this.socketService.scrollChatSubject.subscribe(() => {
 			this.scrollToBottom(this.chatContainer)
 		})
+	}
+
+	ngOnDestroy(): void {
+		this.scrollChatSubscription?.unsubscribe()
 	}
 
 	public sendMessage(): void {
