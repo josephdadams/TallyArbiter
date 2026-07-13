@@ -20,6 +20,15 @@ export class RolandSmartTallySource extends TallyInput {
 
 		for (const deviceSource of device_sources.filter((s) => s.sourceId === this.source.id)) {
 			let address = deviceSource.address
+
+			if (!address) {
+				logger(
+					`Device source ${deviceSource.id} has no address/input number configured; skipping Roland Smart Tally poll.`,
+					'error',
+				)
+				continue
+			}
+
 			axios
 				.get(`http://${ip}/tally/${address}/status`)
 				.then((response) => {
