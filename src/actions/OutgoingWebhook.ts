@@ -49,15 +49,17 @@ export class OutgoingWebhook extends Action {
 				: ''
 			this.action.data.protocol = this.action.data.protocol || 'http://'
 
-			this.action.data.port = this.action.data.port
-				? this.action.data.port === ''
-					? '80'
-					: this.action.data.port
-				: '80' //explicitly set the port to 80 if they did not specify
+			//default the port based on the selected protocol if the port was not explicitly configured
+			const defaultPort = this.action.data.protocol === 'https://' ? '443' : '80'
+			this.action.data.port = this.action.data.port || defaultPort
 
 			let options = {
 				method: this.action.data.method,
 				url: this.action.data.protocol + this.action.data.ip + ':' + this.action.data.port + path,
+				timeout: 5000, // fire-and-forget tally notification, don't hang indefinitely
+				maxRedirects: 5,
+				maxContentLength: 5 * 1024 * 1024, // 5MB
+				maxBodyLength: 5 * 1024 * 1024, // 5MB
 			} as any
 
 			options.headers = options.headers || {}
