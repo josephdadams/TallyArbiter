@@ -95,6 +95,18 @@ export class PanasonicAVHS410Source extends TallyInput {
 				offset = 0
 			receivebuffer += message
 
+			// Guard against unbounded growth if a packet without an ETX terminator
+			// keeps arriving (e.g. malformed/partial data that never completes).
+			const maxReceiveBufferSize = 65536
+			if (receivebuffer.length > maxReceiveBufferSize && receivebuffer.indexOf(ETX) === -1) {
+				logger(
+					`Source: ${source.name}  Panasonic AV-HS410 receive buffer exceeded ${maxReceiveBufferSize} bytes without finding an ETX terminator. Resetting buffer.`,
+					'error',
+				)
+				receivebuffer = ''
+				return
+			}
+
 			// If we receve a data package from the unit - Parse it
 			while ((i = receivebuffer.indexOf(ETX, offset)) !== -1) {
 				packet = receivebuffer.substr(offset, i - offset)
@@ -124,9 +136,9 @@ export class PanasonicAVHS410Source extends TallyInput {
 									this.sendTallyData()
 									break
 								case '03': // PVW
-									// Clear the old input from Program Bus
+									// Clear the old input from Preview Bus
 									this.removeBusFromAllAddresses('preview')
-									// Set new input to Program Bus
+									// Set new input to Preview Bus
 									this.addBusToAddress(address.toString(), 'preview')
 									this.sendTallyData()
 									break
@@ -222,5 +234,7 @@ export class PanasonicAVHS410Source extends TallyInput {
 		}
 
 		this.client.write('QUIT\r\n')
+		this.client.end()
+		this.client.destroy()
 	}
 }
