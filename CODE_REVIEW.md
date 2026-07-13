@@ -187,7 +187,8 @@ Two systemic issues affect multiple files:
 39. [x] **`OSC.ts:29-34`** — `oscMsg.args[0].value` dereferenced with no length check — any zero-argument OSC packet throws uncaught in the `'message'` handler.
    **Status:** Fixed in PR #1041.
 
-40. [ ] **`NewtekTricaster.ts:26-70`** — each TCP chunk is parsed standalone (unlike `BlackmagicVideoHub.ts`, which buffers partial lines); an XML response split across two segments fails to parse and is silently swallowed by an empty `catch {}` with no logging.
+40. [x] **`NewtekTricaster.ts:26-70`** — each TCP chunk is parsed standalone (unlike `BlackmagicVideoHub.ts`, which buffers partial lines); an XML response split across two segments fails to parse and is silently swallowed by an empty `catch {}` with no logging.
+   **Status:** Fixed in PR #1052.
 
 41. [x] **`RossCarbonite.ts:230,255,285,315`** — `'au10'` typo (missing "x") in the Aux 10 bus registration for 4 switcher models, while the address tables use `'aux10'` — Aux 10 tally silently never fires for those models.
    **Status:** Fixed in PR #1040.
@@ -210,7 +211,8 @@ Two systemic issues affect multiple files:
 47. [x] **`ContributionTally.ts:162,180 → 572-574`** — `parseStillStoreContribution()` throws on truncated input with no try/catch anywhere in its call chain (UDP/TCP `'message'`/`'data'` handlers) — uncaught exception from malformed wire data.
    **Status:** Fixed in PR #1047.
 
-48. [ ] **No `'error'` listener on raw `dgram` sockets** in `SimplyLive.ts:20-21`, `TSL.ts:23-24` (TSL3) and `:240-241` (TSL5), `ContributionTally.ts:160-171` — plus `connected.next(true)` is set immediately after `bind()` without waiting for the `'listening'` event, so status can be falsely reported as connected even when binding actually failed.
+48. [x] **No `'error'` listener on raw `dgram` sockets** in `SimplyLive.ts:20-21`, `TSL.ts:23-24` (TSL3) and `:240-241` (TSL5), `ContributionTally.ts:160-171` — plus `connected.next(true)` is set immediately after `bind()` without waiting for the `'listening'` event, so status can be falsely reported as connected even when binding actually failed.
+   **Status:** Fixed in PR #1054.
 
 49. [x] **`VMix.ts:93-96` / `PanasonicAVHS410.ts:210-224`** — `exit()` writes a final command but never calls `.end()`/`.destroy()` on the socket (unlike `RolandVR`/`NewtekTricaster`/`AnalogWayLivecore`) — leaked open sockets on teardown.
    **Status:** Fixed in PR #1042 and PR #1045.
@@ -252,7 +254,8 @@ Two systemic issues affect multiple files:
 
 58. [ ] **`TSL.ts:90-92`** — `bufUMD[0] = 0x80 + parseInt(address)` has no bounds check; an out-of-range address silently truncates into the byte (Buffer index masking) instead of erroring, corrupting the packet.
 
-59. [ ] **`OSC.ts:36` vs `:46-47`** — help text claims quoted args with spaces are supported, but `args.split(' ')` splits before quote-stripping, so `"hello world"` becomes two malformed tokens instead of one string argument.
+59. [x] **`OSC.ts:36` vs `:46-47`** — help text claims quoted args with spaces are supported, but `args.split(' ')` splits before quote-stripping, so `"hello world"` becomes two malformed tokens instead of one string argument.
+   **Status:** Fixed in PR #1053.
 
 60. [x] **`TCP.ts:31-33` / `RossTalk.ts:18-20`** — `write()` immediately followed by `end()`/`destroy()` in the same tick; `destroy()` can discard data not yet flushed to the OS buffer, risking truncated outgoing commands on slower links.
    **Status:** Fixed in PR #1048.
