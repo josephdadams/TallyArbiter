@@ -119,6 +119,9 @@ export class AWLivecoreSource extends TallyInput {
 		})
 
 		this.client.on('close', () => {
+			if (this.heartbeat_interval) {
+				clearInterval(this.heartbeat_interval)
+			}
 			this.connected.next(false)
 		})
 
@@ -160,13 +163,13 @@ export class AWLivecoreSource extends TallyInput {
 					// PVW
 					this.tallydata_AWLivecore[i].tally1 = tallyObj.tally1
 					this.tallydata_AWLivecore[i].preview = tallyObj.tally1
-					this.addBusToAddress(this.tallydata_AWLivecore[i].addresses, 'preview')
+					this.addBusToAddress(this.tallydata_AWLivecore[i].address, 'preview')
 				}
 				if (tallyObj.tally2 !== undefined) {
 					// PGM
 					this.tallydata_AWLivecore[i].tally2 = tallyObj.tally2
 					this.tallydata_AWLivecore[i].program = tallyObj.tally2
-					this.addBusToAddress(this.tallydata_AWLivecore[i].addresses, 'program')
+					this.addBusToAddress(this.tallydata_AWLivecore[i].address, 'program')
 				}
 			}
 		}
