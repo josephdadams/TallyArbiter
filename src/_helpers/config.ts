@@ -8,13 +8,10 @@ import { randomBytes } from 'crypto'
 import { clone } from './clone'
 import { uuidv4 } from './uuid'
 import { addUser } from './auth'
+import { getAppDataFolder } from './appDataFolder'
 
 function getConfigFilePath(): string {
-	const configFolder = path.join(
-		process.env.APPDATA ||
-			(process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + '/.local/share'),
-		'TallyArbiter',
-	)
+	const configFolder = getAppDataFolder()
 	if (!fs.existsSync(configFolder)) {
 		fs.mkdirSync(configFolder, { recursive: true })
 	}
