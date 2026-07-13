@@ -154,15 +154,20 @@ Two systemic issues affect multiple files:
 - **Calling `this.exit()` from an error/close handler breaks reconnection.** `_Source.ts`'s reconnect state machine treats a `connected.next(false)` after `exit()` as a fresh "startup" event and schedules no reconnect timer. Hits `DataVideoIP.ts` (#31) and `OBS.ts` v5 (#37).
 - **Several raw `dgram`/`net` sockets have no `'error'` listener**, relying on the global `uncaughtException` handler as a catch-all instead of degrading gracefully.
 
-29. [ ] **`AnalogWayLivecore.ts:163,169`** — references `.addresses` (typo; the field is `.address`, set at `:145/152`). Every tally update is added under key `undefined` — per-input preview/program state never works for this source.
+29. [x] **`AnalogWayLivecore.ts:163,169`** — references `.addresses` (typo; the field is `.address`, set at `:145/152`). Every tally update is added under key `undefined` — per-input preview/program state never works for this source.
+   **Status:** Fixed in PR #1035.
 
-30. [ ] **`AnalogWayLivecore.ts:59-68,121-123`** — heartbeat interval isn't cleared in the `'close'` handler, only in one timeout branch — a network-reset close leaves a stale interval writing to a dead socket, and reconnect creates a second overlapping one.
+30. [x] **`AnalogWayLivecore.ts:59-68,121-123`** — heartbeat interval isn't cleared in the `'close'` handler, only in one timeout branch — a network-reset close leaves a stale interval writing to a dead socket, and reconnect creates a second overlapping one.
+   **Status:** Fixed in PR #1035.
 
-31. [ ] **`BlackmagicATEM.ts:138-147`** — duplicated `case RecordingStatus.Stopping:` where the second case was meant to be `RecordingStatus.Recording` — active recording is never surfaced on the program bus.
+31. [x] **`BlackmagicATEM.ts:138-147`** — duplicated `case RecordingStatus.Stopping:` where the second case was meant to be `RecordingStatus.Recording` — active recording is never surfaced on the program bus.
+   **Status:** Fixed in PR #1038.
 
-32. [ ] **`BlackmagicVideoHub.ts:39,41-48`** — `receiveBuffer += chunk` grows unbounded if a peer never sends a trailing delimiter — memory-growth DoS vector.
+32. [x] **`BlackmagicVideoHub.ts:39,41-48`** — `receiveBuffer += chunk` grows unbounded if a peer never sends a trailing delimiter — memory-growth DoS vector.
+   **Status:** Fixed in PR #1036.
 
-33. [ ] **`BlackmagicVideoHub.ts:157,160,178,181`** — `destinations_pvw`/`destinations_pgm` are plain-text fields checked with `.includes(numericDestination)`; a string `"12,13"` matching destination `1` via substring match (`"1"` ⊂ `"12"`) gives a false positive. Needs `.split(',').map(Number)` first.
+33. [x] **`BlackmagicVideoHub.ts:157,160,178,181`** — `destinations_pvw`/`destinations_pgm` are plain-text fields checked with `.includes(numericDestination)`; a string `"12,13"` matching destination `1` via substring match (`"1"` ⊂ `"12"`) gives a false positive. Needs `.split(',').map(Number)` first.
+   **Status:** Fixed in PR #1036.
 
 34. [ ] **`DataVideoIP.ts:98-100`** — the control-port `'error'` handler only logs, never sets `connected.next(false)` or reconnects — an initial `ECONNREFUSED` hangs forever with zero retries.
 
@@ -170,19 +175,25 @@ Two systemic issues affect multiple files:
 
 36. [ ] **`DataVideoIP.ts:120,123` and `:203,221-238`** — a separate uncapped 500ms retry loop bypassing `connected`/backoff entirely, plus `processBuffer()` calling `buffer.readInt32LE(4)` / reading 8-byte blocks with no length check — throws `RangeError` on a short TCP segment.
 
-37. [ ] **`IncomingWebhook.ts:17,20,61` vs `:74`** — the listen port falls back to `8080` if unset, but `exit()`'s `FreePort` call uses the raw un-fallback-adjusted value — triggers the `FreePort` `-1` bug (#22) directly, corrupting the global port registry.
+37. [x] **`IncomingWebhook.ts:17,20,61` vs `:74`** — the listen port falls back to `8080` if unset, but `exit()`'s `FreePort` call uses the raw un-fallback-adjusted value — triggers the `FreePort` `-1` bug (#22) directly, corrupting the global port registry.
+   **Status:** Fixed in PR #1037.
 
-38. [ ] **`IncomingWebhook.ts:24-27`** — request body accumulated with no size cap — memory-exhaustion DoS via large POST body.
+38. [x] **`IncomingWebhook.ts:24-27`** — request body accumulated with no size cap — memory-exhaustion DoS via large POST body.
+   **Status:** Fixed in PR #1037.
 
-39. [ ] **`OSC.ts:29-34`** — `oscMsg.args[0].value` dereferenced with no length check — any zero-argument OSC packet throws uncaught in the `'message'` handler.
+39. [x] **`OSC.ts:29-34`** — `oscMsg.args[0].value` dereferenced with no length check — any zero-argument OSC packet throws uncaught in the `'message'` handler.
+   **Status:** Fixed in PR #1041.
 
 40. [ ] **`NewtekTricaster.ts:26-70`** — each TCP chunk is parsed standalone (unlike `BlackmagicVideoHub.ts`, which buffers partial lines); an XML response split across two segments fails to parse and is silently swallowed by an empty `catch {}` with no logging.
 
-41. [ ] **`RossCarbonite.ts:230,255,285,315`** — `'au10'` typo (missing "x") in the Aux 10 bus registration for 4 switcher models, while the address tables use `'aux10'` — Aux 10 tally silently never fires for those models.
+41. [x] **`RossCarbonite.ts:230,255,285,315`** — `'au10'` typo (missing "x") in the Aux 10 bus registration for 4 switcher models, while the address tables use `'aux10'` — Aux 10 tally silently never fires for those models.
+   **Status:** Fixed in PR #1040.
 
-42. [ ] **`RossCarbonite.ts:459-465`** — `updateRossCarboniteTallyData()` loops over the entire global `device_sources` array with no filter by `sourceId`, unlike `ContributionTally.ts`'s equivalent — a device source on a different configured source with a matching address string can bleed state across sources.
+42. [x] **`RossCarbonite.ts:459-465`** — `updateRossCarboniteTallyData()` loops over the entire global `device_sources` array with no filter by `sourceId`, unlike `ContributionTally.ts`'s equivalent — a device source on a different configured source with a matching address string can bleed state across sources.
+   **Status:** Fixed in PR #1040.
 
-43. [ ] **`RolandSmartTally.ts:14,50-52`** — `connected.next(true)` set once in the constructor and never reset to `false` on poll failure — UI reports "Connected" forever even when the device is unreachable.
+43. [x] **`RolandSmartTally.ts:14,50-52`** — `connected.next(true)` set once in the constructor and never reset to `false` on poll failure — UI reports "Connected" forever even when the device is unreachable.
+   **Status:** Fixed in PR #1039.
 
 44. [ ] **`OBS.ts:262-269`** — `this.tally.getValue()[data['scene-name']]` used with `.includes()` with no null check — throws if `SceneItemVisibilityChanged` fires before initial sync completes.
 
@@ -190,13 +201,16 @@ Two systemic issues affect multiple files:
 
 46. [ ] **`OBS.ts:176,181`** — `currentTransitionToScene['name']`/`currentTransitionFromScene['name']` dereferenced with no null check on out-of-order transition events.
 
-47. [ ] **`ContributionTally.ts:162,180 → 572-574`** — `parseStillStoreContribution()` throws on truncated input with no try/catch anywhere in its call chain (UDP/TCP `'message'`/`'data'` handlers) — uncaught exception from malformed wire data.
+47. [x] **`ContributionTally.ts:162,180 → 572-574`** — `parseStillStoreContribution()` throws on truncated input with no try/catch anywhere in its call chain (UDP/TCP `'message'`/`'data'` handlers) — uncaught exception from malformed wire data.
+   **Status:** Fixed in PR #1047.
 
 48. [ ] **No `'error'` listener on raw `dgram` sockets** in `SimplyLive.ts:20-21`, `TSL.ts:23-24` (TSL3) and `:240-241` (TSL5), `ContributionTally.ts:160-171` — plus `connected.next(true)` is set immediately after `bind()` without waiting for the `'listening'` event, so status can be falsely reported as connected even when binding actually failed.
 
-49. [ ] **`VMix.ts:93-96` / `PanasonicAVHS410.ts:210-224`** — `exit()` writes a final command but never calls `.end()`/`.destroy()` on the socket (unlike `RolandVR`/`NewtekTricaster`/`AnalogWayLivecore`) — leaked open sockets on teardown.
+49. [x] **`VMix.ts:93-96` / `PanasonicAVHS410.ts:210-224`** — `exit()` writes a final command but never calls `.end()`/`.destroy()` on the socket (unlike `RolandVR`/`NewtekTricaster`/`AnalogWayLivecore`) — leaked open sockets on teardown.
+   **Status:** Fixed in PR #1042 and PR #1045.
 
-50. [ ] **`VMix.ts:57,65`** — `data.indexOf(...)` called on `data` (an array of lines) instead of `data[0]` as done two lines above — works by accident via `Array.prototype.indexOf` exact-match semantics, fragile.
+50. [x] **`VMix.ts:57,65`** — `data.indexOf(...)` called on `data` (an array of lines) instead of `data[0]` as done two lines above — works by accident via `Array.prototype.indexOf` exact-match semantics, fragile.
+   **Status:** Fixed in PR #1042 and PR #1045.
 
 ### Improvements
 - `InternalTestMode.ts:2` — unused `import { timeStamp } from 'console'`.
@@ -219,7 +233,8 @@ Two systemic issues affect multiple files:
 52. [x] **`Ember.ts:51-55`** — the `DISCONNECTED` handler's `await this.getConnection().connectAsync()` has no try/catch. There is **no `process.on('unhandledRejection')` anywhere in `src/`**, so a failed reconnect attempt is an unhandled rejection that **terminates the whole server process** on modern Node whenever an Ember+ device drops. The initial `connect()` (`:71-78`) correctly wraps the same call in try/catch — this path is inconsistent with it.
    **Status:** Fixed in PR #1025.
 
-53. [ ] **`UDP.ts:39-49`** — no `.on('error', ...)` on the dgram client (throws uncaught on send failure), and the `client.send()` callback is a plain `function`, not an arrow function — `this` is `undefined` inside it in strict-mode ESM, so the success-path logging throws `TypeError` on **every successful send**.
+53. [x] **`UDP.ts:39-49`** — no `.on('error', ...)` on the dgram client (throws uncaught on send failure), and the `client.send()` callback is a plain `function`, not an arrow function — `this` is `undefined` inside it in strict-mode ESM, so the success-path logging throws `TypeError` on **every successful send**.
+   **Status:** Fixed in PR #1046.
 
 54. [ ] **`TSL.ts:121-131`** — the raw TCP socket for "TSL 3.1 TCP" has no `.on('error', ...)` handler, unlike the equivalent sockets in `TCP.ts:37` and `RossTalk.ts:24`.
 
