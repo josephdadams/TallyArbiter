@@ -242,7 +242,8 @@ Two systemic issues affect multiple files:
     - `chat.component.ts:18-22` — subscribes to a shared Subject with no `ngOnDestroy` at all; since it's nested in routed components, every visit leaks a closure referencing a destroyed component's DOM ref.
     - `producer.component.ts:16-27` and `settings.component.ts:139-207` — neither implements `OnDestroy`; `SettingsComponent` alone leaks up to seven long-lived registrations per visit.
 
-68. [ ] **Role checks use fragile substring matching on both client and server** (already covered as a critical security issue in §1.2 — listed here too because the client-side instances are: `auth.service.ts:79-84`, `authorize.guard.ts:45`).
+68. [x] **Role checks use fragile substring matching on both client and server** (already covered as a critical security issue in §1.2 — listed here too because the client-side instances are: `auth.service.ts:79-84`, `authorize.guard.ts:45`).
+   **Status:** Fixed in PR #1022.
 
 ### Improvements
 - `AuthService.loadProfile()` calls `jwtDecode()` with no try/catch (`auth.service.ts:45-56`) — a corrupted stored token throws from the constructor, breaking app bootstrap.
