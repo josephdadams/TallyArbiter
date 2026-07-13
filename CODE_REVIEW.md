@@ -169,11 +169,14 @@ Two systemic issues affect multiple files:
 33. [x] **`BlackmagicVideoHub.ts:157,160,178,181`** — `destinations_pvw`/`destinations_pgm` are plain-text fields checked with `.includes(numericDestination)`; a string `"12,13"` matching destination `1` via substring match (`"1"` ⊂ `"12"`) gives a false positive. Needs `.split(',').map(Number)` first.
    **Status:** Fixed in PR #1036.
 
-34. [ ] **`DataVideoIP.ts:98-100`** — the control-port `'error'` handler only logs, never sets `connected.next(false)` or reconnects — an initial `ECONNREFUSED` hangs forever with zero retries.
+34. [x] **`DataVideoIP.ts:98-100`** — the control-port `'error'` handler only logs, never sets `connected.next(false)` or reconnects — an initial `ECONNREFUSED` hangs forever with zero retries.
+   **Status:** Fixed in PR #1049.
 
-35. [ ] **`DataVideoIP.ts:171-174`** — `reconnect()` calls `this.exit()`, which sets `tryReconnecting = false`; the next failed connection attempt is treated as "startup" and auto-reconnect silently stops after one cycle (see systemic issue above).
+35. [x] **`DataVideoIP.ts:171-174`** — `reconnect()` calls `this.exit()`, which sets `tryReconnecting = false`; the next failed connection attempt is treated as "startup" and auto-reconnect silently stops after one cycle (see systemic issue above).
+   **Status:** Fixed in PR #1049.
 
-36. [ ] **`DataVideoIP.ts:120,123` and `:203,221-238`** — a separate uncapped 500ms retry loop bypassing `connected`/backoff entirely, plus `processBuffer()` calling `buffer.readInt32LE(4)` / reading 8-byte blocks with no length check — throws `RangeError` on a short TCP segment.
+36. [x] **`DataVideoIP.ts:120,123` and `:203,221-238`** — a separate uncapped 500ms retry loop bypassing `connected`/backoff entirely, plus `processBuffer()` calling `buffer.readInt32LE(4)` / reading 8-byte blocks with no length check — throws `RangeError` on a short TCP segment.
+   **Status:** Fixed in PR #1049.
 
 37. [x] **`IncomingWebhook.ts:17,20,61` vs `:74`** — the listen port falls back to `8080` if unset, but `exit()`'s `FreePort` call uses the raw un-fallback-adjusted value — triggers the `FreePort` `-1` bug (#22) directly, corrupting the global port registry.
    **Status:** Fixed in PR #1037.
@@ -195,11 +198,14 @@ Two systemic issues affect multiple files:
 43. [x] **`RolandSmartTally.ts:14,50-52`** — `connected.next(true)` set once in the constructor and never reset to `false` on poll failure — UI reports "Connected" forever even when the device is unreachable.
    **Status:** Fixed in PR #1039.
 
-44. [ ] **`OBS.ts:262-269`** — `this.tally.getValue()[data['scene-name']]` used with `.includes()` with no null check — throws if `SceneItemVisibilityChanged` fires before initial sync completes.
+44. [x] **`OBS.ts:262-269`** — `this.tally.getValue()[data['scene-name']]` used with `.includes()` with no null check — throws if `SceneItemVisibilityChanged` fires before initial sync completes.
+   **Status:** Fixed in PR #1050.
 
-45. [ ] **`OBS.ts:356-393`** — for OBS v5, close codes 4009/4010/4011 and the default case call `this.exit()` before `connected.next(false)`, breaking reconnection the same way as `DataVideoIP` (#35) — auth failures/version mismatches/kicks stop auto-reconnect entirely. Also, `case 1000` (normal closure) never calls `connected.next(false)` at all — the UI shows "Connected" even after OBS quits normally.
+45. [x] **`OBS.ts:356-393`** — for OBS v5, close codes 4009/4010/4011 and the default case call `this.exit()` before `connected.next(false)`, breaking reconnection the same way as `DataVideoIP` (#35) — auth failures/version mismatches/kicks stop auto-reconnect entirely. Also, `case 1000` (normal closure) never calls `connected.next(false)` at all — the UI shows "Connected" even after OBS quits normally.
+   **Status:** Fixed in PR #1050.
 
-46. [ ] **`OBS.ts:176,181`** — `currentTransitionToScene['name']`/`currentTransitionFromScene['name']` dereferenced with no null check on out-of-order transition events.
+46. [x] **`OBS.ts:176,181`** — `currentTransitionToScene['name']`/`currentTransitionFromScene['name']` dereferenced with no null check on out-of-order transition events.
+   **Status:** Fixed in PR #1050.
 
 47. [x] **`ContributionTally.ts:162,180 → 572-574`** — `parseStillStoreContribution()` throws on truncated input with no try/catch anywhere in its call chain (UDP/TCP `'message'`/`'data'` handlers) — uncaught exception from malformed wire data.
    **Status:** Fixed in PR #1047.
@@ -248,7 +254,8 @@ Two systemic issues affect multiple files:
 
 59. [ ] **`OSC.ts:36` vs `:46-47`** — help text claims quoted args with spaces are supported, but `args.split(' ')` splits before quote-stripping, so `"hello world"` becomes two malformed tokens instead of one string argument.
 
-60. [ ] **`TCP.ts:31-33` / `RossTalk.ts:18-20`** — `write()` immediately followed by `end()`/`destroy()` in the same tick; `destroy()` can discard data not yet flushed to the OS buffer, risking truncated outgoing commands on slower links.
+60. [x] **`TCP.ts:31-33` / `RossTalk.ts:18-20`** — `write()` immediately followed by `end()`/`destroy()` in the same tick; `destroy()` can discard data not yet flushed to the OS buffer, risking truncated outgoing commands on slower links.
+   **Status:** Fixed in PR #1048.
 
 ### Improvements
 - No lifecycle/dispose hook exists on the `Action` base class (`_Action.ts`) — fine for the stateless actions, but `Ember.ts`'s `static` connection dictionaries (`:28-29`) are never evicted, so editing/deleting an Ember action leaves its old connection (and reconnect loop from #52) running forever, keyed by the stale `ip:port`.
