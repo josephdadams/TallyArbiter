@@ -9,6 +9,10 @@ const copies = [
 		to: 'UI/src/app/_models',
 	},
 	{
+		from: 'src/_types',
+		to: 'UI/src/app/_types',
+	},
+	{
 		from: 'src/_helpers/configSchema.ts',
 		to: 'UI/src/app/_schemas/configSchema.ts',
 	},

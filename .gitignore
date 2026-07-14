@@ -116,6 +116,13 @@ ui-dist/*
 UI/src/app/_models
 !UI/src/app/_models/*.md
 
+# UI types (synced from src/_types, same as UI models above)
+UI/src/app/_types
+
+# UI config schema (synced from src/_helpers/configSchema.ts, same as UI models above -
+# previously tracked in git, which let it silently drift out of sync with its source)
+UI/src/app/_schemas/configSchema.ts
+
 # don't include UI versions.ts file
 UI/src/environments/versions.ts
 
