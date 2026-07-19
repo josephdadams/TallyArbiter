@@ -12,6 +12,7 @@ The following source types are supported:
 - Blackmagic ATEM
 - Blackmagic VideoHub
 - Grass Valley Contribution Tally
+- Grass Valley Ethernet Tally
 - Newtek Tricaster
 - OBS Studio
 - Open Sound Control (OSC)
@@ -41,6 +42,10 @@ You will need the IP address of the VideoHub. You can choose to have any destina
 ## Grass Valley Contribution Tally
 
 It's an older protocol sir, but it checks out. Any Grass Valley switcher that uses this protocol. Choose whether the data is arriving via TCP or UDP, and the port you are sending data on.
+
+## Grass Valley Ethernet Tally
+
+Got a K-Frame? This is for you. Specify the IP, Port, Suite, ME, and Busses you want to monitor.
 
 ## Newtek Tricaster
 
