@@ -1,26 +1,29 @@
 /**
  * Grass Valley K-Frame (ETP) Source Type for Tally Arbiter
  * --------------------------------------------------------
- * Protocol: GV Ethernet Tally Protocol (ETP), XML-ish messages over TCP.
+ * Protocol: GV Ethernet Tally Protocol (ETP), XML messages over TCP.
  *
  * What this implementation does:
  *  - Connects to the K-Frame over TCP (default port 2012).
- *  - Sends an Authentication-Request (<ETP><Authentication-Request>...) with Suite=All.
- *  - Maintains a fixed 5s heartbeat (sends <Heartbeat/>, responds to <Heartbeat-Request/>).
+ *  - Sends an Authentication-Request (<ETP><Authentication-Request>...) subscribing to Suite=All.
+ *  - Maintains a fixed 5s heartbeat (sends <Heartbeat/>, replies to <Heartbeat-Request/>).
  *  - Tokenizes the TCP stream into <ETP>...</ETP> frames (safe against TCP fragmentation).
- *  - Parses a few core messages using xml2js:
- *      • LogicalSourceMap    → builds/updates the "inputs" list (logical source id → name).
- *      • OutputTally         → buffers output→source mappings until SetComplete.
- *      • SetComplete         → commit point: apply Program/Preview to TA busses and publish.
- *      • Heartbeat-Request   → replies with Heartbeat.
- *      • Authentication      → clears state for a fresh "Full" dump.
- *  - Lets the operator choose which Output numbers (OutNum) are Program and Preview
- *    using simple dropdowns, not regex. This maps directly to OutputTally rows.
+ *  - Parses these messages using xml2js and reduces them into tally state:
+ *      • EngineeringSourceMap  → builds the TA "addresses" list (engineering id + name).
+ *      • LogicalSourceMap      → logical source id → name lookup.
+ *      • VPEInputContribution  → for the selected ME, maps VPE input names
+ *                                (BkgdA, Key1-fill, ...) to logical source ids.
+ *      • VPEOutputContribution → for the selected ME, lists which VPE inputs feed each
+ *                                output bus (PgmA, PvwA, ...). Combined with the two maps
+ *                                above, this resolves the sources currently on the selected
+ *                                Program/Preview buses and publishes tally.
+ *      • Heartbeat-Request     → replies with <Heartbeat/>.
  *
- * Notes:
- *  - Heartbeat is fixed at 5000 ms (you can lift that to config if you run into frame idiosyncrasies).
- *  - We do a full "clear" of TA busses on each SetComplete to ensure consistency; then apply the
- *    currently active Program/Preview sources based on your selected outputs.
+ * Configuration (see GV_ETP_FIELDS): the operator picks the Suite, the ME to monitor, and
+ * which output buses count as Program and Preview via dropdowns. Suite/ME are used to filter
+ * the VPE messages down to the ones we care about.
+ *
+ * Note: heartbeat is fixed at 5000 ms (lift to config if a frame needs a different cadence).
  */
 
 import { device_sources, logger } from '..'
@@ -44,6 +47,7 @@ const GV_ETP_FIELDS: TallyInputConfigField[] = [
 		fieldName: 'suite',
 		fieldLabel: 'Suite Number',
 		fieldType: 'dropdown',
+		help: 'We always subscribe to all suites on the frame; this setting filters the incoming data down to the suite you want to monitor.',
 		options: [
 			{ id: '1', label: '1' },
 			{ id: '2', label: '2' },
@@ -55,6 +59,8 @@ const GV_ETP_FIELDS: TallyInputConfigField[] = [
 		fieldName: 'me',
 		fieldLabel: 'ME to Monitor',
 		fieldType: 'dropdown',
+		// The id must match the VPE "Name" attribute the frame reports (e.g. PGM, ME1...).
+		help: 'The mix/effects bank to follow. Must match how the frame names the VPE (PGM/PST is the main program/preset bank).',
 		options: [
 			{ id: 'PGM', label: 'PGM/PST' },
 			{ id: 'ME1', label: 'ME 1' },
@@ -274,19 +280,16 @@ export class GrassValleyETP extends TallyInput {
 			if (!etp) return
 
 			const tag = pickKnownTag(etp, [
-				'Authentication', // server banner → good place to reset state for a "Full" push
+				'Authentication', // server banner acknowledging our Authentication-Request
 				'Authentication-Request', // (we never expect to receive this; client sends it)
 				'Heartbeat', // server heartbeat (rare); can ignore
 				'Heartbeat-Request', // server asks for heartbeat → respond with <Heartbeat/>
-				'LogicalSourceMap', // id/name list of logical sources (use these as "inputs" in TA)
-				'EngineeringSourceMap', // id list of engineering sources
-				'VPEInputContribution', // maps VPE input names (Bkgd/Key fills/cuts → logical sources)
-				'VPEOutputContribution', // describes which VPE inputs contribute to outputs (PgmA/PvwA etc.)
-				'OutputTally', // 
-				'SetComplete', // **commit point**: publish after a Full/Update batch is finished
+				'LogicalSourceMap', // id/name list of logical sources
+				'EngineeringSourceMap', // id/name list of engineering sources (used as TA addresses)
+				'VPEInputContribution', // maps VPE input names (Bkgd/Key fills/cuts) → logical sources
+				'VPEOutputContribution', // which VPE inputs contribute to outputs (PgmA/PvwA etc.)
 			])
 			if (!tag) {
-				//console.warn('Unknown ETP frame received:', JSON.stringify(etp, null, 2))
 				return
 			}
 
@@ -300,30 +303,19 @@ export class GrassValleyETP extends TallyInput {
 					break
 
 				case 'LogicalSourceMap':
-					//console.log('LogicalSourceMap received')
 					this.applyLogicalSourceMap(etp['LogicalSourceMap'][0])
 					break
 
 				case 'EngineeringSourceMap':
-					//console.log('EngineeringSourceMap received')
 					this.applyEngineeringSourceMap(etp['EngineeringSourceMap'][0])
 					break
 
 				case 'VPEInputContribution':
-					//console.log('VPEInputContribution received')
 					this.applyVpeInputContribution(etp['VPEInputContribution'][0])
 					break
 
 				case 'VPEOutputContribution':
-					//console.log('VPEOutputContribution received')
 					this.applyVpeOutputContribution(etp['VPEOutputContribution'][0])
-					break
-
-				case 'OutputTally':
-					//console.log('OutputTally received')
-					break
-
-				case 'SetComplete':
 					break
 
 				default:
@@ -339,13 +331,10 @@ export class GrassValleyETP extends TallyInput {
 	private applyLogicalSourceMap(node: any): void {
 		const rows = toArray(node.LogSrc)
 
-		//only apply if this is our suite
+		// Only apply if this is our suite
 		const suite = node.$.Suite || '1'
 
-		//console.log(`Received Suite: ${suite}`)
-
 		if (suite !== this.suite) {
-			//console.log(`[ETP] Suite does not match (expected ${this.suite}, got ${suite}), skipping VPEInputContribution`)
 			return
 		}
 
@@ -353,13 +342,7 @@ export class GrassValleyETP extends TallyInput {
 			const logicalId = r?.$?.ID?.toString()
 			if (!logicalId) continue
 
-			// Still useful for logging/debug
 			const name = (r?.Name?.[0] ?? '').toString()
-			//if logical id is less than 10, log it to console
-			if (parseInt(logicalId) < 10) {
-				console.log(`LogicalSourceMap entry: ${logicalId} → ${name}`)
-			}
-			
 			this.logicalSourceMap.set(logicalId, name || logicalId)
 		}
 	}
@@ -398,35 +381,27 @@ export class GrassValleyETP extends TallyInput {
 	}
 
 	private applyVpeInputContribution(node: any): void {
-		//console.log('[ETP] === applyVpeInputContribution() ===')
-		//console.log(`Looking for Suite: ${this.suite}, ME: ${this.me}`)
-
 		const suite = node.$.Suite || '1'
 
-		//console.log(`Received Suite: ${suite}`)
-
 		if (suite !== this.suite) {
-			//console.log(`[ETP] Suite does not match (expected ${this.suite}, got ${suite}), skipping VPEInputContribution`)
 			return
 		}
 
-		//sometimes the data comes in with ALL of the me's, and sometimes just the one that updated, so we need to loop through node.VPE which is an array, and if node.VPE[i].$.Name = our ME, then we process it, otherwise we don't care
+		// Sometimes the data comes in with ALL of the MEs, and sometimes just the one that
+		// updated, so loop through node.VPE (an array) and only process the one matching our ME.
 		const vpes = toArray(node.VPE)
 
 		let myVpe: any = null
 
 		for (const vpe of vpes) {
 			const vpeName = vpe?.$?.Name || ''
-			//console.log(`Found VPE Name: ${vpeName}`)
 			if (vpeName == this.me) {
-				//console.log(`[ETP] Found matching ME: ${this.me}`)
 				myVpe = vpe
 				break
 			}
 		}
 
 		if (!myVpe) {
-			//console.log(`[ETP] No VPE node matching selected ME (${this.me}), skipping VPEInputContribution`)
 			return
 		}
 
@@ -456,15 +431,9 @@ export class GrassValleyETP extends TallyInput {
 	}
 
 	private applyVpeOutputContribution(node: any): void {
-		//console.log('[ETP] === applyVpeOutputContribution() ===')
-		//console.log(`Looking for Suite: ${this.suite}, ME: ${this.me}`)
-
 		const suite = node.$.Suite || '1'
 
-		//console.log(`Received Suite: ${suite}`)
-		
 		if (suite !== this.suite) {
-			//console.log(`[ETP] Suite does not match (expected ${this.suite}, got ${suite}), skipping VPEOutputContribution`)
 			return
 		}
 
@@ -474,16 +443,13 @@ export class GrassValleyETP extends TallyInput {
 
 		for (const vpe of vpes) {
 			const vpeName = vpe?.$?.Name || ''
-			//console.log(`Found VPE Name: ${vpeName}`)
 			if (vpeName == this.me) {
-				//console.log(`[ETP] Found matching ME: ${this.me}`)
 				myVpe = vpe
 				break
 			}
 		}
 
 		if (!myVpe) {
-			//console.log(`[ETP] No VPE node matching selected ME (${this.me}), skipping VPEOutputContribution`)
 			return
 		}
 
@@ -498,10 +464,6 @@ export class GrassValleyETP extends TallyInput {
 		for (const out of outputs) {
 			const outName = out?.$?.Name || ''
 			const inputNames: string[] = toArray(out?.Input).map((i) => i || '')
-
-			//console.log(`[ETP] Processing Output: ${outName} with inputs: ${inputNames.join(', ')}`)
-
-			//console.log(this.engineeringSourceMap)
 
 			if (outName === this.pgm_bus) {
 				for (const inputName of inputNames) {
@@ -572,9 +534,13 @@ function toArray<T = any>(x: any): T[] {
 	return Array.isArray(x) ? x : [x]
 }
 
-/** Strip control chars that commonly break xml2js without removing XML punctuation */
+/**
+ * Strip control characters that commonly break xml2js (everything below 0x20 except
+ * tab/LF/CR, plus DEL) while preserving printable non-ASCII characters so accented or
+ * non-Latin source names survive intact.
+ */
 function safeAscii(s: string): string {
-	return s.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '')
+	return s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
 }
 
 /**
