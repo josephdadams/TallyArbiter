@@ -4,9 +4,16 @@ import { RegisterTallyInput } from '../_decorators/RegisterTallyInput.decorator'
 import { Source } from '../_models/Source'
 import { TallyInput } from './_Source'
 
-@RegisterTallyInput('4a58f00f', 'Roland Smart Tally', '', [
-	{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-])
+@RegisterTallyInput(
+	'4a58f00f',
+	'Roland Smart Tally',
+	'Username and password are only required if your switcher (e.g. the V-80HD) has web authentication enabled. Leave them blank otherwise.',
+	[
+		{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
+		{ fieldName: 'username', fieldLabel: 'Username', fieldType: 'text', optional: true },
+		{ fieldName: 'password', fieldLabel: 'Password', fieldType: 'password', optional: true },
+	],
+)
 export class RolandSmartTallySource extends TallyInput {
 	private interval: NodeJS.Timeout
 	constructor(source: Source) {
@@ -17,6 +24,12 @@ export class RolandSmartTallySource extends TallyInput {
 
 	public checkRolandStatus() {
 		let ip = this.source.data.ip
+		let username = this.source.data.username
+		let password = this.source.data.password
+
+		// Only send HTTP Basic credentials if a username was actually configured;
+		// switchers without web auth (the common case) must not receive an auth header.
+		const requestConfig = username ? { auth: { username, password: password || '' } } : undefined
 
 		for (const deviceSource of device_sources.filter((s) => s.sourceId === this.source.id)) {
 			let address = deviceSource.address
@@ -30,7 +43,7 @@ export class RolandSmartTallySource extends TallyInput {
 			}
 
 			axios
-				.get(`http://${ip}/tally/${address}/status`)
+				.get(`http://${ip}/tally/${address}/status`, requestConfig)
 				.then((response) => {
 					this.connected.next(true)
 

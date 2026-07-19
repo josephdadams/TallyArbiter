@@ -750,6 +750,18 @@
 							[(ngModel)]="currentSource.data[field.fieldName]"
 						/>
 					</div>
+					<div class="mb-3" *ngSwitchCase="'password'">
+						<label [for]="field.fieldName" class="form-label"
+							>{{ field.fieldLabel }}<span class="text-danger" *ngIf="!field.optional">*</span></label
+						>
+						<input
+							type="password"
+							autocomplete="new-password"
+							class="form-control"
+							[id]="field.fieldName"
+							[(ngModel)]="currentSource.data[field.fieldName]"
+						/>
+					</div>
 					<div class="mb-3" *ngSwitchCase="['port', 'number'].includes(field.fieldType) ? field.fieldType : ''">
 						<label [for]="field.fieldName" class="form-label"
 							>{{ field.fieldLabel }}<span class="text-danger" *ngIf="!field.optional">*</span></label
@@ -1090,6 +1102,16 @@
 							<label [for]="field.fieldName" class="form-label">{{ field.fieldLabel }}</label>
 							<input
 								type="text"
+								class="form-control"
+								[id]="field.fieldName"
+								[(ngModel)]="currentDeviceAction.data[field.fieldName]"
+							/>
+						</div>
+						<div class="mb-3" *ngSwitchCase="'password'">
+							<label [for]="field.fieldName" class="form-label">{{ field.fieldLabel }}</label>
+							<input
+								type="password"
+								autocomplete="new-password"
 								class="form-control"
 								[id]="field.fieldName"
 								[(ngModel)]="currentDeviceAction.data[field.fieldName]"
