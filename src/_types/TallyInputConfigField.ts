@@ -1,7 +1,7 @@
 export type TallyInputConfigField = {
 	fieldName: string
 	fieldLabel: string
-	fieldType: 'text' | 'port' | 'number' | 'bool' | 'dropdown' | 'multiselect' | 'info'
+	fieldType: 'text' | 'password' | 'port' | 'number' | 'bool' | 'dropdown' | 'multiselect' | 'info'
 	help?: string
 	optional?: boolean
 	// Only meaningful when fieldType is 'dropdown' or 'multiselect'.
