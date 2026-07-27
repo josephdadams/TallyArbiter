@@ -80,7 +80,11 @@ jobs:
           platforms: |
             - name: esp32:esp32
               source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          fqbn: 'esp32:esp32:esp32'
+          # min_spiffs, not huge_app: the sketch uses ArduinoOTA, which needs the
+          # second app partition that huge_app removes. This raises the app limit
+          # from 1.25 MB to 1.875 MB and shrinks SPIFFS, which the sketch does not
+          # use (it stores config in Preferences/NVS).
+          fqbn: 'esp32:esp32:esp32:PartitionScheme=min_spiffs'
           libraries: |
             - name: WebSockets
             - name: WiFiManager
@@ -102,15 +106,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # These three default to a 1.25 MB app partition, which this sketch no
+        # longer fits in. min_spiffs raises it to 1.875 MB and keeps the second
+        # OTA partition that ArduinoOTA needs. T-Watch has 16 MB flash and
+        # already gets 6.5 MB by default, and does not offer the option at all.
         board:
           - fqbn: esp32:esp32:ttgo-t1
             name: TTGO T1
+            options: ':PartitionScheme=min_spiffs'
           - fqbn: esp32:esp32:ttgo-t7-v13-mini32
             name: TTGO T7 v13 Mini32
+            options: ':PartitionScheme=min_spiffs'
           - fqbn: esp32:esp32:ttgo-t7-v14-mini32
             name: TTGO T7 v14 Mini32
+            options: ':PartitionScheme=min_spiffs'
           - fqbn: esp32:esp32:twatch
             name: TTGO T-Watch
+            options: ''
     name: Build ${{ matrix.board.name }} Listener
     runs-on: ubuntu-latest
     steps:
@@ -126,9 +138,7 @@ jobs:
           platforms: |
             - name: esp32:esp32
               source-url: https://dl.espressif.com/dl/package_esp32_index.json
-            - name: LilyGo:esp32
-              source-url: https://raw.githubusercontent.com/Xinyuan-LilyGO/Arduino-ESP32/master/package_esp32_index.json
-          fqbn: ${{ matrix.board.fqbn }}
+          fqbn: '${{ matrix.board.fqbn }}${{ matrix.board.options }}'
           libraries: |
             - name: WebSockets
             - name: WiFiManager
