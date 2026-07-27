@@ -1,6 +1,6 @@
 {
 	"name": "tallyarbiter-ui",
-	"version": "3.1.1",
+	"version": "3.3.0",
 	"scripts": {
 		"prestart": "node git.version.js && cd .. && npm run sync-ui-shared",
 		"prebuild": "node git.version.js && cd .. && npm run sync-ui-shared",
