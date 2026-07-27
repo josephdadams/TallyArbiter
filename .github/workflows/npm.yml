@@ -32,6 +32,18 @@ jobs:
           cache: 'npm'
 
       # -----------------------
+      # Credential sanity check
+      # -----------------------
+
+      - name: Verify NPM token is configured
+        run: |
+          if [ -z "${{ secrets.NPM_ACCESS_TOKEN }}" ]; then
+            echo "❌ Repository secret NPM_ACCESS_TOKEN is not set — publish would fail with ENEEDAUTH."
+            exit 1
+          fi
+          echo "✅ NPM token present"
+
+      # -----------------------
       # Version sanity check
       # -----------------------
 
@@ -103,8 +115,15 @@ jobs:
       # Publish
       # -----------------------
 
+      # setup-node's registry-url writes an .npmrc pointing at ${NODE_AUTH_TOKEN},
+      # so every step that authenticates against the registry has to export it.
+
       - name: Who Am I
         run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
       - name: Publish to NPM
         run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
