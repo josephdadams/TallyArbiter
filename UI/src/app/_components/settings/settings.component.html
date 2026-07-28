@@ -1149,6 +1149,7 @@
 									{{ option.label }}
 								</option>
 							</select>
+							<small class="form-text" *ngIf="field.help">{{ field.help }}</small>
 						</div>
 						<div class="mb-3 form-check" *ngSwitchCase="'bool'">
 							<input

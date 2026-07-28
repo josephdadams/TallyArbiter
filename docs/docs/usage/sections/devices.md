@@ -41,4 +41,6 @@ Device Actions can only be run once when the device state enters or exits that b
 
 TSL 3.1 UDP/TCP supports Tally 1, 2, 3 and 4. The protocol specification does not specify what the tallies are used for, it is device/implementation specific. Some use Tally 1 for program some use it for preview. Connect the specfic bus to wanted tally.
 
+The Generic UDP action can send either text or raw bytes, selected with the "Payload Encoding" field. `Text` is the default and sends the UDP String as characters, optionally followed by the chosen End Character. `Hex bytes` reads the UDP String as a list of hex byte pairs, which is what you need for binary protocols such as VISCA over IP. For example, `81 01 7E 01 0A 00 02 FF` turns on tally lamp 1 on a Sony camera. Spaces, commas, colons, dashes and an optional `0x` prefix are all accepted (`0x81,0x01` and `8101` work too), and the End Character is ignored because a binary packet already carries its own terminator. If the value is not a valid sequence of hex byte pairs, nothing is sent and an error is logged.
+
 Ember+ device IP, port and Ember tree path must be specified in the action. Device path may be retrieved using Ember+ Viewer (freely available under BSL-1.0 license). More information on Ember+ may be found at github.com/Lawo/ember-plus. Ember+ vGPIO tally tested on Lawo MCX 6.4 and 10.8.
