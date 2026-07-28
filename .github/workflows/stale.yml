@@ -13,11 +13,17 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           stale-issue-message: >
-            This issue has been automatically marked as stale because it has not had recent activity. 
+            This issue has been automatically marked as stale because it has not had recent activity.
             It will be closed in 7 days if no further activity occurs.
+            Add the `keep` label if this should stay open.
           close-issue-message: >
-            Closing this issue due to inactivity. Feel free to reopen if it's still relevant.
+            Closing this issue due to inactivity. Feel free to reopen if it's still relevant,
+            and add the `keep` label so it doesn't go stale again.
           days-before-stale: 180
           days-before-close: 7
-          exempt-issue-labels: 'bug,enhancement,feature'
+          # Only issues are handled; -1 disables staleness for pull requests.
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+          exempt-issue-labels: 'keep'
+          exempt-all-milestones: true
           remove-stale-when-updated: true
