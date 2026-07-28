@@ -90,16 +90,19 @@ int actualPriority = 0;
 long colorNumber = 0;
 
 // default color values
+// NOTE: these words are in GRB byte order (0xGGRRBB), not RGB, because the
+// Atom Matrix LED driver expects GRB (see the conversion in evaluateMode()).
+// Any new colour added here must be written GRB or it will render wrong.
 int RGB_COLOR_WHITE = 0xffffff;
 int RGB_COLOR_DIMWHITE = 0x555555;
 int RGB_COLOR_WARMWHITE = 0xFFEBC8;
 int RGB_COLOR_DIMWARMWHITE = 0x877D5F;
 int RGB_COLOR_BLACK = 0x000000;
-int RGB_COLOR_RED = 0xff0000;
+int RGB_COLOR_RED = 0x00ff00;
 int RGB_COLOR_ORANGE = 0xa5ff00;
 int RGB_COLOR_YELLOW = 0xffff00;
 int RGB_COLOR_DIMYELLOW = 0x555500;
-int RGB_COLOR_GREEN = 0x008800; // toning this down as the green is way brighter than the other colours
+int RGB_COLOR_GREEN = 0x880000; // toning this down as the green is way brighter than the other colours
 int RGB_COLOR_BLUE = 0x0000ff;
 int RGB_COLOR_PURPLE = 0x008080;
 
