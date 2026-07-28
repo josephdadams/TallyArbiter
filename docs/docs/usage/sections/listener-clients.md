@@ -19,7 +19,7 @@ If you include `?chat=false` to the request, you can turn off the Messaging/Chat
 ## Viewing all tally data
 
 Navigate to `/producer` on the Tally Arbiter server in your browser to view all Devices and their current states. This information is also available in the Settings GUI but is displayed in a minimal fashion here for in-service viewing. Messages can be sent and received to supported clients.
-**This page is restricted by a username and password. The default username is `producer` and the default password is `12345`.**
+**This page is restricted by a username and password. On a new installation the username is `producer` and the password is `12345`, but that password only works for the first sign-in — Tally Arbiter then asks the producer to choose their own before the page will load.** On an upgraded installation the existing password keeps working.
 
 ## Using an M5StickC for tally output
 
