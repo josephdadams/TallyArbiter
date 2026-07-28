@@ -245,7 +245,15 @@ function initialSetup() {
 		res.status(200).send('ok')
 	})
 
-	app.get('/version', (req, res) => {
+	function requireAuth(req: any, res: any, next: any) {
+		const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '')
+		if (!token) return res.status(401).json({ error: 'Unauthorized' })
+		validateAccessToken(token)
+			.then(() => next())
+			.catch(() => res.status(401).json({ error: 'Unauthorized' }))
+	}
+
+	app.get('/version', requireAuth, (req, res) => {
 		res.json({
 			version: process.env.APP_VERSION || version || 'dev',
 		})
@@ -2899,11 +2907,12 @@ function UpdateCamera(deviceId: string) {
 			if (inPvw) {
 				logger(`Sending Canon XC command to set camera PREVIEW`, 'info-quiet')
 				//send command to camera IP to set tally preview
-				axios.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=preview`)
+				const cameraIP = String(device.cameraIP)
+				axios.get('http://' + cameraIP + '/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=preview')
 			}
 			break
 		default:
-			console.log(`Camera model ${device.cameraModel} not supported for tally updates.`)
+			console.log('Camera model ' + device.cameraModel + ' not supported for tally updates.')
 	}
 }
 
