@@ -2271,6 +2271,13 @@ function TallyArbiter_Add_Device(obj: Manage): ManageResponse {
 
 function TallyArbiter_Edit_Device(obj: Manage): ManageResponse {
 	let deviceObj = obj.device
+
+	//capture the camera config before the loop below overwrites it, so we can tell whether it actually changed
+	const existingDevice = GetDeviceByDeviceId(deviceObj.id)
+	const previousCameraIP = existingDevice.cameraIP
+	const previousCameraModel = existingDevice.cameraModel
+	const cameraChanged = previousCameraIP !== deviceObj.cameraIP || previousCameraModel !== deviceObj.cameraModel
+
 	for (let i = 0; i < devices.length; i++) {
 		if (devices[i].id === deviceObj.id) {
 			devices[i].name = deviceObj.name
@@ -2285,6 +2292,15 @@ function TallyArbiter_Edit_Device(obj: Manage): ManageResponse {
 	tslListenerProvider.updateListenerClientsForDevice(currentDeviceTallyData, deviceObj)
 
 	UpdateCloud('devices')
+
+	//UpdateCamera only runs on a device state change, so a camera edit would otherwise not reach the camera
+	//until the next tally transition. Release any state held against the old camera and push the current
+	//tally to the new one immediately. Skipped when the camera config is untouched, so editing a device's
+	//name does not blink the tally lamp of a camera that is currently live.
+	if (cameraChanged) {
+		CleanupViscaCameraState(deviceObj.id)
+		UpdateCamera(deviceObj.id)
+	}
 
 	logger(`Device Edited: ${deviceObj.name}`, 'info')
 
@@ -3037,6 +3053,12 @@ const VISCA_TALLY_REFRESH_MS = 5000
 interface ViscaCameraState {
 	socket: dgram.Socket
 	sequence: number
+	// IP and variant this state was last driven with. Held here rather than
+	// captured in the keepalive closure so that a config edit can never leave a
+	// timer firing at a stale address, and so teardown knows which camera and
+	// which lamps to extinguish.
+	cameraIP: string
+	redGreen: boolean
 	// last state we pushed, re-sent by the keepalive timer
 	lastCommands: number[][]
 	refreshTimer?: ReturnType<typeof setInterval>
@@ -3062,7 +3084,7 @@ function GetViscaCameraState(deviceId: string, cameraIP: string): ViscaCameraSta
 			logger(`VISCA socket error for device ${deviceId}: ${err.message}`, 'error')
 		})
 
-		state = { socket: socket, sequence: 0, lastCommands: [] }
+		state = { socket: socket, sequence: 0, cameraIP: cameraIP, redGreen: false, lastCommands: [] }
 		viscaCameraStates.set(deviceId, state)
 
 		// First contact with this camera: reset the sequence number so the
@@ -3086,7 +3108,17 @@ function SendViscaPacket(
 	payloadType: number[],
 	payload: number[],
 	isControl = false,
+	onComplete?: () => void,
 ): void {
+	let completed = false
+	const complete = () => {
+		if (completed) {
+			return
+		}
+		completed = true
+		onComplete?.()
+	}
+
 	try {
 		// The sequence number of a RESET control packet is ignored by the
 		// camera, but the field still has to be present.
@@ -3109,17 +3141,28 @@ function SendViscaPacket(
 			if (err) {
 				logger(`Error sending VISCA packet to ${cameraIP}: ${err.message}`, 'error')
 			}
+			complete()
 		})
 	} catch (error) {
 		logger(`Error building/sending VISCA packet for device ${deviceId}: ${error}`, 'error')
+		// the send callback will never fire, so release the waiter here
+		complete()
 	}
 }
 
-// Tears down the socket and keepalive timer for a device that is no longer a
-// VISCA camera (deleted, camera fields cleared, or model changed). Without this
-// the refresh timer would keep re-lighting the lamp forever. We deliberately do
-// not send an explicit OFF here: dropping the keepalive lets the camera's own
-// 15 second expiry extinguish the lamp, which also works if the camera is gone.
+// Tears down the socket and keepalive timer for a device that is no longer this
+// VISCA camera (deleted, camera fields cleared, model changed, or IP changed).
+// Without this the refresh timer would keep re-lighting the lamp forever.
+//
+// If a lamp was lit we explicitly extinguish it first, addressed to the IP and
+// variant the state was last driven with -- i.e. the OLD camera. Relying on the
+// camera's own 15 second expiry instead would leave the old camera lit for up
+// to 15 seconds while the newly configured one also lights, which on an IP edit
+// means two cameras showing tally at once. An OFF is two UDP datagrams at most
+// and costs nothing if the camera is already unreachable.
+//
+// The socket is closed only once those datagrams have been handed to the OS;
+// closing immediately after send() can discard them.
 function CleanupViscaCameraState(deviceId: string) {
 	const state = viscaCameraStates.get(deviceId)
 
@@ -3127,16 +3170,47 @@ function CleanupViscaCameraState(deviceId: string) {
 		return
 	}
 
+	// drop it from the map up front so nothing can pick up a dying state
+	viscaCameraStates.delete(deviceId)
+
 	try {
+		// the keepalive only runs while something is lit, so its presence tells
+		// us whether there is anything to extinguish
+		const wasLit = !!state.refreshTimer
+
 		if (state.refreshTimer) {
 			clearInterval(state.refreshTimer)
+			state.refreshTimer = undefined
 		}
-		state.socket.close()
+
+		const closeSocket = () => {
+			try {
+				state.socket.close()
+			} catch (error) {
+				logger(`Error closing VISCA socket for device ${deviceId}: ${error}`, 'error')
+			}
+		}
+
+		if (!wasLit) {
+			closeSocket()
+			return
+		}
+
+		const offCommands = state.redGreen ? [VISCA_CMD_TALLY_OFF, VISCA_CMD_GREEN_TALLY_OFF] : [VISCA_CMD_TALLY_OFF]
+
+		let pending = offCommands.length
+
+		for (const command of offCommands) {
+			SendViscaPacket(state, deviceId, state.cameraIP, VISCA_PAYLOAD_TYPE_COMMAND, command, false, () => {
+				pending--
+				if (pending === 0) {
+					closeSocket()
+				}
+			})
+		}
 	} catch (error) {
 		logger(`Error cleaning up VISCA state for device ${deviceId}: ${error}`, 'error')
 	}
-
-	viscaCameraStates.delete(deviceId)
 }
 
 // Sends the absolute desired lamp state and keeps it refreshed.
@@ -3156,6 +3230,11 @@ function UpdateSonyViscaTally(deviceId: string, cameraIP: string, inPgm: boolean
 	if (!state) {
 		return
 	}
+
+	// keep the state pointed at the live config; the keepalive and teardown both
+	// read these rather than closing over the values passed in on one call
+	state.cameraIP = cameraIP
+	state.redGreen = redGreen
 
 	const commands: number[][] = []
 
@@ -3186,7 +3265,7 @@ function UpdateSonyViscaTally(deviceId: string, cameraIP: string, inPgm: boolean
 	if (anythingLit) {
 		state.refreshTimer = setInterval(() => {
 			for (const command of state.lastCommands) {
-				SendViscaPacket(state, deviceId, cameraIP, VISCA_PAYLOAD_TYPE_COMMAND, command)
+				SendViscaPacket(state, deviceId, state.cameraIP, VISCA_PAYLOAD_TYPE_COMMAND, command)
 			}
 		}, VISCA_TALLY_REFRESH_MS)
 		// Do not hold the process open just for a tally refresh.
@@ -3224,18 +3303,27 @@ function UpdateCamera(deviceId: string) {
 	switch (device.cameraModel) {
 		case 'canon_xc':
 			//clear all tallies first
-			axios.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=off`)
+			//a bare axios.get() with no .catch() is an unhandled rejection if the camera is unreachable,
+			//which terminates the process on modern Node. UpdateCamera is now also reachable from the
+			//device edit handler, so a mistyped camera IP must not be fatal.
+			axios
+				.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=off`)
+				.catch((error) => logger(`Error sending Canon XC command to ${device.cameraIP}: ${error}`, 'error'))
 			
 			if (inPgm) {
 				logger(`Sending Canon XC command to set camera ON AIR`, 'info-quiet')
 				//send command to camera IP to set tally program
-				axios.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=program`)
+				axios
+					.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=program`)
+					.catch((error) => logger(`Error sending Canon XC command to ${device.cameraIP}: ${error}`, 'error'))
 			}
 			
 			if (inPvw) {
 				logger(`Sending Canon XC command to set camera PREVIEW`, 'info-quiet')
 				//send command to camera IP to set tally preview
-				axios.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=preview`)
+				axios
+					.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=preview`)
+					.catch((error) => logger(`Error sending Canon XC command to ${device.cameraIP}: ${error}`, 'error'))
 			}
 			break
 		case 'sony_visca':
