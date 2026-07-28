@@ -3,8 +3,7 @@ import { Component, ElementRef, ViewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { AuthService, ChangePasswordResponse } from 'src/app/_services/auth.service'
-
-export const MIN_PASSWORD_LENGTH = 8
+import { MIN_PASSWORD_LENGTH } from '../../../../../src/_helpers/passwordPolicy'
 
 @Component({
 	selector: 'app-change-password',

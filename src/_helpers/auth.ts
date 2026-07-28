@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { logger } from '../index'
 import { currentConfig, DEFAULT_PASSWORD, SaveConfig } from './config'
+import { MIN_PASSWORD_LENGTH } from './passwordPolicy'
 import { clone } from './clone'
 
 import { AuthenticateSuccessResponse } from '../_models/AuthenticateSuccessResponse'
@@ -47,8 +48,6 @@ export function authenticate(username: string, password: string): Promise<Authen
 		if (!userFound) reject(new Error('Invalid username or password'))
 	})
 }
-
-export const MIN_PASSWORD_LENGTH = 8
 
 //lets a signed-in user replace their own password. the current password is required
 //so that a leaked token on its own cannot lock the real operator out of the account.
@@ -132,6 +131,16 @@ export function addUser(user: User): boolean {
 		}
 	})
 	if (!userFound) {
+		//a caller that has an opinion about the forced change (the first-run seeding in
+		//config.ts) sets it explicitly. otherwise, an account handed the password we ship
+		//with has to replace it, so a blank password in the add-user form cannot quietly
+		//create a second account on '12345'.
+		if (user.mustChangePassword === undefined && user.password === DEFAULT_PASSWORD) {
+			user.mustChangePassword = true
+		}
+		if (!user.mustChangePassword) {
+			delete user.mustChangePassword
+		}
 		user.password = hashPassword(user.password)
 		currentConfig.users.push(user)
 		SaveConfig()
