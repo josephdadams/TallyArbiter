@@ -23,128 +23,94 @@ on:
         default: ''
 
 jobs:
-  build_m5stickc-listener:
-    name: Build M5StickC Listener
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # arduino/compile-sketches downloads arduino-cli on every run, and that
-      # download occasionally resets mid-transfer. Retry once rather than lose
-      # a board's firmware to a transient network failure — the release attach
-      # job ships whatever built, so a flake here silently costs an asset.
-      - name: Compile sketch
-        id: compile
-        continue-on-error: true
-        uses: arduino/compile-sketches@v1
-        with:
-          platforms: |
-            - name: esp32:esp32
-              source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          fqbn: 'esp32:esp32:m5stack_stickc'
-          libraries: |
-            - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.3.0.zip
-            - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.0.zip
-            - name: WebSockets
-            - name: WiFiManager
-            - name: MultiButton
-            - name: Arduino_JSON
-          cli-compile-flags: |
-            - --export-binaries
-          sketch-paths: |
-            - listener_clients/m5stickc-listener
-          enable-deltas-report: true
-      - name: Compile sketch (retry)
-        if: steps.compile.outcome == 'failure'
-        uses: arduino/compile-sketches@v1
-        with:
-          platforms: |
-            - name: esp32:esp32
-              source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          fqbn: 'esp32:esp32:m5stack_stickc'
-          libraries: |
-            - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.3.0.zip
-            - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.0.zip
-            - name: WebSockets
-            - name: WiFiManager
-            - name: MultiButton
-            - name: Arduino_JSON
-          cli-compile-flags: |
-            - --export-binaries
-          sketch-paths: |
-            - listener_clients/m5stickc-listener
-          enable-deltas-report: true
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: 'TallyArbiter-Listener-M5StickC'
-          path: 'listener_clients/m5stickc-listener/build/esp32.esp32.m5stack_stickc'
+  build_listeners:
+    # Boards that need nothing beyond a platform, libraries and a partition
+    # scheme share this job. The TTGO sketch needs a patched TFT_eSPI checked
+    # out first, so it stays separate below.
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - name: M5StickC
+            artifact: M5StickC
+            platform_name: esp32:esp32
+            platform_url: https://dl.espressif.com/dl/package_esp32_index.json
+            fqbn: esp32:esp32:m5stack_stickc
+            options: ''
+            sketch: listener_clients/m5stickc-listener
+            libraries: |
+              - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.3.0.zip
+              - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.0.zip
+              - name: WebSockets
+              - name: WiFiManager
+              - name: MultiButton
+              - name: Arduino_JSON
 
-  build_m5sticks3-listener:
-    name: Build M5StickS3 Listener
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # arduino/compile-sketches downloads arduino-cli on every run, and that
-      # download occasionally resets mid-transfer. Retry once rather than lose
-      # a board's firmware to a transient network failure — the release attach
-      # job ships whatever built, so a flake here silently costs an asset.
-      - name: Compile sketch
-        id: compile
-        continue-on-error: true
-        uses: arduino/compile-sketches@v1
-        with:
           # M5StickS3 is not in the espressif core; it only ships in the M5Stack
-          # platform, from 3.3.8 onwards.
-          platforms: |
-            - name: m5stack:esp32
-              source-url: https://static-cdn.m5stack.com/resource/arduino/package_m5stack_index.json
-          # The board has 8 MB of flash but its default scheme is the 4 MB layout,
-          # leaving only 1.25 MB for the app. default_8MB gives 3.19 MB and keeps
-          # the second OTA partition ArduinoOTA needs, unlike huge_app.
-          fqbn: 'm5stack:esp32:m5stack_sticks3:PartitionScheme=default_8MB'
-          libraries: |
-            - name: M5Unified
-            - name: M5GFX
-            - name: WebSockets
-            - name: WiFiManager
-            - name: Arduino_JSON
-          cli-compile-flags: |
-            - --export-binaries
-          sketch-paths: |
-            - listener_clients/M5StickS3
-          enable-deltas-report: true
-      - name: Compile sketch (retry)
-        if: steps.compile.outcome == 'failure'
-        uses: arduino/compile-sketches@v1
-        with:
-          # M5StickS3 is not in the espressif core; it only ships in the M5Stack
-          # platform, from 3.3.8 onwards.
-          platforms: |
-            - name: m5stack:esp32
-              source-url: https://static-cdn.m5stack.com/resource/arduino/package_m5stack_index.json
-          # The board has 8 MB of flash but its default scheme is the 4 MB layout,
-          # leaving only 1.25 MB for the app. default_8MB gives 3.19 MB and keeps
-          # the second OTA partition ArduinoOTA needs, unlike huge_app.
-          fqbn: 'm5stack:esp32:m5stack_sticks3:PartitionScheme=default_8MB'
-          libraries: |
-            - name: M5Unified
-            - name: M5GFX
-            - name: WebSockets
-            - name: WiFiManager
-            - name: Arduino_JSON
-          cli-compile-flags: |
-            - --export-binaries
-          sketch-paths: |
-            - listener_clients/M5StickS3
-          enable-deltas-report: true
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: 'TallyArbiter-Listener-M5StickS3'
-          path: 'listener_clients/M5StickS3/build/m5stack.esp32.m5stack_sticks3'
+          # platform, from 3.3.8 onwards. The board has 8 MB of flash but its
+          # default scheme is the 4 MB layout, leaving only 1.25 MB for the app.
+          # default_8MB gives 3.19 MB and keeps the second OTA partition
+          # ArduinoOTA needs, unlike huge_app.
+          - name: M5StickS3
+            artifact: M5StickS3
+            platform_name: m5stack:esp32
+            platform_url: https://static-cdn.m5stack.com/resource/arduino/package_m5stack_index.json
+            fqbn: m5stack:esp32:m5stack_sticks3
+            options: ':PartitionScheme=default_8MB'
+            sketch: listener_clients/M5StickS3
+            libraries: |
+              - name: M5Unified
+              - name: M5GFX
+              - name: WebSockets
+              - name: WiFiManager
+              - name: Arduino_JSON
 
-  build_m5atom-listener:
-    name: Build M5Atom Listener
+          - name: M5Atom
+            artifact: M5Atom
+            platform_name: esp32:esp32
+            platform_url: https://dl.espressif.com/dl/package_esp32_index.json
+            fqbn: esp32:esp32:m5stack_atom
+            options: ''
+            sketch: listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom
+            libraries: |
+              - source-url: https://github.com/m5stack/M5Atom/archive/refs/tags/0.1.3.zip
+              - name: WebSockets
+              - name: WiFiManager
+              - name: MultiButton
+              - name: Arduino_JSON
+              - name: FastLED
+
+          # min_spiffs, not huge_app: these sketches use ArduinoOTA, which needs
+          # the second app partition that huge_app removes. This raises the app
+          # limit from 1.25 MB to 1.875 MB and shrinks SPIFFS, which they do not
+          # use (they store config in Preferences/NVS).
+          - name: ESP32 NeoPixel
+            artifact: ESP32-NeoPixel
+            platform_name: esp32:esp32
+            platform_url: https://dl.espressif.com/dl/package_esp32_index.json
+            fqbn: esp32:esp32:esp32
+            options: ':PartitionScheme=min_spiffs'
+            sketch: listener_clients/esp32-neopixel-listener
+            libraries: |
+              - name: WebSockets
+              - name: WiFiManager
+              - name: MultiButton
+              - name: Arduino_JSON
+              - name: Adafruit NeoPixel
+
+          - name: ESP32-C3 NeoPixel
+            artifact: ESP32-C3-NeoPixel
+            platform_name: esp32:esp32
+            platform_url: https://dl.espressif.com/dl/package_esp32_index.json
+            fqbn: esp32:esp32:esp32c3
+            options: ':PartitionScheme=min_spiffs'
+            sketch: listener_clients/esp32-c3-neopixel-listener
+            libraries: |
+              - name: WebSockets
+              - name: WiFiManager
+              - name: Arduino_JSON
+              - name: Adafruit NeoPixel
+    name: Build ${{ matrix.board.name }} Listener
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -158,164 +124,36 @@ jobs:
         uses: arduino/compile-sketches@v1
         with:
           platforms: |
-            - name: esp32:esp32
-              source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          fqbn: 'esp32:esp32:m5stack_atom'
-          libraries: |
-            - source-url: https://github.com/m5stack/M5Atom/archive/refs/tags/0.1.3.zip
-            - name: WebSockets
-            - name: WiFiManager
-            - name: MultiButton
-            - name: Arduino_JSON
-            - name: FastLED
+            - name: ${{ matrix.board.platform_name }}
+              source-url: ${{ matrix.board.platform_url }}
+          fqbn: '${{ matrix.board.fqbn }}${{ matrix.board.options }}'
+          libraries: ${{ matrix.board.libraries }}
           cli-compile-flags: |
             - --export-binaries
           sketch-paths: |
-            - listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom
+            - ${{ matrix.board.sketch }}
           enable-deltas-report: true
       - name: Compile sketch (retry)
         if: steps.compile.outcome == 'failure'
         uses: arduino/compile-sketches@v1
         with:
           platforms: |
-            - name: esp32:esp32
-              source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          fqbn: 'esp32:esp32:m5stack_atom'
-          libraries: |
-            - source-url: https://github.com/m5stack/M5Atom/archive/refs/tags/0.1.3.zip
-            - name: WebSockets
-            - name: WiFiManager
-            - name: MultiButton
-            - name: Arduino_JSON
-            - name: FastLED
+            - name: ${{ matrix.board.platform_name }}
+              source-url: ${{ matrix.board.platform_url }}
+          fqbn: '${{ matrix.board.fqbn }}${{ matrix.board.options }}'
+          libraries: ${{ matrix.board.libraries }}
           cli-compile-flags: |
             - --export-binaries
           sketch-paths: |
-            - listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom
+            - ${{ matrix.board.sketch }}
           enable-deltas-report: true
+      - name: Get FQBN build dir for ${{ matrix.board.name }}
+        run: echo "FQBN_REPLACED=$(echo '${{ matrix.board.fqbn }}' | tr ':' '.')" >> "$GITHUB_ENV"
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 'TallyArbiter-Listener-M5Atom'
-          path: 'listener_clients/M5AtomMatrix-listener/tallyarbiter-m5atom/build/esp32.esp32.m5stack_atom'
-
-  build_esp32-neopixel-listener:
-    name: Build ESP32 NeoPixel Listener
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # arduino/compile-sketches downloads arduino-cli on every run, and that
-      # download occasionally resets mid-transfer. Retry once rather than lose
-      # a board's firmware to a transient network failure — the release attach
-      # job ships whatever built, so a flake here silently costs an asset.
-      - name: Compile sketch
-        id: compile
-        continue-on-error: true
-        uses: arduino/compile-sketches@v1
-        with:
-          platforms: |
-            - name: esp32:esp32
-              source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          # min_spiffs, not huge_app: the sketch uses ArduinoOTA, which needs the
-          # second app partition that huge_app removes. This raises the app limit
-          # from 1.25 MB to 1.875 MB and shrinks SPIFFS, which the sketch does not
-          # use (it stores config in Preferences/NVS).
-          fqbn: 'esp32:esp32:esp32:PartitionScheme=min_spiffs'
-          libraries: |
-            - name: WebSockets
-            - name: WiFiManager
-            - name: MultiButton
-            - name: Arduino_JSON
-            - name: Adafruit NeoPixel
-          cli-compile-flags: |
-            - --export-binaries
-          sketch-paths: |
-            - listener_clients/esp32-neopixel-listener
-          enable-deltas-report: true
-      - name: Compile sketch (retry)
-        if: steps.compile.outcome == 'failure'
-        uses: arduino/compile-sketches@v1
-        with:
-          platforms: |
-            - name: esp32:esp32
-              source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          # min_spiffs, not huge_app: the sketch uses ArduinoOTA, which needs the
-          # second app partition that huge_app removes. This raises the app limit
-          # from 1.25 MB to 1.875 MB and shrinks SPIFFS, which the sketch does not
-          # use (it stores config in Preferences/NVS).
-          fqbn: 'esp32:esp32:esp32:PartitionScheme=min_spiffs'
-          libraries: |
-            - name: WebSockets
-            - name: WiFiManager
-            - name: MultiButton
-            - name: Arduino_JSON
-            - name: Adafruit NeoPixel
-          cli-compile-flags: |
-            - --export-binaries
-          sketch-paths: |
-            - listener_clients/esp32-neopixel-listener
-          enable-deltas-report: true
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: 'TallyArbiter-Listener-ESP32-NeoPixel'
-          path: 'listener_clients/esp32-neopixel-listener/build/esp32.esp32.esp32'
-
-  build_esp32-c3-neopixel-listener:
-    name: Build ESP32-C3 NeoPixel Listener
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # arduino/compile-sketches downloads arduino-cli on every run, and that
-      # download occasionally resets mid-transfer. Retry once rather than lose
-      # a board's firmware to a transient network failure — the release attach
-      # job ships whatever built, so a flake here silently costs an asset.
-      - name: Compile sketch
-        id: compile
-        continue-on-error: true
-        uses: arduino/compile-sketches@v1
-        with:
-          platforms: |
-            - name: esp32:esp32
-              source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          # Same reasoning as the plain ESP32 sketch: min_spiffs for the app
-          # size, while keeping the OTA partition ArduinoOTA needs.
-          fqbn: 'esp32:esp32:esp32c3:PartitionScheme=min_spiffs'
-          libraries: |
-            - name: WebSockets
-            - name: WiFiManager
-            - name: Arduino_JSON
-            - name: Adafruit NeoPixel
-          cli-compile-flags: |
-            - --export-binaries
-          sketch-paths: |
-            - listener_clients/esp32-c3-neopixel-listener
-          enable-deltas-report: true
-      - name: Compile sketch (retry)
-        if: steps.compile.outcome == 'failure'
-        uses: arduino/compile-sketches@v1
-        with:
-          platforms: |
-            - name: esp32:esp32
-              source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          # Same reasoning as the plain ESP32 sketch: min_spiffs for the app
-          # size, while keeping the OTA partition ArduinoOTA needs.
-          fqbn: 'esp32:esp32:esp32c3:PartitionScheme=min_spiffs'
-          libraries: |
-            - name: WebSockets
-            - name: WiFiManager
-            - name: Arduino_JSON
-            - name: Adafruit NeoPixel
-          cli-compile-flags: |
-            - --export-binaries
-          sketch-paths: |
-            - listener_clients/esp32-c3-neopixel-listener
-          enable-deltas-report: true
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: 'TallyArbiter-Listener-ESP32-C3-NeoPixel'
-          path: 'listener_clients/esp32-c3-neopixel-listener/build/esp32.esp32.esp32c3'
+          name: 'TallyArbiter-Listener-${{ matrix.board.artifact }}'
+          path: '${{ matrix.board.sketch }}/build/${{ env.FQBN_REPLACED }}'
 
   build_TTGO-listener:
     strategy:
@@ -459,11 +297,7 @@ jobs:
     # failed build job is still red on the run either way.
     if: ${{ !cancelled() && (inputs.release_tag != '' || startsWith(github.ref, 'refs/tags/v')) }}
     needs:
-      - build_m5stickc-listener
-      - build_m5sticks3-listener
-      - build_m5atom-listener
-      - build_esp32-neopixel-listener
-      - build_esp32-c3-neopixel-listener
+      - build_listeners
       - build_TTGO-listener
     runs-on: ubuntu-latest
     permissions:
