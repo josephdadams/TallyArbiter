@@ -115,9 +115,7 @@
 			"gatekeeperAssess": true,
 			"entitlements": "entitlements.mac.plist",
 			"entitlementsInherit": "entitlements.mac.plist",
-			"notarize": {
-				"teamId": "R2PY2DC3A4"
-			}
+			"notarize": true
 		},
 		"win": {
 			"target": [
