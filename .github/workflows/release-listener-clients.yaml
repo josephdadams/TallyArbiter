@@ -13,6 +13,10 @@ on:
     tags:
       - 'v*.*.*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to attach firmware to (ex: v3.3.0). The firmware is built from the ref this is dispatched from.'
+        required: true
 
 jobs:
   build_and_attach:
@@ -20,3 +24,5 @@ jobs:
     permissions:
       contents: write
     uses: ./.github/workflows/build-listener-clients.yaml
+    with:
+      release_tag: ${{ inputs.tag }}

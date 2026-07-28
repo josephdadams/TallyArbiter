@@ -15,6 +15,12 @@ on:
   # push carries no file diff to match), so the tag trigger lives in its own
   # workflow that calls this one.
   workflow_call:
+    inputs:
+      release_tag:
+        description: 'Tag of the release to attach the firmware to. Defaults to the tag that triggered the caller.'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   build_m5stickc-listener:
@@ -278,11 +284,12 @@ jobs:
 
   attach_to_release:
     name: Attach Firmware to Release
-    # Only on a version tag, i.e. when release-listener-clients.yaml called us.
+    # Only when release-listener-clients.yaml called us, either off a version
+    # tag or with an explicit tag to attach to.
     # `!cancelled()` instead of the default `success()` so one board failing to
     # compile does not also cost the release the firmware that did build — the
     # failed build job is still red on the run either way.
-    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ !cancelled() && (inputs.release_tag != '' || startsWith(github.ref, 'refs/tags/v')) }}
     needs:
       - build_m5stickc-listener
       - build_m5sticks3-listener
@@ -295,7 +302,13 @@ jobs:
       contents: write
     steps:
       - name: Resolve tag
-        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          TAG="$RELEASE_TAG"
+          [ -n "$TAG" ] || TAG="${GITHUB_REF#refs/tags/}"
+          echo "Attaching firmware to release $TAG"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
 
       - name: Download firmware artifacts
         uses: actions/download-artifact@v4
