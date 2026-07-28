@@ -88,7 +88,10 @@
 			"output": "./release/"
 		},
 		"publish": [
-			"github"
+			{
+				"provider": "github",
+				"releaseType": "release"
+			}
 		],
 		"extraResources": [
 			"build/**"
