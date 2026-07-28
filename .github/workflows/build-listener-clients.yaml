@@ -41,6 +41,39 @@ jobs:
           name: 'TallyArbiter-Listener-M5StickC'
           path: 'listener_clients/m5stickc-listener/build/esp32.esp32.m5stack_stickc'
 
+  build_m5sticks3-listener:
+    name: Build M5StickS3 Listener
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/compile-sketches@v1
+        with:
+          # M5StickS3 is not in the espressif core; it only ships in the M5Stack
+          # platform, from 3.3.8 onwards.
+          platforms: |
+            - name: m5stack:esp32
+              source-url: https://static-cdn.m5stack.com/resource/arduino/package_m5stack_index.json
+          # The board has 8 MB of flash but its default scheme is the 4 MB layout,
+          # leaving only 1.25 MB for the app. default_8MB gives 3.19 MB and keeps
+          # the second OTA partition ArduinoOTA needs, unlike huge_app.
+          fqbn: 'm5stack:esp32:m5stack_sticks3:PartitionScheme=default_8MB'
+          libraries: |
+            - name: M5Unified
+            - name: M5GFX
+            - name: WebSockets
+            - name: WiFiManager
+            - name: Arduino_JSON
+          cli-compile-flags: |
+            - --export-binaries
+          sketch-paths: |
+            - listener_clients/M5StickS3
+          enable-deltas-report: true
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'TallyArbiter-Listener-M5StickS3'
+          path: 'listener_clients/M5StickS3/build/m5stack.esp32.m5stack_sticks3'
+
   build_m5atom-listener:
     name: Build M5Atom Listener
     runs-on: ubuntu-latest

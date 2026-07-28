@@ -25,6 +25,10 @@ Navigate to `/producer` on the Tally Arbiter server in your browser to view all 
 
 Tally Arbiter can send tally data to an M5StickC Arduino Finger Computer. A remote script is available here, [Tally Arbiter M5StickC Listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/m5stickc-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/master/listener_clients/m5stickc-listener/README.md).
 
+## Using an M5StickS3 for tally output
+
+Tally Arbiter can also send tally data to the ESP32-S3 based M5StickS3. A remote script is available here, [Tally Arbiter M5StickS3 Listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/M5StickS3). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/master/listener_clients/M5StickS3/README.md).
+
 ## Using an ESP32 board with NeoPixel LEDs
 
 You can use Tally Arbiter with generic ESP32 boards as well with this separate script: [Tally Arbiter ESP32 Listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/esp32-neopixel-listener). For installation and instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/master/listener_clients/esp32-neopixel-listener/README.md).
