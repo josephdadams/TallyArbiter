@@ -74,7 +74,16 @@ import { TSLListenerProvider } from './_modules/TSL'
 import { MQTTService } from './_modules/MQTT'
 import { ListenerProvider } from './_modules/_ListenerProvider'
 import { InternalTestModeSource } from './sources/InternalTestMode'
-import { authenticate, validateAccessToken, getUsersList, addUser, editUser, deleteUser } from './_helpers/auth'
+import {
+	authenticate,
+	validateAccessToken,
+	getUsersList,
+	addUser,
+	editUser,
+	deleteUser,
+	changeOwnPassword,
+	usersWithDefaultPassword,
+} from './_helpers/auth'
 import { Config } from './_models/Config'
 import { bonjour } from './_helpers/mdns'
 
@@ -199,6 +208,7 @@ function startUp() {
 	loadClassesFromFolder('sources')
 	loadConfig()
 	initialSetup()
+	WarnAboutDefaultPasswords()
 	DeleteInactiveListenerClients()
 
 	process.on('uncaughtException', (err: Error) => {
@@ -304,6 +314,15 @@ function initialSetup() {
 				let access_token = tmpSocketAccessTokens[socket.id]
 				validateAccessToken(access_token)
 					.then((user) => {
+						if (user.mustChangePassword) {
+							//the account is still on the password it shipped with; the only thing
+							//it can do is set a real one
+							let error_msg = 'You must change your password before you can use this feature.'
+							socket.emit('error', error_msg)
+							socket.emit('must_change_password')
+							reject(error_msg)
+							return
+						}
 						if (user.roles.split(';').includes(role) || user.roles.split(';').includes('admin')) {
 							resolve(user)
 						} else {
@@ -359,6 +378,43 @@ function initialSetup() {
 
 		socket.on('access_token', (access_token: string) => {
 			tmpSocketAccessTokens[socket.id] = access_token
+		})
+
+		//deliberately not behind requireRole: an account flagged mustChangePassword is
+		//blocked from everything else, so this has to stay reachable. the username comes
+		//from the token rather than the client so nobody can rotate someone else's password.
+		socket.on('change_password', (current_password: string, new_password: string) => {
+			const access_token = tmpSocketAccessTokens[socket.id]
+			if (typeof access_token === 'undefined') {
+				socket.emit('change_password_response', {
+					changeOk: false,
+					message: 'Access token required. Please login again.',
+					accessToken: '',
+				})
+				return
+			}
+			validateAccessToken(access_token)
+				.then((user) => {
+					return changeOwnPassword(user.username, current_password, new_password).then(() => {
+						//the old token still carries mustChangePassword, so hand back a fresh one
+						return authenticate(user.username, new_password).then((result) => {
+							WarnAboutDefaultPasswords()
+							socket.emit('change_password_response', {
+								changeOk: true,
+								message: '',
+								accessToken: result.access_token,
+							})
+						})
+					})
+				})
+				.catch((error) => {
+					logger(`User (ip addr ${ipAddr}) failed to change their password (${error.message || error})`)
+					socket.emit('change_password_response', {
+						changeOk: false,
+						message: error.message || 'Could not change the password.',
+						accessToken: '',
+					})
+				})
 		})
 
 		socket.on('version', () => {
@@ -1122,6 +1178,16 @@ function initialSetup() {
 				})
 		})
 
+		socket.on('default_password_users', () => {
+			requireRole('settings:users')
+				.then((user) => {
+					socket.emit('default_password_users', defaultPasswordUsers)
+				})
+				.catch((err) => {
+					logger(err, 'error')
+				})
+		})
+
 		socket.on('get_config', () => {
 			requireRole('settings:config')
 				.then((user) => {
@@ -1519,6 +1585,32 @@ function writeTallyDataFile(log) {
 	} catch (error) {
 		logger(`Error saving logs to file: ${error}`, 'error')
 	}
+}
+
+//usernames still using the password Tally Arbiter ships with. cached because the
+//check is a bcrypt compare per user, and the UI asks for it on every settings load.
+export var defaultPasswordUsers: string[] = []
+
+//existing installs are never locked out by an upgrade, but we do say something about
+//it on every boot and in the settings UI until it is dealt with
+export function WarnAboutDefaultPasswords(): Promise<string[]> {
+	return usersWithDefaultPassword()
+		.then((usernames) => {
+			defaultPasswordUsers = usernames
+			if (usernames.length > 0) {
+				logger(
+					`WARNING: ${usernames.map((u) => `'${u}'`).join(', ')} ${
+						usernames.length === 1 ? 'is' : 'are'
+					} still using the default password. Change it in Settings > Users.`,
+					'error',
+				)
+			}
+			return usernames
+		})
+		.catch((error) => {
+			logger(`Could not check for default passwords: ${error}`, 'error')
+			return []
+		})
 }
 
 function loadConfig() {
@@ -2604,6 +2696,7 @@ function TallyArbiter_Remove_Cloud_Client(obj: Manage): ManageResponse {
 function TallyArbiter_Add_User(obj: Manage): ManageResponse {
 	if (addUser(obj.user)) {
 		logger(`User Added: ${obj.user.username}`, 'info')
+		WarnAboutDefaultPasswords()
 		return { result: 'user-added-successfully' }
 	} else {
 		return { result: 'error', error: 'User already exists.' }
@@ -2613,6 +2706,7 @@ function TallyArbiter_Add_User(obj: Manage): ManageResponse {
 function TallyArbiter_Edit_User(obj: Manage): ManageResponse {
 	if (editUser(obj.user)) {
 		logger(`User Edited: ${obj.user.username}`, 'info')
+		WarnAboutDefaultPasswords()
 		return { result: 'user-edited-successfully' }
 	} else {
 		return { result: 'error', error: 'User not found.' }
@@ -2622,6 +2716,7 @@ function TallyArbiter_Edit_User(obj: Manage): ManageResponse {
 function TallyArbiter_Delete_User(obj: Manage): ManageResponse {
 	if (deleteUser(obj.user)) {
 		logger(`User Deleted: ${obj.user.username}`, 'info')
+		WarnAboutDefaultPasswords()
 		return { result: 'user-deleted-successfully' }
 	} else {
 		return { result: 'error', error: 'User not found.' }

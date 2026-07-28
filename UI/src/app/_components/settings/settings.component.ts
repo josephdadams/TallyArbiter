@@ -216,6 +216,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		}
 		if (this.authService.requireRole('settings:users')) {
 			this.socketService.socket.emit('users')
+			this.socketService.socket.emit('default_password_users')
 		}
 		if (this.authService.requireRole('settings:config')) {
 			this.socketService.socket.on('config', this.handleConfigReceived)

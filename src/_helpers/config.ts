@@ -67,6 +67,11 @@ export const ConfigDefaults: Config = {
 export let currentConfig: Config = clone(ConfigDefaults)
 export let isConfigLoaded: boolean = false
 
+//the password the seeded accounts have always shipped with; new configs still get
+//it so the documented first login works, but the accounts are flagged so it has to
+//be replaced before anything can be done with them
+export const DEFAULT_PASSWORD = '12345'
+
 export function SaveConfig() {
 	try {
 		let tsl_clients_clean: ConfigTSLClient[] = []
@@ -100,7 +105,12 @@ export function SaveConfig() {
 export function readConfig(): void {
 	isConfigLoaded = true
 	const configPath = getConfigFilePath()
-	if (!fs.pathExistsSync(configPath)) {
+	//a config we are creating right now is a first run; the seeded accounts get
+	//flagged so the operator has to replace the default password before using them.
+	//an existing install is only warned about default passwords, never locked out
+	//of a running system by an upgrade.
+	const isFirstRun = !fs.pathExistsSync(configPath)
+	if (isFirstRun) {
 		try {
 			SaveConfig()
 		} catch (e) {}
@@ -134,13 +144,15 @@ export function readConfig(): void {
 		currentConfig.users = []
 		addUser({
 			username: loadedConfig.security.username_producer || 'producer',
-			password: loadedConfig.security.password_producer || '12345',
+			password: loadedConfig.security.password_producer || DEFAULT_PASSWORD,
 			roles: 'producer',
+			mustChangePassword: isFirstRun,
 		})
 		addUser({
 			username: loadedConfig.security.username_settings || 'admin',
-			password: loadedConfig.security.password_settings || '12345',
+			password: loadedConfig.security.password_settings || DEFAULT_PASSWORD,
 			roles: 'admin',
+			mustChangePassword: isFirstRun,
 		})
 		delete currentConfig.security.username_producer
 		delete currentConfig.security.password_producer

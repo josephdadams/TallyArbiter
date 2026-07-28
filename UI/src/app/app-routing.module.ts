@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { AboutComponent } from './_components/about/about.component'
+import { ChangePasswordComponent } from './_components/change-password/change-password.component'
 import { ErrorReportComponent } from './_components/error-report/error-report.component'
 import { ErrorReportsListComponent } from './_components/error-reports-list/error-reports-list.component'
 import { HomeComponent } from './_components/home/home.component'
@@ -21,6 +22,8 @@ const routes: Routes = [
 	{ path: 'about', component: AboutComponent },
 	{ path: 'login/:redirect/:extraParam', component: LoginComponent },
 	{ path: 'login/:redirect', component: LoginComponent },
+	{ path: 'change-password/:redirect', component: ChangePasswordComponent },
+	{ path: 'change-password', component: ChangePasswordComponent },
 	//
 	{ path: '**', redirectTo: '/home', pathMatch: 'full' },
 ]

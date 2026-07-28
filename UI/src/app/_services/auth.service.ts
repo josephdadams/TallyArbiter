@@ -10,6 +10,12 @@ export interface LoginResponse {
 	accessToken: string
 }
 
+export interface ChangePasswordResponse {
+	changeOk: boolean
+	message: string
+	accessToken: string
+}
+
 @Injectable({
 	providedIn: 'root',
 })
@@ -67,6 +73,27 @@ export class AuthService {
 			this.socketService.socket.emit('login', username, password)
 			this.socketService.socket.once('login_response', (response: LoginResponse) => {
 				if (response.loginOk === true) {
+					this.setToken(response.accessToken)
+				}
+				resolve(response)
+			})
+		})
+	}
+
+	//true while the account is still on the password Tally Arbiter shipped with. the
+	//server blocks everything else for these accounts, so the UI sends them straight
+	//to the change-password page.
+	public get mustChangePassword(): boolean {
+		if (this.profile === undefined) return false
+		return this.profile.mustChangePassword === true
+	}
+
+	public changePassword(currentPassword: string, newPassword: string) {
+		return new Promise<ChangePasswordResponse>((resolve) => {
+			this.socketService.socket.emit('change_password', currentPassword, newPassword)
+			this.socketService.socket.once('change_password_response', (response: ChangePasswordResponse) => {
+				if (response.changeOk === true) {
+					//the old token still says mustChangePassword; swap in the fresh one
 					this.setToken(response.accessToken)
 				}
 				resolve(response)
