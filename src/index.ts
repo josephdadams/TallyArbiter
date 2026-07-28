@@ -1322,7 +1322,9 @@ function getDeviceStates(deviceId?: string): DeviceState[] {
 							num++
 						}
 					}
-					if (num === deviceSources.length) {
+					// same guard as UpdateDeviceState: no device sources means not active,
+					// otherwise num === deviceSources.length is trivially true at 0
+					if (deviceSources.length > 0 && num === deviceSources.length) {
 						return {
 							busId: b.id,
 							deviceId: d.id,
@@ -1515,7 +1517,10 @@ function UpdateDeviceState(deviceId: string) {
 				}
 			}
 
-			if (num === deviceSources.length) {
+			// deviceSources.length must be checked explicitly: with no device sources at all
+			// num and deviceSources.length are both 0, which would otherwise report the device
+			// as active on every linked bus. A device with no sources is inactive everywhere.
+			if (deviceSources.length > 0 && num === deviceSources.length) {
 				//
 				currentDeviceTallyData[device.id].push(bus.id)
 				if (!previousBusses.includes(bus.id)) {
@@ -1528,10 +1533,15 @@ function UpdateDeviceState(deviceId: string) {
 			}
 		} else {
 			// bus is unlinked – active if ANY device source is on this bus (OR logic)
-			const anySourceInBus = deviceSources.some((deviceSource) => {
-				const data = SourceClients[deviceSource.sourceId]?.tally?.value || []
-				return !!data?.[deviceSource.address]?.includes(bus.id)
-			})
+			// Both branches must read currentSourceTallyData (keyed by device source id) so they
+			// share one source of truth. Reading SourceClients[...].tally.value instead is unsafe:
+			// sources that publish via sendIndividualTallyData() (TSL 3.1/5.0, SimplyLive) emit an
+			// object containing only the address that just changed, so every other address on that
+			// source reads as undefined and its devices would spuriously go inactive.
+			// An empty deviceSources array makes .some() false, which is the correct result here.
+			const anySourceInBus = deviceSources.some((deviceSource) =>
+				currentSourceTallyData?.[deviceSource.id]?.includes(bus.id),
+			)
 
 			if (anySourceInBus) {
 				currentDeviceTallyData[device.id].push(bus.id)
@@ -1728,6 +1738,10 @@ function initializeSource(source: Source): TallyInput {
 		)) {
 			deviceSource.address = newAddress
 		}
+		//no currentSourceTallyData work to do here: it is keyed by device source id, not address,
+		//and a rename doesn't change which physical input the device source points at. Re-seeding
+		//would in fact be wrong, since TallyInput.renameAddress() doesn't re-key its own tallyData,
+		//so the source has nothing under newAddress until it next emits.
 		UpdateSockets('device_sources')
 		SaveConfig()
 	})
@@ -1761,9 +1775,15 @@ function processSourceTallyData(sourceId: string, tallyData: SourceTallyData) {
 		}
 	}
 
+	// Cache defensive copies of the bus arrays, never the arrays themselves. The incoming
+	// arrays are owned by the source object (TallyInput.addBusToAddress() pushes into them
+	// in place), so storing them directly would make the cached "previous" value the same
+	// array as the next "current" value. The areBussesEqual comparison above would then see
+	// identical arrays and silently drop the tally_data update for any pure-add transition.
+	// Also note the comparison must stay above this assignment.
 	currentSourceTallyData = {
 		...currentSourceTallyData,
-		...tallyData,
+		...Object.fromEntries(Object.entries(tallyData).map(([deviceSourceId, busses]) => [deviceSourceId, [...busses]])),
 	}
 
 	for (const device of devices) {
@@ -2342,11 +2362,30 @@ function TallyArbiter_Delete_Device(obj: Manage): ManageResponse {
 	return { result: 'device-deleted-successfully' }
 }
 
+// currentSourceTallyData is only ever refreshed when a source emits, and initializeSource()
+// resolves addresses to device source ids at emission time, so a device source that is created
+// or re-pointed while its address is already live has no cache entry until the next emission.
+// Several source types only emit on change (TSL 3.1/5.0, SimplyLive), so that gap can last
+// indefinitely. Seed the entry from the source's current tally instead, and drop any stale entry
+// when there is nothing to seed from. Stored as a defensive copy for the same reason
+// processSourceTallyData copies: source objects mutate their own bus arrays in place.
+function SeedSourceTallyDataForDeviceSource(deviceSource: DeviceSource) {
+	const busses = SourceClients[deviceSource.sourceId]?.tally?.value?.[deviceSource.address]
+	if (Array.isArray(busses)) {
+		currentSourceTallyData[deviceSource.id] = [...busses]
+	} else {
+		//source isn't connected, or hasn't reported this address yet, so we know nothing about it
+		delete currentSourceTallyData[deviceSource.id]
+	}
+}
+
 function TallyArbiter_Add_Device_Source(obj: Manage): ManageResponse {
 	let deviceSourceObj = obj.device_source
 	let deviceId = deviceSourceObj.deviceId
 	deviceSourceObj.id = uuidv4()
 	device_sources.push(deviceSourceObj)
+
+	SeedSourceTallyDataForDeviceSource(deviceSourceObj)
 
 	let deviceName = ''
 	try {
@@ -2365,6 +2404,9 @@ function TallyArbiter_Add_Device_Source(obj: Manage): ManageResponse {
 	}
 
 	UpdateCloud('device_sources')
+
+	//recompute now so the device reflects the new source immediately instead of at the next emission
+	if (deviceId) UpdateDeviceState(deviceId)
 
 	logger(`Device Source Added: ${deviceName} - ${sourceName}`, 'info')
 
@@ -2387,6 +2429,9 @@ function TallyArbiter_Edit_Device_Source(obj: Manage): ManageResponse {
 			device_sources[i].rename = deviceSourceObj.rename
 			device_sources[i].reconnect_interval = deviceSourceObj.reconnect_interval
 			device_sources[i].max_reconnects = deviceSourceObj.max_reconnects
+			//the cached entry describes the OLD sourceId/address, so re-seed it from wherever
+			//this device source now points rather than leaving it reporting the previous input
+			SeedSourceTallyDataForDeviceSource(device_sources[i])
 		}
 	}
 
@@ -2407,6 +2452,9 @@ function TallyArbiter_Edit_Device_Source(obj: Manage): ManageResponse {
 	}
 
 	UpdateCloud('device_sources')
+
+	//recompute now so the device stops reporting the old address's state
+	if (deviceId) UpdateDeviceState(deviceId)
 
 	logger(`Device Source Edited: ${deviceName} - ${sourceName}`, 'info')
 
@@ -2430,7 +2478,10 @@ function TallyArbiter_Delete_Device_Source(obj: Manage): ManageResponse {
 		}
 	}
 
-	delete currentDeviceTallyData[deviceSourceId]
+	// currentSourceTallyData is keyed by device source id, so this is the cache the deleted
+	// device source has an entry in. (currentDeviceTallyData is keyed by device id and is
+	// rebuilt from scratch by UpdateDeviceState, so it needs no cleanup here.)
+	delete currentSourceTallyData[deviceSourceId]
 
 	let deviceName = ''
 	try {
@@ -2449,6 +2500,9 @@ function TallyArbiter_Delete_Device_Source(obj: Manage): ManageResponse {
 	}
 
 	UpdateCloud('device_sources')
+
+	//recompute now so any action tied to the removed source is turned back off
+	if (deviceId) UpdateDeviceState(deviceId)
 
 	logger(`Device Source Deleted: ${deviceName} - ${sourceName}`, 'info')
 
