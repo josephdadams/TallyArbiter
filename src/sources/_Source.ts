@@ -104,6 +104,19 @@ export class TallyInput extends EventEmitter {
 	public reconnect(): void {}
 
 	protected addAddress(label: string, address: string) {
+		//the address is the unique key, so never add it twice: some source types (like vMix) call this
+		//for every incoming tally message, and duplicated entries would grow the list without bound,
+		//fill the settings UI with repeats and re-broadcast an ever larger array on every emission.
+		//only update the label if it actually changed, and never emit when nothing changed at all,
+		//because a no-op emission is what triggers the re-broadcast storm.
+		let addressObj = this.addresses.value.find((a) => a.address === address)
+		if (addressObj) {
+			if (addressObj.label !== label) {
+				this.addresses.next(this.addresses.value.map((a) => (a.address === address ? { label, address } : a)))
+			}
+			return
+		}
+
 		this.addresses.next(this.addresses.value.concat({ label, address }))
 	}
 

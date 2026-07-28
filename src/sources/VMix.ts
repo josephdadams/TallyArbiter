@@ -10,12 +10,19 @@ import net from 'net'
 export class VMixSource extends TallyInput {
 	private client: any
 	private port = 8099 // Fixed vMix TCP port number
+	//TCP is a byte stream with no message boundaries, so a single vMix line can arrive split
+	//across several 'data' events and several lines can arrive coalesced in one event.
+	//Invariant: receiveBuffer only ever holds the trailing *incomplete* line; every complete
+	//(newline terminated) line is removed from it and processed exactly once.
+	private receiveBuffer = ''
 	constructor(source: Source) {
 		super(source)
 
 		this.client = new net.Socket()
 
 		this.client.on('connect', () => {
+			this.receiveBuffer = '' //a reconnect must not inherit a stale partial line
+
 			this.client.write('SUBSCRIBE TALLY\r\n')
 			this.client.write('SUBSCRIBE ACTS\r\n')
 
@@ -27,51 +34,21 @@ export class VMixSource extends TallyInput {
 
 		this.client.on('data', (data) => {
 			logger(`Source: ${source.name}  VMix data received.`, 'info-quiet')
-			data = data.toString().split(/\r?\n/)
 
-			const tallyData = data.filter((text) => text.startsWith('TALLY OK'))
+			this.receiveBuffer += data.toString()
 
-			// If received data contains TALLY information loop through the
-			// data and set preview and program based on received data.
-			if (tallyData.length > 0) {
-				logger(`Source: ${source.name}  VMix tally data received.`, 'info-quiet')
-				for (let j = 9; j < tallyData[0].length; j++) {
-					let address = j - 9 + 1
-					let value = tallyData[0].charAt(j)
+			//split off only the complete lines; the last element is either empty (the chunk
+			//ended on a newline) or the start of a line that will be continued by a later chunk
+			const lines = this.receiveBuffer.split(/\r?\n/)
+			this.receiveBuffer = lines.pop()
 
-					this.addAddress(`Input ${address}`, address.toString())
-					const busses = []
-					if (value === '2') {
-						busses.push('preview')
-					}
-					if (value === '1') {
-						busses.push('program')
-					}
-					this.setBussesForAddress(address.toString(), busses)
-				}
-				this.sendTallyData()
-			} else {
-				//we received some other command, so lets process it
-				if (data[0].indexOf('ACTS OK Recording ') > -1) {
-					this.setBussesForAddress('{{RECORDING}}', [])
-					if (data[0].indexOf('ACTS OK Recording 1') > -1) {
-						this.setBussesForAddress('{{RECORDING}}', ['program'])
-					}
-					this.sendTallyData()
-				}
-
-				if (data[0].indexOf('ACTS OK Streaming ') > -1) {
-					this.setBussesForAddress('{{STREAMING}}', [])
-					if (data[0].indexOf('ACTS OK Streaming 1') > -1) {
-						this.setBussesForAddress('{{STREAMING}}', ['program'])
-						this.sendTallyData()
-					}
-					this.sendTallyData()
-				}
+			for (const line of lines) {
+				this.processLine(line.trim())
 			}
 		})
 
 		this.client.on('close', () => {
+			this.receiveBuffer = ''
 			this.connected.next(false)
 		})
 
@@ -80,6 +57,48 @@ export class VMixSource extends TallyInput {
 		})
 
 		this.connect()
+	}
+
+	/** Processes a single complete line received from vMix. */
+	private processLine(line: string): void {
+		if (!line) {
+			return
+		}
+
+		// If received data contains TALLY information loop through the
+		// data and set preview and program based on received data.
+		if (line.startsWith('TALLY OK')) {
+			logger(`Source: ${this.source.name}  VMix tally data received.`, 'info-quiet')
+			//the character at index 9 onwards is the state of input 1 onwards (inputs are 1-based)
+			for (let j = 9; j < line.length; j++) {
+				let address = j - 9 + 1
+				let value = line.charAt(j)
+
+				this.addAddress(`Input ${address}`, address.toString())
+				const busses = []
+				if (value === '2') {
+					busses.push('preview')
+				}
+				if (value === '1') {
+					busses.push('program')
+				}
+				this.setBussesForAddress(address.toString(), busses)
+			}
+			this.sendTallyData()
+		} else if (line.startsWith('ACTS OK Recording ')) {
+			this.setBussesForAddress('{{RECORDING}}', [])
+			if (line.startsWith('ACTS OK Recording 1')) {
+				this.setBussesForAddress('{{RECORDING}}', ['program'])
+			}
+			this.sendTallyData()
+		} else if (line.startsWith('ACTS OK Streaming ')) {
+			this.setBussesForAddress('{{STREAMING}}', [])
+			if (line.startsWith('ACTS OK Streaming 1')) {
+				this.setBussesForAddress('{{STREAMING}}', ['program'])
+			}
+			this.sendTallyData()
+		}
+		//any other line (SUBSCRIBE OK, VERSION, other ACTS events, ...) is not tally data, so ignore it
 	}
 
 	private connect(): void {
