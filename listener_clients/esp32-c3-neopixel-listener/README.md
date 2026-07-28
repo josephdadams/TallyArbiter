@@ -17,7 +17,7 @@ https://shop.m5stack.com/collections/stick-series/products/m5stickc-neofalsh-hat
 ## Using the Arduino IDE (checked with 2.3.6)
 
 1. Go to https://docs.m5stack.com/en/arduino/arduino_development follow the instructions under heading "Boards Manager"
-2. Open esp32_c3_neopixel_listener.ino in Arduino IDE
+2. Open esp32-c3-neopixel-listener.ino in Arduino IDE
 3. In Library Manager install Arduino_JSON, Adafruit Neopixel, WebSockets (by Markus Sattler), and WifiManager (by tzapu)
 4. Plug your board into the computer
 5. In the IDE go to Sketch -> Upload
