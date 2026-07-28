@@ -38,68 +38,95 @@ oscUDP.on('ready', function () {
 ])
 export class OSC extends Action {
 	public run(): void {
-		let data = []
+		try {
+			let data = []
 
-		const isNumeric = (string) => /^[+-]?\d+(\.\d+)?$/.test(string)
+			const isNumeric = (string) => /^[+-]?\d+(\.\d+)?$/.test(string)
 
-		if (this.action.data.args !== '') {
-			// Quote-aware tokenizer: a double-quoted span (which may contain
-			// spaces) is treated as a single argument; everything else is
-			// split on whitespace, matching the documented behavior that
-			// "Strings must be encapsulated by double quotes."
-			const tokens: { value: string; quoted: boolean }[] = []
-			const tokenRegex = /"([^"]*)"|(\S+)/g
-			let match: RegExpExecArray | null
+			// IP and Port are required; bail with something actionable rather than
+			// handing undefined to the osc library.
+			if (!(this.action.data.ip && this.action.data.port)) {
+				logger('Error in OSC Action. IP and Port must be given.', 'error')
+				return
+			}
 
-			while ((match = tokenRegex.exec(this.action.data.args)) !== null) {
-				if (match[1] !== undefined) {
-					tokens.push({ value: match[1], quoted: true })
-				} else {
-					tokens.push({ value: match[2], quoted: false })
+			// Truthiness check, not `!== ''`. The UI omits fields the user never
+			// filled in from `data` entirely, so a blank Arguments box arrives as
+			// `undefined` rather than `''`. With `!== ''` that was true, and the
+			// tokenizer then coerced `undefined` into the literal string
+			// "undefined" and sent it as a bogus OSC string argument.
+			if (this.action.data.args) {
+				// Quote-aware tokenizer: a double-quoted span (which may contain
+				// spaces) is treated as a single argument; everything else is
+				// split on whitespace, matching the documented behavior that
+				// "Strings must be encapsulated by double quotes."
+				const tokens: { value: string; quoted: boolean }[] = []
+				const tokenRegex = /"([^"]*)"|(\S+)/g
+				let match: RegExpExecArray | null
+
+				while ((match = tokenRegex.exec(this.action.data.args)) !== null) {
+					if (match[1] !== undefined) {
+						tokens.push({ value: match[1], quoted: true })
+					} else {
+						tokens.push({ value: match[2], quoted: false })
+					}
+				}
+
+				let arg: any
+
+				for (let i = 0; i < tokens.length; i++) {
+					const { value, quoted } = tokens[i]
+					// Check if OSC-string. A quoted argument is always treated as a
+					// string, even if its contents look numeric, since quoting is
+					// how the user explicitly opts into string type.
+					if (quoted || !isNumeric(value)) {
+						arg = {
+							type: 's',
+							value: value.replace(/"/g, '').replace(/'/g, ''),
+						}
+						data.push(arg)
+					}
+					// Check if float32
+					else if (value.toString().indexOf('.') > -1) {
+						arg = {
+							type: 'f',
+							value: parseFloat(value),
+						}
+						data.push(arg)
+					}
+					// No check, assume int32
+					else {
+						arg = {
+							type: 'i',
+							value: parseInt(value),
+						}
+						data.push(arg)
+					}
 				}
 			}
 
-			let arg: any
+			// Truthiness check, not `== ''`, for the same reason: a blank Path box
+			// arrives as `undefined`, and `undefined == ''` is `false`, so the
+			// fallback never ran and an undefined OSC address was passed to the
+			// encoder, which threw inside the osc library (issue #633).
+			// Defaulted into a local so the user's saved config is left untouched.
+			let address = this.action.data.path || '/'
 
-			for (let i = 0; i < tokens.length; i++) {
-				const { value, quoted } = tokens[i]
-				// Check if OSC-string. A quoted argument is always treated as a
-				// string, even if its contents look numeric, since quoting is
-				// how the user explicitly opts into string type.
-				if (quoted || !isNumeric(value)) {
-					arg = {
-						type: 's',
-						value: value.replace(/"/g, '').replace(/'/g, ''),
-					}
-					data.push(arg)
-				}
-				// Check if float32
-				else if (value.toString().indexOf('.') > -1) {
-					arg = {
-						type: 'f',
-						value: parseFloat(value),
-					}
-					data.push(arg)
-				}
-				// No check, assume int32
-				else {
-					arg = {
-						type: 'i',
-						value: parseInt(value),
-					}
-					data.push(arg)
-				}
+			// An OSC address must begin with '/'. The Path field has no validation
+			// in the UI, so a forgotten leading slash is added here rather than
+			// letting it fail to encode exactly like a missing path did.
+			if (!address.startsWith('/')) {
+				logger(`OSC Action path "${address}" is missing a leading slash. Sending "/${address}" instead.`, 'info-quiet')
+				address = `/${address}`
 			}
-		}
 
-		if (this.action.data.path == '') {
-			this.action.data.path = '/'
+			logger(
+				`Sending OSC Message: ${this.action.data.ip}:${this.action.data.port} ${address} ${this.action.data.args || ''}`,
+				'info',
+			)
+			oscUDP.send({ address, args: data }, this.action.data.ip, this.action.data.port)
+		} catch (error) {
+			logger(`An error occured sending the OSC Message: ${error}`, 'error')
 		}
-
-		logger(
-			`Sending OSC Message: ${this.action.data.ip}:${this.action.data.port} ${this.action.data.path} ${this.action.data.args}`,
-			'info',
-		)
-		oscUDP.send({ address: this.action.data.path, args: data }, this.action.data.ip, this.action.data.port)
 	}
 }
