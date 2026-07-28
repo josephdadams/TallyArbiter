@@ -9,6 +9,7 @@ import compression from 'compression'
 import { RateLimiterMemory } from 'rate-limiter-flexible'
 import bodyParser from 'body-parser'
 import http from 'http'
+import dgram from 'dgram'
 import socketio from 'socket.io'
 import ioClient from 'socket.io-client'
 import { BehaviorSubject } from 'rxjs'
@@ -2270,6 +2271,13 @@ function TallyArbiter_Add_Device(obj: Manage): ManageResponse {
 
 function TallyArbiter_Edit_Device(obj: Manage): ManageResponse {
 	let deviceObj = obj.device
+
+	//capture the camera config before the loop below overwrites it, so we can tell whether it actually changed
+	const existingDevice = GetDeviceByDeviceId(deviceObj.id)
+	const previousCameraIP = existingDevice.cameraIP
+	const previousCameraModel = existingDevice.cameraModel
+	const cameraChanged = previousCameraIP !== deviceObj.cameraIP || previousCameraModel !== deviceObj.cameraModel
+
 	for (let i = 0; i < devices.length; i++) {
 		if (devices[i].id === deviceObj.id) {
 			devices[i].name = deviceObj.name
@@ -2285,6 +2293,15 @@ function TallyArbiter_Edit_Device(obj: Manage): ManageResponse {
 
 	UpdateCloud('devices')
 
+	//UpdateCamera only runs on a device state change, so a camera edit would otherwise not reach the camera
+	//until the next tally transition. Release any state held against the old camera and push the current
+	//tally to the new one immediately. Skipped when the camera config is untouched, so editing a device's
+	//name does not blink the tally lamp of a camera that is currently live.
+	if (cameraChanged) {
+		CleanupViscaCameraState(deviceObj.id)
+		UpdateCamera(deviceObj.id)
+	}
+
 	logger(`Device Edited: ${deviceObj.name}`, 'info')
 
 	return { result: 'device-edited-successfully' }
@@ -2293,6 +2310,9 @@ function TallyArbiter_Edit_Device(obj: Manage): ManageResponse {
 function TallyArbiter_Delete_Device(obj: Manage): ManageResponse {
 	let deviceId = obj.deviceId
 	let deviceName = GetDeviceByDeviceId(deviceId).name
+
+	//release any VISCA socket/keepalive timer held for this device
+	CleanupViscaCameraState(deviceId)
 
 	for (let i = 0; i < devices.length; i++) {
 		if (devices[i].id === deviceId) {
@@ -2959,12 +2979,307 @@ function MessageListenerClient(
 	}
 }
 
+// ============================================================================
+// Sony VISCA over IP tally support
+// ----------------------------------------------------------------------------
+// EXPERIMENTAL: none of this has been verified against real hardware. Every
+// byte sequence below is transcribed from Sony's published command lists and
+// is cited with its source. If your camera behaves differently, correct the
+// constants in this one block -- no VISCA bytes are constructed anywhere else.
+//
+// PRIMARY SOURCE (framing + single-lamp tally), read directly from the PDF:
+//   Sony "VISCA Command List", Software Version 2.00, doc E-042-100-12 (1),
+//   covering BRC-X400/X401, SRG-X400/X402/201M2, SRG-X120/HD1M2, pp. 9-11 and
+//   the TALLY row of the command list.
+//   https://shop.ccisolutions.com/StoreFront/jsp/pdf/SON-SRGX400_visca_commandList.pdf
+//   (dealer-hosted copy of Sony's document; pro.sony blocks automated fetches)
+//
+// SOURCE (red/green two-lamp tally):
+//   Sony "VISCA Command List", Software Version 1.00, doc 5-042-055-11 (1),
+//   covering ILME-FR7 / ILME-FR7K, "Command List (6/6)" -- the TALLY category
+//   has two rows, RED and GREEN.
+//   https://www.manualslib.com/manual/2854210/Sony-Ilme-Fr7.html?page=17
+//
+// SOURCE (SRG-A40/A12 has the single-lamp TALLY command but NO green row):
+//   Sony SRG-A40/A12 VISCA/CGI Command List
+//   https://www.manualslib.com/manual/3106426/Sony-Srg-A40.html?page=19
+//
+// SOURCE (camera-side prerequisite):
+//   Sony ILME-FR7 Help Guide, "Connecting a Tally Signal" -- the camera menu
+//   item [Technical] > [Tally] > [Tally Control] must be set to [External]
+//   before VISCA tally commands have any effect.
+//   https://helpguide.sony.net/ilc/2240/v1/en/contents/TP1000673481.html
+// ============================================================================
+
+// UDP port for VISCA over IP. Per the BRC-X400 command list p. 9 this is fixed
+// at 52381 and the Device model currently has no field to override it.
+const VISCA_PORT = 52381
+
+// Message header, 8 bytes (BRC-X400 command list pp. 10-11):
+//   bytes 0-1  payload type
+//   bytes 2-3  payload length, big-endian
+//   bytes 4-7  sequence number, big-endian
+const VISCA_PAYLOAD_TYPE_COMMAND = [0x01, 0x00] // "VISCA command"
+const VISCA_PAYLOAD_TYPE_CONTROL = [0x02, 0x00] // "Control command"
+
+// Control-command payload 0x01 = RESET: "Resets the sequence number to 0. The
+// value that was set as the sequence number is ignored." (p. 11)
+const VISCA_CONTROL_RESET = [0x01]
+
+// Peripheral device address. "VISCA over IP cannot reflect each address to the
+// address of the VISCA message" -- the address is locked to 1, so the first
+// byte of every payload is 0x81. (BRC-X400 command list pp. 10, 13)
+const VISCA_ADDRESS = 0x81
+
+// TALLY ON/OFF -- "8x 01 7E 01 0A 00 0p FF", p: 2=On, 3=Off.
+// This is the single lamp on BRC/SRG bodies and the RED lamp on the FR7.
+const VISCA_CMD_TALLY_ON = [VISCA_ADDRESS, 0x01, 0x7e, 0x01, 0x0a, 0x00, 0x02, 0xff]
+const VISCA_CMD_TALLY_OFF = [VISCA_ADDRESS, 0x01, 0x7e, 0x01, 0x0a, 0x00, 0x03, 0xff]
+
+// GREEN TALLY ON/OFF -- "8x 01 7E 04 1A 00 0p FF", p: 2=On, 3=Off.
+// Documented for ILME-FR7/FR7K. NOTE: the SRG-A40/A12 command list does NOT
+// list a green row, so this may be a no-op on SRG-A bodies.
+const VISCA_CMD_GREEN_TALLY_ON = [VISCA_ADDRESS, 0x01, 0x7e, 0x04, 0x1a, 0x00, 0x02, 0xff]
+const VISCA_CMD_GREEN_TALLY_OFF = [VISCA_ADDRESS, 0x01, 0x7e, 0x04, 0x1a, 0x00, 0x03, 0xff]
+
+// "Expiration time for an on status of the tally lamp: The tally lamp is turned
+// off if not receiving an ON command from any controller for 15 seconds after
+// receiving an ON command of TALLY ON/OFF." (BRC-X400 command list p. 12)
+// So a lit lamp has to be refreshed or the camera drops it mid-shot. We re-send
+// the current state well inside that window while any lamp is lit.
+const VISCA_TALLY_EXPIRY_MS = 15000
+const VISCA_TALLY_REFRESH_MS = 5000
+
+interface ViscaCameraState {
+	socket: dgram.Socket
+	sequence: number
+	// IP and variant this state was last driven with. Held here rather than
+	// captured in the keepalive closure so that a config edit can never leave a
+	// timer firing at a stale address, and so teardown knows which camera and
+	// which lamps to extinguish.
+	cameraIP: string
+	redGreen: boolean
+	// last state we pushed, re-sent by the keepalive timer
+	lastCommands: number[][]
+	refreshTimer?: ReturnType<typeof setInterval>
+}
+
+// Per-device VISCA state, keyed by device id. VISCA over IP needs an
+// incrementing sequence number per camera plus a socket to send from, and
+// UpdateCamera's switch has nowhere to keep that.
+const viscaCameraStates = new Map<string, ViscaCameraState>()
+
+function GetViscaCameraState(deviceId: string, cameraIP: string): ViscaCameraState | undefined {
+	let state = viscaCameraStates.get(deviceId)
+
+	if (state) {
+		return state
+	}
+
+	try {
+		const socket = dgram.createSocket('udp4')
+		// A socket-level error (ICMP port unreachable, etc.) is emitted
+		// asynchronously and would be an uncaught exception if unhandled.
+		socket.on('error', (err) => {
+			logger(`VISCA socket error for device ${deviceId}: ${err.message}`, 'error')
+		})
+
+		state = { socket: socket, sequence: 0, cameraIP: cameraIP, redGreen: false, lastCommands: [] }
+		viscaCameraStates.set(deviceId, state)
+
+		// First contact with this camera: reset the sequence number so the
+		// camera and Tally Arbiter agree on where the count starts.
+		SendViscaPacket(state, deviceId, cameraIP, VISCA_PAYLOAD_TYPE_CONTROL, VISCA_CONTROL_RESET, true)
+
+		return state
+	} catch (error) {
+		logger(`Unable to create VISCA socket for device ${deviceId}: ${error}`, 'error')
+		return undefined
+	}
+}
+
+// Builds the 8-byte header + payload, logs it as hex, and fires it off.
+// Never throws: UpdateCamera runs inside an RxJS subscriber via
+// UpdateDeviceState, and a throw here would disrupt tally for other devices.
+function SendViscaPacket(
+	state: ViscaCameraState,
+	deviceId: string,
+	cameraIP: string,
+	payloadType: number[],
+	payload: number[],
+	isControl = false,
+	onComplete?: () => void,
+): void {
+	let completed = false
+	const complete = () => {
+		if (completed) {
+			return
+		}
+		completed = true
+		onComplete?.()
+	}
+
+	try {
+		// The sequence number of a RESET control packet is ignored by the
+		// camera, but the field still has to be present.
+		if (!isControl) {
+			state.sequence = (state.sequence + 1) >>> 0
+		}
+
+		const packet = Buffer.alloc(8 + payload.length)
+		packet[0] = payloadType[0]
+		packet[1] = payloadType[1]
+		packet.writeUInt16BE(payload.length, 2)
+		packet.writeUInt32BE(isControl ? 1 : state.sequence, 4)
+		Buffer.from(payload).copy(packet, 8)
+
+		const hex = packet.toString('hex').toUpperCase().replace(/(..)/g, '$1 ').trim()
+
+		logger(`Sending Sony VISCA packet to ${cameraIP}:${VISCA_PORT} -> ${hex}`, 'info-quiet')
+
+		state.socket.send(packet, VISCA_PORT, cameraIP, (err) => {
+			if (err) {
+				logger(`Error sending VISCA packet to ${cameraIP}: ${err.message}`, 'error')
+			}
+			complete()
+		})
+	} catch (error) {
+		logger(`Error building/sending VISCA packet for device ${deviceId}: ${error}`, 'error')
+		// the send callback will never fire, so release the waiter here
+		complete()
+	}
+}
+
+// Tears down the socket and keepalive timer for a device that is no longer this
+// VISCA camera (deleted, camera fields cleared, model changed, or IP changed).
+// Without this the refresh timer would keep re-lighting the lamp forever.
+//
+// If a lamp was lit we explicitly extinguish it first, addressed to the IP and
+// variant the state was last driven with -- i.e. the OLD camera. Relying on the
+// camera's own 15 second expiry instead would leave the old camera lit for up
+// to 15 seconds while the newly configured one also lights, which on an IP edit
+// means two cameras showing tally at once. An OFF is two UDP datagrams at most
+// and costs nothing if the camera is already unreachable.
+//
+// The socket is closed only once those datagrams have been handed to the OS;
+// closing immediately after send() can discard them.
+function CleanupViscaCameraState(deviceId: string) {
+	const state = viscaCameraStates.get(deviceId)
+
+	if (!state) {
+		return
+	}
+
+	// drop it from the map up front so nothing can pick up a dying state
+	viscaCameraStates.delete(deviceId)
+
+	try {
+		// the keepalive only runs while something is lit, so its presence tells
+		// us whether there is anything to extinguish
+		const wasLit = !!state.refreshTimer
+
+		if (state.refreshTimer) {
+			clearInterval(state.refreshTimer)
+			state.refreshTimer = undefined
+		}
+
+		const closeSocket = () => {
+			try {
+				state.socket.close()
+			} catch (error) {
+				logger(`Error closing VISCA socket for device ${deviceId}: ${error}`, 'error')
+			}
+		}
+
+		if (!wasLit) {
+			closeSocket()
+			return
+		}
+
+		const offCommands = state.redGreen ? [VISCA_CMD_TALLY_OFF, VISCA_CMD_GREEN_TALLY_OFF] : [VISCA_CMD_TALLY_OFF]
+
+		let pending = offCommands.length
+
+		for (const command of offCommands) {
+			SendViscaPacket(state, deviceId, state.cameraIP, VISCA_PAYLOAD_TYPE_COMMAND, command, false, () => {
+				pending--
+				if (pending === 0) {
+					closeSocket()
+				}
+			})
+		}
+	} catch (error) {
+		logger(`Error cleaning up VISCA state for device ${deviceId}: ${error}`, 'error')
+	}
+}
+
+// Sends the absolute desired lamp state and keeps it refreshed.
+//
+// CLEAR-vs-SET: the Canon branch sends an unconditional tally=off and then
+// turns on whichever lamp applies. We do NOT mirror that here. Blanking a VISCA
+// lamp and immediately re-lighting it is a visible blink on the physical lamp
+// and doubles the packet count. Instead we send the absolute state of every
+// lamp we control on every call -- red = program, green = preview -- which is
+// idempotent, produces no intermediate off state, and is still unconditional
+// (not send-on-change), so a dropped UDP packet self-corrects on the next tally
+// transition. Cost is 1 packet per transition for sony_visca and 2 for
+// sony_visca_rg, plus the keepalive below.
+function UpdateSonyViscaTally(deviceId: string, cameraIP: string, inPgm: boolean, inPvw: boolean, redGreen: boolean) {
+	const state = GetViscaCameraState(deviceId, cameraIP)
+
+	if (!state) {
+		return
+	}
+
+	// keep the state pointed at the live config; the keepalive and teardown both
+	// read these rather than closing over the values passed in on one call
+	state.cameraIP = cameraIP
+	state.redGreen = redGreen
+
+	const commands: number[][] = []
+
+	if (redGreen) {
+		// Program lights the red lamp, preview lights the green lamp.
+		commands.push(inPgm ? VISCA_CMD_TALLY_ON : VISCA_CMD_TALLY_OFF)
+		commands.push(inPvw ? VISCA_CMD_GREEN_TALLY_ON : VISCA_CMD_GREEN_TALLY_OFF)
+	} else {
+		// Single lamp: program or preview both light it.
+		commands.push(inPgm || inPvw ? VISCA_CMD_TALLY_ON : VISCA_CMD_TALLY_OFF)
+	}
+
+	state.lastCommands = commands
+
+	for (const command of commands) {
+		SendViscaPacket(state, deviceId, cameraIP, VISCA_PAYLOAD_TYPE_COMMAND, command)
+	}
+
+	// Keepalive: without this the camera drops the lamp after
+	// VISCA_TALLY_EXPIRY_MS. Only runs while something is lit.
+	const anythingLit = inPgm || inPvw
+
+	if (state.refreshTimer) {
+		clearInterval(state.refreshTimer)
+		state.refreshTimer = undefined
+	}
+
+	if (anythingLit) {
+		state.refreshTimer = setInterval(() => {
+			for (const command of state.lastCommands) {
+				SendViscaPacket(state, deviceId, state.cameraIP, VISCA_PAYLOAD_TYPE_COMMAND, command)
+			}
+		}, VISCA_TALLY_REFRESH_MS)
+		// Do not hold the process open just for a tally refresh.
+		state.refreshTimer.unref?.()
+	}
+}
+
 function UpdateCamera(deviceId: string) {
 	const device = GetDeviceByDeviceId(deviceId)
 
 	if (!device.cameraIP || !device.cameraModel) {
 		//only proceed if both camera IP and model are set
-		return	
+		CleanupViscaCameraState(deviceId)
+		return
 	}
 
 	logger(`Updating camera for device: ${device.name} (Camera: ${device.cameraModel})`, 'info-quiet')
@@ -2980,22 +3295,44 @@ function UpdateCamera(deviceId: string) {
 	const inPgm = pgmBus && pgmBus.sources.length > 0
 	const inPvw = pvwBus && pvwBus.sources.length > 0
 
+	//if this device was previously a VISCA camera and no longer is, release its socket and keepalive
+	if (device.cameraModel !== 'sony_visca' && device.cameraModel !== 'sony_visca_rg') {
+		CleanupViscaCameraState(deviceId)
+	}
+
 	switch (device.cameraModel) {
 		case 'canon_xc':
 			//clear all tallies first
-			axios.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=off`)
+			//a bare axios.get() with no .catch() is an unhandled rejection if the camera is unreachable,
+			//which terminates the process on modern Node. UpdateCamera is now also reachable from the
+			//device edit handler, so a mistyped camera IP must not be fatal.
+			axios
+				.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=off`)
+				.catch((error) => logger(`Error sending Canon XC command to ${device.cameraIP}: ${error}`, 'error'))
 			
 			if (inPgm) {
 				logger(`Sending Canon XC command to set camera ON AIR`, 'info-quiet')
 				//send command to camera IP to set tally program
-				axios.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=program`)
+				axios
+					.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=program`)
+					.catch((error) => logger(`Error sending Canon XC command to ${device.cameraIP}: ${error}`, 'error'))
 			}
 			
 			if (inPvw) {
 				logger(`Sending Canon XC command to set camera PREVIEW`, 'info-quiet')
 				//send command to camera IP to set tally preview
-				axios.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=preview`)
+				axios
+					.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=preview`)
+					.catch((error) => logger(`Error sending Canon XC command to ${device.cameraIP}: ${error}`, 'error'))
 			}
+			break
+		case 'sony_visca':
+			//single tally lamp: program or preview both light it
+			UpdateSonyViscaTally(deviceId, device.cameraIP, !!inPgm, !!inPvw, false)
+			break
+		case 'sony_visca_rg':
+			//separate lamps: program lights red, preview lights green
+			UpdateSonyViscaTally(deviceId, device.cameraIP, !!inPgm, !!inPvw, true)
 			break
 		default:
 			console.log(`Camera model ${device.cameraModel} not supported for tally updates.`)

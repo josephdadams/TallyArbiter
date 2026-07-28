@@ -22,6 +22,38 @@ Device Sources can be "linked" on either the Preview Bus, the Program Bus, or bo
 
 The source address is typically the actual input number on the switcher. So, if your camera on your ATEM comes in on Input 5, just enter `5`. However, if you're using a source like OBS Studio, your address might be a string, like `Scene 2` or `Image 1`. Some Source Types also support selecting the Device Address via a list.
 
+## Camera Tally
+
+Some cameras have a tally lamp built in that can be driven over the network. If yours does, you can have Tally Arbiter talk to it directly, without a listener client or a Device Action.
+
+Two fields on a Device control this:
+
+- **Camera IP** — the network address of the camera itself.
+- **Camera Model** — which protocol Tally Arbiter should speak to it.
+
+Both must be filled in before anything is sent. Whenever the Device changes state, Tally Arbiter works out whether it is in Program or Preview and sends the matching command to the camera.
+
+The following camera models are implemented:
+
+### Canon PTZ Camera (XC Protocol)
+
+Canon PTZ cameras that expose the XC control CGI. Program and Preview each light the corresponding tally mode on the camera.
+
+### Sony VISCA over IP (experimental)
+
+:::warning
+Both Sony VISCA entries are **experimental and have not been tested against real hardware**. The commands are transcribed from Sony's published VISCA command lists. If you have a Sony camera to try them on, please report what you see — the outgoing packets are logged as hex at the `info-quiet` log level so you can confirm exactly what went on the wire.
+:::
+
+Commands are sent as VISCA over IP on UDP port 52381, which is fixed and not currently configurable. Two variants are available:
+
+- **Single Tally Lamp** — for BRC and SRG series bodies that have one tally lamp. Program _or_ Preview lights it.
+- **Red/Green Tally Lamps** — for newer bodies with two lamps, such as the ILME-FR7. Program lights the red lamp and Preview lights the green lamp. Note that the green lamp command is documented for the FR7 series; it is not listed in the SRG-A40/A12 command list and may do nothing on those cameras.
+
+Most Sony cameras require tally control to be handed over to an external controller before VISCA tally commands have any effect. On the ILME-FR7 this is **[Technical] > [Tally] > [Tally Control] > [External]** in the camera or web menu; other models have an equivalent "external tally" setting.
+
+Sony cameras also extinguish the lamp automatically if they do not receive another "on" command within 15 seconds, so Tally Arbiter re-sends the current state every few seconds for as long as a lamp is lit.
+
 ## Device Actions
 
 Once a device is assigned to a source(s), if a matching condition is met, an action can be performed. You can specify whether the action should be run when the device is entering a bus or leaving a bus, which is helpful for bus-specific actions like operating a relay. Multiple actions are supported per device and per bus (preview and program).
