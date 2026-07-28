@@ -1321,7 +1321,9 @@ function getDeviceStates(deviceId?: string): DeviceState[] {
 							num++
 						}
 					}
-					if (num === deviceSources.length) {
+					// same guard as UpdateDeviceState: no device sources means not active,
+					// otherwise num === deviceSources.length is trivially true at 0
+					if (deviceSources.length > 0 && num === deviceSources.length) {
 						return {
 							busId: b.id,
 							deviceId: d.id,
@@ -1514,7 +1516,10 @@ function UpdateDeviceState(deviceId: string) {
 				}
 			}
 
-			if (num === deviceSources.length) {
+			// deviceSources.length must be checked explicitly: with no device sources at all
+			// num and deviceSources.length are both 0, which would otherwise report the device
+			// as active on every linked bus. A device with no sources is inactive everywhere.
+			if (deviceSources.length > 0 && num === deviceSources.length) {
 				//
 				currentDeviceTallyData[device.id].push(bus.id)
 				if (!previousBusses.includes(bus.id)) {
@@ -1527,10 +1532,15 @@ function UpdateDeviceState(deviceId: string) {
 			}
 		} else {
 			// bus is unlinked – active if ANY device source is on this bus (OR logic)
-			const anySourceInBus = deviceSources.some((deviceSource) => {
-				const data = SourceClients[deviceSource.sourceId]?.tally?.value || []
-				return !!data?.[deviceSource.address]?.includes(bus.id)
-			})
+			// Both branches must read currentSourceTallyData (keyed by device source id) so they
+			// share one source of truth. Reading SourceClients[...].tally.value instead is unsafe:
+			// sources that publish via sendIndividualTallyData() (TSL 3.1/5.0, SimplyLive) emit an
+			// object containing only the address that just changed, so every other address on that
+			// source reads as undefined and its devices would spuriously go inactive.
+			// An empty deviceSources array makes .some() false, which is the correct result here.
+			const anySourceInBus = deviceSources.some((deviceSource) =>
+				currentSourceTallyData?.[deviceSource.id]?.includes(bus.id),
+			)
 
 			if (anySourceInBus) {
 				currentDeviceTallyData[device.id].push(bus.id)
@@ -1760,9 +1770,15 @@ function processSourceTallyData(sourceId: string, tallyData: SourceTallyData) {
 		}
 	}
 
+	// Cache defensive copies of the bus arrays, never the arrays themselves. The incoming
+	// arrays are owned by the source object (TallyInput.addBusToAddress() pushes into them
+	// in place), so storing them directly would make the cached "previous" value the same
+	// array as the next "current" value. The areBussesEqual comparison above would then see
+	// identical arrays and silently drop the tally_data update for any pure-add transition.
+	// Also note the comparison must stay above this assignment.
 	currentSourceTallyData = {
 		...currentSourceTallyData,
-		...tallyData,
+		...Object.fromEntries(Object.entries(tallyData).map(([deviceSourceId, busses]) => [deviceSourceId, [...busses]])),
 	}
 
 	for (const device of devices) {
@@ -2410,7 +2426,10 @@ function TallyArbiter_Delete_Device_Source(obj: Manage): ManageResponse {
 		}
 	}
 
-	delete currentDeviceTallyData[deviceSourceId]
+	// currentSourceTallyData is keyed by device source id, so this is the cache the deleted
+	// device source has an entry in. (currentDeviceTallyData is keyed by device id and is
+	// rebuilt from scratch by UpdateDeviceState, so it needs no cleanup here.)
+	delete currentSourceTallyData[deviceSourceId]
 
 	let deviceName = ''
 	try {
