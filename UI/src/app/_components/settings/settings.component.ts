@@ -37,6 +37,7 @@ import { User } from 'src/app/_models/User'
 import { AuthService } from 'src/app/_services/auth.service'
 import { JsonEditorComponent, JsonEditorOptions } from 'ang-jsoneditor'
 import { default as configSchema } from 'src/app/_schemas/configSchema'
+import { MIN_PASSWORD_LENGTH } from '../../../../../src/_helpers/passwordPolicy'
 
 const globalSwalOptions = {
 	confirmButtonColor: '#2a70c7',
@@ -125,6 +126,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	public editingUser = false
 	public currentUser: User = {} as User
 	public selectedUserRoles: string[] = []
+	public minPasswordLength = MIN_PASSWORD_LENGTH
 
 	public newCloudKey = ''
 
@@ -216,6 +218,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		}
 		if (this.authService.requireRole('settings:users')) {
 			this.socketService.socket.emit('users')
+			this.socketService.socket.emit('default_password_users')
 		}
 		if (this.authService.requireRole('settings:config')) {
 			this.socketService.socket.on('config', this.handleConfigReceived)
@@ -744,13 +747,23 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		return this.currentUser.roles && this.currentUser.roles.split(';').includes(role)
 	}
 
+	//a new user needs a real password. this used to fall back to '12345', which quietly
+	//created accounts on the password Tally Arbiter ships with.
+	public get newUserPasswordError(): string {
+		if (this.editingUser) return ''
+		const password = this.currentUser.password || ''
+		if (password.length === 0) return 'Please set a password for this user.'
+		if (password.length < MIN_PASSWORD_LENGTH) {
+			return `The password must be at least ${MIN_PASSWORD_LENGTH} characters long.`
+		}
+		return ''
+	}
+
 	public saveCurrentUser() {
+		if (this.newUserPasswordError !== '') return
 		const userObj = {
 			...this.currentUser,
 		} as any
-		if (!userObj.password) {
-			userObj.password = '12345'
-		}
 		if (!userObj.roles) {
 			userObj.roles = 'tally_view'
 		}

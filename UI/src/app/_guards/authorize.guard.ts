@@ -41,6 +41,12 @@ export class AuthorizeGuard {
 			console.log('Not logged in. Navigating to the login page...')
 			this.router.navigate(destination)
 			return false
+		} else if (this.authService.mustChangePassword) {
+			//the server rejects every privileged action for this account, so there is
+			//nothing worth landing on until the password is replaced
+			console.log('Password change required. Navigating to the change password page...')
+			this.router.navigate(['change-password', currentSection || 'home'])
+			return false
 		} else {
 			// The /settings route hosts every settings tab, so anyone holding any
 			// 'settings:*' sub-role (or admin) should reach the page shell; individual

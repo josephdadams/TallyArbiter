@@ -45,7 +45,9 @@ Given that, a few things are **intentional** and aren't vulnerabilities on their
 
 Things we **do** consider security issues: authentication or role-check bypass on the Socket.IO API, ways to read or overwrite `config.json` (it holds credentials and JWT signing material) without authorization, injection into the commands sent to cameras and switchers, and anything that lets an unauthenticated LAN client take actions that should require a login.
 
-Also worth knowing: Tally Arbiter ships with **default credentials** (`admin`/`12345`, `producer`/`12345`). That's a known weakness we're addressing separately, not a new finding — please change them on any real deployment.
+Also worth knowing how the seeded accounts work. A new install still seeds `admin` and `producer` with the documented default password, but both accounts are flagged: the server refuses every privileged action for them and the UI forces a new password on first login, so the default is only ever valid for the one login that replaces it. Reporting that a **fresh** install accepts `admin`/`12345` is therefore not a finding.
+
+Installs created before that change are **not** forced to rotate — locking an operator out mid-production would be worse than the exposure. Those accounts keep working on the default password, and Tally Arbiter warns about them on every startup and in Settings > Users. If you find an install in that state, the fix is to change the password; it isn't a new vulnerability. What _would_ be a finding is a way to get past the forced change on a fresh install, or to clear the flag without knowing the current password.
 
 ## A note on automated scanners and AI-generated reports
 

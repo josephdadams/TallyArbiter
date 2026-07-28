@@ -72,6 +72,9 @@ export class SocketService {
 	public messages: Message[] = []
 	public errorReports: ErrorReportsListElement[] = [] as ErrorReportsListElement[]
 	public users: User[] = []
+	//usernames still on the password Tally Arbiter ships with; existing installs are
+	//warned rather than locked out, so the settings page nags until this is empty
+	public defaultPasswordUsers: string[] = []
 
 	public accessToken: string | undefined
 
@@ -339,6 +342,7 @@ export class SocketService {
 				case 'user-deleted-successfully':
 					this.closeModals.next()
 					this.socket.emit('users')
+					this.socket.emit('default_password_users')
 					break
 				case 'error':
 					alert('Unexpected Error Occurred: ' + response.error)
@@ -368,6 +372,9 @@ export class SocketService {
 		})
 		this.socket.on('users', (users: User[]) => {
 			this.users = users
+		})
+		this.socket.on('default_password_users', (usernames: string[]) => {
+			this.defaultPasswordUsers = usernames
 		})
 
 		this.socket.on('remote_error_opt', (optStatus: boolean) => {

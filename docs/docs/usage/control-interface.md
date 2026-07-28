@@ -12,7 +12,9 @@ If you're running the Desktop App, you get a window showing the GUI. However, th
 ## Configuration
 
 In the configuration interface, the settings page is available at `/settings`: http://127.0.0.1:4455/settings
-**This page is restricted by a username and password. The default username is `admin` and the default password is `12345`.**
+**This page is restricted by a username and password. On a new installation the username is `admin` and the password is `12345`, but that password only works for your very first sign-in: Tally Arbiter immediately asks you to choose your own, and the rest of the interface stays locked until you do.** Pick something you'll remember: there is no password reset link. If you do get locked out, close Tally Arbiter, set `"users": []` in the `config.json` described below, and start it again — the `admin` and `producer` accounts come back at `12345` and the rest of your configuration is left alone.
+
+If you're upgrading an existing installation, your current passwords keep working. If any account is still on `12345`, Tally Arbiter says so at startup and on the Users tab of the settings page; change it under **Settings > Users**.
 
 All the changes you make there are saved to a `config.json` file. This file should also be backed up frequently to prevent data loss when updating. It's path is different depending on the OS that you're running:
 

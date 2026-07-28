@@ -49,6 +49,11 @@ export class LoginComponent {
 			this.loading = false
 
 			if (response.loginOk === true) {
+				if (this.authService.mustChangePassword) {
+					//'home' is not guarded, so the guard alone would not catch this
+					this.router.navigate(['change-password', this.redirectParam])
+					return
+				}
 				let navigateParams = [this.redirectParam]
 				if (this.extraParam !== '') navigateParams.push(this.extraParam)
 				this.router.navigate(navigateParams)
