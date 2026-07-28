@@ -3,19 +3,21 @@
 //
 // Board defines used by Arduino IDE as preprocessor flags when selecting boards
 // Boards > M5Stack Arduino > M5StickC / M5StickCPlus / M5StickCPlus2
-// M5StickC        ARDUINO_m5stack_stickc
-// M5StickC-Plus   ARDUINO_m5stack_stickc_plus
-// M5StickC-Plus2  ARDUINO_m5stack_stickc_plus2
+// The cores define ARDUINO_<build.board>, which is upper case in the current
+// esp32/M5Stack cores; the lower case spellings are kept for older cores.
+// M5StickC        ARDUINO_M5STACK_STICKC       / ARDUINO_m5stack_stickc
+// M5StickC-Plus   ARDUINO_M5STACK_STICKC_PLUS  / ARDUINO_m5stack_stickc_plus
+// M5StickC-Plus2  ARDUINO_M5STACK_STICKC_PLUS2 / ARDUINO_m5stack_stickc_plus2
 //
-#if defined(ARDUINO_m5stack_stickc)
+#if defined(ARDUINO_M5STACK_STICKC) || defined(ARDUINO_m5stack_stickc)
 #define STICK_C
 #endif
 
-#if defined(ARDUINO_m5stack_stickc_plus)
+#if defined(ARDUINO_M5STACK_STICKC_PLUS) || defined(ARDUINO_m5stack_stickc_plus)
 #define STICK_C_PLUS
 #endif
 
-#if defined(ARDUINO_m5stack_stickc_plus2)
+#if defined(ARDUINO_M5STACK_STICKC_PLUS2) || defined(ARDUINO_m5stack_stickc_plus2)
 #define STICK_C_PLUS2
 #endif
 
@@ -31,8 +33,8 @@
 //#define STICK_C_PLUS
 //#define STICK_C_PLUS2
 
-// The default is M5StickC if nothing is specified. This is also the only
-// supported board type in the github builds.
+// The default is M5StickC if nothing is specified. The github builds publish a
+// separate binary for each of the three board types.
 #if !defined(STICK_C) && !defined(STICK_C_PLUS) && !defined(STICK_C_PLUS2)
 #define STICK_C
 #endif
