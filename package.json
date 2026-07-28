@@ -28,6 +28,10 @@
 	],
 	"license": "MIT",
 	"author": "Joseph Adams. <joseph@josephadams.dev>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/josephdadams/TallyArbiter.git"
+	},
 	"bin": {
 		"tallyarbiter": "bin/tallyarbiter"
 	},
