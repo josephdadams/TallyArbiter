@@ -46,6 +46,43 @@ jobs:
               - name: MultiButton
               - name: Arduino_JSON
 
+          # Same sketch as M5StickC: it compiles for whichever of the three
+          # sticks the board defines say, so each variant needs its own build.
+          # Flashing the plain StickC binary to a Plus/Plus2 drives the wrong
+          # display and leaves the screen black.
+          - name: M5StickC-Plus
+            artifact: M5StickC-Plus
+            platform_name: esp32:esp32
+            platform_url: https://dl.espressif.com/dl/package_esp32_index.json
+            fqbn: esp32:esp32:m5stack_stickc_plus
+            options: ''
+            sketch: listener_clients/m5stickc-listener
+            libraries: |
+              - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.3.0.zip
+              - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.0.zip
+              - name: WebSockets
+              - name: WiFiManager
+              - name: MultiButton
+              - name: Arduino_JSON
+
+          # The Plus2 build needs M5StickCPlus2 on top of the libraries the other
+          # two sticks use; it pulls in M5Unified/M5GFX itself.
+          - name: M5StickC-Plus2
+            artifact: M5StickC-Plus2
+            platform_name: esp32:esp32
+            platform_url: https://dl.espressif.com/dl/package_esp32_index.json
+            fqbn: esp32:esp32:m5stack_stickc_plus2
+            options: ''
+            sketch: listener_clients/m5stickc-listener
+            libraries: |
+              - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.3.0.zip
+              - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.0.zip
+              - name: M5StickCPlus2
+              - name: WebSockets
+              - name: WiFiManager
+              - name: MultiButton
+              - name: Arduino_JSON
+
           # M5StickS3 is not in the espressif core; it only ships in the M5Stack
           # platform, from 3.3.8 onwards. The board has 8 MB of flash but its
           # default scheme is the 4 MB layout, leaving only 1.25 MB for the app.

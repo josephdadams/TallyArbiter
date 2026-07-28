@@ -20,7 +20,7 @@ https://www.adafruit.com/product/4290 (Shipped from USA)
 1. Download an ESP flasher.
    You can use [esphome-flasher](https://github.com/esphome/esphome-flasher). If you want to use it, go to the [Github page](https://github.com/esphome/esphome-flasher) and download the latest release.
 2. Go to https://github.com/josephdadams/TallyArbiter/actions/workflows/build-listener-clients.yaml and click on the first element in the list.
-   From here, scroll down to the _"Artifacts"_ section and click on _"TallyArbiter-Listener-M5StickC"_.
+   From here, scroll down to the _"Artifacts"_ section and click on the artifact for your board: _"TallyArbiter-Listener-M5StickC"_, _"TallyArbiter-Listener-M5StickC-Plus"_ or _"TallyArbiter-Listener-M5StickC-Plus2"_.
    Un-zip the downloaded archive.
 3. Plug your board into the computer.
 4. Open the ESP flashed that you downloaded.
@@ -28,7 +28,7 @@ https://www.adafruit.com/product/4290 (Shipped from USA)
    You should select the file that ends in **.ino.bin**, not the file that ends in _.ino.elf_ or _.ino.partitions.bin_.
 5. Flash the firmware on your board _(clicking "Flash ESP" in esphome-flasher)_.
 
-**NB:** The built version onf GitHub is only for **M5StickC**.
+**NB:** The built versions on GitHub are published separately for **M5StickC**, **M5StickC-Plus** and **M5StickC-Plus2**. Each binary only works on the board it was built for, so make sure you flash the one that matches your device — a binary built for another variant drives the wrong display and leaves the screen black.
 
 Done! Now your board is running the latest listener client firmware version. Go to the _"Setup your device"_ sections to connect the board to the Tally Arbiter server.
 
