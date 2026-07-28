@@ -68,7 +68,7 @@ export class NewtekTricasterSource extends TallyInput {
 			if (this.receiveBuffer.length > NewtekTricasterSource.MAX_BUFFER_SIZE) {
 				logger(
 					`Source: ${source.name}  Tricaster receive buffer exceeded ${NewtekTricasterSource.MAX_BUFFER_SIZE} bytes without a complete message; discarding buffered data.`,
-					'error'
+					'error',
 				)
 				this.receiveBuffer = ''
 			}
@@ -94,10 +94,7 @@ export class NewtekTricasterSource extends TallyInput {
 			parseString(wrapped, (error, result) => {
 				if (error) {
 					const preview = message.length > 500 ? message.slice(0, 500) + '...(truncated)' : message
-					logger(
-						`Source: ${source.name}  Tricaster XML failed to parse: ${error} - data: ${preview}`,
-						'error'
-					)
+					logger(`Source: ${source.name}  Tricaster XML failed to parse: ${error} - data: ${preview}`, 'error')
 				} else {
 					let shortcut_states = Object.entries(result['data']['shortcut_states'])
 
@@ -150,15 +147,12 @@ export class NewtekTricasterSource extends TallyInput {
 		}
 
 		for (let i = 0; i < sourceArray.length; i++) {
-			let tricasterSourceFound = false
-			for (let j = 0; j < this.tallydata_TC.length; j++) {
-				if (this.tallydata_TC[j].sourceId === sourceId) {
-					if (this.tallydata_TC[j].address === sourceArray[i]) {
-						tricasterSourceFound = true
-						break
-					}
-				}
-			}
+			// Key on the address alone: the address is the unique key of the addresses list, so the same
+			// Tricaster input must never be registered twice. Requiring a sourceId match as well would
+			// re-register (and duplicate) an address whenever the same input arrives with a different
+			// sourceId - and sourceId here is the TallyArbiter Source this data arrived on (see
+			// parseTricasterMessage), not a per-input Tricaster id, so it cannot distinguish inputs anyway.
+			let tricasterSourceFound = this.tallydata_TC.some((tallyObj) => tallyObj.address === sourceArray[i])
 
 			if (!tricasterSourceFound) {
 				//the source is not in the Tricaster array, we don't know anything about it, so add it to the array

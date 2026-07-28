@@ -111,10 +111,7 @@ export class OBSSource extends TallyInput {
 
 					this.studioModeEnabled = studioModeStatus['studio-mode']
 
-					this.addAddress('{{STREAMING}}', '{{STREAMING}}')
-					this.addAddress('{{RECORDING}}', '{{RECORDING}}')
-					this.addAddress('{{VIRTUALCAM}}', '{{VIRTUALCAM}}')
-					this.addAddress('{{REPLAY}}', '{{REPLAY}}')
+					this.addStatusAddresses()
 					if (streamingAndRecordingStatus.streaming) this.setBussesForAddress('{{STREAMING}}', ['program'])
 					if (streamingAndRecordingStatus.recording) {
 						if (streamingAndRecordingStatus['recording-paused']) {
@@ -439,10 +436,7 @@ export class OBSSource extends TallyInput {
 					},
 				])
 				.then((results) => {
-					this.addAddress('{{STREAMING}}', '{{STREAMING}}')
-					this.addAddress('{{RECORDING}}', '{{RECORDING}}')
-					this.addAddress('{{VIRTUALCAM}}', '{{VIRTUALCAM}}')
-					this.addAddress('{{REPLAY}}', '{{REPLAY}}')
+					this.addStatusAddresses()
 
 					if ((results[0].responseData as OBSResponseTypes['GetStreamStatus']).outputActive) {
 						this.setBussesForAddress('{{STREAMING}}', ['program'])
@@ -676,11 +670,38 @@ export class OBSSource extends TallyInput {
 		this.connect()
 	}
 
+	/** True if an address string is already registered.
+	 * The address (not the label, and not any source-type-internal id) is the unique key of the
+	 * addresses list, so it is the only safe thing to key an "is this already registered?" check on.
+	 */
+	private hasAddress(address: string): boolean {
+		return this.addresses.value.some((a) => a.address === address)
+	}
+
+	/** Registers the four OBS status pseudo-addresses, skipping any that already exist.
+	 * The v4 'AuthenticationSuccess' and v5 'Identified' handlers that call this both fire again on
+	 * every reconnect, so registering these unconditionally would duplicate them once per reconnect.
+	 */
+	private addStatusAddresses(): void {
+		for (const address of ['{{STREAMING}}', '{{RECORDING}}', '{{VIRTUALCAM}}', '{{REPLAY}}']) {
+			if (!this.hasAddress(address)) {
+				this.addAddress(address, address)
+			}
+		}
+	}
+
 	/** Gets the Scene List, updates this.scenes4 and adds address if scene is not registered. */
 	private saveSceneList4(): void {
 		this.obsClient4.send('GetSceneList').then((data) => {
 			data.scenes.forEach((scene) => {
-				if (!this.scenes4.includes(scene)) {
+				//Key on the registered addresses, not on this.scenes4: this.scenes4 holds the scene
+				//OBJECTS from the previous GetSceneList response, so includes() (reference equality) never
+				//matched a freshly deserialized scene and every scene got re-added on every call.
+				//Comparing scene names against this.scenes4 wouldn't work either, because
+				//'SceneCollectionChanged' removes the old scenes' addresses *before* calling this while
+				//this.scenes4 still holds them - a scene name present in both collections would then be
+				//removed and never re-registered.
+				if (!this.hasAddress(scene.name)) {
 					this.addAddress(scene.name, scene.name)
 				}
 			})
@@ -695,7 +716,10 @@ export class OBSSource extends TallyInput {
 		this.obsClient5.call('GetSceneList').then((data) => {
 			let newScenes = data.scenes.flatMap((scene) => scene.sceneName as string)
 			newScenes.forEach((scene) => {
-				if (!this.scenes5.includes(scene)) {
+				//Key on the registered addresses rather than this.scenes5 for the same reason as in
+				//saveSceneList4(): 'CurrentSceneCollectionChanged' removes the old scenes' addresses before
+				//calling this, while this.scenes5 still lists them.
+				if (!this.hasAddress(scene)) {
 					this.addAddress(scene, scene)
 				}
 				if (scene === data.currentPreviewSceneName) {
@@ -838,9 +862,19 @@ export class OBSSource extends TallyInput {
 					})
 			}
 		} else if (this.obsProtocolVersion === 5) {
-			logger(`Source: ${this.source.name}  New audio input created (${input})`, 'info-quiet')
-			this.addAddress(input, input)
-			if (!this.audioInputs.includes(input)) this.audioInputs.push(input)
+			//Only register the address once. This must key on the registered addresses and not on
+			//this.audioInputs like the v4 branch above does: the 'Identified' handler assigns
+			//this.audioInputs wholesale *before* calling this for each entry, so on that path
+			//this.audioInputs already contains the input and cannot tell a first registration from a
+			//repeat. 'Identified' fires again on every reconnect, hence the duplicates.
+			if (!this.hasAddress(input)) {
+				logger(`Source: ${this.source.name}  New audio input created (${input})`, 'info-quiet')
+				this.addAddress(input, input)
+				if (!this.audioInputs.includes(input)) this.audioInputs.push(input)
+			}
+			//The mute state is queried even for an already-known input: a reconnect is exactly when the
+			//cached state may be stale (mute could have been toggled while we were disconnected, and no
+			//'InputMuteStateChanged' event was received for it), so it always has to be re-read.
 			this.obsClient5
 				.call('GetInputMute', {
 					inputName: input,
