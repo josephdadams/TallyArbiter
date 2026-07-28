@@ -10,6 +10,11 @@ on:
       - 'listener_clients/**'
       - '.github/workflows/build-listener-clients.yaml'
   workflow_dispatch:
+  # Called by release-listener-clients.yaml on a version tag. A `tags` filter
+  # can't live alongside the `paths` filter above (they are ANDed, and a tag
+  # push carries no file diff to match), so the tag trigger lives in its own
+  # workflow that calls this one.
+  workflow_call:
 
 jobs:
   build_m5stickc-listener:
@@ -135,6 +140,35 @@ jobs:
           name: 'TallyArbiter-Listener-ESP32-NeoPixel'
           path: 'listener_clients/esp32-neopixel-listener/build/esp32.esp32.esp32'
 
+  build_esp32-c3-neopixel-listener:
+    name: Build ESP32-C3 NeoPixel Listener
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/compile-sketches@v1
+        with:
+          platforms: |
+            - name: esp32:esp32
+              source-url: https://dl.espressif.com/dl/package_esp32_index.json
+          # Same reasoning as the plain ESP32 sketch: min_spiffs for the app
+          # size, while keeping the OTA partition ArduinoOTA needs.
+          fqbn: 'esp32:esp32:esp32c3:PartitionScheme=min_spiffs'
+          libraries: |
+            - name: WebSockets
+            - name: WiFiManager
+            - name: Arduino_JSON
+            - name: Adafruit NeoPixel
+          cli-compile-flags: |
+            - --export-binaries
+          sketch-paths: |
+            - listener_clients/esp32-c3-neopixel-listener
+          enable-deltas-report: true
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'TallyArbiter-Listener-ESP32-C3-NeoPixel'
+          path: 'listener_clients/esp32-c3-neopixel-listener/build/esp32.esp32.esp32c3'
+
   build_TTGO-listener:
     strategy:
       fail-fast: false
@@ -232,12 +266,87 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-    #- name: Install dependencies
-    #  working-directory: listener_clients/relay-listener
-    #  run: |
-    #    sudo apt install libudev-dev libusb-1.0-0 libusb-1.0-0-dev
-    #    npm install
-    #    npm install --global eslint
-    #- name: Run eslint
-    #  working-directory: listener_clients/relay-listener
-    #  run: eslint index.js || exit 0
+      #- name: Install dependencies
+      #  working-directory: listener_clients/relay-listener
+      #  run: |
+      #    sudo apt install libudev-dev libusb-1.0-0 libusb-1.0-0-dev
+      #    npm install
+      #    npm install --global eslint
+      #- name: Run eslint
+      #  working-directory: listener_clients/relay-listener
+      #  run: eslint index.js || exit 0
+
+  attach_to_release:
+    name: Attach Firmware to Release
+    # Only on a version tag, i.e. when release-listener-clients.yaml called us.
+    # `!cancelled()` instead of the default `success()` so one board failing to
+    # compile does not also cost the release the firmware that did build — the
+    # failed build job is still red on the run either way.
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') }}
+    needs:
+      - build_m5stickc-listener
+      - build_m5sticks3-listener
+      - build_m5atom-listener
+      - build_esp32-neopixel-listener
+      - build_esp32-c3-neopixel-listener
+      - build_TTGO-listener
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Resolve tag
+        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
+
+      - name: Download firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: 'TallyArbiter-Listener-*'
+
+      - name: Zip one archive per board
+        run: |
+          mkdir -p release-assets
+          shopt -s nullglob
+          for dir in artifacts/*/; do
+            name=$(basename "$dir")
+            # Some artifact names contain spaces (ex: "TTGO T1").
+            asset="${name// /-}-${TAG}.zip"
+            (cd "$dir" && zip -r "$GITHUB_WORKSPACE/release-assets/$asset" .)
+          done
+          ls -l release-assets
+
+      - name: Wait for the release to exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No checkout in this job, so gh can't infer the repo from a remote.
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # build-desktop.yml runs off the same tag push and electron-builder
+          # creates the draft release, but only once its slowest OS finishes.
+          # Firmware compiles well before that, so wait for the draft instead of
+          # racing it and creating a second, conflicting release.
+          for i in $(seq 1 60); do
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "Release $TAG found."
+              exit 0
+            fi
+            echo "Release $TAG not created yet (attempt $i/60), waiting 30s..."
+            sleep 30
+          done
+          echo "Release $TAG never appeared; creating a draft to hold the firmware."
+          gh release create "$TAG" --draft --title "$TAG" \
+            --notes "Draft created by the listener client build; the desktop build did not create a release for this tag."
+
+      - name: Upload firmware to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No checkout in this job, so gh can't infer the repo from a remote.
+          GH_REPO: ${{ github.repository }}
+        run: |
+          shopt -s nullglob
+          assets=(release-assets/*.zip)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No firmware archives were produced — nothing to attach."
+            exit 1
+          fi
+          gh release upload "$TAG" "${assets[@]}" --clobber

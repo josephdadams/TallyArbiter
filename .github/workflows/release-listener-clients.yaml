@@ -1,0 +1,22 @@
+name: Release Listener Clients
+
+# Builds every listener client on a version tag and attaches the firmware to
+# that tag's GitHub release, so the binaries live with the release instead of
+# expiring as 90-day workflow artifacts.
+#
+# This exists as a separate workflow because build-listener-clients.yaml filters
+# its push trigger on `paths`, and a `tags` filter alongside `paths` never fires
+# (a tag push has no file diff for the path filter to match).
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  build_and_attach:
+    name: Build and Attach Listener Clients
+    permissions:
+      contents: write
+    uses: ./.github/workflows/build-listener-clients.yaml
