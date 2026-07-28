@@ -24,24 +24,15 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
+      # Node 24 for the bundled npm: trusted publishing needs npm >= 11.5.1, and
+      # Node 22 still ships 10.9.x. The `permissions: id-token: write` above is
+      # what lets npm mint its short-lived OIDC credential at publish time.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           registry-url: https://registry.npmjs.org
           cache: 'npm'
-
-      # -----------------------
-      # Credential sanity check
-      # -----------------------
-
-      - name: Verify NPM token is configured
-        run: |
-          if [ -z "${{ secrets.NPM_ACCESS_TOKEN }}" ]; then
-            echo "❌ Repository secret NPM_ACCESS_TOKEN is not set — publish would fail with ENEEDAUTH."
-            exit 1
-          fi
-          echo "✅ NPM token present"
 
       # -----------------------
       # Version sanity check
@@ -115,15 +106,15 @@ jobs:
       # Publish
       # -----------------------
 
-      # setup-node's registry-url writes an .npmrc pointing at ${NODE_AUTH_TOKEN},
-      # so every step that authenticates against the registry has to export it.
-
-      - name: Who Am I
-        run: npm whoami
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
-
+      # Published via OIDC trusted publishing, so there is no token to configure
+      # and nothing to rotate. This requires a trusted publisher to be registered
+      # for the package on npmjs.com, pointing at this repository and this
+      # workflow filename; without it the publish is rejected as unauthenticated.
+      #
+      # There is deliberately no `npm whoami` check here. OIDC authenticates
+      # during the publish itself, so whoami does not reflect it and would fail.
+      #
+      # --provenance is also omitted on purpose: trusted publishing generates and
+      # signs the attestation automatically.
       - name: Publish to NPM
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+        run: npm publish --access public
