@@ -19,6 +19,14 @@ jobs:
     name: Build and Publish to NPM
     runs-on: ubuntu-latest
 
+    # The trusted publisher registered for `tallyarbiter` on npmjs.com names this
+    # environment, so npm expects an `environment` claim in the OIDC token. Without
+    # this key the token carries no such claim, the subject does not match the trust
+    # policy, and the publish is rejected as an anonymous PUT — which the registry
+    # reports as a 404 rather than a 403, so that it does not reveal whether a
+    # package exists. Keep this in step with the Environment name field on npm.
+    environment: tallyarbiter
+
     steps:
       - uses: actions/checkout@v4
         with:
