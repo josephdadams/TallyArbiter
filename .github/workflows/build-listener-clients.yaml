@@ -110,10 +110,83 @@ jobs:
               - name: WiFiManager
               - name: Arduino_JSON
               - name: Adafruit NeoPixel
+
+          # The TTGO sketch needs a TFT_eSPI patched to select the TTGO T4 user
+          # setup, checked out by the conditional step below. The first three
+          # boards default to a 1.25 MB app partition, which this sketch no
+          # longer fits in; min_spiffs raises it to 1.875 MB and keeps the second
+          # OTA partition ArduinoOTA needs. T-Watch has 16 MB flash, already gets
+          # 6.5 MB by default, and does not offer the option at all.
+          - name: TTGO T1
+            artifact: TTGO T1
+            platform_name: esp32:esp32
+            platform_url: https://dl.espressif.com/dl/package_esp32_index.json
+            fqbn: esp32:esp32:ttgo-t1
+            options: ':PartitionScheme=min_spiffs'
+            sketch: listener_clients/TTGO_T-listener
+            tft_espi: true
+            libraries: |
+              - name: WebSockets
+              - name: WiFiManager
+              - name: MultiButton
+              - name: Arduino_JSON
+              - source-path: TFT_eSPI
+
+          - name: TTGO T7 v13 Mini32
+            artifact: TTGO T7 v13 Mini32
+            platform_name: esp32:esp32
+            platform_url: https://dl.espressif.com/dl/package_esp32_index.json
+            fqbn: esp32:esp32:ttgo-t7-v13-mini32
+            options: ':PartitionScheme=min_spiffs'
+            sketch: listener_clients/TTGO_T-listener
+            tft_espi: true
+            libraries: |
+              - name: WebSockets
+              - name: WiFiManager
+              - name: MultiButton
+              - name: Arduino_JSON
+              - source-path: TFT_eSPI
+
+          - name: TTGO T7 v14 Mini32
+            artifact: TTGO T7 v14 Mini32
+            platform_name: esp32:esp32
+            platform_url: https://dl.espressif.com/dl/package_esp32_index.json
+            fqbn: esp32:esp32:ttgo-t7-v14-mini32
+            options: ':PartitionScheme=min_spiffs'
+            sketch: listener_clients/TTGO_T-listener
+            tft_espi: true
+            libraries: |
+              - name: WebSockets
+              - name: WiFiManager
+              - name: MultiButton
+              - name: Arduino_JSON
+              - source-path: TFT_eSPI
+
+          - name: TTGO T-Watch
+            artifact: TTGO T-Watch
+            platform_name: esp32:esp32
+            platform_url: https://dl.espressif.com/dl/package_esp32_index.json
+            fqbn: esp32:esp32:twatch
+            options: ''
+            sketch: listener_clients/TTGO_T-listener
+            tft_espi: true
+            libraries: |
+              - name: WebSockets
+              - name: WiFiManager
+              - name: MultiButton
+              - name: Arduino_JSON
+              - source-path: TFT_eSPI
     name: Build ${{ matrix.board.name }} Listener
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup TFT_eSPI and select User Setup
+        if: matrix.board.tft_espi
+        run: |
+          git clone https://github.com/Bodmer/TFT_eSPI/
+          cd TFT_eSPI
+          sed -i 's/#include <User_Setup.h>/\/\/#include <User_Setup.h>/g' User_Setup_Select.h
+          sed -i 's/\/\/#include <User_Setups\/Setup22_TTGO_T4.h>/#include <User_Setups\/Setup22_TTGO_T4.h>/g' User_Setup_Select.h
       # arduino/compile-sketches downloads arduino-cli on every run, and that
       # download occasionally resets mid-transfer. Retry once rather than lose
       # a board's firmware to a transient network failure — the release attach
@@ -154,91 +227,6 @@ jobs:
         with:
           name: 'TallyArbiter-Listener-${{ matrix.board.artifact }}'
           path: '${{ matrix.board.sketch }}/build/${{ env.FQBN_REPLACED }}'
-
-  build_TTGO-listener:
-    strategy:
-      fail-fast: false
-      matrix:
-        # These three default to a 1.25 MB app partition, which this sketch no
-        # longer fits in. min_spiffs raises it to 1.875 MB and keeps the second
-        # OTA partition that ArduinoOTA needs. T-Watch has 16 MB flash and
-        # already gets 6.5 MB by default, and does not offer the option at all.
-        board:
-          - fqbn: esp32:esp32:ttgo-t1
-            name: TTGO T1
-            options: ':PartitionScheme=min_spiffs'
-          - fqbn: esp32:esp32:ttgo-t7-v13-mini32
-            name: TTGO T7 v13 Mini32
-            options: ':PartitionScheme=min_spiffs'
-          - fqbn: esp32:esp32:ttgo-t7-v14-mini32
-            name: TTGO T7 v14 Mini32
-            options: ':PartitionScheme=min_spiffs'
-          - fqbn: esp32:esp32:twatch
-            name: TTGO T-Watch
-            options: ''
-    name: Build ${{ matrix.board.name }} Listener
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup TFT_eSPI and select User Setup
-        run: |
-          git clone https://github.com/Bodmer/TFT_eSPI/
-          cd TFT_eSPI
-          sed -i 's/#include <User_Setup.h>/\/\/#include <User_Setup.h>/g' User_Setup_Select.h
-          sed -i 's/\/\/#include <User_Setups\/Setup22_TTGO_T4.h>/#include <User_Setups\/Setup22_TTGO_T4.h>/g' User_Setup_Select.h
-      # arduino/compile-sketches downloads arduino-cli on every run, and that
-      # download occasionally resets mid-transfer. Retry once rather than lose
-      # a board's firmware to a transient network failure — the release attach
-      # job ships whatever built, so a flake here silently costs an asset.
-      - name: Compile sketch
-        id: compile
-        continue-on-error: true
-        uses: arduino/compile-sketches@v1
-        with:
-          platforms: |
-            - name: esp32:esp32
-              source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          fqbn: '${{ matrix.board.fqbn }}${{ matrix.board.options }}'
-          libraries: |
-            - name: WebSockets
-            - name: WiFiManager
-            - name: MultiButton
-            - name: Arduino_JSON
-            - source-path: TFT_eSPI
-          cli-compile-flags: |
-            - --export-binaries
-          sketch-paths: |
-            - listener_clients/TTGO_T-listener
-          enable-deltas-report: true
-      - name: Compile sketch (retry)
-        if: steps.compile.outcome == 'failure'
-        uses: arduino/compile-sketches@v1
-        with:
-          platforms: |
-            - name: esp32:esp32
-              source-url: https://dl.espressif.com/dl/package_esp32_index.json
-          fqbn: '${{ matrix.board.fqbn }}${{ matrix.board.options }}'
-          libraries: |
-            - name: WebSockets
-            - name: WiFiManager
-            - name: MultiButton
-            - name: Arduino_JSON
-            - source-path: TFT_eSPI
-          cli-compile-flags: |
-            - --export-binaries
-          sketch-paths: |
-            - listener_clients/TTGO_T-listener
-          enable-deltas-report: true
-      - name: Get FQBN build dir for ${{ matrix.board.name }}
-        run: |
-          RAW_FQBN="${{ matrix.board.fqbn }}"
-          FQBN_REPLACED=$(echo $RAW_FQBN | sed 's/:/./g')
-          echo "FQBN_REPLACED=$FQBN_REPLACED" >> $GITHUB_ENV
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: 'TallyArbiter-Listener-${{ matrix.board.name }}'
-          path: 'listener_clients/TTGO_T-listener/build/${{ env.FQBN_REPLACED }}'
 
   analyse_blink1-listener:
     name: Analyse Blink1 Listener
@@ -298,7 +286,6 @@ jobs:
     if: ${{ !cancelled() && (inputs.release_tag != '' || startsWith(github.ref, 'refs/tags/v')) }}
     needs:
       - build_listeners
-      - build_TTGO-listener
     runs-on: ubuntu-latest
     permissions:
       contents: write
