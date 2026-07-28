@@ -63,3 +63,12 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          # electron-builder refuses to attach assets to a release published more
+          # than two hours ago, on the assumption that it opened the release itself
+          # and is finishing its own run. Tally Arbiter publishes the release first
+          # and builds afterwards, so that window is measured against a release that
+          # already existed, and any re-run — after a build fix, or to replace a
+          # missing artifact — is silently skipped while the job still exits 0.
+          # That is how the v3.2.0 and v3.3.0 desktop artifacts went missing without
+          # anything going red. See electron-publish/out/gitHubPublisher.js.
+          EP_GH_IGNORE_TIME: true
