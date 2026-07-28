@@ -7,8 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to build (ex: v3.2.0)'
+        description: 'Tag or branch to build (ex: v3.2.0, or master to test an unreleased build)'
         required: true
+      dry_run:
+        description: 'Build every platform but do not push to Docker Hub'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   docker:
@@ -47,16 +52,21 @@ jobs:
             type=raw,value=${{ steps.version.outputs.version }}
 
       - name: Login DockerHub
+        if: github.event_name == 'release' || inputs.dry_run != true
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # A release always pushes; the event_name check is stated explicitly rather
+      # than relying on inputs.dry_run being null outside of a dispatch. A dry run
+      # still builds every platform, so it exercises the emulated arm targets
+      # without publishing anything.
       - name: Build & Push
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
+          push: ${{ github.event_name == 'release' || inputs.dry_run != true }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
