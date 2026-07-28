@@ -1737,6 +1737,10 @@ function initializeSource(source: Source): TallyInput {
 		)) {
 			deviceSource.address = newAddress
 		}
+		//no currentSourceTallyData work to do here: it is keyed by device source id, not address,
+		//and a rename doesn't change which physical input the device source points at. Re-seeding
+		//would in fact be wrong, since TallyInput.renameAddress() doesn't re-key its own tallyData,
+		//so the source has nothing under newAddress until it next emits.
 		UpdateSockets('device_sources')
 		SaveConfig()
 	})
@@ -2338,11 +2342,30 @@ function TallyArbiter_Delete_Device(obj: Manage): ManageResponse {
 	return { result: 'device-deleted-successfully' }
 }
 
+// currentSourceTallyData is only ever refreshed when a source emits, and initializeSource()
+// resolves addresses to device source ids at emission time, so a device source that is created
+// or re-pointed while its address is already live has no cache entry until the next emission.
+// Several source types only emit on change (TSL 3.1/5.0, SimplyLive), so that gap can last
+// indefinitely. Seed the entry from the source's current tally instead, and drop any stale entry
+// when there is nothing to seed from. Stored as a defensive copy for the same reason
+// processSourceTallyData copies: source objects mutate their own bus arrays in place.
+function SeedSourceTallyDataForDeviceSource(deviceSource: DeviceSource) {
+	const busses = SourceClients[deviceSource.sourceId]?.tally?.value?.[deviceSource.address]
+	if (Array.isArray(busses)) {
+		currentSourceTallyData[deviceSource.id] = [...busses]
+	} else {
+		//source isn't connected, or hasn't reported this address yet, so we know nothing about it
+		delete currentSourceTallyData[deviceSource.id]
+	}
+}
+
 function TallyArbiter_Add_Device_Source(obj: Manage): ManageResponse {
 	let deviceSourceObj = obj.device_source
 	let deviceId = deviceSourceObj.deviceId
 	deviceSourceObj.id = uuidv4()
 	device_sources.push(deviceSourceObj)
+
+	SeedSourceTallyDataForDeviceSource(deviceSourceObj)
 
 	let deviceName = ''
 	try {
@@ -2361,6 +2384,9 @@ function TallyArbiter_Add_Device_Source(obj: Manage): ManageResponse {
 	}
 
 	UpdateCloud('device_sources')
+
+	//recompute now so the device reflects the new source immediately instead of at the next emission
+	if (deviceId) UpdateDeviceState(deviceId)
 
 	logger(`Device Source Added: ${deviceName} - ${sourceName}`, 'info')
 
@@ -2383,6 +2409,9 @@ function TallyArbiter_Edit_Device_Source(obj: Manage): ManageResponse {
 			device_sources[i].rename = deviceSourceObj.rename
 			device_sources[i].reconnect_interval = deviceSourceObj.reconnect_interval
 			device_sources[i].max_reconnects = deviceSourceObj.max_reconnects
+			//the cached entry describes the OLD sourceId/address, so re-seed it from wherever
+			//this device source now points rather than leaving it reporting the previous input
+			SeedSourceTallyDataForDeviceSource(device_sources[i])
 		}
 	}
 
@@ -2403,6 +2432,9 @@ function TallyArbiter_Edit_Device_Source(obj: Manage): ManageResponse {
 	}
 
 	UpdateCloud('device_sources')
+
+	//recompute now so the device stops reporting the old address's state
+	if (deviceId) UpdateDeviceState(deviceId)
 
 	logger(`Device Source Edited: ${deviceName} - ${sourceName}`, 'info')
 
@@ -2448,6 +2480,9 @@ function TallyArbiter_Delete_Device_Source(obj: Manage): ManageResponse {
 	}
 
 	UpdateCloud('device_sources')
+
+	//recompute now so any action tied to the removed source is turned back off
+	if (deviceId) UpdateDeviceState(deviceId)
 
 	logger(`Device Source Deleted: ${deviceName} - ${sourceName}`, 'info')
 
