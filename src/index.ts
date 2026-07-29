@@ -3363,7 +3363,7 @@ function UpdateCamera(deviceId: string) {
 			axios
 				.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=off`)
 				.catch((error) => logger(`Error sending Canon XC command to ${device.cameraIP}: ${error}`, 'error'))
-			
+
 			if (inPgm) {
 				logger(`Sending Canon XC command to set camera ON AIR`, 'info-quiet')
 				//send command to camera IP to set tally program
@@ -3371,7 +3371,7 @@ function UpdateCamera(deviceId: string) {
 					.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=program`)
 					.catch((error) => logger(`Error sending Canon XC command to ${device.cameraIP}: ${error}`, 'error'))
 			}
-			
+
 			if (inPvw) {
 				logger(`Sending Canon XC command to set camera PREVIEW`, 'info-quiet')
 				//send command to camera IP to set tally preview

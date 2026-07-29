@@ -4,15 +4,15 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        APP_VERSION: "latest"
+        APP_VERSION: 'latest'
 
     container_name: tallyarbiter
     restart: unless-stopped
 
     ports:
-      - "4455:4455"
-      - "8099:8099"
-      - "5958:5958"
+      - '4455:4455'
+      - '8099:8099'
+      - '5958:5958'
 
     environment:
       - NODE_ENV=production
