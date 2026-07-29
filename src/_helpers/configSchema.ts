@@ -276,6 +276,11 @@ export default {
 			description: 'Enable the TSL Clients 1secupdate option',
 			type: 'boolean',
 		},
+		chat_enabled: {
+			description: 'Enable the Producer/Listener chat (messaging) feature server-wide',
+			type: 'boolean',
+			default: true,
+		},
 		remoteErrorReporting: {
 			description: 'Enable remote error reporting',
 			type: 'boolean',

@@ -17,7 +17,7 @@
 		</div>
 		<div class="row">
 			<div class="col-xs-12">
-				<div class="form-check" *ngIf="socketService.devices.length > 0">
+				<div class="form-check" *ngIf="socketService.devices.length > 0 && socketService.chatEnabled">
 					<input
 						class="form-check-input"
 						type="checkbox"
@@ -46,7 +46,7 @@
 		</div>
 		<div class="container flex-fill py-4" style="min-height: 50px">
 			<app-chat
-				*ngIf="route.snapshot.queryParams.chat !== 'false'"
+				*ngIf="socketService.chatEnabled && route.snapshot.queryParams.chat !== 'false'"
 				[type]="socketService.devices[currentDeviceIdx].name"
 			></app-chat>
 		</div>

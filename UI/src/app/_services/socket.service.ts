@@ -58,6 +58,9 @@ export class SocketService {
 	public testModeOn = false
 	public testModeInterval: number = 1000
 	public tslclients_1secupdate?: boolean
+	//server-wide chat switch. optimistic default of true so the chat UI isn't hidden
+	//for the moment between page load and the server telling us the real value
+	public chatEnabled = true
 	public deviceSources: DeviceSource[] = []
 	public addresses: Addresses = {}
 	public deviceActions: DeviceAction[] = []
@@ -357,6 +360,9 @@ export class SocketService {
 		})
 		this.socket.on('tslclients_1secupdate', (value: boolean) => {
 			this.tslclients_1secupdate = value
+		})
+		this.socket.on('chat_enabled', (value: boolean) => {
+			this.chatEnabled = value
 		})
 		this.socket.on('PortsInUse', (ports: Port[]) => {
 			this.portsInUse = ports

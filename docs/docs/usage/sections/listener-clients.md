@@ -14,7 +14,17 @@ Navigate to `/tally` on the Tally Arbiter server in your browser and select a De
 
 **You can also go to `/#/tally/9fe2efd9a` (replace `9fe2efd9a` with your actual DeviceId) and auto load the page to that Device without having to choose it from the list.**
 
-If you include `?chat=false` to the request, you can turn off the Messaging/Chat functions.
+If you include `?chat=false` to the request, you can turn off the Messaging/Chat functions for that page only.
+
+## Turning chat off for the whole server
+
+Chat is on by default. To turn it off for everyone, go to **Settings > Listeners** and switch off **Enable Chat**. This is stored in `config.json` as `chat_enabled` and survives a restart; a config file that predates this option has no such key and is treated as enabled, so nothing changes for existing installations.
+
+While chat is off, the chat box is hidden on the `/tally` and `/producer` pages, connected clients are told chat is unavailable, and the server rejects any messages sent to it — including messages sent straight to an individual listener client or relayed in from a cloud connection. Turning it back on takes effect immediately; clients do not need to reconnect.
+
+Connect/disconnect and test mode notices are not chat, so they are still delivered to the pages that show them.
+
+The per-page `?chat=false` described above still works as a local override: it hides chat on that one page even when chat is enabled server-wide. It cannot re-enable chat when the server has it switched off.
 
 ## Viewing all tally data
 
