@@ -216,7 +216,7 @@ jobs:
     name: Build ${{ matrix.board.name }} Listener
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Setup TFT_eSPI and select User Setup
         if: matrix.board.tft_espi
         run: |
@@ -260,7 +260,7 @@ jobs:
       - name: Get FQBN build dir for ${{ matrix.board.name }}
         run: echo "FQBN_REPLACED=$(echo '${{ matrix.board.fqbn }}' | tr ':' '.')" >> "$GITHUB_ENV"
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: 'TallyArbiter-Listener-${{ matrix.board.artifact }}'
           path: '${{ matrix.board.sketch }}/build/${{ env.FQBN_REPLACED }}'
@@ -269,7 +269,7 @@ jobs:
     name: Analyse Blink1 Listener
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install prosepector
         run: pip install prospector[with_everything]
       - name: Analyse
@@ -280,7 +280,7 @@ jobs:
     name: Analyse Pimoroni Blinkt Listener
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install prosepector
         run: pip install prospector[with_everything]
       - name: Analyse
@@ -291,7 +291,7 @@ jobs:
     name: Analyse GPO Listener
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install prosepector
         run: pip install prospector[with_everything]
       - name: Analyse
@@ -302,7 +302,7 @@ jobs:
     name: Analyse Relay Listener
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       #- name: Install dependencies
       #  working-directory: listener_clients/relay-listener
       #  run: |
@@ -337,7 +337,7 @@ jobs:
           echo "TAG=$TAG" >> "$GITHUB_ENV"
 
       - name: Download firmware artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
           pattern: 'TallyArbiter-Listener-*'
