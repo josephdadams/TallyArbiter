@@ -130,7 +130,16 @@ const listenPort: number = parseInt(process.env.PORT) || 4455
 const app = express()
 const httpServer = new http.Server(app)
 
+//Set to true immediately after `io` is constructed below. `var` rather than `let` so it is hoisted
+//and readable (as undefined) from logger() during module evaluation, before this line is reached.
+var ioReady = false
+
 const io = new socketio.Server(httpServer, { allowEIO3: true })
+//logger() can run during module evaluation, before the line above has executed. It cannot test
+//`io` directly to find out: `io` is a const, so it is in the temporal dead zone until then and
+//even `typeof io` throws a ReferenceError rather than returning 'undefined'. This flag is a
+//plain assignment after initialisation, which is safe to read at any point.
+ioReady = true
 const socketupdates_Settings: string[] = [
 	'sources',
 	'devices',
@@ -1583,7 +1592,7 @@ export function logger(log, type: 'info-quiet' | 'info' | 'error' | 'console_act
 	logObj.log = log
 	logObj.type = type
 	Logs.push(logObj)
-	if (typeof io !== 'undefined') io.to('settings').emit('log_item', logObj)
+	if (ioReady) io.to('settings').emit('log_item', logObj)
 }
 
 function writeTallyDataFile(log) {
