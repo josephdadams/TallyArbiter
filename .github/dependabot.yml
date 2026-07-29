@@ -28,6 +28,11 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: 'electron-builder'
         update-types: ['version-update:semver-major']
+      # TypeScript 7 removed moduleResolution=node10 and downlevelIteration and now
+      # requires an explicit rootDir -- all three are in tsconfig.json, so the bump
+      # cannot compile without a config migration first (see #1145).
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
 
   # Angular front end. Most of this tree is build tooling that never reaches a
   # browser, so it is grouped tightly to keep the noise down.
@@ -40,11 +45,23 @@ updates:
     groups:
       ui-all:
         patterns: ['*']
+        exclude-patterns: ['@angular*', '@angular-devkit*']
         update-types: ['minor', 'patch']
-    # Angular majors need a coordinated `ng update` across the whole framework,
-    # which Dependabot cannot do correctly on its own.
+    # Angular is excluded from version updates entirely, not just majors. The first
+    # run produced #1139, which failed to install: the group moved @angular/core to
+    # 21.2.18 while @angular/animations only had 21.2.17 published, and npm refused
+    # the peer mismatch. Grouping cannot fix that -- it is upstream publishing lag,
+    # and it would recur on any release where the packages land unevenly. Angular is
+    # meant to be updated with `ng update`, which resolves the whole framework
+    # together. Security advisories still come through as Dependabot security
+    # updates, which this ignore list does not suppress.
     ignore:
       - dependency-name: '@angular*'
+      - dependency-name: '@angular-devkit*'
+      # ang-jsoneditor 6 dropped NgJsonEditorModule in favour of standalone
+      # components, so a version bump alone cannot build (see #1140). Needs a code
+      # migration in settings.component.ts and app.module.ts first.
+      - dependency-name: 'ang-jsoneditor'
         update-types: ['version-update:semver-major']
 
   # Docusaurus site. Build-time only: the output is static HTML deployed to
