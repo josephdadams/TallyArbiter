@@ -1,0 +1,21 @@
+# Build output and vendored code — never hand-edited, so formatting them is noise.
+node_modules/
+dist/
+ui-dist/
+release/
+build/
+docs/build/
+docs/.docusaurus/
+UI/dist/
+
+# Generated at pre-build time by scripts/sync-ui-shared.js from src/_models,
+# src/_types and src/_helpers/configSchema.ts. Format the sources, not the copies.
+UI/src/app/_models/
+UI/src/app/_types/
+UI/src/app/_schemas/
+
+# Agent/tool scratch space, not part of the project.
+.claude/
+
+# Lockfiles
+package-lock.json

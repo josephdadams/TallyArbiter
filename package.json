@@ -185,6 +185,7 @@
 	"scripts": {
 		"start": "ts-node-dev src/index.ts --dev",
 		"format": "prettier -w .",
+		"format:check": "prettier --check .",
 		"build-ui": "cd UI && npm i && npm run build",
 		"sync-ui-shared": "node scripts/sync-ui-shared.js",
 		"build": "tsc",

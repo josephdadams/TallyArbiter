@@ -68,13 +68,7 @@ type LogLevel = { title: string; id: string }
 @Component({
 	selector: 'app-settings',
 	standalone: true,
-	imports: [
-		CommonModule,
-		FormsModule,
-		NgbNavModule,
-		NgJsonEditorModule,
-		RequireRoleDirective,
-	],
+	imports: [CommonModule, FormsModule, NgbNavModule, NgJsonEditorModule, RequireRoleDirective],
 	templateUrl: './settings.component.html',
 	styleUrls: ['./settings.component.scss'],
 })
