@@ -53,6 +53,7 @@ import { Actions } from './_globals/Actions'
 
 // Helpers
 import { uuidv4 } from './_helpers/uuid'
+import { buildDuplicateDevice, buildDuplicateDeviceAction } from './_helpers/duplicate'
 import { logFilePath, Logs, serverLogger, tallyLogger } from './_helpers/logger'
 import { getNetworkInterfaces } from './_helpers/networkInterfaces'
 import { loadClassesFromFolder } from './_helpers/fileLoader'
@@ -60,6 +61,7 @@ import { UsePort } from './_decorators/UsesPort.decorator'
 import { secondsToHms } from './_helpers/time'
 import { currentConfig, getConfigRedacted, readConfig, SaveConfig, replaceConfig } from './_helpers/config'
 import { validateConfig } from './_helpers/configValidator'
+import { isChatEnabled } from './_helpers/chat'
 import {
 	deleteEveryErrorReport,
 	generateErrorReport,
@@ -137,7 +139,20 @@ const listenPort: number = parseInt(process.env.PORT) || 4455
 const app = express()
 const httpServer = new http.Server(app)
 
+<<<<<<< HEAD
 io = new socketio.Server(httpServer, { allowEIO3: true })
+=======
+//Set to true immediately after `io` is constructed below. `var` rather than `let` so it is hoisted
+//and readable (as undefined) from logger() during module evaluation, before this line is reached.
+var ioReady = false
+
+const io = new socketio.Server(httpServer, { allowEIO3: true })
+//logger() can run during module evaluation, before the line above has executed. It cannot test
+//`io` directly to find out: `io` is a const, so it is in the temporal dead zone until then and
+//even `typeof io` throws a ReferenceError rather than returning 'undefined'. This flag is a
+//plain assignment after initialisation, which is safe to read at any point.
+ioReady = true
+>>>>>>> origin/main
 const socketupdates_Settings: string[] = [
 	'sources',
 	'devices',
@@ -311,6 +326,10 @@ function initialSetup() {
 	let tmpSocketAccessTokens: string[] = []
 	io.sockets.on('connection', (socket) => {
 		const ipAddr = socket.handshake.address
+
+		//tell every socket up front whether chat is available on this server, so the
+		//tally/producer pages can hide it and listener clients know not to offer it
+		socket.emit('chat_enabled', isChatEnabled(currentConfig))
 
 		const requireRole = (role: string) => {
 			return new Promise((resolve, reject) => {
@@ -532,11 +551,19 @@ function initialSetup() {
 				supportsChat,
 			)
 
+			//room membership tracks the client's own capability, not the server-wide
+			//switch: the room also carries operational notices, and keeping membership
+			//stable means flipping chat back on takes effect without a reconnect.
+			//Chat itself is blocked at the ingress points instead.
 			if (supportsChat) {
 				socket.join('messaging')
 			} else {
 				socket.leave('messaging')
 			}
+
+			//re-state the server-wide switch now that the client has declared it supports
+			//chat, so a listener client is never told chat is available when it isn't
+			socket.emit('chat_enabled', isChatEnabled(currentConfig))
 
 			socket.emit('bus_options', currentConfig.bus_options)
 			socket.emit('devices', devices)
@@ -581,6 +608,7 @@ function initialSetup() {
 					socket.emit('PortsInUse', PortsInUse.value)
 					socket.emit('networkDiscovery', RegisteredNetworkDiscoveryServices.value)
 					socket.emit('tslclients_1secupdate', currentConfig.tsl_clients_1secupdate)
+					socket.emit('chat_enabled', isChatEnabled(currentConfig))
 				})
 				.catch((e) => {
 					console.error(e)
@@ -1127,7 +1155,29 @@ function initialSetup() {
 				})
 		})
 
+		socket.on('chat_enabled', (value: boolean) => {
+			requireRole('settings:listeners')
+				.then((user) => {
+					currentConfig.chat_enabled = value === true
+					SaveConfig()
+					//everyone needs to know, not just the settings page that flipped it:
+					//tally/producer pages hide the chat UI off the back of this
+					io.emit('chat_enabled', isChatEnabled(currentConfig))
+					logger(`Chat has been ${isChatEnabled(currentConfig) ? 'enabled' : 'disabled'}.`, 'info')
+				})
+				.catch((err) => {
+					logger(err, 'error')
+				})
+		})
+
 		socket.on('messaging', (type: string, message: string) => {
+			//this handler is unauthenticated by design (any tally client can chat), so the
+			//server-wide switch has to be enforced here or the toggle would be cosmetic
+			if (!isChatEnabled(currentConfig)) {
+				logger(`Chat message from ${ipAddr} rejected: chat is disabled on this server.`, 'info-quiet')
+				socket.emit('error', 'Chat is disabled on this server.')
+				return
+			}
 			SendMessage(type, socket.id, message)
 		})
 
@@ -1249,7 +1299,11 @@ function initialSetup() {
 
 	const providers = [vMixEmulator, tslListenerProvider]
 	for (const provider of providers as ListenerProvider[]) {
-		provider.on('chatMessage', (type, socketId, message) => SendMessage(type, socketId, message))
+		//vMix/TSL listener providers can originate chat too, so they get the same gate
+		provider.on('chatMessage', (type, socketId, message) => {
+			if (!isChatEnabled(currentConfig)) return
+			SendMessage(type, socketId, message)
+		})
 		provider.on('updateSockets', (type) => {
 			UpdateSockets(type)
 			UpdateCloud(type)
@@ -1590,7 +1644,11 @@ export function logger(log, type: 'info-quiet' | 'info' | 'error' | 'console_act
 	logObj.log = log
 	logObj.type = type
 	Logs.push(logObj)
+<<<<<<< HEAD
 	if (io) io.to('settings').emit('log_item', logObj)
+=======
+	if (ioReady) io.to('settings').emit('log_item', logObj)
+>>>>>>> origin/main
 }
 
 function writeTallyDataFile(log) {
@@ -1866,6 +1924,8 @@ function TallyArbiter_Manage(obj: Manage, access_token: string = ''): Promise<Ma
 						result = TallyArbiter_Edit_Device(obj)
 					} else if (obj.action === 'delete') {
 						result = TallyArbiter_Delete_Device(obj)
+					} else if (obj.action === 'duplicate') {
+						result = TallyArbiter_Duplicate_Device(obj)
 					}
 					break
 				case 'device_source':
@@ -1886,6 +1946,8 @@ function TallyArbiter_Manage(obj: Manage, access_token: string = ''): Promise<Ma
 						result = TallyArbiter_Edit_Device_Action(obj)
 					} else if (obj.action === 'delete') {
 						result = TallyArbiter_Delete_Device_Action(obj)
+					} else if (obj.action === 'duplicate') {
+						result = TallyArbiter_Duplicate_Device_Action(obj)
 					}
 					break
 				case 'tsl_client':
@@ -2385,6 +2447,57 @@ function TallyArbiter_Delete_Device(obj: Manage): ManageResponse {
 	return { result: 'device-deleted-successfully' }
 }
 
+// The mirror image of TallyArbiter_Delete_Device's cascade: a device on its own is not worth
+// duplicating, so the copy takes the device's device sources and device actions with it, each with
+// a fresh id and re-pointed at the new device. (github issue #724)
+function TallyArbiter_Duplicate_Device(obj: Manage): ManageResponse {
+	const sourceDevice = devices.find(({ id }) => id === obj.deviceId)
+
+	if (!sourceDevice) {
+		return { result: 'error', error: 'Device not found.' }
+	}
+
+	const duplicate = buildDuplicateDevice(
+		sourceDevice,
+		device_sources,
+		device_actions,
+		devices.map((device) => device.name),
+	)
+
+	devices.push(duplicate.device)
+
+	UpdateCloud('devices')
+
+	device_sources.push(...duplicate.device_sources)
+
+	// same reason TallyArbiter_Add_Device_Source seeds: without an entry the new device source
+	// reports nothing until its source next emits, which for change-only sources can be never
+	for (const deviceSource of duplicate.device_sources) {
+		SeedSourceTallyDataForDeviceSource(deviceSource)
+	}
+
+	UpdateCloud('device_sources')
+
+	device_actions.push(...duplicate.device_actions)
+
+	UpdateSockets('devices')
+	UpdateSockets('device_sources')
+
+	// as in TallyArbiter_Add_Device, so the copy's state is correct immediately rather than at the
+	// next tally emission. No actions will actually fire: RunAction skips disabled devices, and the
+	// duplicate is created disabled.
+	UpdateDeviceState(duplicate.device.id)
+
+	tslListenerProvider.updateListenerClientsForDevice(currentDeviceTallyData, duplicate.device)
+
+	logger(
+		`Device Duplicated: ${sourceDevice.name} -> ${duplicate.device.name} (${duplicate.device_sources.length} source(s), ${duplicate.device_actions.length} action(s))`,
+		'info',
+	)
+
+	return { result: 'device-duplicated-successfully', deviceId: duplicate.device.id }
+}
+
 // currentSourceTallyData is only ever refreshed when a source emits, and initializeSource()
 // resolves addresses to device source ids at emission time, so a device source that is created
 // or re-pointed while its address is already live has no cache entry until the next emission.
@@ -2584,6 +2697,29 @@ function TallyArbiter_Delete_Device_Action(obj: Manage): ManageResponse {
 	logger(`Device Action Deleted: ${deviceName}`, 'info')
 
 	return { result: 'device-action-deleted-successfully', deviceId: deviceId }
+}
+
+function TallyArbiter_Duplicate_Device_Action(obj: Manage): ManageResponse {
+	const sourceAction = device_actions.find(({ id }) => id === obj.device_action?.id)
+
+	if (!sourceAction) {
+		return { result: 'error', error: 'Device action not found.' }
+	}
+
+	const deviceActionObj = buildDuplicateDeviceAction(sourceAction, sourceAction.deviceId)
+	device_actions.push(deviceActionObj)
+
+	let deviceName = ''
+	try {
+		deviceName = GetDeviceByDeviceId(deviceActionObj.deviceId).name
+	} catch (error) {
+		//sometimes the device is already deleted, so we can't get the name
+		deviceName = 'Unknown'
+	}
+
+	logger(`Device Action Duplicated: ${deviceName}`, 'info')
+
+	return { result: 'device-action-duplicated-successfully', deviceId: deviceActionObj.deviceId }
 }
 
 function TallyArbiter_Add_TSL_Client(obj: Manage): ManageResponse {
@@ -3022,6 +3158,13 @@ function MessageListenerClient(
 	socketid: string,
 	message: string,
 ): MessageListenerClientResponse | void {
+	//single choke point for the direct-to-listener relay: both the producer's
+	//`messaging_client` handler and the inbound cloud relay funnel through here, so
+	//blocking the `messaging` room alone would have left this path wide open
+	if (!isChatEnabled(currentConfig)) {
+		return { result: 'message-not-sent', listenerClientId: listenerClientId, error: 'chat-disabled' }
+	}
+
 	let listenerClientObj = listener_clients.find(({ id }) => id === listenerClientId)
 
 	if (listenerClientObj) {
@@ -3524,6 +3667,13 @@ function CheckListenerClients() {
 }
 
 function SendMessage(type: string, socketid: string | null, message: string) {
+	//backstop for the outbound fan-out. `type === 'server'` is not chat: those are
+	//operational notices (test mode on/off, listener client connect/disconnect) that
+	//an operator still needs to see, so they are deliberately let through when chat is
+	//off. Anything else is a person talking and gets dropped.
+	if (type !== 'server' && !isChatEnabled(currentConfig)) {
+		return
+	}
 	io.to('messaging').emit('messaging', type, socketid, message)
 }
 

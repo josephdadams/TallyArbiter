@@ -47,6 +47,7 @@ export const ConfigDefaults: Config = {
 		{ id: '3011d34a', label: 'Aux 8', type: 'aux', color: '#0000FF', priority: 100, visible: false },
 	],
 	externalAddress: 'http://0.0.0.0:4455/#/tally',
+	chat_enabled: true,
 	remoteErrorReporting: false,
 	uuid: '',
 	mqtt: {

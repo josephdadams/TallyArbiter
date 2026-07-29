@@ -58,6 +58,9 @@ export class SocketService {
 	public testModeOn = false
 	public testModeInterval: number = 1000
 	public tslclients_1secupdate?: boolean
+	//server-wide chat switch. optimistic default of true so the chat UI isn't hidden
+	//for the moment between page load and the server telling us the real value
+	public chatEnabled = true
 	public deviceSources: DeviceSource[] = []
 	public addresses: Addresses = {}
 	public deviceActions: DeviceAction[] = []
@@ -88,6 +91,7 @@ export class SocketService {
 	public scrollChatSubject = new Subject<void>()
 	public closeModals = new Subject<void>()
 	public deviceStateChanged = new Subject<DeviceState[]>()
+	public deviceDuplicated = new Subject<void>()
 
 	constructor(private connLostSnackbar: connLostSnackbarService) {
 		this.socket = io()
@@ -291,6 +295,16 @@ export class SocketService {
 					this.socket.emit('device_states')
 					this.socket.emit('listener_clients')
 					break
+				//deliberately not grouped with device-added: duplicating happens from the devices table
+				//with no modal open, and the copy is created disabled, which the user needs telling about
+				case 'device-duplicated-successfully':
+					this.socket.emit('devices')
+					this.socket.emit('device_sources')
+					this.socket.emit('device_actions')
+					this.socket.emit('device_states')
+					this.socket.emit('listener_clients')
+					this.deviceDuplicated.next()
+					break
 				case 'device-source-added-successfully':
 				case 'device-source-edited-successfully':
 					this.socket.emit('device_sources')
@@ -303,6 +317,12 @@ export class SocketService {
 				case 'device-action-edited-successfully':
 				case 'device-action-deleted-successfully':
 					this.closeModals.next()
+					this.socket.emit('devices')
+					this.socket.emit('device_actions')
+					break
+				//no closeModals here: duplicating is done from inside the still-open device actions
+				//modal, and closing it would fight the "duplicate, tweak, duplicate again" flow
+				case 'device-action-duplicated-successfully':
 					this.socket.emit('devices')
 					this.socket.emit('device_actions')
 					break
@@ -357,6 +377,9 @@ export class SocketService {
 		})
 		this.socket.on('tslclients_1secupdate', (value: boolean) => {
 			this.tslclients_1secupdate = value
+		})
+		this.socket.on('chat_enabled', (value: boolean) => {
+			this.chatEnabled = value
 		})
 		this.socket.on('PortsInUse', (ports: Port[]) => {
 			this.portsInUse = ports
