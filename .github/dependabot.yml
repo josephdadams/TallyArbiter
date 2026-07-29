@@ -1,0 +1,84 @@
+# Dependabot alerts were already enabled, but with no version-update config nothing
+# ever opened a PR, so 43 open alerts accumulated. Everything below is grouped so a
+# week's updates arrive as a handful of reviewable PRs rather than dozens of
+# single-package ones.
+version: 2
+
+updates:
+  # The server that actually ships to users. Highest priority — anything vulnerable
+  # here is in the request path or in an outbound connection to a switcher.
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    open-pull-requests-limit: 5
+    groups:
+      server-production:
+        dependency-type: 'production'
+        update-types: ['minor', 'patch']
+      server-development:
+        dependency-type: 'development'
+        update-types: ['minor', 'patch']
+    # Electron and electron-builder majors change packaging and code-signing
+    # behaviour, so they get looked at deliberately rather than arriving in a
+    # grouped batch. Minor and patch updates still come through above.
+    ignore:
+      - dependency-name: 'electron'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'electron-builder'
+        update-types: ['version-update:semver-major']
+
+  # Angular front end. Most of this tree is build tooling that never reaches a
+  # browser, so it is grouped tightly to keep the noise down.
+  - package-ecosystem: 'npm'
+    directory: '/UI'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    open-pull-requests-limit: 3
+    groups:
+      ui-all:
+        patterns: ['*']
+        update-types: ['minor', 'patch']
+    # Angular majors need a coordinated `ng update` across the whole framework,
+    # which Dependabot cannot do correctly on its own.
+    ignore:
+      - dependency-name: '@angular*'
+        update-types: ['version-update:semver-major']
+
+  # Docusaurus site. Build-time only: the output is static HTML deployed to
+  # gh-pages, so nothing here is ever executed by a user or by the server.
+  # Monthly and tightly grouped, so it stops drowning out the alerts that matter.
+  - package-ecosystem: 'npm'
+    directory: '/docs'
+    schedule:
+      interval: 'monthly'
+    open-pull-requests-limit: 2
+    groups:
+      docs-all:
+        patterns: ['*']
+        update-types: ['minor', 'patch']
+
+  # Runs on users' machines (Raspberry Pi and similar), so it does matter, but it
+  # is a small tree that changes rarely.
+  - package-ecosystem: 'npm'
+    directory: '/listener_clients/relay-listener'
+    schedule:
+      interval: 'monthly'
+    open-pull-requests-limit: 2
+    groups:
+      relay-listener-all:
+        patterns: ['*']
+        update-types: ['minor', 'patch']
+
+  # Pinned action versions in .github/workflows go stale silently and are a supply
+  # chain surface of their own.
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    open-pull-requests-limit: 3
+    groups:
+      actions-all:
+        patterns: ['*']
