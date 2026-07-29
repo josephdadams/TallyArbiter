@@ -43,7 +43,7 @@
 		"@angular-devkit/build-angular": "21.2.19",
 		"@angular/cli": "21.2.7",
 		"@angular/compiler-cli": "21.2.17",
-		"@types/jasmine": "~5.1.4",
+		"@types/jasmine": "~6.0.0",
 		"@types/node": "^22.10.5",
 		"jasmine-core": "~5.1.1",
 		"karma": "~6.4.2",
