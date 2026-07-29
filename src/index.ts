@@ -53,6 +53,7 @@ import { Actions } from './_globals/Actions'
 
 // Helpers
 import { uuidv4 } from './_helpers/uuid'
+import { buildDuplicateDevice, buildDuplicateDeviceAction } from './_helpers/duplicate'
 import { logFilePath, Logs, serverLogger, tallyLogger } from './_helpers/logger'
 import { getNetworkInterfaces } from './_helpers/networkInterfaces'
 import { loadClassesFromFolder } from './_helpers/fileLoader'
@@ -1851,6 +1852,8 @@ function TallyArbiter_Manage(obj: Manage, access_token: string = ''): Promise<Ma
 						result = TallyArbiter_Edit_Device(obj)
 					} else if (obj.action === 'delete') {
 						result = TallyArbiter_Delete_Device(obj)
+					} else if (obj.action === 'duplicate') {
+						result = TallyArbiter_Duplicate_Device(obj)
 					}
 					break
 				case 'device_source':
@@ -1871,6 +1874,8 @@ function TallyArbiter_Manage(obj: Manage, access_token: string = ''): Promise<Ma
 						result = TallyArbiter_Edit_Device_Action(obj)
 					} else if (obj.action === 'delete') {
 						result = TallyArbiter_Delete_Device_Action(obj)
+					} else if (obj.action === 'duplicate') {
+						result = TallyArbiter_Duplicate_Device_Action(obj)
 					}
 					break
 				case 'tsl_client':
@@ -2362,6 +2367,57 @@ function TallyArbiter_Delete_Device(obj: Manage): ManageResponse {
 	return { result: 'device-deleted-successfully' }
 }
 
+// The mirror image of TallyArbiter_Delete_Device's cascade: a device on its own is not worth
+// duplicating, so the copy takes the device's device sources and device actions with it, each with
+// a fresh id and re-pointed at the new device. (github issue #724)
+function TallyArbiter_Duplicate_Device(obj: Manage): ManageResponse {
+	const sourceDevice = devices.find(({ id }) => id === obj.deviceId)
+
+	if (!sourceDevice) {
+		return { result: 'error', error: 'Device not found.' }
+	}
+
+	const duplicate = buildDuplicateDevice(
+		sourceDevice,
+		device_sources,
+		device_actions,
+		devices.map((device) => device.name),
+	)
+
+	devices.push(duplicate.device)
+
+	UpdateCloud('devices')
+
+	device_sources.push(...duplicate.device_sources)
+
+	// same reason TallyArbiter_Add_Device_Source seeds: without an entry the new device source
+	// reports nothing until its source next emits, which for change-only sources can be never
+	for (const deviceSource of duplicate.device_sources) {
+		SeedSourceTallyDataForDeviceSource(deviceSource)
+	}
+
+	UpdateCloud('device_sources')
+
+	device_actions.push(...duplicate.device_actions)
+
+	UpdateSockets('devices')
+	UpdateSockets('device_sources')
+
+	// as in TallyArbiter_Add_Device, so the copy's state is correct immediately rather than at the
+	// next tally emission. No actions will actually fire: RunAction skips disabled devices, and the
+	// duplicate is created disabled.
+	UpdateDeviceState(duplicate.device.id)
+
+	tslListenerProvider.updateListenerClientsForDevice(currentDeviceTallyData, duplicate.device)
+
+	logger(
+		`Device Duplicated: ${sourceDevice.name} -> ${duplicate.device.name} (${duplicate.device_sources.length} source(s), ${duplicate.device_actions.length} action(s))`,
+		'info',
+	)
+
+	return { result: 'device-duplicated-successfully', deviceId: duplicate.device.id }
+}
+
 // currentSourceTallyData is only ever refreshed when a source emits, and initializeSource()
 // resolves addresses to device source ids at emission time, so a device source that is created
 // or re-pointed while its address is already live has no cache entry until the next emission.
@@ -2561,6 +2617,29 @@ function TallyArbiter_Delete_Device_Action(obj: Manage): ManageResponse {
 	logger(`Device Action Deleted: ${deviceName}`, 'info')
 
 	return { result: 'device-action-deleted-successfully', deviceId: deviceId }
+}
+
+function TallyArbiter_Duplicate_Device_Action(obj: Manage): ManageResponse {
+	const sourceAction = device_actions.find(({ id }) => id === obj.device_action?.id)
+
+	if (!sourceAction) {
+		return { result: 'error', error: 'Device action not found.' }
+	}
+
+	const deviceActionObj = buildDuplicateDeviceAction(sourceAction, sourceAction.deviceId)
+	device_actions.push(deviceActionObj)
+
+	let deviceName = ''
+	try {
+		deviceName = GetDeviceByDeviceId(deviceActionObj.deviceId).name
+	} catch (error) {
+		//sometimes the device is already deleted, so we can't get the name
+		deviceName = 'Unknown'
+	}
+
+	logger(`Device Action Duplicated: ${deviceName}`, 'info')
+
+	return { result: 'device-action-duplicated-successfully', deviceId: deviceActionObj.deviceId }
 }
 
 function TallyArbiter_Add_TSL_Client(obj: Manage): ManageResponse {

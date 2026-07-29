@@ -19,7 +19,7 @@ export interface Manage {
 		| 'cloud_key'
 		| 'cloud_client'
 		| 'user'
-	action: 'add' | 'edit' | 'delete' | 'remove'
+	action: 'add' | 'edit' | 'delete' | 'duplicate' | 'remove'
 
 	source?: Source
 	sourceId?: string
