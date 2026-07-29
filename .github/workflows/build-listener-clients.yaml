@@ -40,7 +40,7 @@ jobs:
             sketch: listener_clients/m5stickc-listener
             libraries: |
               - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.3.0.zip
-              - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.0.zip
+              - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.1.zip
               - name: WebSockets
               - name: WiFiManager
               - name: MultiButton
@@ -59,7 +59,7 @@ jobs:
             sketch: listener_clients/m5stickc-listener
             libraries: |
               - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.3.0.zip
-              - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.0.zip
+              - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.1.zip
               - name: WebSockets
               - name: WiFiManager
               - name: MultiButton
@@ -76,7 +76,7 @@ jobs:
             sketch: listener_clients/m5stickc-listener
             libraries: |
               - source-url: https://github.com/m5stack/M5StickC/archive/refs/tags/0.3.0.zip
-              - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.0.zip
+              - source-url: https://github.com/m5stack/M5StickC-Plus/archive/refs/tags/0.1.1.zip
               - name: M5StickCPlus2
               - name: WebSockets
               - name: WiFiManager
