@@ -60,6 +60,7 @@ import { UsePort } from './_decorators/UsesPort.decorator'
 import { secondsToHms } from './_helpers/time'
 import { currentConfig, getConfigRedacted, readConfig, SaveConfig, replaceConfig } from './_helpers/config'
 import { validateConfig } from './_helpers/configValidator'
+import { isChatEnabled } from './_helpers/chat'
 import {
 	deleteEveryErrorReport,
 	generateErrorReport,
@@ -314,6 +315,10 @@ function initialSetup() {
 	io.sockets.on('connection', (socket) => {
 		const ipAddr = socket.handshake.address
 
+		//tell every socket up front whether chat is available on this server, so the
+		//tally/producer pages can hide it and listener clients know not to offer it
+		socket.emit('chat_enabled', isChatEnabled(currentConfig))
+
 		const requireRole = (role: string) => {
 			return new Promise((resolve, reject) => {
 				if (typeof tmpSocketAccessTokens[socket.id] === 'undefined') {
@@ -534,11 +539,19 @@ function initialSetup() {
 				supportsChat,
 			)
 
+			//room membership tracks the client's own capability, not the server-wide
+			//switch: the room also carries operational notices, and keeping membership
+			//stable means flipping chat back on takes effect without a reconnect.
+			//Chat itself is blocked at the ingress points instead.
 			if (supportsChat) {
 				socket.join('messaging')
 			} else {
 				socket.leave('messaging')
 			}
+
+			//re-state the server-wide switch now that the client has declared it supports
+			//chat, so a listener client is never told chat is available when it isn't
+			socket.emit('chat_enabled', isChatEnabled(currentConfig))
 
 			socket.emit('bus_options', currentConfig.bus_options)
 			socket.emit('devices', devices)
@@ -583,6 +596,7 @@ function initialSetup() {
 					socket.emit('PortsInUse', PortsInUse.value)
 					socket.emit('networkDiscovery', RegisteredNetworkDiscoveryServices.value)
 					socket.emit('tslclients_1secupdate', currentConfig.tsl_clients_1secupdate)
+					socket.emit('chat_enabled', isChatEnabled(currentConfig))
 				})
 				.catch((e) => {
 					console.error(e)
@@ -1129,7 +1143,29 @@ function initialSetup() {
 				})
 		})
 
+		socket.on('chat_enabled', (value: boolean) => {
+			requireRole('settings:listeners')
+				.then((user) => {
+					currentConfig.chat_enabled = value === true
+					SaveConfig()
+					//everyone needs to know, not just the settings page that flipped it:
+					//tally/producer pages hide the chat UI off the back of this
+					io.emit('chat_enabled', isChatEnabled(currentConfig))
+					logger(`Chat has been ${isChatEnabled(currentConfig) ? 'enabled' : 'disabled'}.`, 'info')
+				})
+				.catch((err) => {
+					logger(err, 'error')
+				})
+		})
+
 		socket.on('messaging', (type: string, message: string) => {
+			//this handler is unauthenticated by design (any tally client can chat), so the
+			//server-wide switch has to be enforced here or the toggle would be cosmetic
+			if (!isChatEnabled(currentConfig)) {
+				logger(`Chat message from ${ipAddr} rejected: chat is disabled on this server.`, 'info-quiet')
+				socket.emit('error', 'Chat is disabled on this server.')
+				return
+			}
 			SendMessage(type, socket.id, message)
 		})
 
@@ -1251,7 +1287,11 @@ function initialSetup() {
 
 	const providers = [vMixEmulator, tslListenerProvider]
 	for (const provider of providers as ListenerProvider[]) {
-		provider.on('chatMessage', (type, socketId, message) => SendMessage(type, socketId, message))
+		//vMix/TSL listener providers can originate chat too, so they get the same gate
+		provider.on('chatMessage', (type, socketId, message) => {
+			if (!isChatEnabled(currentConfig)) return
+			SendMessage(type, socketId, message)
+		})
 		provider.on('updateSockets', (type) => {
 			UpdateSockets(type)
 			UpdateCloud(type)
@@ -3008,6 +3048,13 @@ function MessageListenerClient(
 	socketid: string,
 	message: string,
 ): MessageListenerClientResponse | void {
+	//single choke point for the direct-to-listener relay: both the producer's
+	//`messaging_client` handler and the inbound cloud relay funnel through here, so
+	//blocking the `messaging` room alone would have left this path wide open
+	if (!isChatEnabled(currentConfig)) {
+		return { result: 'message-not-sent', listenerClientId: listenerClientId, error: 'chat-disabled' }
+	}
+
 	let listenerClientObj = listener_clients.find(({ id }) => id === listenerClientId)
 
 	if (listenerClientObj) {
@@ -3510,6 +3557,13 @@ function CheckListenerClients() {
 }
 
 function SendMessage(type: string, socketid: string | null, message: string) {
+	//backstop for the outbound fan-out. `type === 'server'` is not chat: those are
+	//operational notices (test mode on/off, listener client connect/disconnect) that
+	//an operator still needs to see, so they are deliberately let through when chat is
+	//off. Anything else is a person talking and gets dropped.
+	if (type !== 'server' && !isChatEnabled(currentConfig)) {
+		return
+	}
 	io.to('messaging').emit('messaging', type, socketid, message)
 }
 

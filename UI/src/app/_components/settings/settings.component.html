@@ -108,6 +108,27 @@
 			<a ngbNavLink>Listeners</a>
 			<ng-template ngbNavContent>
 				<div class="row">
+					<h3>Chat</h3>
+					<div>
+						<div class="form-check form-switch">
+							<input
+								class="form-check-input"
+								type="checkbox"
+								id="chkChatEnabled"
+								[(ngModel)]="socketService.chatEnabled"
+								(ngModelChange)="socketService.socket.emit('chat_enabled', $event)"
+							/>
+							<label class="form-check-label" for="chkChatEnabled">Enable Chat</label>
+						</div>
+						<span class="text-muted mt-3 d-block"
+							>Allows the Producer page and supported listener clients to exchange messages. When turned off, the chat
+							box is hidden and the server rejects any messages sent to it. Connect/disconnect and test mode notices are
+							still delivered.</span
+						>
+					</div>
+				</div>
+				<hr class="my-5" />
+				<div class="row">
 					<h3>Connected Listeners</h3>
 					<span class="text-muted mt-3" *ngIf="socketService.listenerClients.length == 0">No listeners connected.</span>
 					<div class="table-responsive">

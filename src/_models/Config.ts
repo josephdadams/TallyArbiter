@@ -23,6 +23,10 @@ export interface Config {
 	cloud_destinations: CloudDestination[]
 	cloud_keys: string[]
 	bus_options: BusOption[]
+	//server-wide chat on/off switch. absent in configs written before this option
+	//existed, which must keep behaving as "on", so treat only an explicit `false`
+	//as disabled (see isChatEnabled in _helpers/chat.ts)
+	chat_enabled?: boolean
 	remoteErrorReporting: boolean
 	mqtt?: ConfigMQTT
 }
