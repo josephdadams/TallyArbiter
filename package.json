@@ -147,6 +147,11 @@
 			"category": "AudioVideo"
 		}
 	},
+	"overrides": {
+		"osc": {
+			"ws": "^8.21.1"
+		}
+	},
 	"dependencies": {
 		"@sentry/node": "^10.58.0",
 		"ajv": "^8.11.0",
