@@ -721,6 +721,13 @@
 						<button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editDeviceActions(device, deviceActionsModal)">
 							<i class="fas fa-play"></i> Edit Actions ({{ getDeviceActionsByDeviceId(device.id).length }})
 						</button>
+						<button
+							class="btn btn-sm btn-secondary mx-1 my-1"
+							title="Create a copy of this device, along with its sources and actions. The copy is created disabled and without a TSL address."
+							(click)="duplicateDevice(device)"
+						>
+							<i class="fas fa-copy"></i> Duplicate
+						</button>
 						<button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteDevice(device)">
 							<i class="fas fa-trash"></i> Delete
 						</button>
@@ -1087,6 +1094,13 @@
 							<td>
 								<button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editDeviceAction(deviceAction)">
 									<i class="fas fa-pen"></i> Edit
+								</button>
+								<button
+									class="btn btn-sm btn-secondary mx-1 my-1"
+									title="Create a copy of this action on this device."
+									(click)="duplicateDeviceAction(deviceAction)"
+								>
+									<i class="fas fa-copy"></i> Duplicate
 								</button>
 								<button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteDeviceAction(deviceAction)">
 									<i class="fas fa-trash"></i> Delete

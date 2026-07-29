@@ -205,6 +205,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 				this.scrollToBottom(this.logsContainer)
 			}),
 		)
+		this.subscriptions.push(this.socketService.deviceDuplicated.subscribe(() => this.onDeviceDuplicated()))
 		if (this.authService.requireRole('admin')) {
 			this.socketService.socket.on('server_error', this.handleServerError)
 			this.socketService.socket.on('unread_error_reports', this.handleUnreadErrorReports)
@@ -428,6 +429,46 @@ export class SettingsComponent implements OnInit, OnDestroy {
 			action: 'delete',
 			type: 'device',
 			deviceId: device.id,
+		}
+		this.socketService.socket.emit('manage', arbiterObj)
+	}
+
+	// Creates the copy straight away rather than opening a pre-filled Add Device modal. The user's
+	// flow is "duplicate this camera five times, then tweak each one": a modal would force them
+	// through a save dialog before they even have the copy, and it could only ever cover the device's
+	// own fields - the device sources and device actions that make the duplicate worth having are
+	// edited from two entirely different modals anyway. Creating immediately also means five clicks
+	// gets five copies, and they can edit them in any order afterwards.
+	public duplicateDevice(device: Device) {
+		const arbiterObj = {
+			action: 'duplicate',
+			type: 'device',
+			deviceId: device.id,
+		}
+		this.socketService.socket.emit('manage', arbiterObj)
+	}
+
+	private onDeviceDuplicated() {
+		Swal.fire({
+			icon: 'success',
+			title: 'Device duplicated',
+			text: 'Its sources and actions were copied too. The copy is disabled and has no TSL address until you edit it.',
+			toast: true,
+			position: 'top-end',
+			showConfirmButton: false,
+			timer: 6000,
+			timerProgressBar: true,
+			...globalSwalOptions,
+		})
+	}
+
+	public duplicateDeviceAction(deviceAction: DeviceAction) {
+		const arbiterObj = {
+			action: 'duplicate',
+			type: 'device_action',
+			device_action: {
+				id: deviceAction.id,
+			},
 		}
 		this.socketService.socket.emit('manage', arbiterObj)
 	}
