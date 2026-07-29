@@ -43,7 +43,7 @@ module.exports = {
 				docs: {
 					sidebarPath: require.resolve('./sidebars.js'),
 					// Please change this to your repo.
-					editUrl: 'https://github.com/josephdadams/TallyArbiter/edit/master/docs/',
+					editUrl: 'https://github.com/josephdadams/TallyArbiter/edit/HEAD/docs/',
 				},
 				theme: {
 					customCss: require.resolve('./src/css/custom.css'),

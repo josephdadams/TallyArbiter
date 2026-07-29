@@ -1,9 +1,12 @@
 name: Docs
 
 on:
+  # Both names are listed so docs keep deploying either side of the master -> main
+  # rename. Drop `master` once the rename is done and verified.
   push:
     branches:
       - master
+      - main
 
 jobs:
   deploy:

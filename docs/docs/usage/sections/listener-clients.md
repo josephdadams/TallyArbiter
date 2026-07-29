@@ -23,35 +23,35 @@ Navigate to `/producer` on the Tally Arbiter server in your browser to view all 
 
 ## Using an M5StickC for tally output
 
-Tally Arbiter can send tally data to an M5StickC Arduino Finger Computer. A remote script is available here, [Tally Arbiter M5StickC Listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/m5stickc-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/master/listener_clients/m5stickc-listener/README.md).
+Tally Arbiter can send tally data to an M5StickC Arduino Finger Computer. A remote script is available here, [Tally Arbiter M5StickC Listener](https://github.com/josephdadams/TallyArbiter/tree/HEAD/listener_clients/m5stickc-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/HEAD/listener_clients/m5stickc-listener/README.md).
 
 ## Using an M5StickS3 for tally output
 
-Tally Arbiter can also send tally data to the ESP32-S3 based M5StickS3. A remote script is available here, [Tally Arbiter M5StickS3 Listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/M5StickS3). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/master/listener_clients/M5StickS3/README.md).
+Tally Arbiter can also send tally data to the ESP32-S3 based M5StickS3. A remote script is available here, [Tally Arbiter M5StickS3 Listener](https://github.com/josephdadams/TallyArbiter/tree/HEAD/listener_clients/M5StickS3). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/HEAD/listener_clients/M5StickS3/README.md).
 
 ## Using an ESP32 board with NeoPixel LEDs
 
-You can use Tally Arbiter with generic ESP32 boards as well with this separate script: [Tally Arbiter ESP32 Listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/esp32-neopixel-listener). For installation and instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/master/listener_clients/esp32-neopixel-listener/README.md).
+You can use Tally Arbiter with generic ESP32 boards as well with this separate script: [Tally Arbiter ESP32 Listener](https://github.com/josephdadams/TallyArbiter/tree/HEAD/listener_clients/esp32-neopixel-listener). For installation and instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/HEAD/listener_clients/esp32-neopixel-listener/README.md).
 
 ## Using an M5 Atom Matrix for tally output
 
-Tally Arbiter can send tally data to an M5 Atom Matrix. A remote script is available in the separate repository, [Tally Arbiter M5 Atom Matrix Listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/M5AtomMatrix-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/master/listener_clients/M5AtomMatrix-listener/README.md).
+Tally Arbiter can send tally data to an M5 Atom Matrix. A remote script is available in the separate repository, [Tally Arbiter M5 Atom Matrix Listener](https://github.com/josephdadams/TallyArbiter/tree/HEAD/listener_clients/M5AtomMatrix-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/HEAD/listener_clients/M5AtomMatrix-listener/README.md).
 
 ## Using a blink(1) for tally output
 
-Tally Arbiter supports the use of a USB blink(1) device as a tally light. A remote listening script is available in the separate repository, [Tally Arbiter Blink1 Listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/blink1-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/master/listener_clients/blink1-listener/README.md). It is compatible with and was designed to run on a Raspberry Pi Zero, making this an inexpensive option for _wireless_ tally output. However, it can be run on any OS/device that supports Python such as MacOS or Windows, which can be helpful if you want to use this with graphics or video playback operators, for example.
+Tally Arbiter supports the use of a USB blink(1) device as a tally light. A remote listening script is available in the separate repository, [Tally Arbiter Blink1 Listener](https://github.com/josephdadams/TallyArbiter/tree/HEAD/listener_clients/blink1-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/HEAD/listener_clients/blink1-listener/README.md). It is compatible with and was designed to run on a Raspberry Pi Zero, making this an inexpensive option for _wireless_ tally output. However, it can be run on any OS/device that supports Python such as MacOS or Windows, which can be helpful if you want to use this with graphics or video playback operators, for example.
 
 ## Using a Pimoroni Blinkt! for tally output
 
-Tally Arbiter supports the use of Pimoroni Blinkt! lights connected to a Raspberry Pi via the GPIO pins. A remote listening script is available in the separate repository, [Tally Arbiter Pimoroni Blinkt! Listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/pimoroni-blinkt-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/master/listener_clients/pimoroni-blinkt-listener/README.md).
+Tally Arbiter supports the use of Pimoroni Blinkt! lights connected to a Raspberry Pi via the GPIO pins. A remote listening script is available in the separate repository, [Tally Arbiter Pimoroni Blinkt! Listener](https://github.com/josephdadams/TallyArbiter/tree/HEAD/listener_clients/pimoroni-blinkt-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/HEAD/listener_clients/pimoroni-blinkt-listener/README.md).
 
 ## Using a Relay for contact-closure systems
 
-Many Camera CCUs and other devices support incoming tally via contact closure. A remote listening script that can trigger USB relays is available with the separate repository, [Tally Arbiter Relay Listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/relay-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/master/listener_clients/relay-listener/README.md).
+Many Camera CCUs and other devices support incoming tally via contact closure. A remote listening script that can trigger USB relays is available with the separate repository, [Tally Arbiter Relay Listener](https://github.com/josephdadams/TallyArbiter/tree/HEAD/listener_clients/relay-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/HEAD/listener_clients/relay-listener/README.md).
 
 ## Using a GPO output
 
-Lots of equipment support the use of GPIO (General Purpose In/Out) pins to interact. This could be for logic control, turning on LEDs, etc. A remote listening script that can run on a Raspberry Pi is available with the separate repository, [Tally Arbiter GPO Listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/gpo-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/master/listener_clients/gpo-listener/README.md).
+Lots of equipment support the use of GPIO (General Purpose In/Out) pins to interact. This could be for logic control, turning on LEDs, etc. A remote listening script that can run on a Raspberry Pi is available with the separate repository, [Tally Arbiter GPO Listener](https://github.com/josephdadams/TallyArbiter/tree/HEAD/listener_clients/gpo-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/HEAD/listener_clients/gpo-listener/README.md).
 
 ## Arduino ESP8266 with Neopixel
 
@@ -59,7 +59,7 @@ Use AdaFruit NeoPixel LED strips connected to an Arduino. Check out [NoahCallawa
 
 ## TTGO_T Displays
 
-Tally Arbiter can send tally data to an TTGO_T Display. A remote script is available in the separate repository, [Tally Arbiter TTGO_T Listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/TTGO_T-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/master/listener_clients/TTGO_T-listener/README.md).
+Tally Arbiter can send tally data to an TTGO_T Display. A remote script is available in the separate repository, [Tally Arbiter TTGO_T Listener](https://github.com/josephdadams/TallyArbiter/tree/HEAD/listener_clients/TTGO_T-listener). For installation and use instructions, please check out that repository's [readme](https://github.com/josephdadams/TallyArbiter/blob/HEAD/listener_clients/TTGO_T-listener/README.md).
 
 ## VMix Tally Emulation
 
