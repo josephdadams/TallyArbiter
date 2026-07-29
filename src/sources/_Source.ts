@@ -127,11 +127,29 @@ export class TallyInput extends EventEmitter {
 	protected renameAddress(address: string, newAddress: string, newLabel: string) {
 		this.emit('renameAddress', address, newAddress) //this is for source types where the address is used as a key and is not a fixed number, like OBS
 
+		//tallyData is keyed by address, so the busses have to move across with it. Without this the state
+		//stays stranded under the old key and the renamed address reads as having no tally until the source
+		//next emits for it - which, for a source that only emits on change, can be the rest of the shot.
+		//Several source types (TSL, SimplyLive, ContributionTally) call this with the same address on both
+		//sides purely to update the label, so there is nothing to move in that case.
+		if (address !== newAddress && Object.prototype.hasOwnProperty.call(this.tallyData, address)) {
+			//addBusToAddress/removeBusFromAddress lazily create tallyData[newAddress], so an event for the
+			//new name may already have landed before this rename was processed. That entry is newer than
+			//what we would carry over, so leave it alone and just drop the stale key.
+			if (!Object.prototype.hasOwnProperty.call(this.tallyData, newAddress)) {
+				this.tallyData[newAddress] = this.tallyData[address]
+			}
+			delete this.tallyData[address]
+		}
+
 		//first check to see if the address current label is the same as the new label
 		//if it is, don't update the label
 		let addressObj = this.addresses.value.find((a) => a.address === address)
 		if (addressObj) {
-			if (addressObj.label !== newLabel) {
+			//rewrite the entry if EITHER the address or the label changed. Gating on the label alone would
+			//leave the entry filed under the old address whenever a rename kept the same label, which would
+			//then disagree with the tallyData re-key above.
+			if (address !== newAddress || addressObj.label !== newLabel) {
 				this.addresses.next(
 					this.addresses.value.filter((a) => a.address !== address).concat({ address: newAddress, label: newLabel }),
 				)
