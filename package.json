@@ -203,7 +203,7 @@
 		"@types/express": "^5.0.6",
 		"@types/find-package-json": "^1.2.2",
 		"@types/find-remove": "^2.0.1",
-		"@types/mqtt": "^0.0.34",
+		"@types/mqtt": "^2.5.0",
 		"@types/node": "^20.0.0",
 		"@types/xml2js": "^0.4.11",
 		"electron": "^39.8.5",
