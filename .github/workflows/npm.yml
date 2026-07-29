@@ -28,7 +28,7 @@ jobs:
     environment: tallyarbiter
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
@@ -36,7 +36,7 @@ jobs:
       # Node 22 still ships 10.9.x. The `permissions: id-token: write` above is
       # what lets npm mint its short-lived OIDC credential at publish time.
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
