@@ -92,6 +92,13 @@ const version = findPackageJson(__dirname).next()?.value?.version || 'unknown'
 const uiVersion = findPackageJson(path.join(__dirname, '..', 'ui')).next()?.value?.version || 'unknown'
 const devmode = process.argv.includes('--dev') || process.env.NODE_ENV === 'development'
 
+// Declared up here, ahead of any code that can call logger(), and assigned further down
+// where the http server exists. logger() emits log items to connected settings clients and
+// has to tolerate being called before the socket server is up; a `typeof io` check cannot
+// do that, because reading a const/let binding in its temporal dead zone throws a
+// ReferenceError rather than yielding 'undefined'.
+let io: socketio.Server
+
 if (devmode) logger('TallyArbiter running in Development Mode.', 'info')
 
 //Rate limiter configurations
@@ -130,7 +137,7 @@ const listenPort: number = parseInt(process.env.PORT) || 4455
 const app = express()
 const httpServer = new http.Server(app)
 
-const io = new socketio.Server(httpServer, { allowEIO3: true })
+io = new socketio.Server(httpServer, { allowEIO3: true })
 const socketupdates_Settings: string[] = [
 	'sources',
 	'devices',
@@ -1583,7 +1590,7 @@ export function logger(log, type: 'info-quiet' | 'info' | 'error' | 'console_act
 	logObj.log = log
 	logObj.type = type
 	Logs.push(logObj)
-	if (typeof io !== 'undefined') io.to('settings').emit('log_item', logObj)
+	if (io) io.to('settings').emit('log_item', logObj)
 }
 
 function writeTallyDataFile(log) {
@@ -1683,7 +1690,15 @@ function loadConfig() {
 		if (sources[i].enabled && !sources[i].cloudConnection) {
 			logger(`Initiating Setup for Source: ${sources[i].name}`, 'info-quiet')
 
-			initializeSource(sources[i])
+			// One unusable source must not take down the whole server at startup. A config can
+			// legitimately outlive the source type it references (a type removed from this build,
+			// or one that only exists on another branch), so log it and carry on with the rest.
+			try {
+				initializeSource(sources[i])
+			} catch (error) {
+				logger(`Source: ${sources[i].name} could not be initialized and will be skipped.`, 'error')
+				logger(error, 'error')
+			}
 		}
 	}
 
@@ -2181,6 +2196,14 @@ function UpdateSockets(dataType: SocketUpdateDataType) {
 
 function TallyArbiter_Add_Source(obj: Manage): ManageResponse {
 	let sourceObj = obj.source as Source
+
+	// Checked before the source is added, so an unknown type is reported back to the caller
+	// instead of throwing out of the socket handler and leaving an unusable source in the config.
+	if (!TallyInputs[sourceObj.sourceTypeId]?.cls) {
+		logger(`Source: ${sourceObj.name} not added, unknown source type ${sourceObj.sourceTypeId}.`, 'error')
+		return { result: 'error', error: `No source type found matching ${sourceObj.sourceTypeId}.` }
+	}
+
 	sourceObj.id = uuidv4()
 	sources.push(sourceObj)
 
