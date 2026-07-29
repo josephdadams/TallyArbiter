@@ -180,16 +180,20 @@ export class NewtekTricasterSource extends TallyInput {
 					if (this.tallydata_TC[i].address === sourceArray[j]) {
 						tricasterSourceFound = true
 						//update the tally state because Tricaster is saying this source is in the current bus
+						//address the entry we actually matched: the match above is on sourceArray[j], and
+						//this.tallydata_TC[i].address is equal to it. Using sourceArray[i] indexed into the
+						//wrong array (i walks tallydata_TC, j walks sourceArray), so the bus landed on an
+						//unrelated input - or on undefined once tallydata_TC grew past the current bus list.
 						switch (tallyType) {
 							case 'preview_tally':
 								this.tallydata_TC[i].tally1 = 1
 								this.tallydata_TC[i].preview = 1
-								this.addBusToAddress(sourceArray[i], 'preview')
+								this.addBusToAddress(this.tallydata_TC[i].address, 'preview')
 								break
 							case 'program_tally':
 								this.tallydata_TC[i].tally2 = 1
 								this.tallydata_TC[i].program = 1
-								this.addBusToAddress(sourceArray[i], 'program')
+								this.addBusToAddress(this.tallydata_TC[i].address, 'program')
 								break
 							default:
 								break
@@ -202,16 +206,20 @@ export class NewtekTricasterSource extends TallyInput {
 			// Remove preview or program for each not used Tricaster input, in case it was earlier used.
 			if (!tricasterSourceFound) {
 				//it is no longer in the bus, mark it as such
+				//this branch is the "not on this bus" case, so it must REMOVE the bus, not add it. It
+				//previously called addBusToAddress, which lit the tally for an input Tricaster had just
+				//reported as absent. removeBusFromAllAddresses() at the top of this function has already
+				//cleared the bus, so this is belt-and-braces, but it keeps the branch honest.
 				switch (tallyType) {
 					case 'preview_tally':
 						this.tallydata_TC[i].tally1 = 0
 						this.tallydata_TC[i].preview = 0
-						this.addBusToAddress(sourceArray[i], 'preview')
+						this.removeBusFromAddress(this.tallydata_TC[i].address, 'preview')
 						break
 					case 'program_tally':
 						this.tallydata_TC[i].tally2 = 0
 						this.tallydata_TC[i].program = 0
-						this.addBusToAddress(sourceArray[i], 'program')
+						this.removeBusFromAddress(this.tallydata_TC[i].address, 'program')
 						break
 					default:
 						break
