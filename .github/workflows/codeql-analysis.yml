@@ -1,12 +1,10 @@
 name: CodeQL & Container Security
 
 on:
-  # Both names are listed so this keeps running either side of the master -> main
-  # rename. Drop `master` once the rename is done and verified.
   push:
-    branches: [master, main]
+    branches: [main]
   pull_request:
-    branches: [master, main]
+    branches: [main]
   schedule:
     - cron: '0 6 * * 1' # Weekly scan
 
