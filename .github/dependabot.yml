@@ -58,6 +58,13 @@ updates:
     ignore:
       - dependency-name: '@angular*'
       - dependency-name: '@angular-devkit*'
+      # Same major-version ignore the server block carries, for a different reason:
+      # @angular-devkit/build-angular declares peer typescript ">=5.9 <6.0", so any
+      # major past 5 makes `npm ci` fail outright with ERESOLVE and takes the Docker
+      # image build with it. #1158 bumped this to 7.0.2 and broke CI on main until it
+      # was reverted. TypeScript here moves with Angular, via `ng update`.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
       # ang-jsoneditor 6 dropped NgJsonEditorModule in favour of standalone
       # components, so a version bump alone cannot build (see #1140). Needs a code
       # migration in settings.component.ts and app.module.ts first.
