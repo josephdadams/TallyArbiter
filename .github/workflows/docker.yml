@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag or branch to build (ex: v3.2.0, or master to test an unreleased build)'
+        description: 'Tag or branch to build (ex: v3.2.0, or a branch name to test an unreleased build)'
         required: true
       dry_run:
         description: 'Build every platform but do not push to Docker Hub'

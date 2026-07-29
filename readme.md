@@ -2,8 +2,8 @@
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/josephdadams/TallyArbiter)
 ![License](https://img.shields.io/github/license/josephdadams/TallyArbiter)
-![Desktop Build](https://img.shields.io/github/actions/workflow/status/josephdadams/TallyArbiter/build-desktop.yml?branch=master&label=Desktop%20Builds)
-![Listener Clients Build](https://img.shields.io/github/actions/workflow/status/josephdadams/TallyArbiter/build-listener-clients.yaml?branch=master&label=Listener%20Client%20Builds)
+![Desktop Build](https://img.shields.io/github/actions/workflow/status/josephdadams/TallyArbiter/build-desktop.yml?label=Desktop%20Builds)
+![Listener Clients Build](https://img.shields.io/github/actions/workflow/status/josephdadams/TallyArbiter/build-listener-clients.yaml?label=Listener%20Client%20Builds)
 ![Publish to NPM](https://github.com/josephdadams/TallyArbiter/actions/workflows/npm.yml/badge.svg)
 ![Docker Pulls](https://img.shields.io/docker/pulls/josephdadams/tallyarbiter)
 

@@ -76,8 +76,8 @@ pygobject
 sudo apt install libudev-dev libusb-1.0-0-dev
 
 # 2. Clone or download the listener
-wget https://raw.githubusercontent.com/josephdadams/TallyArbiter/master/listener_clients/blink1-listener/blink1-listener.py
-wget https://raw.githubusercontent.com/josephdadams/TallyArbiter/master/listener_clients/blink1-listener/requirements.txt
+wget https://raw.githubusercontent.com/josephdadams/TallyArbiter/HEAD/listener_clients/blink1-listener/blink1-listener.py
+wget https://raw.githubusercontent.com/josephdadams/TallyArbiter/HEAD/listener_clients/blink1-listener/requirements.txt
 
 # 3. Create a virtual environment and install Python dependencies
 python3 -m venv .venv
