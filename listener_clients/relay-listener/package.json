@@ -24,10 +24,10 @@
 	"author": "Joseph Adams",
 	"dependencies": {
 		"@josephdadams/usbrelay": "^1.0.3",
-		"bonjour": "^3.5.0",
-		"cli-color": "^2.0.0",
-		"socket.io": "4.8.0",
-		"uuid": "^14.0.0"
+		"bonjour": "^3.5.1",
+		"cli-color": "^2.0.4",
+		"socket.io": "4.8.3",
+		"uuid": "^14.0.1"
 	},
 	"main": "index.js",
 	"scripts": {
