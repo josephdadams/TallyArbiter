@@ -795,7 +795,6 @@ void setup() {
   // Initialize IMU (MPU6886) The rotation sensor
   if (M5.IMU.Init() != 0) {
     Serial.println("MPU6886 initialization failed!");
-    while (1) delay(100);
   } else {
     Serial.println("MPU6886 initialization successful!");
   }
