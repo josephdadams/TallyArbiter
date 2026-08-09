@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core'
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core'
 
 import { FormsModule } from '@angular/forms'
 
@@ -11,8 +11,6 @@ import { Subscription } from 'rxjs'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap/modal'
 
 import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap/nav'
-
-import { NgJsonEditorModule } from 'ang-jsoneditor'
 
 import { RequireRoleDirective } from 'src/app/_directives/requireRole'
 import { Confirmable } from 'src/app/_decorators/confirmable.decorator'
@@ -68,8 +66,9 @@ type LogLevel = { title: string; id: string }
 @Component({
 	selector: 'app-settings',
 	standalone: true,
-	imports: [CommonModule, FormsModule, NgbNavModule, NgJsonEditorModule, RequireRoleDirective],
+	imports: [CommonModule, FormsModule, NgbNavModule, JsonEditorComponent, RequireRoleDirective],
 	templateUrl: './settings.component.html',
+	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./settings.component.scss'],
 })
 export class SettingsComponent implements OnInit, OnDestroy {

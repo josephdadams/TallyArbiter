@@ -4,7 +4,10 @@
 # QEMU. Pinning also avoids two hard failures: electron is a devDependency and
 # publishes no armv6 binary, and the Angular production build exhausts the
 # 32-bit Node heap on arm/v6 and arm/v7.
-FROM --platform=$BUILDPLATFORM node:22-alpine AS builder
+#
+# Node 24 here because Angular 22 requires ^22.22.3 || ^24.15.0 || >=26. Safe
+# despite Node 24 having no 32-bit ARM build, since $BUILDPLATFORM is amd64.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS builder
 
 ARG APP_VERSION
 ENV APP_VERSION=$APP_VERSION
@@ -26,6 +29,10 @@ RUN npm run build
 RUN cd UI && npm ci && npm run build
 
 
+# The runtime stage stays on Node 22: it is built for every published platform,
+# and Node 24 dropped 32-bit ARM, so node:24-alpine publishes no linux/arm/v6 or
+# linux/arm/v7 manifest and would drop Raspberry Pi support. Only the compiled
+# server JS runs here, so it does not need the Node 24 that Angular requires.
 FROM node:22-alpine
 
 ARG APP_VERSION

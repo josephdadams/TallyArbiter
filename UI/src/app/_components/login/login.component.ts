@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, ElementRef, ViewChild } from '@angular/core'
+import { Component, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { AuthService, LoginResponse } from 'src/app/_services/auth.service'
@@ -9,6 +9,7 @@ import { AuthService, LoginResponse } from 'src/app/_services/auth.service'
 	standalone: true,
 	imports: [CommonModule, FormsModule],
 	templateUrl: './login.component.html',
+	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./login.component.scss'],
 })
 export class LoginComponent {

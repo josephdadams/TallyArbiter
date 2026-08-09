@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component } from '@angular/core'
+import { Component, ChangeDetectionStrategy } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import { trigger, transition, style, animate, state } from '@angular/animations'
 
@@ -17,6 +17,7 @@ import { ThemeSelectorComponent } from './_components/theme-selector/theme-selec
 	imports: [CommonModule, RouterModule, ThemeSelectorComponent],
 	templateUrl: './app.component.html',
 	styleUrls: ['./app.component.scss'],
+	changeDetection: ChangeDetectionStrategy.Eager,
 	animations: [
 		trigger('fade', [
 			state('hidden', style({ opacity: 0 })),

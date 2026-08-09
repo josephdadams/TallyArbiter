@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, OnInit } from '@angular/core'
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core'
 import { SocketService } from 'src/app/_services/socket.service'
 
 @Component({
@@ -7,6 +7,7 @@ import { SocketService } from 'src/app/_services/socket.service'
 	standalone: true,
 	imports: [CommonModule],
 	templateUrl: './about.component.html',
+	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./about.component.scss'],
 })
 export class AboutComponent implements OnInit {

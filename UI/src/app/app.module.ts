@@ -4,7 +4,7 @@ import { BrowserModule } from '@angular/platform-browser'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { QrCodeModule } from 'ng-qrcode'
 import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap/nav'
-import { NgJsonEditorModule } from 'ang-jsoneditor'
+import { JsonEditorComponent } from 'ang-jsoneditor'
 
 import { AppRoutingModule } from './app-routing.module'
 import { AppComponent } from './app.component'
@@ -30,7 +30,7 @@ import { RequireRoleDirective } from './_directives/requireRole'
 		AppRoutingModule,
 		QrCodeModule,
 		NgbNavModule,
-		NgJsonEditorModule,
+		JsonEditorComponent,
 		FormsModule,
 
 		AppComponent,

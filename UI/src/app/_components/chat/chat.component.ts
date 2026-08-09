@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, ElementRef, Input, OnDestroy, ViewChild } from '@angular/core'
+import { Component, ElementRef, Input, OnDestroy, ViewChild, ChangeDetectionStrategy } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Subscription } from 'rxjs'
 import { SocketService } from 'src/app/_services/socket.service'
@@ -9,6 +9,7 @@ import { SocketService } from 'src/app/_services/socket.service'
 	standalone: true,
 	imports: [CommonModule, FormsModule],
 	templateUrl: './chat.component.html',
+	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./chat.component.scss'],
 })
 export class ChatComponent implements OnDestroy {
