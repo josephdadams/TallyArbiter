@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, OnDestroy, OnInit } from '@angular/core'
+import { Component, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { Confirmable } from 'src/app/_decorators/confirmable.decorator'
@@ -13,6 +13,7 @@ import { LocationBackService } from 'src/app/_services/locationBack.service'
 	standalone: true,
 	imports: [CommonModule, FormsModule],
 	templateUrl: './error-reports-list.component.html',
+	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./error-reports-list.component.scss'],
 })
 export class ErrorReportsListComponent implements OnInit, OnDestroy {

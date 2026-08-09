@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component } from '@angular/core'
+import { Component, ChangeDetectionStrategy } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { QrCodeModule } from 'ng-qrcode'
 import { SocketService } from 'src/app/_services/socket.service'
@@ -9,6 +9,7 @@ import { SocketService } from 'src/app/_services/socket.service'
 	standalone: true,
 	imports: [CommonModule, FormsModule, QrCodeModule],
 	templateUrl: './home.component.html',
+	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent {

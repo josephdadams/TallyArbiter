@@ -1,5 +1,13 @@
 import { CommonModule } from '@angular/common'
-import { Component, OnInit, OnDestroy, AfterViewInit, Renderer2, ElementRef } from '@angular/core'
+import {
+	Component,
+	OnInit,
+	OnDestroy,
+	AfterViewInit,
+	Renderer2,
+	ElementRef,
+	ChangeDetectionStrategy,
+} from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { SocketService } from 'src/app/_services/socket.service'
 import { ErrorReport } from 'src/app/_models/ErrorReport'
@@ -13,6 +21,7 @@ import { versions } from 'src/environments/versions'
 	standalone: true,
 	imports: [CommonModule],
 	templateUrl: './error-report.component.html',
+	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./error-report.component.scss'],
 })
 export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {

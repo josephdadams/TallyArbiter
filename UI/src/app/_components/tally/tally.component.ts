@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, OnDestroy } from '@angular/core'
+import { Component, OnDestroy, ChangeDetectionStrategy } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { Subscription } from 'rxjs'
@@ -12,6 +12,7 @@ import { ChatComponent } from '../chat/chat.component'
 	standalone: true,
 	imports: [CommonModule, FormsModule, ChatComponent],
 	templateUrl: './tally.component.html',
+	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./tally.component.scss'],
 })
 export class TallyComponent implements OnDestroy {

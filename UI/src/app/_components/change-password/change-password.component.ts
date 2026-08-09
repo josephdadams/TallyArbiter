@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, ElementRef, ViewChild } from '@angular/core'
+import { Component, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { AuthService, ChangePasswordResponse } from 'src/app/_services/auth.service'
@@ -10,6 +10,7 @@ import { MIN_PASSWORD_LENGTH } from '../../../../../src/_helpers/passwordPolicy'
 	standalone: true,
 	imports: [CommonModule, FormsModule],
 	templateUrl: './change-password.component.html',
+	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./change-password.component.scss'],
 })
 export class ChangePasswordComponent {

@@ -2,7 +2,9 @@
 {
 	"compileOnSave": false,
 	"compilerOptions": {
-		"baseUrl": "./",
+		"paths": {
+			"src/*": ["./src/*"]
+		},
 		"outDir": "./dist/out-tsc",
 		"forceConsistentCasingInFileNames": true,
 		"strict": true,
@@ -10,7 +12,6 @@
 		"noFallthroughCasesInSwitch": true,
 		"sourceMap": true,
 		"declaration": false,
-		"downlevelIteration": true,
 		"experimentalDecorators": true,
 		"moduleResolution": "bundler",
 		"importHelpers": true,

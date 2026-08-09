@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, Input } from '@angular/core'
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core'
 import { DarkModeService } from '../../_services/darkmode.service'
 
 @Component({
@@ -7,6 +7,7 @@ import { DarkModeService } from '../../_services/darkmode.service'
 	standalone: true,
 	imports: [CommonModule],
 	templateUrl: './theme-selector.component.html',
+	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./theme-selector.component.scss'],
 })
 export class ThemeSelectorComponent {

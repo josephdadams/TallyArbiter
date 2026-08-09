@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, OnDestroy } from '@angular/core'
+import { Component, OnDestroy, ChangeDetectionStrategy } from '@angular/core'
 import { Subscription } from 'rxjs'
 import { ChatComponent } from '../chat/chat.component'
 import { SocketService } from 'src/app/_services/socket.service'
@@ -9,6 +9,7 @@ import { SocketService } from 'src/app/_services/socket.service'
 	standalone: true,
 	imports: [CommonModule, ChatComponent],
 	templateUrl: './producer.component.html',
+	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./producer.component.scss'],
 })
 export class ProducerComponent implements OnDestroy {
