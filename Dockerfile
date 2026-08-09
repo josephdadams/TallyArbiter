@@ -4,7 +4,7 @@
 # QEMU. Pinning also avoids two hard failures: electron is a devDependency and
 # publishes no armv6 binary, and the Angular production build exhausts the
 # 32-bit Node heap on arm/v6 and arm/v7.
-FROM --platform=$BUILDPLATFORM node:22-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:24-alpine AS builder
 
 ARG APP_VERSION
 ENV APP_VERSION=$APP_VERSION
@@ -26,7 +26,7 @@ RUN npm run build
 RUN cd UI && npm ci && npm run build
 
 
-FROM node:22-alpine
+FROM node:24-alpine
 
 ARG APP_VERSION
 ENV APP_VERSION=$APP_VERSION
