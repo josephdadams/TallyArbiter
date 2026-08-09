@@ -175,7 +175,7 @@
 		"obs-websocket-js": "npm:obs-websocket-js@^4.0.3",
 		"obs-websocket-js-5": "npm:obs-websocket-js@^5.0.6",
 		"osc": "^2.4.3",
-		"rate-limiter-flexible": "^2.3.7",
+		"rate-limiter-flexible": "^11.2.0",
 		"reflect-metadata": "^0.2.2",
 		"rxjs": "^7.5.5",
 		"socket.io": "4.8.3",
