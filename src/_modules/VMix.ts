@@ -37,7 +37,7 @@ export class VMixEmulator extends ListenerProvider {
 		let host = this.getHost(socket)
 		logger(`New VMix Emulator Connection from ${host}`, 'info')
 		socket.write(`VERSION OK ${version}\r\n`)
-		socket.on('data', (data) => this.onConnData(socket, data))
+		socket.on('data', (data: Buffer) => this.onConnData(socket, data))
 		socket.once('close', () => this.onConnClose(socket))
 		socket.on('error', (e) => this.onConnError(socket, e))
 	}

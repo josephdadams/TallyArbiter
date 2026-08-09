@@ -182,7 +182,7 @@ export class CTPSource extends TallyInput {
 						this.connected.next(true) //set connected to true when a connection is made
 					})
 
-					socket.on('data', (data) => {
+					socket.on('data', (data: Buffer) => {
 						this.processCTPData(data)
 					})
 
