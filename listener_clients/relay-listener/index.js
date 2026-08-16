@@ -266,9 +266,12 @@ function openSocket() {
 		bonjour.findOne({ type: 'tally-arbiter' }, function (service) {
 			ip = service.host
 			port = service.port
-			if (service.txt.version.startsWith('2.')) {
+			const advertisedVersion = service.txt ? service.txt.version : undefined
+			if (typeof advertisedVersion !== 'string') {
+				logger(`Could not read a version from the server advertisement, continuing anyway.`, 'error')
+			} else if (advertisedVersion.startsWith('2.')) {
 				logger(
-					`Error connecting to Tally Arbiter: Tally Arbiter server version ${service.txt.version} is not supported.`,
+					`Error connecting to Tally Arbiter: Tally Arbiter server version ${advertisedVersion} is not supported.`,
 					'error',
 				)
 				process.exit(3)
