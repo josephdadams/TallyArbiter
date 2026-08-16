@@ -193,6 +193,7 @@ function connectToServer(ip, port) {
 
 	socket.on('connect', function () {
 		logger('Connected to Tally Arbiter server.', 'info')
+		registerListenerClients()
 	})
 
 	socket.on('disconnect', function () {
@@ -234,7 +235,10 @@ function connectToServer(ip, port) {
 			}
 		}
 	})
+}
 
+function registerListenerClients() {
+	//(re)register every relay group with the server; runs on each connect, including reconnects
 	for (let i = 0; i < relay_groups.length; i++) {
 		socket.emit('listenerclient_connect', {
 			deviceId: relay_groups[i].deviceId,
