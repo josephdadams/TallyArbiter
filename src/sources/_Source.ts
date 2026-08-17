@@ -249,6 +249,31 @@ export class TallyInput extends EventEmitter {
 		}
 	}
 
+	/**
+	 * The source's full current address-to-busses map.
+	 *
+	 * `tally.value` is not a substitute. sendIndividualTallyData() publishes an
+	 * object holding only the address that just changed, so for the source types
+	 * that use it (TSL 3.1 UDP, TSL 5.0 UDP/TCP, SimplyLive) the last emission is
+	 * a partial snapshot and every other address reads as undefined -- even when
+	 * it is genuinely live. Those source types also only emit on change, so there
+	 * may be no later emission to correct the picture. This reads the map the
+	 * source actually maintains.
+	 *
+	 * Returns a copy, and copies each bus array rather than just the outer object:
+	 * addBusToAddress() pushes onto tallyData[address] in place, so a shallow
+	 * spread would hand out arrays that mutate underneath the caller. That is the
+	 * same no-aliasing invariant the currentSourceTallyData cache relies on.
+	 */
+	public getCurrentTallyData(): AddressTallyData {
+		const snapshot: AddressTallyData = {}
+		for (const address of Object.keys(this.tallyData)) {
+			const busses = this.tallyData[address]
+			snapshot[address] = Array.isArray(busses) ? [...busses] : []
+		}
+		return snapshot
+	}
+
 	protected sendTallyData() {
 		this.tally.next(this.tallyData)
 	}

@@ -11,11 +11,19 @@ on:
 jobs:
   welcome:
     runs-on: ubuntu-latest
+    # The action comments on the new issue or PR, which the default token cannot do
+    # when the repository's workflow permissions are read-only.
+    permissions:
+      issues: write
+      pull-requests: write
     steps:
+      # v3 renamed every input from hyphens to underscores. The hyphenated v1/v2
+      # spellings are not recognised, and the action then fails on the first one it
+      # needs with "Input required and not supplied: issue_message".
       - uses: actions/first-interaction@v3
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: |
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
             Hello there ${{ github.actor }} 👋
 
             Welcome to TallyArbiter!
@@ -24,7 +32,7 @@ jobs:
 
             If you have more to contribute to this issue, please comment down below! We will try to get back to you as soon as we can.
 
-          pr-message: |
+          pr_message: |
             Hello there ${{ github.actor }} 👋
 
             Thank you for opening your first PR for the Tally Arbiter project!
