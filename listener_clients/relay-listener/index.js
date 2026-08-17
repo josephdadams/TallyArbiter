@@ -8,7 +8,9 @@ const path = require('path')
 const { v4: uuidv4 } = require('uuid')
 const config_file = './config_relays.json' //local storage JSON file
 const USBRelay = require('@josephdadams/usbrelay')
-const bonjour = require('bonjour')()
+const { Bonjour } = require('bonjour-service')
+const bonjour = new Bonjour()
+const mdns_discovery_timeout = 10000 //how long each MDNS browse waits before starting over
 
 //var relay = 		null;
 var detectedRelays = []
@@ -193,6 +195,7 @@ function connectToServer(ip, port) {
 
 	socket.on('connect', function () {
 		logger('Connected to Tally Arbiter server.', 'info')
+		registerListenerClients()
 	})
 
 	socket.on('disconnect', function () {
@@ -234,7 +237,10 @@ function connectToServer(ip, port) {
 			}
 		}
 	})
+}
 
+function registerListenerClients() {
+	//(re)register every relay group with the server; runs on each connect, including reconnects
 	for (let i = 0; i < relay_groups.length; i++) {
 		socket.emit('listenerclient_connect', {
 			deviceId: relay_groups[i].deviceId,
@@ -259,12 +265,31 @@ function openSocket() {
 	}
 
 	if (server_config.useMDNS) {
-		bonjour.findOne({ type: 'tally-arbiter' }, function (service) {
+		findServerUsingMDNS()
+	} else if (ip) {
+		logger(`Reading TallyArbiter server connection info from config: ${ip}:${port}`, 'info')
+		connectToServer(ip, port)
+	}
+
+	function findServerUsingMDNS() {
+		//findOne gives up after the timeout and calls back with null, where the old bonjour
+		//package waited indefinitely. Keep browsing rather than giving up: the listener and
+		//the server are often started together, so the server may not be advertising yet.
+		bonjour.findOne({ type: 'tally-arbiter' }, mdns_discovery_timeout, function (service) {
+			if (!service) {
+				logger(`No Tally Arbiter server found using MDNS yet. Still looking.`, 'info')
+				findServerUsingMDNS()
+				return
+			}
+
 			ip = service.host
 			port = service.port
-			if (service.txt.version.startsWith('2.')) {
+			const advertisedVersion = service.txt ? service.txt.version : undefined
+			if (typeof advertisedVersion !== 'string') {
+				logger(`Could not read a version from the server advertisement, continuing anyway.`, 'error')
+			} else if (advertisedVersion.startsWith('2.')) {
 				logger(
-					`Error connecting to Tally Arbiter: Tally Arbiter server version ${service.txt.version} is not supported.`,
+					`Error connecting to Tally Arbiter: Tally Arbiter server version ${advertisedVersion} is not supported.`,
 					'error',
 				)
 				process.exit(3)
@@ -272,9 +297,6 @@ function openSocket() {
 			logger(`Found TallyArbiter server using MDNS: ${ip}:${port}`, 'info')
 			connectToServer(ip, port)
 		})
-	} else if (ip) {
-		logger(`Reading TallyArbiter server connection info from config: ${ip}:${port}`, 'info')
-		connectToServer(ip, port)
 	}
 }
 
