@@ -568,8 +568,8 @@
 							<i class="fas fa-exclamation-triangle me-2"></i>
 							<strong>{{ socketService.defaultPasswordUsers.join(', ') }}</strong>
 							{{ socketService.defaultPasswordUsers.length === 1 ? 'is' : 'are' }} still using the default password that
-							Tally Arbiter ships with. Anyone who can reach this server can sign in. Please set a real password below —
-							this will be enforced in a future release.
+							Tally Arbiter ships with. Anyone who can reach this server can sign in. Use <strong>Edit</strong> below to
+							set a real password — this will be enforced in a future release.
 						</div>
 						<span class="text-muted mt-3 d-block" *ngIf="socketService.users.length == 0"
 							>No user found. This should not happen... Please, open a bug report on Github.</span
