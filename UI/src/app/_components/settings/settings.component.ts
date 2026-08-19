@@ -782,11 +782,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	}
 
 	//a new user needs a real password. this used to fall back to '12345', which quietly
-	//created accounts on the password Tally Arbiter ships with.
-	public get newUserPasswordError(): string {
-		if (this.editingUser) return ''
+	//created accounts on the password Tally Arbiter ships with. when editing, a blank
+	//field means 'keep the current password', so only a non-empty one is checked.
+	public get userPasswordError(): string {
 		const password = this.currentUser.password || ''
-		if (password.length === 0) return 'Please set a password for this user.'
+		if (password.length === 0) {
+			return this.editingUser ? '' : 'Please set a password for this user.'
+		}
 		if (password.length < MIN_PASSWORD_LENGTH) {
 			return `The password must be at least ${MIN_PASSWORD_LENGTH} characters long.`
 		}
@@ -794,12 +796,17 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	}
 
 	public saveCurrentUser() {
-		if (this.newUserPasswordError !== '') return
+		if (this.userPasswordError !== '') return
 		const userObj = {
 			...this.currentUser,
 		} as any
 		if (!userObj.roles) {
 			userObj.roles = 'tally_view'
+		}
+		//a blank field on an edit means 'leave the password alone', so send nothing at all
+		//rather than an empty one
+		if (this.editingUser && !userObj.password) {
+			delete userObj.password
 		}
 		const arbiterObj = {
 			action: this.editingUser ? 'edit' : 'add',
@@ -1006,7 +1013,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
 	public editUser(user: User, modal: any) {
 		this.editingUser = true
-		this.currentUser = user
+		//a copy: the dialog binds straight to this object, so editing the list entry itself
+		//would show unsaved edits in the table behind it, and would leave a typed password
+		//sitting in the users list after the dialog is dismissed
+		this.currentUser = { ...user } as User
 		this.selectedUserRoles = user.roles.split(';')
 		this.modalService.open(modal)
 	}
