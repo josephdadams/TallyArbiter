@@ -23,7 +23,7 @@ The software is written in Node.js and is therefore cross-platform and can be ru
 **RUNNING DIRECTLY WITHIN NODE:**
 
 1. Install Node.js if not already installed. <https://nodejs.org/en/download/> If installing on a Windows PC, ensure that the option to install Tools for Native Modules is selected otherwise the installation of Tally Arbiter Relay Listener will fail.
-1. If installing on a Pi, run `sudo apt install libudev-dev libusb-1.0-0-dev`: The `libusb` library is necessary to communicate with the USB relay.
+1. If installing on a Pi, run `sudo apt install libusb-1.0-0`: this shared library is necessary to communicate with the USB relay. `node-hid` ships prebuilt binaries for 64-bit ARM, so no compiler is needed.
 1. Download the Tally Arbiter source code.
 1. Open a terminal window and change directory to the folder where you placed the source code.
 1. Type `npm install` to install all necessary libraries.
@@ -35,7 +35,7 @@ The software is written in Node.js and is therefore cross-platform and can be ru
 Use a 64-bit OS. Node.js 24 no longer publishes official 32-bit ARM (`armv7l`) builds, so on a 32-bit install you are capped at Node 22. The original Pi Zero and Zero W (armv6) can no longer run a supported version of Node at all -- the Pi Zero 2 W is the drop-in replacement.
 
 1. Install Node.js 22 LTS or newer.
-1. Install the USB libraries needed to talk to the relay: `sudo apt install libudev-dev libusb-1.0-0-dev build-essential`.
+1. Install the shared library needed to talk to the relay: `sudo apt install libusb-1.0-0`. (`libudev1` is also required, but it ships with `systemd` and is already present.) `node-hid` bundles prebuilt binaries for 64-bit ARM inside its npm package, so no compiler is needed. Only if your platform has no matching prebuild and `npm install` falls back to building from source do you also need `sudo apt install libudev-dev libusb-1.0-0-dev build-essential`.
 1. Copy the source code to the Pi. These instructions assume `/opt/tallyarbiter-relay`.
 1. Change directory to that folder and type `npm install` to install all necessary libraries.
 1. Create your `config_relays.json` (see [Configuration](#configuration) below). A sample configuration file is provided.
@@ -50,7 +50,7 @@ EOF
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
-Both lines are intentional: `node-hid` can be backed by either `libusb` or `hidraw`, and this covers either one. Confirm your board's vendor and product IDs with `lsusb` -- the common dcttech/NOYITO boards report `16c0:05df`.
+Both lines are intentional. `node-hid` can be backed by either `libusb` or `hidraw`, and on Linux it defaults to `hidraw` -- so the `hidraw` rule is the one that does the work on a Pi, and the `usb` rule covers the other backend. Confirm your board's vendor and product IDs with `lsusb` -- the common dcttech/NOYITO boards report `16c0:05df`.
 
 Create a user for the service and give it ownership of the folder:
 

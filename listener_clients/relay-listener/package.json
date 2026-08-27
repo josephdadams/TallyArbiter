@@ -22,6 +22,11 @@
 	],
 	"license": "MIT",
 	"author": "Joseph Adams",
+	"overrides": {
+		"@josephdadams/usbrelay": {
+			"node-hid": "^3.4.0"
+		}
+	},
 	"dependencies": {
 		"@josephdadams/usbrelay": "^1.0.3",
 		"bonjour": "^3.5.1",
