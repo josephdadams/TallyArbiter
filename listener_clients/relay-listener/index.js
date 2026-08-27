@@ -397,9 +397,34 @@ function relayGetState(relaySerial, relayNumber) {
 	return currentState
 }
 
-startUp()
+function turnOffAllRelays() {
+	//turns off every relay this listener manages so tally lights don't stay lit after we exit
+	for (let i = 0; i < relay_groups.length; i++) {
+		for (let j = 0; j < relay_groups[i].relays.length; j++) {
+			let currentRelay = relay_groups[i].relays[j]
+			try {
+				relaySetState(currentRelay.relaySerial, currentRelay.relayNumber, false)
+			} catch (error) {
+				logger(`Error turning off relay ${currentRelay.relaySerial}:${currentRelay.relayNumber}: ${error}`, 'error')
+			}
+		}
+	}
+}
 
-process.on('SIGINT', () => {
+let shuttingDown = false
+
+function shutdown(signal) {
+	if (shuttingDown) return //a second signal shouldn't re-enter the teardown
+	shuttingDown = true
+
+	logger(`Received ${signal}. Shutting down.`, 'info')
+	turnOffAllRelays()
 	bonjour.destroy()
 	process.exit(0)
-})
+}
+
+startUp()
+
+//SIGTERM is what systemd, Docker, and most process managers send; SIGINT is Ctrl-C
+process.on('SIGINT', () => shutdown('SIGINT'))
+process.on('SIGTERM', () => shutdown('SIGTERM'))
