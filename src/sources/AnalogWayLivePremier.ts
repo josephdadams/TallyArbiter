@@ -89,7 +89,9 @@ export class AWLivePremierSource extends TallyInput {
 		const keyMatch = INPUT_KEY.exec(String(path[itemsIndex + 1] ?? ''))
 		if (!keyMatch) return
 
-		const address = keyMatch[1]
+		const addressNumber = Number.parseInt(keyMatch[1], 10)
+		if (!Number.isSafeInteger(addressNumber) || addressNumber < 0) return
+		const address = String(addressNumber)
 		const leaf = String(path[path.length - 1])
 		const value = message.data.value
 
