@@ -184,6 +184,7 @@
 		"tsl-umd-v5": "^1.0.5",
 		"uuid": "^14.0.0",
 		"winston": "^3.17.0",
+		"ws": "^8.21.1",
 		"xml2js": "^0.6.2"
 	},
 	"main": "main.js",
@@ -208,6 +209,7 @@
 		"@types/find-remove": "^2.0.1",
 		"@types/mqtt": "^2.5.0",
 		"@types/node": "^26.1.2",
+		"@types/ws": "^8.5.10",
 		"@types/xml2js": "^0.4.11",
 		"electron": "^39.8.5",
 		"electron-builder": "^26.8.1",

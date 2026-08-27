@@ -9,6 +9,7 @@ Sources represent all of the tally data that is generated. This is usually your 
 The following source types are supported:
 
 - Analog Way Livecore Image Processors
+- Analog Way LivePremier / Aquilon
 - Blackmagic ATEM
 - Blackmagic VideoHub
 - Grass Valley Contribution Tally
@@ -29,6 +30,14 @@ When you add a source and the connection to the tally source (video switcher, so
 ## Analog Way Livecore Image Processors
 
 You will need the IP address of the device, and the port (standard port is 10600).
+
+## Analog Way LivePremier / Aquilon
+
+For LivePremier and Aquilon processors (the AWJ platform), running firmware 6.1.60 or later. You will need the IP address of the device and the port used by its Web RCS, which is usually 80. Source addresses are the input number.
+
+Program and preview tally are read directly from each input's on-air state, which the device already unions across every screen and aux, so any input routed to program or preview on any output will tally. Note that this reflects routing rather than on-screen visibility: an input assigned to a layer that is currently hidden (for example at zero opacity) still reports as on program or preview, matching what the device's own Web RCS shows.
+
+The device only pushes tally changes, not a snapshot on connect, so an input that is already on program or preview when Tally Arbiter connects will tally on its next program or preview change.
 
 ## Blackmagic ATEM
 
