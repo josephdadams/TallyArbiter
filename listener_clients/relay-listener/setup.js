@@ -125,16 +125,60 @@ function detectBoards() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-//pulses a relay so the user can hear/see which physical channel they are configuring
-async function testRelay(board, relayNumber) {
+//reads the relay state back off the board itself, so we are not just trusting the write
+function readRelayState(board, relayNumber) {
+	try {
+		return board.relay.getState(relayNumber)
+	} catch (error) {
+		return { error: error.message }
+	}
+}
+
+const showState = (state) => (state ? clc.green.bold('ON') : clc.blackBright('off'))
+
+//pulses a relay and confirms the change by reading the board's own state register, so this is
+//verifiable over SSH with nobody standing next to the hardware
+async function testRelay(board, relayNumber, { pulseMs = 1500 } = {}) {
+	const before = readRelayState(board, relayNumber)
+	if (before && before.error) {
+		fail(`  Could not read relay ${relayNumber} on ${board.serial}: ${before.error}`)
+		return false
+	}
+
 	try {
 		board.relay.setState(relayNumber, true)
-		await sleep(600)
-		board.relay.setState(relayNumber, false)
-		note(`  Pulsed relay ${relayNumber} on ${board.serial}.`)
 	} catch (error) {
-		fail(`  Could not switch relay ${relayNumber}: ${error.message}`)
+		fail(`  Could not switch relay ${relayNumber} on: ${error.message}`)
+		return false
 	}
+
+	const whileOn = readRelayState(board, relayNumber)
+	note(`  Relay ${relayNumber} on ${board.serial}: was ${showState(before)}, now reads ${showState(whileOn)}`)
+
+	if (whileOn !== true) {
+		fail('  The board did not report this relay as on, so it probably did not switch.')
+		warn('  Check the relay number, and that this board is the one you think it is.')
+	} else {
+		note(`  Holding for ${pulseMs / 1000} seconds -- listen for the click, or watch the relay LED.`)
+	}
+
+	await sleep(pulseMs)
+
+	try {
+		board.relay.setState(relayNumber, false)
+	} catch (error) {
+		fail(`  Could not switch relay ${relayNumber} back off: ${error.message}`)
+		return false
+	}
+
+	const after = readRelayState(board, relayNumber)
+	note(`  Relay ${relayNumber} released, now reads ${showState(after)}`)
+
+	if (whileOn === true && after === false) {
+		note(clc.green('  Confirmed: the board reported this relay switching on and back off.'))
+		return true
+	}
+	return false
 }
 
 function turnAllOff(boards) {
