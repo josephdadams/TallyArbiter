@@ -17,6 +17,7 @@ The following source types are supported:
 - OBS Studio
 - Open Sound Control (OSC)
 - Panasonic AV-HS410
+- Pixelhue Q8
 - Riedel SimplyLive
 - Roland Smart Tally
 - Roland VR-50HD-MKII
@@ -83,6 +84,16 @@ Community project: [GPI-to-OSC](https://github.com/simply-Gamic/GPI-to-OSC) conv
 ## Panasonic AV-HS410
 
 You will need the IP address of the switcher. Multicast must also be enabled on the switcher and your network in order to receive the tally data, therefore Tally Arbiter and the Panasonic device must reside on the same subnet.
+
+## Pixelhue Q8
+
+You will need the IP address of the processor and its API port, which is 8088. No password is required. Source addresses are the input number as the device reports it, and the address list is populated with the input names configured on the device, so inputs named `Cam 1`, `Cam 2` and so on appear under those names.
+
+The Q8 has no tally or UMD protocol, so tally is derived from its layer model. An input is on program when an enabled layer carries it on the program scene of a screen being followed, and on preview when the same is true of the preview scene. Because a screen can show several layers at once, more than one input can be on program simultaneously, which is normal for a multi-box or picture-in-picture layout.
+
+Leave **Screens** blank to follow every screen, or list the screens that should drive tally by name or number, separated by commas, for example `Portrait HL, Portrait HR`. The multiviewer is never followed, whether or not it is listed, because every input is present on it permanently and following it would put the entire rack on program.
+
+Tally reflects whether a layer is enabled rather than whether it is ultimately visible, so an input on an enabled layer that happens to sit behind another layer still reports as on program.
 
 ## Riedel SimplyLive
 
