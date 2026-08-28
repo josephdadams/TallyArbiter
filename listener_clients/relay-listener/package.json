@@ -36,6 +36,7 @@
 	},
 	"main": "index.js",
 	"scripts": {
+		"setup": "node setup.js",
 		"start": "node index.js"
 	}
 }
