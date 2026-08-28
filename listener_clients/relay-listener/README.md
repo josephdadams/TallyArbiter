@@ -34,11 +34,34 @@ The software is written in Node.js and is therefore cross-platform and can be ru
 
 Use a 64-bit OS. Node.js 24 no longer publishes official 32-bit ARM (`armv7l`) builds, so on a 32-bit install you are capped at Node 22. The original Pi Zero and Zero W (armv6) can no longer run a supported version of Node at all -- the Pi Zero 2 W is the drop-in replacement.
 
-1. Install Node.js 22 LTS or newer.
-1. Install the shared library needed to talk to the relay: `sudo apt install libusb-1.0-0`. (`libudev1` is also required, but it ships with `systemd` and is already present.) `node-hid` bundles prebuilt binaries for 64-bit ARM inside its npm package, so no compiler is needed. Only if your platform has no matching prebuild and `npm install` falls back to building from source do you also need `sudo apt install libudev-dev libusb-1.0-0-dev build-essential`.
-1. Copy the source code to the Pi. These instructions assume `/opt/tallyarbiter-relay`.
-1. Change directory to that folder and type `npm install` to install all necessary libraries.
-1. Create your `config_relays.json` (see [Configuration](#configuration) below). A sample configuration file is provided.
+First install Node.js 22 LTS or newer, plus the shared library used to talk to the relay:
+
+```bash
+sudo apt update
+sudo apt install -y git libusb-1.0-0
+```
+
+Note the package name carefully: `libusb-1.0-0` ends in a dash and a zero, not `libusb-1.0.0`. It is often installed already, in which case `apt` will say so and do nothing.
+
+(`libudev1` is also required, but it ships with `systemd` and is always present. `node-hid` bundles prebuilt binaries for 64-bit ARM inside its npm package, so no compiler is needed. Only if your platform has no matching prebuild and `npm install` falls back to building from source do you also need `sudo apt install libudev-dev libusb-1.0-0-dev build-essential`.)
+
+Now get the code onto the Pi. The relay listener is one folder inside the main Tally Arbiter repository, so clone the repository, move that one folder to `/opt/tallyarbiter-relay`, and delete the rest:
+
+```bash
+git clone --depth 1 https://github.com/josephdadams/TallyArbiter.git ~/tallyarbiter-src
+sudo mv ~/tallyarbiter-src/listener_clients/relay-listener /opt/tallyarbiter-relay
+rm -rf ~/tallyarbiter-src
+```
+
+Then install the libraries it needs and create your configuration file:
+
+```bash
+cd /opt/tallyarbiter-relay
+sudo npm ci
+sudo cp config_relays.json.example config_relays.json
+```
+
+Edit `config_relays.json` to match your setup -- see [Configuration](#configuration) below.
 
 Next, add a `udev` rule so the service can reach the relay without running as `root`:
 
