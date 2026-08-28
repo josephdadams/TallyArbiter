@@ -28,7 +28,7 @@ The software is written in Node.js and is therefore cross-platform and can be ru
 1. Open a terminal window and change directory to the folder where you placed the source code.
 1. Type `npm install` to install all necessary libraries.
 1. Type `node index.js` within the this folder. If you receive a permissions error, you may need to run the software as root, with `sudo node index.js`.
-1. If this folder does not contain the `config_relays.json` file, an error will occur. A sample configuration file is provided.
+1. If this folder does not contain the `config_relays.json` file, an error will occur. Run `npm run setup` to build one interactively (see [Setup wizard](#setup-wizard)), or copy and edit the sample configuration file that is provided.
 
 **RUNNING AS A SERVICE (Raspberry Pi / Linux, with `systemd`):**
 
@@ -53,15 +53,15 @@ sudo mv ~/tallyarbiter-src/listener_clients/relay-listener /opt/tallyarbiter-rel
 rm -rf ~/tallyarbiter-src
 ```
 
-Then install the libraries it needs and create your configuration file:
+Then install the libraries it needs and run the setup wizard:
 
 ```bash
 cd /opt/tallyarbiter-relay
 sudo npm ci
-sudo cp config_relays.json.example config_relays.json
+npm run setup
 ```
 
-Edit `config_relays.json` to match your setup -- see [Configuration](#configuration) below.
+The wizard detects your relay boards, asks for your Tally Arbiter server, reads the Device list back from it so you pick devices by name, and writes `config_relays.json` for you. It can also install the `udev` rule and the `systemd` service described below, in which case you can skip the rest of this section. See [Setup wizard](#setup-wizard).
 
 Next, add a `udev` rule so the service can reach the relay without running as `root`:
 
@@ -133,6 +133,25 @@ Tally Arbiter Relay Listener supports USB relays with up to 8 separate relays. I
 
 The USB library is designed to work with these types of relays:
 ![picture alt](https://github.com/josephdadams/USBRelay/raw/master/usbrelay.jpg 'USB Relay')
+
+# Setup wizard
+
+Rather than writing `config_relays.json` by hand, run:
+
+```bash
+npm run setup
+```
+
+The wizard walks through four steps:
+
+1. **Detects your relay boards.** It reads the serial number and channel count of each connected board -- the boards report their size in the product string, so a `USBRelay2` is offered 2 relays and a `USBRelay8` is offered 8.
+1. **Finds your Tally Arbiter server.** Either by searching the network with mDNS, or by asking for an IP address or hostname. It then connects and reads back the list of Devices and bus types the server actually has.
+1. **Builds the relay groups.** Because it has the server's Device list, you pick devices by name instead of copying id strings out of the web interface, and bus types come from the server too, so `aux` busses appear if you have them. When adding a relay it offers to pulse that relay so you can confirm which physical channel you are wiring, which is usually faster than counting terminals on the board.
+1. **Optionally installs the service.** On Linux it offers to write the `udev` rule and the `systemd` unit, add your user to `plugdev`, and enable the service. It generates the `udev` rule from the vendor and product ids of the hardware it actually detected, and prints every file and command for you to approve before anything runs. It needs `sudo` for this step and will prompt for your password.
+
+An existing `config_relays.json` is backed up before being replaced, and your `clientUUID` is preserved so the server keeps recognising the listener. If the server cannot be reached, the wizard says so and falls back to asking for Device ids by hand.
+
+Re-run it any time to reconfigure. If you would rather write the file yourself, the format is below.
 
 # Configuration
 
