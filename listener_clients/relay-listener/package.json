@@ -37,6 +37,7 @@
 	"main": "index.js",
 	"scripts": {
 		"setup": "node setup.js",
-		"start": "node index.js"
+		"start": "node index.js",
+		"test-relays": "node test-relays.js"
 	}
 }
