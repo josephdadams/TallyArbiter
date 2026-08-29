@@ -87,7 +87,11 @@ You will need the IP address of the switcher. Multicast must also be enabled on 
 
 ## Pixelhue Q8
 
-You will need the IP address of the processor and its API port, which is 8088. No password is required. Source addresses are the input number as the device reports it, and the address list is populated with the input names configured on the device, so inputs named `Cam 1`, `Cam 2` and so on appear under those names.
+You will need the IP address of the processor and its API port, which is 8088. No password is required.
+
+Source addresses are the connector's position, written as the device writes it: `In 1-11` is card 1, port 11. Inputs are offered by name and position together, so a connector named `Cam 1` on that port is listed as `Cam 1 (In 1-11)`, while one left with its default name appears simply as `In 1-11`. Cards and ports are numbered from 1 as they are on the device, where each input card carries twelve ports — 1 to 4 HDMI, 5 to 8 DisplayPort, 9 to 12 12G-SDI — of which eight may be in use at once.
+
+Addressing by position rather than by name means renaming a connector on the device does not break an existing device source; the tally follows whatever is plugged into that port.
 
 The Q8 has no tally or UMD protocol, so tally is derived from its layer model. An input is on program when an enabled layer carries it on the program scene of a screen being followed, and on preview when the same is true of the preview scene. Because a screen can show several layers at once, more than one input can be on program simultaneously, which is normal for a multi-box or picture-in-picture layout.
 

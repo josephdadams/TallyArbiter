@@ -35,6 +35,9 @@ const SCREEN_TYPE_NORMAL = 2
 // auxiliaryInfo.connectorInfo.interfaceType: 2 is an input, 4 an output, 16 the MVR.
 const INTERFACE_TYPE_INPUT = 2
 
+// What the device calls a connector nobody has renamed, in its own card-port numbering.
+const DEFAULT_CONNECTOR_NAME = /^Input \d+-\d+$/
+
 // The device returns this in a 200 body when the token no longer matches its boot time.
 const ERROR_BAD_TOKEN = 8273
 
@@ -74,24 +77,19 @@ const TRANSITION_MARGIN = 150
 // to reach the address list.
 const INTERFACE_REREAD = 30000
 
-@RegisterTallyInput(
-	'8f2ad4e1',
-	'Pixelhue Q8',
-	'Source addresses are the input number as the device reports it. Leave Screens blank to follow every screen, or list the ones that should drive tally by name or number, separated by commas.',
-	[
-		{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
-		// 'number', not 'port': this is a remote port we connect to, not a local one we
-		// bind, so it must skip the in-use check. 8088 on a Q8.
-		{ fieldName: 'port', fieldLabel: 'API Port', fieldType: 'number' },
-		{
-			fieldName: 'screens',
-			fieldLabel: 'Screens',
-			fieldType: 'text',
-			optional: true,
-			help: 'Comma separated screen names or numbers, e.g. "Portrait HL, Portrait HR". Blank follows every screen. The multiviewer is never followed, because every input sits on it permanently.',
-		},
-	],
-)
+@RegisterTallyInput('8f2ad4e1', 'Pixelhue Q8', '', [
+	{ fieldName: 'ip', fieldLabel: 'IP Address', fieldType: 'text' },
+	// 'number', not 'port': this is a remote port we connect to, not a local one we
+	// bind, so it must skip the in-use check. 8088 on a Q8.
+	{ fieldName: 'port', fieldLabel: 'API Port', fieldType: 'number' },
+	{
+		fieldName: 'screens',
+		fieldLabel: 'Screens',
+		fieldType: 'text',
+		optional: true,
+		help: 'Screen names or numbers, separated by commas, e.g. "Portrait HL, Portrait HR". Leave blank to follow every screen. To find out what this device offers, save with this blank and the log will list its screens by number and name. The multiviewer is never followed, because every input sits on it permanently.',
+	},
+])
 export class PixelhueQ8Source extends TallyInput {
 	private ws: WebSocket | undefined
 	private token = ''
@@ -110,6 +108,8 @@ export class PixelhueQ8Source extends TallyInput {
 	private inTransitionUntil = 0
 	// Only log the available screens when the set changes, not on every refresh.
 	private lastScreenList = ''
+	// interfaceId -> the address published for it, so a layer's source can be translated.
+	private inputAddressById = new Map<number, string>()
 
 	constructor(source: Source) {
 		super(source)
@@ -227,13 +227,61 @@ export class PixelhueQ8Source extends TallyInput {
 		this.monitoredScreens = selected
 	}
 
+	/**
+	 * Where a connector physically is, written the way the device's own UI and documentation
+	 * write it. Cards and connectors are 0-indexed in the API and 1-indexed everywhere an
+	 * operator looks, so slot 0 connector 10 is "In 1-11". A card carries twelve connector
+	 * positions -- 1-4 HDMI, 5-8 DisplayPort, 9-12 12G-SDI -- of which eight can be in use.
+	 *
+	 * This doubles as the address, so it has to stay unique. splitId and nodeId have only
+	 * ever been seen as 0 and 1 on a single Q8, but both exist in the API and a collision
+	 * would silently give two cameras each other's tally, so they are folded in when set.
+	 */
+	private connectorPosition(iface: any): string {
+		const ids = iface?.interfaceIdObj
+		if (!Number.isInteger(ids?.slotId) || !Number.isInteger(ids?.connectorId)) return ''
+		let position = `In ${ids.slotId + 1}-${ids.connectorId + 1}`
+		if (ids.splitId) position += `.${ids.splitId}`
+		if (ids.nodeId > 1) position = `N${ids.nodeId} ${position}`
+		return position
+	}
+
 	private registerInputs(interfaces: any[]): void {
+		this.inputAddressById.clear()
+
 		for (const iface of interfaces) {
 			if (iface?.auxiliaryInfo?.connectorInfo?.interfaceType !== INTERFACE_TYPE_INPUT) continue
-			const name = iface.general?.name
-			if (!name) continue
-			this.addAddress(name, `${INTERFACE_TYPE_INPUT}:${iface.interfaceId}`)
+
+			const name = String(iface.general?.name || '').trim()
+			const position = this.connectorPosition(iface)
+			// Falling back to the internal id keeps an input addressable at all if the device
+			// ever omits its position, at the cost of an address nobody would recognise.
+			const address = position || `${INTERFACE_TYPE_INPUT}:${iface.interfaceId}`
+			this.inputAddressById.set(iface.interfaceId, address)
+
+			// A connector nobody has renamed still carries the device's own default name, which
+			// already states its position -- repeating it would read as "Input 2-1 (In 2-1)".
+			let label: string
+			if (!position) label = name || address
+			else if (!name || DEFAULT_CONNECTOR_NAME.test(name)) label = position
+			else label = `${name} (${position})`
+
+			this.addAddress(label, address)
 		}
+	}
+
+	/**
+	 * Layers name their source as a type and an id. For inputs that id is the interfaceId,
+	 * which is translated here to the connector position an operator would recognise. Other
+	 * source types -- a screen used as another screen's input, a media item -- have no
+	 * position, so they keep the internal form and rely on their label to be readable.
+	 */
+	private addressForSource(sourceType: number, sourceId: number): string {
+		if (sourceType === INTERFACE_TYPE_INPUT) {
+			const known = this.inputAddressById.get(sourceId)
+			if (known) return known
+		}
+		return `${sourceType}:${sourceId}`
 	}
 
 	private computeTally(layers: any[]): void {
@@ -253,9 +301,7 @@ export class PixelhueQ8Source extends TallyInput {
 			const into = idObj.sceneType === SCENE_PROGRAM ? program : idObj.sceneType === SCENE_PREVIEW ? preview : undefined
 			if (!into) continue
 
-			// sourceId is not unique on its own -- 2:7 is an input and 5:7 is a different
-			// source entirely -- so the type has to be part of the address.
-			const address = `${general.sourceType}:${general.sourceId}`
+			const address = this.addressForSource(general.sourceType, general.sourceId)
 			// Sources the interface list does not cover, such as a screen used as the input to
 			// another screen, still have to be listable before they can be mapped to a device.
 			this.addAddress(general.sourceName || address, address)
