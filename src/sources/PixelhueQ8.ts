@@ -44,7 +44,35 @@ const ERROR_BAD_TOKEN = 8273
 // anything switched.
 const TALLY_RELEVANT_TAG_FAMILIES = [463, 528, 529, 663]
 
-const REFRESH_DEBOUNCE = 250
+// A take arrives as a burst of frames -- measured at three over ~250ms -- and the device
+// applies the swap on the last of them, having first reported the scene it is rebuilding
+// as briefly empty. Reading must therefore wait for the burst to stop rather than for a
+// fixed delay after it starts: anchoring to the first frame means either racing the swap
+// or over-waiting by the length of the burst, which is felt directly as tally lag.
+//
+// So the wait restarts on every frame, and a read happens once the device has been quiet
+// for this long.
+const REFRESH_TRAILING = 150
+
+// ...but a continuous stream of frames must not starve the read entirely. Dragging a layer
+// in the device's own UI emits frames every few milliseconds and would otherwise postpone
+// tally for as long as the operator kept dragging, so a read is forced this long after the
+// first frame still waiting to be served.
+const REFRESH_MAX_WAIT = 1000
+
+// The take. Its payload names the screens involved and the length of the effect, and it
+// arrives twice: status 0 as the transition starts and status 1 once it has finished.
+const TAG_TAKE = 463618
+const TAKE_STARTING = 0
+
+// Fallback only, in case the status 1 frame never arrives: how long past the effect's own
+// duration to hold the transition before settling anyway.
+const TRANSITION_MARGIN = 150
+
+// The input list is large and effectively static during a show, so it is not re-read on
+// every transition. The cost is that renaming an input on the device takes up to this long
+// to reach the address list.
+const INTERFACE_REREAD = 30000
 
 @RegisterTallyInput(
 	'8f2ad4e1',
@@ -71,7 +99,15 @@ export class PixelhueQ8Source extends TallyInput {
 	private refreshTimer: NodeJS.Timeout | undefined
 	private refreshing = false
 	private refreshQueued = false
+	private pendingSince = 0
+	private lastInterfaceRead = 0
 	private monitoredScreens = new Set<number>()
+	// Kept per screen rather than flattened, so that a take affecting one screen cannot put
+	// the other screen's incoming layers on program.
+	private screenProgram = new Map<number, Set<string>>()
+	private screenPreview = new Map<number, Set<string>>()
+	private transitionTimer: NodeJS.Timeout | undefined
+	private inTransitionUntil = 0
 
 	constructor(source: Source) {
 		super(source)
@@ -121,13 +157,17 @@ export class PixelhueQ8Source extends TallyInput {
 	}
 
 	private async refreshNow(): Promise<void> {
+		const readInterfaces = Date.now() - this.lastInterfaceRead > INTERFACE_REREAD
 		const [screens, layers, interfaces] = await Promise.all([
 			this.apiGet('/screen/list-detail'),
 			this.apiGet('/layers/list-detail'),
-			this.apiGet('/interface/list-detail'),
+			readInterfaces ? this.apiGet('/interface/list-detail') : Promise.resolve(null),
 		])
 		this.resolveMonitoredScreens(screens?.list || [])
-		this.registerInputs(interfaces?.list || [])
+		if (interfaces) {
+			this.registerInputs(interfaces.list || [])
+			this.lastInterfaceRead = Date.now()
+		}
 		this.computeTally(layers?.list || [])
 	}
 
@@ -168,7 +208,8 @@ export class PixelhueQ8Source extends TallyInput {
 	}
 
 	private computeTally(layers: any[]): void {
-		const bussesByAddress: Record<string, string[]> = {}
+		const program = new Map<number, Set<string>>()
+		const preview = new Map<number, Set<string>>()
 
 		for (const layer of layers) {
 			const idObj = layer?.layerIdObj
@@ -180,9 +221,8 @@ export class PixelhueQ8Source extends TallyInput {
 			const general = layer.source?.general
 			if (!general?.sourceId) continue
 
-			const bus =
-				idObj.sceneType === SCENE_PROGRAM ? 'program' : idObj.sceneType === SCENE_PREVIEW ? 'preview' : undefined
-			if (!bus) continue
+			const into = idObj.sceneType === SCENE_PROGRAM ? program : idObj.sceneType === SCENE_PREVIEW ? preview : undefined
+			if (!into) continue
 
 			// sourceId is not unique on its own -- 2:7 is an input and 5:7 is a different
 			// source entirely -- so the type has to be part of the address.
@@ -191,17 +231,78 @@ export class PixelhueQ8Source extends TallyInput {
 			// another screen, still have to be listable before they can be mapped to a device.
 			this.addAddress(general.sourceName || address, address)
 
-			if (!bussesByAddress[address]) bussesByAddress[address] = []
-			if (!bussesByAddress[address].includes(bus)) bussesByAddress[address].push(bus)
+			const screen = idObj.attachScreenId
+			if (!into.has(screen)) into.set(screen, new Set())
+			into.get(screen).add(address)
 		}
+
+		this.screenProgram = program
+		this.screenPreview = preview
+		this.publish()
+	}
+
+	/**
+	 * Publish the whole tally map.
+	 *
+	 * `alsoOnProgram` carries the screens mid-fade, whose incoming layers have to read as
+	 * on air even though the device still lists them under preview.
+	 */
+	private publish(alsoOnProgram?: Map<number, Set<string>>): void {
+		const busses: Record<string, string[]> = {}
+		const put = (address: string, bus: string) => {
+			if (!busses[address]) busses[address] = []
+			if (!busses[address].includes(bus)) busses[address].push(bus)
+		}
+		for (const addresses of this.screenProgram.values()) for (const a of addresses) put(a, 'program')
+		for (const addresses of this.screenPreview.values()) for (const a of addresses) put(a, 'preview')
+		if (alsoOnProgram) for (const addresses of alsoOnProgram.values()) for (const a of addresses) put(a, 'program')
 
 		// Every known address is rewritten, not just the ones that appear above. This source
 		// always works from a whole snapshot, so anything absent from it has genuinely gone
 		// dark -- emitting only the changes would leave those addresses latched on.
 		for (const entry of this.addresses.value) {
-			this.setBussesForAddress(entry.address, bussesByAddress[entry.address] || [])
+			this.setBussesForAddress(entry.address, busses[entry.address] || [])
 		}
 		this.sendTallyData()
+	}
+
+	/**
+	 * A fade puts the incoming layers on screen the moment it starts and keeps the outgoing
+	 * ones there until it ends, so for its whole duration both are genuinely on air. Camera
+	 * operators need the incoming tally at the start of the fade, not at the end of it.
+	 *
+	 * The device does not report it that way -- it moves program to the new scene partway
+	 * through -- so for the duration of the transition both sides are published, and normal
+	 * refreshes are suppressed so nothing overwrites that until the take completes.
+	 */
+	private beginTransition(screenIds: number[], effectMs: number): void {
+		const incoming = new Map<number, Set<string>>()
+		for (const id of screenIds) {
+			const layers = this.screenPreview.get(id)
+			if (layers?.size) incoming.set(id, layers)
+		}
+
+		const hold = effectMs + TRANSITION_MARGIN
+		this.inTransitionUntil = Date.now() + hold
+		// Drop any read already pending, which would land mid-fade and undo the union.
+		if (this.refreshTimer) {
+			clearTimeout(this.refreshTimer)
+			this.refreshTimer = undefined
+			this.pendingSince = 0
+		}
+		if (incoming.size) this.publish(incoming)
+
+		if (this.transitionTimer) clearTimeout(this.transitionTimer)
+		this.transitionTimer = setTimeout(() => this.endTransition(), hold)
+	}
+
+	private endTransition(): void {
+		if (this.transitionTimer) {
+			clearTimeout(this.transitionTimer)
+			this.transitionTimer = undefined
+		}
+		this.inTransitionUntil = 0
+		this.scheduleRefresh()
 	}
 
 	private openSocket(): void {
@@ -230,28 +331,79 @@ export class PixelhueQ8Source extends TallyInput {
 	private handleFrame(frame: Buffer): void {
 		if (!Buffer.isBuffer(frame)) return
 
-		let tag: number
+		let tag: number, headerEnd: number
 		try {
 			// Binary TLV: a 40 byte prefix, then a JSON header whose length is a uint16 at
-			// offset 38, then the tag as a uint32. Only the tag is read. The payload is an
-			// incremental change that would have to be merged into a full device model to be
-			// useful, and re-reading the lists instead gives a snapshot that is internally
-			// consistent -- which matters, because a take moves several layers at once.
-			tag = frame.readUInt32LE(40 + frame.readUInt16LE(38))
+			// offset 38, then the tag as a uint32. For everything except the take only the tag
+			// is read: those payloads are incremental changes that would have to be merged into
+			// a full device model to be useful, and re-reading the lists instead gives a
+			// snapshot that is internally consistent -- which matters, because a take moves
+			// several layers at once.
+			headerEnd = 40 + frame.readUInt16LE(38)
+			tag = frame.readUInt32LE(headerEnd)
 		} catch (error) {
 			return // a frame shorter than its own header claims; nothing to act on
 		}
 
+		if (tag === TAG_TAKE) {
+			try {
+				const start = headerEnd + 8
+				const length = (frame.readUInt16LE(headerEnd + 4) << 16) + frame.readUInt16LE(headerEnd + 6)
+				this.handleTake(JSON.parse(frame.subarray(start, start + length).toString() || '{}'))
+			} catch (error) {
+				// Unreadable take payload: fall back to just re-reading once it has settled.
+				this.endTransition()
+			}
+			return
+		}
+
 		if (!TALLY_RELEVANT_TAG_FAMILIES.includes(Math.floor(tag / 1000))) return
+		// Mid-fade the union is deliberately being held; a read now would undo it.
+		if (Date.now() < this.inTransitionUntil) return
 		this.scheduleRefresh()
 	}
 
+	private handleTake(data: any): void {
+		const screenIds: number[] = (data?.screenList || [])
+			.map((s: any) => s?.screenId)
+			.filter((id: number) => this.monitoredScreens.has(id))
+		// A take on screens we do not follow changes nothing we report.
+		if (!screenIds.length) return
+
+		const effectMs = Number(data?.switchEffect?.time) || 0
+		// status 0 opens the transition, status 1 closes it. A cut has no effect time, so
+		// there is no window during which both sides are on screen -- settle immediately.
+		if (data?.status === TAKE_STARTING && effectMs > 0) {
+			this.beginTransition(screenIds, effectMs)
+		} else {
+			this.endTransition()
+		}
+	}
+
 	private scheduleRefresh(): void {
-		if (this.refreshTimer) return
+		const now = Date.now()
+
+		// Leading edge. The first frame after a quiet spell is served straight away, so a cut
+		// reaches tally as fast as the device can be read rather than waiting to find out
+		// whether more frames are coming. If that read catches the device mid-change -- it
+		// sometimes announces a change slightly before applying it -- the worst case is
+		// publishing the state that is already displayed, which changes nothing, and the
+		// trailing read below corrects it.
+		if (!this.pendingSince) {
+			this.pendingSince = now
+			void this.runRefresh()
+		}
+
+		// Trailing edge. Restart the wait on every frame so the confirming read lands after
+		// the burst rather than a fixed delay into it, but never push it past
+		// REFRESH_MAX_WAIT from the first frame still waiting to be served.
+		if (this.refreshTimer) clearTimeout(this.refreshTimer)
+		const wait = Math.max(0, Math.min(REFRESH_TRAILING, this.pendingSince + REFRESH_MAX_WAIT - now))
 		this.refreshTimer = setTimeout(() => {
 			this.refreshTimer = undefined
+			this.pendingSince = 0
 			void this.runRefresh()
-		}, REFRESH_DEBOUNCE)
+		}, wait)
 	}
 
 	private async runRefresh(): Promise<void> {
@@ -285,6 +437,10 @@ export class PixelhueQ8Source extends TallyInput {
 		if (this.refreshTimer) {
 			clearTimeout(this.refreshTimer)
 			this.refreshTimer = undefined
+		}
+		if (this.transitionTimer) {
+			clearTimeout(this.transitionTimer)
+			this.transitionTimer = undefined
 		}
 		if (this.ws) {
 			this.ws.close()
