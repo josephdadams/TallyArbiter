@@ -108,6 +108,8 @@ export class PixelhueQ8Source extends TallyInput {
 	private screenPreview = new Map<number, Set<string>>()
 	private transitionTimer: NodeJS.Timeout | undefined
 	private inTransitionUntil = 0
+	// Only log the available screens when the set changes, not on every refresh.
+	private lastScreenList = ''
 
 	constructor(source: Source) {
 		super(source)
@@ -171,12 +173,29 @@ export class PixelhueQ8Source extends TallyInput {
 		this.computeTally(layers?.list || [])
 	}
 
+	// The Screens field has to be typed by hand, so the screens the device actually offers are
+	// logged the first time they are seen and named again whenever an entry does not match.
+	// Without that there is no way to discover what to type except opening the device's own UI.
+	private describeScreens(screens: any[]): string {
+		return screens.map((screen) => `${screen.screenId} "${screen.general?.name || '(unnamed)'}"`).join(', ')
+	}
+
 	private resolveMonitoredScreens(screens: any[]): void {
 		const realScreens = screens.filter((screen) => screen?.screenIdObj?.type === SCREEN_TYPE_NORMAL)
 		const configured = String(this.source.data.screens || '').trim()
 
+		const seen = realScreens.map((screen) => screen.screenId).join(',')
+		if (seen !== this.lastScreenList) {
+			this.lastScreenList = seen
+			logger(
+				`Source: ${this.source.name}  Screens available: ${this.describeScreens(realScreens) || '(none)'}.`,
+				'info',
+			)
+		}
+
 		if (!configured) {
 			this.monitoredScreens = new Set(realScreens.map((screen) => screen.screenId))
+			logger(`Source: ${this.source.name}  Following every screen, because Screens is blank.`, 'info-quiet')
 			return
 		}
 
@@ -192,8 +211,18 @@ export class PixelhueQ8Source extends TallyInput {
 			if (match) {
 				selected.add(match.screenId)
 			} else {
-				logger(`Source: ${this.source.name}  No screen named or numbered '${wanted}'.`, 'error')
+				logger(
+					`Source: ${this.source.name}  No screen named or numbered '${wanted}'. Available: ${this.describeScreens(realScreens) || '(none)'}.`,
+					'error',
+				)
 			}
+		}
+
+		if (!selected.size) {
+			logger(
+				`Source: ${this.source.name}  Screens matched nothing, so no tally will be reported. Available: ${this.describeScreens(realScreens) || '(none)'}.`,
+				'error',
+			)
 		}
 		this.monitoredScreens = selected
 	}
