@@ -72,11 +72,12 @@ const TAKE_STARTING = 0
 // duration to hold the transition before settling anyway.
 const TRANSITION_MARGIN = 150
 
-// Ceiling on the effect duration the device reports. Switcher effects run well under a
-// second in practice, so this is generous; it exists so that a value off the wire cannot
-// set an unbounded timer. Erring short is the safe direction -- the union is released a
-// little early rather than tally being held on indefinitely.
-const MAX_EFFECT_DURATION = 10000
+// Ceiling on how long a transition may be held. The effect duration comes off the wire,
+// and switcher effects run well under a second in practice, so this is generous; it exists
+// so that a value from the device cannot set an unbounded timer. Erring short is the safe
+// direction -- the union is released a little early rather than tally being held on
+// indefinitely.
+const MAX_TRANSITION_HOLD = 10000
 
 // The input list is large and effectively static during a show, so it is not re-read on
 // every transition. The cost is that renaming an input on the device takes up to this long
@@ -363,7 +364,10 @@ export class PixelhueQ8Source extends TallyInput {
 			if (layers?.size) incoming.set(id, layers)
 		}
 
-		const hold = effectMs + TRANSITION_MARGIN
+		// Bounded here, where the timer is actually created, because effectMs came off the
+		// wire. This timer is only a fallback for a closing frame that may never arrive, so an
+		// unbounded value would hold tally showing both sides of the fade indefinitely.
+		const hold = Math.min(effectMs + TRANSITION_MARGIN, MAX_TRANSITION_HOLD)
 		this.inTransitionUntil = Date.now() + hold
 		// Drop any read already pending, which would land mid-fade and undo the union.
 		if (this.refreshTimer) {
@@ -460,12 +464,10 @@ export class PixelhueQ8Source extends TallyInput {
 		// A take on screens we do not follow changes nothing we report.
 		if (!screenIds.length) return
 
-		// The effect duration arrives off the wire, so it is clamped rather than trusted. It
-		// only ever sets a fallback timer -- the device's own closing frame normally ends the
-		// transition -- but if that frame never came, an absurd duration would hold tally
-		// showing both sides of the fade for as long as the device claimed.
+		// A missing or nonsensical duration is treated as a cut. The upper bound is applied in
+		// beginTransition, where the timer is created.
 		const reported = Number(data?.switchEffect?.time)
-		const effectMs = Number.isFinite(reported) ? Math.min(Math.max(reported, 0), MAX_EFFECT_DURATION) : 0
+		const effectMs = Number.isFinite(reported) && reported > 0 ? reported : 0
 
 		// status 0 opens the transition, status 1 closes it. A cut has no effect time, so
 		// there is no window during which both sides are on screen -- settle immediately.
