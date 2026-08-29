@@ -72,6 +72,12 @@ const TAKE_STARTING = 0
 // duration to hold the transition before settling anyway.
 const TRANSITION_MARGIN = 150
 
+// Ceiling on the effect duration the device reports. Switcher effects run well under a
+// second in practice, so this is generous; it exists so that a value off the wire cannot
+// set an unbounded timer. Erring short is the safe direction -- the union is released a
+// little early rather than tally being held on indefinitely.
+const MAX_EFFECT_DURATION = 10000
+
 // The input list is large and effectively static during a show, so it is not re-read on
 // every transition. The cost is that renaming an input on the device takes up to this long
 // to reach the address list.
@@ -384,7 +390,16 @@ export class PixelhueQ8Source extends TallyInput {
 		const url = `wss://${this.source.data.ip}:${UCENTER_PORT}/unico/v1/ucenter/ws?client-type=8`
 		logger(`Source: ${this.source.name}  Connecting to Pixelhue at ${url}.`, 'info-quiet')
 
-		// The device serves this with a self-signed certificate, so it can never validate.
+		// Certificate validation is disabled for this one socket, deliberately. The device
+		// serves it with a self-signed certificate of its own making: there is no CA to
+		// validate against and no way for an operator to supply one. It is also the only
+		// notification channel the device offers -- plain ws on this port is refused, and the
+		// websocket the device advertises on its API port does not serve this path.
+		//
+		// It costs nothing that is not already given up: every byte of tally data is read
+		// over plain HTTP from the same device, and the token in this header is derived from
+		// a serial and a boot time the device hands out unauthenticated, so there is no
+		// secret here to protect.
 		const ws = new WebSocket(url, { headers: { Authorization: this.token }, rejectUnauthorized: false })
 		this.ws = ws
 
@@ -445,7 +460,13 @@ export class PixelhueQ8Source extends TallyInput {
 		// A take on screens we do not follow changes nothing we report.
 		if (!screenIds.length) return
 
-		const effectMs = Number(data?.switchEffect?.time) || 0
+		// The effect duration arrives off the wire, so it is clamped rather than trusted. It
+		// only ever sets a fallback timer -- the device's own closing frame normally ends the
+		// transition -- but if that frame never came, an absurd duration would hold tally
+		// showing both sides of the fade for as long as the device claimed.
+		const reported = Number(data?.switchEffect?.time)
+		const effectMs = Number.isFinite(reported) ? Math.min(Math.max(reported, 0), MAX_EFFECT_DURATION) : 0
+
 		// status 0 opens the transition, status 1 closes it. A cut has no effect time, so
 		// there is no window during which both sides are on screen -- settle immediately.
 		if (data?.status === TAKE_STARTING && effectMs > 0) {
