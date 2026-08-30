@@ -1,1 +1,0 @@
-"use strict";(globalThis.webpackChunktallyarbiter_docs=globalThis.webpackChunktallyarbiter_docs||[]).push([[739],{475(a){a.exports=JSON.parse('{"metadata":{"permalink":"/TallyArbiter/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":0,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
