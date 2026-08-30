@@ -2,8 +2,8 @@
 module.exports = {
 	title: 'TallyArbiter Documentation',
 	tagline: '',
-	url: 'https://josephdadams.github.io',
-	baseUrl: '/TallyArbiter/',
+	url: 'https://docs.tallyarbiter.com',
+	baseUrl: '/',
 	onBrokenLinks: 'throw',
 	onBrokenMarkdownLinks: 'warn',
 	favicon: 'img/favicon.png',
