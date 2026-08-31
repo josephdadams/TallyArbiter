@@ -35,3 +35,22 @@ body {
 		outline-offset: -0.5rem;
 	}
 }
+
+// Reactive form validation. Angular already puts ng-invalid/ng-touched/ng-dirty
+// on every bound control, so the Bootstrap invalid treatment can key off those
+// rather than every template having to toggle .is-invalid by hand. Errors stay
+// hidden until the field has actually been visited, so a freshly opened modal
+// is not a wall of red.
+.form-control,
+.form-select,
+.form-check-input {
+	&.ng-invalid.ng-touched,
+	&.ng-invalid.ng-dirty {
+		border-color: var(--bs-form-invalid-border-color);
+
+		&:focus {
+			border-color: var(--bs-form-invalid-border-color);
+			box-shadow: 0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.25);
+		}
+	}
+}

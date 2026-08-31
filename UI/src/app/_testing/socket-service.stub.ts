@@ -61,6 +61,10 @@ export class SocketServiceStub {
 	public readonly deviceStateChanged = new Subject<any[]>()
 	public readonly deviceDuplicated = new Subject<void>()
 
+	public getSourceById(sourceId: string) {
+		return this.sources().find((s) => s.id === sourceId)
+	}
+
 	public joinAdmins() {}
 	public joinProducers() {}
 	public sendAccessToken() {}

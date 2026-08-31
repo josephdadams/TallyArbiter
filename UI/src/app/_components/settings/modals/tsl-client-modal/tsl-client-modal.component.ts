@@ -1,6 +1,8 @@
-import { Component, ChangeDetectionStrategy, Input, inject } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { Component, ChangeDetectionStrategy, Input, OnInit, inject } from '@angular/core'
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap'
+import { FormErrorComponent } from 'src/app/_forms/form-error.component'
+import { nonBlank } from 'src/app/_forms/validators'
 import { TSLClient } from 'src/app/_models/TSLClient'
 import { SocketService } from 'src/app/_services/socket.service'
 
@@ -39,41 +41,71 @@ export function createDefaultTSLClient(): any {
 @Component({
 	selector: 'app-tsl-client-modal',
 	standalone: true,
-	imports: [FormsModule],
+	imports: [ReactiveFormsModule, FormErrorComponent],
 	templateUrl: './tsl-client-modal.component.html',
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['../../settings.component.scss'],
 })
-export class TslClientModalComponent {
+export class TslClientModalComponent implements OnInit {
 	public readonly activeModal = inject(NgbActiveModal)
 	private readonly socketService = inject(SocketService)
 
 	@Input() tslClient: TSLClient = createDefaultTSLClient() as TSLClient
 	@Input() editing = false
 
-	public onProtocolChanged(protocol: '3.1' | '5.0') {
-		const options = ((this.tslClient as any).protocolOptions ??= {})
+	public form!: FormGroup<{
+		ip: FormControl<string>
+		port: FormControl<number | string | null>
+		transport: FormControl<string>
+		protocol: FormControl<string>
+		protocolOptions: FormGroup<{
+			tally1: FormControl<string>
+			tally2: FormControl<string>
+			tally3: FormControl<string>
+			tally4: FormControl<string>
+			lh_tally: FormControl<string>
+			rh_tally: FormControl<string>
+			text_tally: FormControl<string>
+			sequence: FormControl<string>
+			brightness: FormControl<number>
+		}>
+	}>
 
-		if (protocol === '3.1') {
-			options.tally1 ??= 'pvw'
-			options.tally2 ??= 'pgm'
-			options.tally3 ??= 'off'
-			options.tally4 ??= 'off'
-		} else {
-			options.lh_tally ??= 'pgm'
-			options.rh_tally ??= 'pvw'
-			options.text_tally ??= 'pgm'
-			options.sequence ??= 'ON'
-		}
+	public ngOnInit() {
+		//both callers normalize before handing the client over, so every protocol
+		//option already has a value; the group carries the 3.1 and 5.0 sets at once
+		//and the template shows whichever the selected protocol uses
+		const client = normalizeTSLClient(this.tslClient)
+		const options = client.protocolOptions
 
-		options.brightness ??= 3
+		this.form = new FormGroup({
+			ip: new FormControl(client.ip ?? '', { nonNullable: true, validators: [nonBlank] }),
+			port: new FormControl<number | string | null>(client.port ?? null, {
+				validators: [nonBlank, Validators.min(1), Validators.max(65535)],
+			}),
+			transport: new FormControl(client.transport, { nonNullable: true, validators: [nonBlank] }),
+			protocol: new FormControl(client.protocol, { nonNullable: true, validators: [nonBlank] }),
+			protocolOptions: new FormGroup({
+				tally1: new FormControl(options.tally1, { nonNullable: true }),
+				tally2: new FormControl(options.tally2, { nonNullable: true }),
+				tally3: new FormControl(options.tally3, { nonNullable: true }),
+				tally4: new FormControl(options.tally4, { nonNullable: true }),
+				lh_tally: new FormControl(options.lh_tally, { nonNullable: true }),
+				rh_tally: new FormControl(options.rh_tally, { nonNullable: true }),
+				text_tally: new FormControl(options.text_tally, { nonNullable: true }),
+				sequence: new FormControl(options.sequence, { nonNullable: true }),
+				brightness: new FormControl(options.brightness, { nonNullable: true }),
+			}),
+		})
 	}
 
 	public save() {
+		if (this.form.invalid) return
+
 		this.socketService.socket.emit('manage', {
 			action: this.editing ? 'edit' : 'add',
 			type: 'tsl_client',
-			tslClient: { ...this.tslClient } as TSLClient,
+			tslClient: { ...this.tslClient, ...this.form.getRawValue() } as TSLClient,
 		})
 	}
 }

@@ -6,25 +6,30 @@
 	@if (editing) {
 		<div class="mb-3">
 			<label for="cloudId" class="form-label">Cloud Destination Id</label>
-			<input type="text" id="cloudId" class="form-control" disabled [ngModel]="cloudDestination.id" />
+			<input type="text" id="cloudId" class="form-control" disabled [value]="cloudDestination.id" />
 		</div>
 	}
 
-	<div class="mb-3">
-		<label for="cloudIP" class="form-label">Host</label>
-		<input type="text" class="form-control" id="cloudHost" [(ngModel)]="cloudDestination.host" />
-	</div>
-	<div class="mb-3">
-		<label for="cloudPort" class="form-label">Port</label>
-		<input type="number" class="form-control" id="cloudPort" [(ngModel)]="cloudDestination.port" />
-	</div>
-	<div class="mb-3">
-		<label for="cloudKey" class="form-label">Key</label>
-		<input type="text" class="form-control" id="cloudKey" [(ngModel)]="cloudDestination.key" />
-	</div>
-	<div class="d-flex justify-content-end">
-		<button class="btn btn-primary" (click)="save()">
-			<i class="fas fa-save"></i> {{ editing ? 'Save Changes' : 'Add Cloud Destination' }}
-		</button>
-	</div>
+	<form [formGroup]="form" (ngSubmit)="save()">
+		<div class="mb-3">
+			<label for="cloudHost" class="form-label">Host<span class="text-danger">*</span></label>
+			<input type="text" class="form-control" id="cloudHost" formControlName="host" />
+			<app-form-error [control]="form.controls.host" label="Host" />
+		</div>
+		<div class="mb-3">
+			<label for="cloudPort" class="form-label">Port<span class="text-danger">*</span></label>
+			<input type="number" class="form-control" id="cloudPort" formControlName="port" />
+			<app-form-error [control]="form.controls.port" label="Port" />
+		</div>
+		<div class="mb-3">
+			<label for="cloudKey" class="form-label">Key<span class="text-danger">*</span></label>
+			<input type="text" class="form-control" id="cloudKey" formControlName="key" />
+			<app-form-error [control]="form.controls.key" label="Key" />
+		</div>
+		<div class="d-flex justify-content-end">
+			<button type="submit" class="btn btn-primary" [disabled]="form.invalid">
+				<i class="fas fa-save"></i> {{ editing ? 'Save Changes' : 'Add Cloud Destination' }}
+			</button>
+		</div>
+	</form>
 </div>
