@@ -137,7 +137,7 @@
 								<tr>
 									<th>IP Address</th>
 									<th></th>
-									<th class="bg-light">Type</th>
+									<th class="bg-body-tertiary">Type</th>
 									<th>Device</th>
 									<th></th>
 								</tr>
@@ -146,7 +146,7 @@
 								<tr *ngFor="let listenerClient of socketService.listenerClients">
 									<td>{{ listenerClient.ipAddress }}</td>
 									<td><i class="fas fa-cloud text-muted" *ngIf="listenerClient.cloudConnection"></i></td>
-									<td class="bg-light">{{ listenerClient.listenerType }}</td>
+									<td class="bg-body-tertiary">{{ listenerClient.listenerType }}</td>
 									<td>
 										<select
 											class="form-select"
@@ -629,7 +629,7 @@
 								<option *ngFor="let logLevel of logLevels" [value]="logLevel.id">{{ logLevel.title }}</option>
 							</select>
 						</h3>
-						<div class="logs bg-light p-1" #logsContainer>
+						<div class="logs bg-body-tertiary p-1" #logsContainer>
 							<span
 								class="d-block"
 								[style.color]="
@@ -648,7 +648,7 @@
 					</div>
 					<div class="col-xs-12 col-md-6 mt-3" id="divContainer_TallyData">
 						<h3>Tally Data</h3>
-						<div class="logs bg-light p-1" #tallyDataContainer>
+						<div class="logs bg-body-tertiary p-1" #tallyDataContainer>
 							<span class="d-block" *ngFor="let log of socketService.tallyData"
 								>[{{ log.datetime | date: 'shortDate' }} {{ log.datetime | date: 'shortTime' }}] {{ log.log }}</span
 							>

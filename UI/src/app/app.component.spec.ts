@@ -1,31 +1,32 @@
 import { TestBed } from '@angular/core/testing'
-import { RouterTestingModule } from '@angular/router/testing'
+import { provideRouter } from '@angular/router'
+
 import { AppComponent } from './app.component'
+import { SocketService } from './_services/socket.service'
+
+// AppComponent pulls in AuthService, which pulls in SocketService. Left real,
+// that opens an actual socket.io connection from the test runner.
+class SocketServiceStub {
+	public sendAccessToken() {}
+}
 
 describe('AppComponent', () => {
 	beforeEach(async () => {
 		await TestBed.configureTestingModule({
-			imports: [RouterTestingModule],
-			declarations: [AppComponent],
+			imports: [AppComponent],
+			providers: [provideRouter([]), { provide: SocketService, useClass: SocketServiceStub }],
 		}).compileComponents()
 	})
 
 	it('should create the app', () => {
 		const fixture = TestBed.createComponent(AppComponent)
-		const app = fixture.componentInstance
-		expect(app).toBeTruthy()
+		expect(fixture.componentInstance).toBeTruthy()
 	})
 
-	it(`should have as title 'tallyarbiter-ui'`, () => {
-		const fixture = TestBed.createComponent(AppComponent)
-		const app = fixture.componentInstance
-		expect(app.title).toEqual('tallyarbiter-ui')
-	})
-
-	it('should render title', () => {
+	it('should render the navigation', () => {
 		const fixture = TestBed.createComponent(AppComponent)
 		fixture.detectChanges()
-		const compiled = fixture.nativeElement
-		expect(compiled.querySelector('.content span').textContent).toContain('tallyarbiter-ui app is running!')
+		const links = fixture.nativeElement.querySelectorAll('nav .nav-link')
+		expect(links.length).toBeGreaterThan(0)
 	})
 })

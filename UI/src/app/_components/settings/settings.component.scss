@@ -14,18 +14,14 @@ div.logs {
 	height: 2rem;
 	width: 2rem;
 	display: inline-block;
-	border: 2px solid grey;
+	border: 2px solid var(--ta-border);
 	border-radius: 0.4rem;
-}
-
-nav.nav.nav-tabs .nav-link {
-	color: #000;
 }
 
 .ta-tooltip {
 	margin-left: 6px;
 	cursor: help;
-	color: #7aa2ff;
+	color: var(--bs-link-color);
 	position: relative;
 	font-weight: bold;
 }
@@ -35,8 +31,8 @@ nav.nav.nav-tabs .nav-link {
 	position: absolute;
 	top: 130%;
 	left: 0;
-	background: #1f1f1f;
-	color: #fff;
+	background: var(--bs-emphasis-color);
+	color: var(--bs-body-bg);
 	padding: 6px 10px;
 	border-radius: 4px;
 	font-size: 12px;

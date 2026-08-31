@@ -17,14 +17,18 @@
 					<tbody>
 						<tr *ngFor="let device of socketService.devices" [class.text-muted]="!device.enabled">
 							<td
+								class="bus-cell"
 								*ngFor="let bus of socketService.busOptions"
-								[style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : '#FFFFFF'"
+								[style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : null"
+								[attr.aria-label]="
+									bus.label + (deviceBusColors[device.id].includes(bus.id) ? ': active' : ': inactive')
+								"
 							></td>
 							<td>{{ device.name }}</td>
 							<td><i class="fas fa-cloud text-muted" *ngIf="device.cloudConnection"></i></td>
 							<td>{{ device.description }}</td>
 							<td>
-								<span class="badge bg-dark" *ngIf="device.listenerCount && device.listenerCount > 0">{{
+								<span class="badge text-bg-secondary" *ngIf="device.listenerCount && device.listenerCount > 0">{{
 									device.listenerCount
 								}}</span>
 							</td>

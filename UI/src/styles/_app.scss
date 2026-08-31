@@ -1,0 +1,37 @@
+// App-level styles that sit on top of Bootstrap and the token layer.
+
+body {
+	padding-top: var(--ta-navbar-height);
+}
+
+// Fills the viewport below the fixed navbar. `dvh` rather than `vh` so the
+// tally view does not sit under a phone's collapsing browser toolbar.
+.max-height {
+	height: calc(100dvh - var(--ta-navbar-height));
+}
+
+.w-unset {
+	width: unset;
+}
+
+// Listener "flash" — the producer pinging a client to identify it.
+.flash {
+	animation: flasher 0.1s cubic-bezier(1, 0, 0, 1) infinite alternate;
+}
+
+@keyframes flasher {
+	to {
+		background-color: var(--bs-body-bg);
+		opacity: 0;
+	}
+}
+
+// A 10Hz full-screen strobe is exactly what a photosensitive viewer needs to
+// not get. Keep the cue, drop the flicker.
+@media (prefers-reduced-motion: reduce) {
+	.flash {
+		animation: none;
+		outline: 0.5rem solid var(--ta-bus-program);
+		outline-offset: -0.5rem;
+	}
+}

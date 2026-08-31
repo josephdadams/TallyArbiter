@@ -1,0 +1,14 @@
+// Font Awesome, solid style only.
+//
+// The app uses `fas` / `fa-solid` exclusively (verified across every template),
+// so pulling `all.css` shipped three extra webfonts — regular, brands and the
+// v4 compatibility shim — that nothing referenced. Icon *names* still come from
+// the shared `fontawesome` core, so v4-era aliases like `fa-times` and
+// `fa-remove` keep working.
+//
+// `$fa-font-path` is resolved relative to Font Awesome's own scss directory,
+// which is where the emitted `url()` lives.
+$fa-font-path: '../webfonts';
+
+@import '@fortawesome/fontawesome-free/scss/fontawesome';
+@import '@fortawesome/fontawesome-free/scss/solid';

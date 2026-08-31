@@ -20,8 +20,9 @@ export class TallyComponent implements OnDestroy {
 	public currentBus?: BusOption
 	private supportsVibrate?: boolean = false
 
+	/** Fallback for "not on any bus" — see --ta-tally-idle-bg in styles/_tokens.scss. */
 	public COLORS = {
-		DARK_GREY: '#212529',
+		DARK_GREY: 'var(--ta-tally-idle-bg)',
 	}
 
 	public enableChatOptions = true

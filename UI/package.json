@@ -34,8 +34,6 @@
 		"@popperjs/core": "^2.11.8",
 		"ang-jsoneditor": "^6.0.0",
 		"bootstrap": "^5.3.2",
-		"bootstrap-icons": "^1.11.2",
-		"darkreader": "^4.9.128",
 		"jsoneditor": "^10.4.3",
 		"jwt-decode": "^4.0.0",
 		"ng-qrcode": "^22.0.0",
