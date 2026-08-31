@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core'
+import { Injectable, inject } from '@angular/core'
 import { Router } from '@angular/router'
 import { SocketService } from './socket.service'
 import { jwtDecode } from 'jwt-decode'
@@ -20,14 +20,14 @@ export interface ChangePasswordResponse {
 	providedIn: 'root',
 })
 export class AuthService {
+	private readonly socketService = inject(SocketService)
+	private readonly router = inject(Router)
+
 	public access_token: string = ''
 	public profile: any = undefined
 	public roles: string[] = []
 
-	constructor(
-		private socketService: SocketService,
-		private router: Router,
-	) {
+	constructor() {
 		if (localStorage.getItem('access_token') !== null) {
 			this.access_token = localStorage.getItem('access_token') as string
 			this.loadProfile()

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectionStrategy } from '@angular/core'
+import { Component, OnDestroy, ChangeDetectionStrategy, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { Subscription } from 'rxjs'
@@ -15,6 +15,10 @@ import { ChatComponent } from '../chat/chat.component'
 	styleUrls: ['./tally.component.scss'],
 })
 export class TallyComponent implements OnDestroy {
+	private readonly router = inject(Router)
+	public readonly route = inject(ActivatedRoute)
+	public readonly socketService = inject(SocketService)
+
 	public currentDeviceIdx?: number
 	public currentBus?: BusOption
 	private supportsVibrate?: boolean = false
@@ -33,11 +37,7 @@ export class TallyComponent implements OnDestroy {
 		this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id === deviceId)
 	}
 
-	constructor(
-		private router: Router,
-		public route: ActivatedRoute,
-		public socketService: SocketService,
-	) {
+	constructor() {
 		this.socketService.socket.emit('devices')
 		this.socketService.socket.emit('bus_options')
 

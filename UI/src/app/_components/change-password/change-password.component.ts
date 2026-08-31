@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core'
+import { Component, ElementRef, ViewChild, ChangeDetectionStrategy, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { AuthService, ChangePasswordResponse } from 'src/app/_services/auth.service'
@@ -13,6 +13,10 @@ import { MIN_PASSWORD_LENGTH } from '../../../../../src/_helpers/passwordPolicy'
 	styleUrls: ['./change-password.component.scss'],
 })
 export class ChangePasswordComponent {
+	public readonly route = inject(ActivatedRoute)
+	private readonly router = inject(Router)
+	public readonly authService = inject(AuthService)
+
 	public loading = false
 	public response: ChangePasswordResponse = { changeOk: true, message: '', accessToken: '' }
 	public currentPassword = ''
@@ -23,11 +27,7 @@ export class ChangePasswordComponent {
 	@ViewChild('inputNewPassword') public inputNewPassword!: ElementRef
 	@ViewChild('inputConfirmPassword') public inputConfirmPassword!: ElementRef
 
-	constructor(
-		public route: ActivatedRoute,
-		private router: Router,
-		public authService: AuthService,
-	) {
+	constructor() {
 		this.route.params.subscribe((params) => {
 			if (params.redirect) this.redirectParam = params.redirect
 		})

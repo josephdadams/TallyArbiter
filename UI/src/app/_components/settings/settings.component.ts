@@ -1,6 +1,6 @@
 import { DatePipe, NgTemplateOutlet } from '@angular/common'
 
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core'
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, ChangeDetectionStrategy, inject } from '@angular/core'
 
 import { FormsModule } from '@angular/forms'
 
@@ -72,6 +72,11 @@ type LogLevel = { title: string; id: string }
 	styleUrls: ['./settings.component.scss'],
 })
 export class SettingsComponent implements OnInit, OnDestroy {
+	private readonly modalService = inject(NgbModal)
+	public readonly socketService = inject(SocketService)
+	private readonly router = inject(Router)
+	public readonly authService = inject(AuthService)
+
 	@ViewChild('logsContainer') private logsContainer!: ElementRef
 	@ViewChild('tallyDataContainer') private tallyDataContainer!: ElementRef
 
@@ -178,12 +183,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		}, 100)
 	}
 
-	constructor(
-		private modalService: NgbModal,
-		public socketService: SocketService,
-		private router: Router,
-		public authService: AuthService,
-	) {
+	constructor() {
 		this.socketService.joinAdmins()
 		this.subscriptions.push(this.socketService.closeModals.subscribe(() => this.modalService.dismissAll()))
 		this.subscriptions.push(

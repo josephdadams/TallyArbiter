@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common'
-import { Component, OnDestroy, ChangeDetectionStrategy } from '@angular/core'
+import { Component, OnDestroy, ChangeDetectionStrategy, inject } from '@angular/core'
 import { Subscription } from 'rxjs'
 import { ChatComponent } from '../chat/chat.component'
 import { SocketService } from 'src/app/_services/socket.service'
@@ -13,11 +13,13 @@ import { SocketService } from 'src/app/_services/socket.service'
 	styleUrls: ['./producer.component.scss'],
 })
 export class ProducerComponent implements OnDestroy {
+	public readonly socketService = inject(SocketService)
+
 	public deviceBusColors: Record<string, string[]> = {}
 
 	private deviceStateChangedSubscription: Subscription
 
-	constructor(public socketService: SocketService) {
+	constructor() {
 		this.socketService.joinProducers()
 		this.socketService.dataLoaded
 

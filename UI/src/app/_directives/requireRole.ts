@@ -1,17 +1,15 @@
-import { Directive, Input, OnInit, TemplateRef, ViewContainerRef } from '@angular/core'
+import { Directive, Input, OnInit, TemplateRef, ViewContainerRef, inject } from '@angular/core'
 import { AuthService } from '../_services/auth.service'
 
 @Directive({
 	selector: '[requireRole]',
 })
 export class RequireRoleDirective implements OnInit {
-	@Input() requireRole = ''
+	private templateRef = inject<TemplateRef<any>>(TemplateRef)
+	private readonly viewContainer = inject(ViewContainerRef)
+	private readonly authService = inject(AuthService)
 
-	constructor(
-		private templateRef: TemplateRef<any>,
-		private viewContainer: ViewContainerRef,
-		private authService: AuthService,
-	) {}
+	@Input() requireRole = ''
 
 	ngOnInit() {
 		if (this.authService.requireRole(this.requireRole)) {

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core'
+import { Injectable, inject } from '@angular/core'
 import { Subject } from 'rxjs'
 import { io, Socket } from 'socket.io-client'
 import { connLostSnackbarService } from '../_services/conn-lost-snackbar.service'
@@ -33,6 +33,8 @@ import { User } from '../_models/User'
 	providedIn: 'root',
 })
 export class SocketService {
+	private readonly connLostSnackbar = inject(connLostSnackbarService)
+
 	public socket: Socket
 	public devices: Device[] = []
 	public cameraModels: CameraModel[] = []
@@ -93,7 +95,9 @@ export class SocketService {
 	public deviceStateChanged = new Subject<DeviceState[]>()
 	public deviceDuplicated = new Subject<void>()
 
-	constructor(private connLostSnackbar: connLostSnackbarService) {
+	constructor() {
+		const connLostSnackbar = this.connLostSnackbar
+
 		this.socket = io()
 
 		this.socket.on('error', (message: string) => {

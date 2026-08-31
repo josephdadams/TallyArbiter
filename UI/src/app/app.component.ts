@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core'
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import { trigger, transition, style, animate, state } from '@angular/animations'
 
@@ -27,16 +27,19 @@ import { ThemeSelectorComponent } from './_components/theme-selector/theme-selec
 	],
 })
 export class AppComponent {
+	private readonly wakeLockService = inject(WakeLockService)
+	public readonly navbarVisibilityService = inject(NavbarVisibilityService)
+	public readonly connLostSnackbar = inject(connLostSnackbarService)
+	private readonly locationBackService = inject(LocationBackService)
+	public readonly darkModeService = inject(DarkModeService)
+	public readonly authService = inject(AuthService)
+
 	public showMenu = false
 
-	constructor(
-		private wakeLockService: WakeLockService,
-		public navbarVisibilityService: NavbarVisibilityService,
-		public connLostSnackbar: connLostSnackbarService,
-		private locationBackService: LocationBackService,
-		public darkModeService: DarkModeService,
-		public authService: AuthService,
-	) {
+	constructor() {
+		const wakeLockService = this.wakeLockService
+		const darkModeService = this.darkModeService
+
 		wakeLockService.init()
 		darkModeService.init()
 	}

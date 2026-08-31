@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core'
+import { Component, OnDestroy, OnInit, ChangeDetectionStrategy, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { Confirmable } from 'src/app/_decorators/confirmable.decorator'
@@ -16,6 +16,11 @@ import { LocationBackService } from 'src/app/_services/locationBack.service'
 	styleUrls: ['./error-reports-list.component.scss'],
 })
 export class ErrorReportsListComponent implements OnInit, OnDestroy {
+	private readonly router = inject(Router)
+	public readonly socketService = inject(SocketService)
+	public readonly navbarVisibilityService = inject(NavbarVisibilityService)
+	public readonly locationBackService = inject(LocationBackService)
+
 	public unread_error_reports: any = []
 	public errorReportsLoaded: boolean = false
 
@@ -24,12 +29,7 @@ export class ErrorReportsListComponent implements OnInit, OnDestroy {
 		this.errorReportsLoaded = true
 	}
 
-	constructor(
-		private router: Router,
-		public socketService: SocketService,
-		public navbarVisibilityService: NavbarVisibilityService,
-		public locationBackService: LocationBackService,
-	) {
+	constructor() {
 		this.socketService.socket.on('unread_error_reports', this.unreadErrorReportsHandler)
 		this.socketService.socket.emit('get_unread_error_reports')
 	}

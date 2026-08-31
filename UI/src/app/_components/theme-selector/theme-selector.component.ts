@@ -1,4 +1,4 @@
-import { Component, Input, ChangeDetectionStrategy } from '@angular/core'
+import { Component, Input, ChangeDetectionStrategy, inject } from '@angular/core'
 import { DarkModeService, ThemePreference } from '../../_services/darkmode.service'
 
 interface ThemeOption {
@@ -17,6 +17,8 @@ interface ThemeOption {
 	styleUrls: ['./theme-selector.component.scss'],
 })
 export class ThemeSelectorComponent {
+	public readonly darkModeService = inject(DarkModeService)
+
 	@Input() selector_style: string = 'icon'
 
 	public readonly options: ThemeOption[] = [
@@ -36,6 +38,4 @@ export class ThemeSelectorComponent {
 			icon: 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z',
 		},
 	]
-
-	constructor(public darkModeService: DarkModeService) {}
 }

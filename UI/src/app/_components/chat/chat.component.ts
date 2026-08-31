@@ -1,5 +1,5 @@
 import { DatePipe, TitleCasePipe } from '@angular/common'
-import { Component, ElementRef, Input, OnDestroy, ViewChild, ChangeDetectionStrategy } from '@angular/core'
+import { Component, ElementRef, Input, OnDestroy, ViewChild, ChangeDetectionStrategy, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Subscription } from 'rxjs'
 import { SocketService } from 'src/app/_services/socket.service'
@@ -13,13 +13,15 @@ import { SocketService } from 'src/app/_services/socket.service'
 	styleUrls: ['./chat.component.scss'],
 })
 export class ChatComponent implements OnDestroy {
+	public readonly socketService = inject(SocketService)
+
 	public message = ''
 	@Input() type: 'producer' | any
 	@ViewChild('chatContainer') private chatContainer!: ElementRef
 
 	private scrollChatSubscription: Subscription
 
-	constructor(public socketService: SocketService) {
+	constructor() {
 		this.scrollChatSubscription = this.socketService.scrollChatSubject.subscribe(() => {
 			this.scrollToBottom(this.chatContainer)
 		})

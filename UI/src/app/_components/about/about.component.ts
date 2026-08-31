@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core'
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core'
 import { SocketService } from 'src/app/_services/socket.service'
 
 @Component({
@@ -10,9 +10,9 @@ import { SocketService } from 'src/app/_services/socket.service'
 	styleUrls: ['./about.component.scss'],
 })
 export class AboutComponent implements OnInit {
-	public currentYear = new Date().getFullYear()
+	public readonly socketService = inject(SocketService)
 
-	constructor(public socketService: SocketService) {}
+	public currentYear = new Date().getFullYear()
 
 	ngOnInit(): void {}
 }

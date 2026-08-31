@@ -7,6 +7,7 @@ import {
 	Renderer2,
 	ElementRef,
 	ChangeDetectionStrategy,
+	inject,
 } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { SocketService } from 'src/app/_services/socket.service'
@@ -25,6 +26,13 @@ import { versions } from 'src/environments/versions'
 	styleUrls: ['./error-report.component.scss'],
 })
 export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
+	public readonly route = inject(ActivatedRoute)
+	public readonly socketService = inject(SocketService)
+	public readonly navbarVisibilityService = inject(NavbarVisibilityService)
+	public readonly locationBackService = inject(LocationBackService)
+	private readonly renderer = inject(Renderer2)
+	private readonly el = inject(ElementRef)
+
 	public currentReportId: string = 'blank'
 	public currentReport: ErrorReport = {} as ErrorReport
 	public loading = true
@@ -34,14 +42,9 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
 	public bugReportUrlLoaded: boolean = false
 	public bugReportShowForkWarning: boolean = false
 
-	constructor(
-		public route: ActivatedRoute,
-		public socketService: SocketService,
-		public navbarVisibilityService: NavbarVisibilityService,
-		public locationBackService: LocationBackService,
-		private renderer: Renderer2,
-		private el: ElementRef,
-	) {
+	constructor() {
+		const navbarVisibilityService = this.navbarVisibilityService
+
 		navbarVisibilityService.hideNavbar()
 		this.route.params.subscribe((params) => {
 			if (params.errorReportId) {

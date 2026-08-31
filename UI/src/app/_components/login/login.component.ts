@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core'
+import { Component, ElementRef, ViewChild, ChangeDetectionStrategy, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { AuthService, LoginResponse } from 'src/app/_services/auth.service'
@@ -12,6 +12,10 @@ import { AuthService, LoginResponse } from 'src/app/_services/auth.service'
 	styleUrls: ['./login.component.scss'],
 })
 export class LoginComponent {
+	public readonly route = inject(ActivatedRoute)
+	private readonly router = inject(Router)
+	private readonly authService = inject(AuthService)
+
 	public loading = false
 	public loginResponse: LoginResponse = { loginOk: false, message: '', accessToken: '' }
 	public username = ''
@@ -20,11 +24,7 @@ export class LoginComponent {
 	private extraParam = ''
 	@ViewChild('inputPassword') public inputPassword!: ElementRef
 
-	constructor(
-		public route: ActivatedRoute,
-		private router: Router,
-		private authService: AuthService,
-	) {
+	constructor() {
 		this.route.params.subscribe((params) => {
 			if (params.redirect) this.redirectParam = params.redirect
 			if (params.extraParam) this.extraParam = params.extraParam
