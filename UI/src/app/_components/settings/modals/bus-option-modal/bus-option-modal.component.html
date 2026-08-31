@@ -1,0 +1,34 @@
+<div class="modal-header">
+	<h4 class="modal-title" id="modal-basic-title">{{ editing ? 'Edit' : 'Add' }} Bus Option</h4>
+	<button class="btn" (click)="activeModal.dismiss()"><span>&times;</span></button>
+</div>
+<div class="modal-body">
+	@if (editing) {
+		<div class="mb-3">
+			<label for="busId" class="form-label">Bus Id</label>
+			<input type="text" id="busId" class="form-control" disabled [ngModel]="busOption.id" />
+		</div>
+	}
+
+	<div class="mb-3">
+		<label for="busLabel" class="form-label">Label</label>
+		<input type="text" class="form-control" id="busLabel" disabled [(ngModel)]="busOption.label" />
+	</div>
+	<div class="mb-3">
+		<label for="busType" class="form-label">Type</label>
+		<input type="text" class="form-control" id="busType" disabled [(ngModel)]="busOption.type" />
+	</div>
+	<div class="mb-3">
+		<label for="busColor" class="form-label">Color</label>
+		<input type="color" class="form-control color-input" id="busColor" [(ngModel)]="busOption.color" />
+	</div>
+	<div class="mb-3">
+		<input type="checkbox" class="form-check-input" id="busVisible" [(ngModel)]="busOption.visible" />
+		<label class="form-check-label" for="busVisible">Visible in UI</label>
+	</div>
+	<div class="d-flex justify-content-end">
+		<button class="btn btn-primary" (click)="save()">
+			<i class="fas fa-save"></i> {{ editing ? 'Save Changes' : 'Add Bus Option' }}
+		</button>
+	</div>
+</div>

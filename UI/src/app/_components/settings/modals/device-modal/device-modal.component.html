@@ -1,0 +1,85 @@
+<div class="modal-header">
+	<h4 class="modal-title" id="modal-basic-title">{{ editing ? 'Edit' : 'Add' }} Device</h4>
+	<button class="btn" (click)="activeModal.dismiss()"><span>&times;</span></button>
+</div>
+<div class="modal-body">
+	@if (editing) {
+		<div class="mb-3">
+			<label for="deviceId" class="form-label">Device Id</label>
+			<input type="text" id="sourceId" class="form-control" disabled [ngModel]="device.id" />
+		</div>
+	}
+
+	<div class="mb-3">
+		<label for="deviceName" class="form-label">Device Name</label>
+		<input type="text" class="form-control" id="deviceName" [(ngModel)]="device.name" />
+	</div>
+	<div class="mb-3">
+		<label for="deviceDescription" class="form-label">Device Description</label>
+		<input type="text" class="form-control" id="deviceDescription" [(ngModel)]="device.description" />
+	</div>
+	<div class="mb-3">
+		<label for="deviceTSLAddress" class="form-label">
+			TSL Address
+			<span class="ta-tooltip" data-tip="This is the address used for TSL Client connections.">ⓘ</span>
+		</label>
+		<input
+			type="number"
+			[min]="0"
+			[max]="126"
+			[step]="1"
+			class="form-control"
+			id="deviceTSLAddress"
+			[(ngModel)]="device.tslAddress"
+		/>
+	</div>
+	<hr class="my-3" />
+	<div class="mb-3">
+		<label for="deviceCameraIP" class="form-label">
+			Camera IP
+			<span
+				class="ta-tooltip"
+				data-tip="If your camera supports tally natively, use this feature to send tally commands directly to it."
+				>ⓘ</span
+			>
+		</label>
+		<input type="text" class="form-control" id="deviceCameraIP" [(ngModel)]="device.cameraIP" />
+		<label for="deviceCameraModel" class="form-label mt-2">Camera Model</label>
+		<select class="form-select" id="deviceCameraModel" [(ngModel)]="device.cameraModel">
+			<option value="">-- Select Model --</option>
+			@for (cameraModel of socketService.cameraModels(); track cameraModel.id) {
+				<option [value]="cameraModel.id">
+					{{ cameraModel.label }}
+				</option>
+			}
+		</select>
+	</div>
+	<hr class="my-3" />
+	<div class="mb-3">
+		<b>Linked Busses:</b><br />
+		<small>
+			By default busses are unlinked. That means the device will be (for example) in Preview if it is in Preview in
+			<b>any</b> Device Source. By linking, all busses you select here will only be in that bus within Tally Arbiter if
+			it is in Preview across <b>all</b> Device Sources.
+		</small>
+		<div>
+			<select class="form-select" [(ngModel)]="device.linkedBusses" multiple="multiple">
+				@for (bus of socketService.busOptions(); track bus.id) {
+					<option [value]="bus.id">{{ bus.label }}</option>
+				}
+			</select>
+		</div>
+	</div>
+	@if (editing) {
+		<b>Device Enabled:</b>
+		<div class="mb-3 form-check">
+			<input type="checkbox" class="form-check-input" id="enabled" [(ngModel)]="device.enabled" />
+			<label class="form-check-label" for="enabled">Enabled</label>
+		</div>
+	}
+	<div class="d-flex justify-content-end">
+		<button class="btn btn-primary" (click)="save()">
+			<i class="fas fa-save"></i> {{ editing ? 'Save Changes' : 'Add Device' }}
+		</button>
+	</div>
+</div>

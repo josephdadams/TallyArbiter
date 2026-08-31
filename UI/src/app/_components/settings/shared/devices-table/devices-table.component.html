@@ -1,0 +1,78 @@
+<h3>
+	Devices
+	@if (editMode) {
+		<button class="btn btn-sm btn-success" (click)="addDevice.emit()"><i class="fas fa-plus"></i> Add</button>
+	}
+</h3>
+@if (socketService.devices().length == 0) {
+	<span class="text-muted mt-3">No devices configured.</span>
+}
+<div class="table-responsive">
+	@if (socketService.devices().length > 0) {
+		<table class="table table-hover align-middle">
+			<thead>
+				<tr>
+					@for (bus of socketService.busOptionsVisible(); track bus.id) {
+						<th>{{ bus.label }}</th>
+					}
+					<th style="min-width: 100px">Name</th>
+					<th></th>
+					<th style="min-width: 200px">Description</th>
+					@if (editMode) {
+						<th style="min-width: 250px"></th>
+					}
+				</tr>
+			</thead>
+			<tbody>
+				@for (device of socketService.devices(); track device.id; let index = $index) {
+					<tr [class.text-muted]="!device.enabled">
+						@for (bus of socketService.busOptionsVisible(); track bus.id) {
+							<td
+								class="bus-cell"
+								[style.background-color]="deviceBusColors()[device.id].includes(bus.id) ? bus.color : null"
+								[attr.aria-label]="
+									bus.label + (deviceBusColors()[device.id].includes(bus.id) ? ': active' : ': inactive')
+								"
+							></td>
+						}
+						<td>
+							<small
+								><b>{{ index + 1 }}</b></small
+							>
+							{{ device.name }}
+						</td>
+						<td>
+							@if (device.cloudConnection) {
+								<i class="fas fa-cloud text-muted"></i>
+							}
+						</td>
+						<td>{{ device.description }}</td>
+						@if (editMode) {
+							<td class="text-center">
+								<button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editDevice.emit(device)">
+									<i class="fas fa-pen"></i> Edit
+								</button>
+								<button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editSources.emit(device)">
+									<i class="fas fa-link"></i> Edit Sources ({{ sourceCounts()[device.id] ?? 0 }})
+								</button>
+								<button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editActions.emit(device)">
+									<i class="fas fa-play"></i> Edit Actions ({{ actionCounts()[device.id] ?? 0 }})
+								</button>
+								<button
+									class="btn btn-sm btn-secondary mx-1 my-1"
+									title="Create a copy of this device, along with its sources and actions. The copy is created disabled and without a TSL address."
+									(click)="duplicateDevice.emit(device)"
+								>
+									<i class="fas fa-copy"></i> Duplicate
+								</button>
+								<button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteDevice.emit(device)">
+									<i class="fas fa-trash"></i> Delete
+								</button>
+							</td>
+						}
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+</div>

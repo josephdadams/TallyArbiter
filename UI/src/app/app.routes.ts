@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router'
 import { AuthorizeGuard } from './_guards/authorize.guard'
+import { requireRoleGuard } from './_guards/requireRole.guard'
 
 export const routes: Routes = [
 	{ path: 'home', loadComponent: () => import('./_components/home/home.component').then((m) => m.HomeComponent) },
@@ -17,6 +18,51 @@ export const routes: Routes = [
 		path: 'settings',
 		loadComponent: () => import('./_components/settings/settings.component').then((m) => m.SettingsComponent),
 		canActivate: [AuthorizeGuard],
+		children: [
+			{
+				path: 'sources-devices',
+				loadComponent: () =>
+					import('./_components/settings/tabs/sources-devices/sources-devices-tab.component').then(
+						(m) => m.SourcesDevicesTabComponent,
+					),
+				canActivate: [requireRoleGuard('settings:sources_devices')],
+			},
+			{
+				path: 'listeners',
+				loadComponent: () =>
+					import('./_components/settings/tabs/listeners/listeners-tab.component').then((m) => m.ListenersTabComponent),
+				canActivate: [requireRoleGuard('settings:listeners')],
+			},
+			{
+				path: 'cloud',
+				loadComponent: () =>
+					import('./_components/settings/tabs/cloud/cloud-tab.component').then((m) => m.CloudTabComponent),
+				canActivate: [requireRoleGuard('settings:cloud')],
+			},
+			{
+				path: 'testing',
+				loadComponent: () =>
+					import('./_components/settings/tabs/testing/testing-tab.component').then((m) => m.TestingTabComponent),
+				canActivate: [requireRoleGuard('settings:testing')],
+			},
+			{
+				path: 'config',
+				loadComponent: () =>
+					import('./_components/settings/tabs/config/config-tab.component').then((m) => m.ConfigTabComponent),
+				canActivate: [requireRoleGuard('settings:config')],
+			},
+			{
+				path: 'users',
+				loadComponent: () =>
+					import('./_components/settings/tabs/users/users-tab.component').then((m) => m.UsersTabComponent),
+				canActivate: [requireRoleGuard('settings:users')],
+			},
+			{
+				path: 'logs',
+				loadComponent: () =>
+					import('./_components/settings/tabs/logs/logs-tab.component').then((m) => m.LogsTabComponent),
+			},
+		],
 	},
 	{
 		path: 'errors/:errorReportId',

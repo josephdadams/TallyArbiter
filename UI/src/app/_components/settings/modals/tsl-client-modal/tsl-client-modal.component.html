@@ -1,0 +1,167 @@
+<div class="modal-header">
+	<h4 class="modal-title" id="modal-basic-title">{{ editing ? 'Edit' : 'Add' }} TSL Client</h4>
+	<button class="btn" (click)="activeModal.dismiss()"><span>&times;</span></button>
+</div>
+<div class="modal-body">
+	@if (editing) {
+		<div class="mb-3">
+			<label for="tslClientId" class="form-label">TSL Client Id</label>
+			<input type="text" id="tslClientId" class="form-control" disabled [ngModel]="tslClient.id" />
+		</div>
+	}
+
+	<div class="mb-3">
+		<label for="tslIP" class="form-label">IP address</label>
+		<input type="text" class="form-control" id="tslIP" [(ngModel)]="tslClient.ip" />
+	</div>
+	<div class="mb-3">
+		<label for="tslPort" class="form-label">Port</label>
+		<input type="number" class="form-control" id="tslPort" [(ngModel)]="tslClient.port" />
+	</div>
+	<div class="mb-3">
+		<label for="tslTransport" class="form-label">Transport</label>
+		<select class="form-select" id="tslTransport" [(ngModel)]="tslClient.transport">
+			<option value="tcp">TCP</option>
+			<option value="udp">UDP</option>
+		</select>
+	</div>
+	<div class="mb-3">
+		<label for="tslProtocol" class="form-label">Protocol</label>
+		<select
+			class="form-select"
+			id="tslProtocol"
+			[(ngModel)]="tslClient.protocol"
+			(ngModelChange)="onProtocolChanged($event)"
+		>
+			<option value="3.1">TSL 3.1</option>
+			<option value="5.0">TSL 5.0</option>
+		</select>
+	</div>
+	<div class="mb-3">
+		<label class="form-label">Protocol Options</label>
+
+		<!-- TSL 3.1 options -->
+		@if (tslClient.protocol === '3.1') {
+			<div class="card">
+				<div class="card-body">
+					<div class="row g-3">
+						<div class="col-md-3">
+							<label for="tsl31Tally1Role" class="form-label">Tally 1</label>
+							<select class="form-select" id="tsl31Tally1Role" [(ngModel)]="tslClient.protocolOptions.tally1">
+								<option value="off">Off</option>
+								<option value="pvw">PVW</option>
+								<option value="pgm">PGM</option>
+							</select>
+						</div>
+
+						<div class="col-md-3">
+							<label for="tsl31Tally2Role" class="form-label">Tally 2</label>
+							<select class="form-select" id="tsl31Tally2Role" [(ngModel)]="tslClient.protocolOptions.tally2">
+								<option value="off">Off</option>
+								<option value="pvw">PVW</option>
+								<option value="pgm">PGM</option>
+							</select>
+						</div>
+
+						<div class="col-md-3">
+							<label for="tsl31Tally3Role" class="form-label">Tally 3</label>
+							<select class="form-select" id="tsl31Tally3Role" [(ngModel)]="tslClient.protocolOptions.tally3">
+								<option value="off">Off</option>
+								<option value="pvw">PVW</option>
+								<option value="pgm">PGM</option>
+							</select>
+						</div>
+
+						<div class="col-md-3">
+							<label for="tsl31Tally4Role" class="form-label">Tally 4</label>
+							<select class="form-select" id="tsl31Tally4Role" [(ngModel)]="tslClient.protocolOptions.tally4">
+								<option value="off">Off</option>
+								<option value="pvw">PVW</option>
+								<option value="pgm">PGM</option>
+							</select>
+						</div>
+
+						<div class="col-md-6">
+							<label for="tsl31Brightness" class="form-label">Brightness</label>
+							<select class="form-select" id="tsl31Brightness" [(ngModel)]="tslClient.protocolOptions.brightness">
+								<option [ngValue]="0">0</option>
+								<option [ngValue]="1">1</option>
+								<option [ngValue]="2">2</option>
+								<option [ngValue]="3">3</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="form-text mt-2">
+						Map PVW/PGM state to the four TSL 3.1 tally bits. Defaults match the current behavior (Tally 1 = PVW, Tally
+						2 = PGM).
+					</div>
+				</div>
+			</div>
+		}
+
+		<!-- TSL 5.0 options -->
+		@if (tslClient.protocol === '5.0') {
+			<div class="card">
+				<div class="card-body">
+					<div class="row g-3">
+						<div class="col-md-4">
+							<label for="tsl5LeftTallyRole" class="form-label">Left Tally</label>
+							<select class="form-select" id="tsl5LeftTallyRole" [(ngModel)]="tslClient.protocolOptions.lh_tally">
+								<option value="off">Off</option>
+								<option value="pgm">PGM</option>
+								<option value="pvw">PVW</option>
+							</select>
+						</div>
+
+						<div class="col-md-4">
+							<label for="tsl5RightTallyRole" class="form-label">Right Tally</label>
+							<select class="form-select" id="tsl5RightTallyRole" [(ngModel)]="tslClient.protocolOptions.rh_tally">
+								<option value="off">Off</option>
+								<option value="pgm">PGM</option>
+								<option value="pvw">PVW</option>
+							</select>
+						</div>
+
+						<div class="col-md-4">
+							<label for="tsl5TextTallyRole" class="form-label">Text Tally</label>
+							<select class="form-select" id="tsl5TextTallyRole" [(ngModel)]="tslClient.protocolOptions.text_tally">
+								<option value="off">Off</option>
+								<option value="pgm">PGM</option>
+								<option value="pvw">PVW</option>
+							</select>
+						</div>
+
+						<div class="col-md-6">
+							<label for="tsl5Brightness" class="form-label">Brightness</label>
+							<select class="form-select" id="tsl5Brightness" [(ngModel)]="tslClient.protocolOptions.brightness">
+								<option [ngValue]="0">0</option>
+								<option [ngValue]="1">1</option>
+								<option [ngValue]="2">2</option>
+								<option [ngValue]="3">3</option>
+							</select>
+						</div>
+
+						<div class="col-md-6">
+							<label for="tsl5Sequence" class="form-label">DLE/STX sequence</label>
+							<select class="form-select" id="tsl5Sequence" [(ngModel)]="tslClient.protocolOptions.sequence">
+								<option value="ON">On</option>
+								<option value="OFF">Off</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="form-text mt-2">
+						Tally roles map Tally Arbiter state to TSL 5.0 regions. Example: if device is in PVW and Left Tally is set
+						to PVW, the left tally will illuminate.
+					</div>
+				</div>
+			</div>
+		}
+	</div>
+	<div class="d-flex justify-content-end">
+		<button class="btn btn-primary" (click)="save()">
+			<i class="fas fa-save"></i> {{ editing ? 'Save Changes' : 'Add TSL Client' }}
+		</button>
+	</div>
+</div>

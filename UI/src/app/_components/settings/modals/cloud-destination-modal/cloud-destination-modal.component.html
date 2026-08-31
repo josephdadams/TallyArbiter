@@ -1,0 +1,30 @@
+<div class="modal-header">
+	<h4 class="modal-title" id="modal-basic-title">{{ editing ? 'Edit' : 'Add' }} Cloud Destination</h4>
+	<button class="btn" (click)="activeModal.dismiss()"><span>&times;</span></button>
+</div>
+<div class="modal-body">
+	@if (editing) {
+		<div class="mb-3">
+			<label for="cloudId" class="form-label">Cloud Destination Id</label>
+			<input type="text" id="cloudId" class="form-control" disabled [ngModel]="cloudDestination.id" />
+		</div>
+	}
+
+	<div class="mb-3">
+		<label for="cloudIP" class="form-label">Host</label>
+		<input type="text" class="form-control" id="cloudHost" [(ngModel)]="cloudDestination.host" />
+	</div>
+	<div class="mb-3">
+		<label for="cloudPort" class="form-label">Port</label>
+		<input type="number" class="form-control" id="cloudPort" [(ngModel)]="cloudDestination.port" />
+	</div>
+	<div class="mb-3">
+		<label for="cloudKey" class="form-label">Key</label>
+		<input type="text" class="form-control" id="cloudKey" [(ngModel)]="cloudDestination.key" />
+	</div>
+	<div class="d-flex justify-content-end">
+		<button class="btn btn-primary" (click)="save()">
+			<i class="fas fa-save"></i> {{ editing ? 'Save Changes' : 'Add Cloud Destination' }}
+		</button>
+	</div>
+</div>

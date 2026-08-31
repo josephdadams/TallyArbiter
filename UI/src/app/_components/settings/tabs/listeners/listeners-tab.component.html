@@ -1,0 +1,166 @@
+<div class="row">
+	<h3>Chat</h3>
+	<div>
+		<div class="form-check form-switch">
+			<input
+				class="form-check-input"
+				type="checkbox"
+				id="chkChatEnabled"
+				[ngModel]="socketService.chatEnabled()"
+				(ngModelChange)="socketService.setChatEnabled($event)"
+			/>
+			<label class="form-check-label" for="chkChatEnabled">Enable Chat</label>
+		</div>
+		<span class="text-muted mt-3 d-block"
+			>Allows the Producer page and supported listener clients to exchange messages. When turned off, the chat box is
+			hidden and the server rejects any messages sent to it. Connect/disconnect and test mode notices are still
+			delivered.</span
+		>
+	</div>
+</div>
+<hr class="my-5" />
+<div class="row">
+	<h3>Connected Listeners</h3>
+	@if (socketService.listenerClients().length == 0) {
+		<span class="text-muted mt-3">No listeners connected.</span>
+	}
+	<div class="table-responsive">
+		@if (socketService.listenerClients().length > 0) {
+			<table class="table table-hover align-middle">
+				<thead>
+					<tr>
+						<th>IP Address</th>
+						<th></th>
+						<th class="bg-body-tertiary">Type</th>
+						<th>Device</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					@for (listenerClient of socketService.listenerClients(); track listenerClient.id) {
+						<tr>
+							<td>{{ listenerClient.ipAddress }}</td>
+							<td>
+								@if (listenerClient.cloudConnection) {
+									<i class="fas fa-cloud text-muted"></i>
+								}
+							</td>
+							<td class="bg-body-tertiary">{{ listenerClient.listenerType }}</td>
+							<td>
+								@if (listenerClient.listenerType != 'vmix') {
+									<select
+										class="form-select"
+										[ngModel]="listenerClient.deviceId"
+										(ngModelChange)="reassignListenerClient(listenerClient, $event)"
+										[disabled]="!listenerClient.canBeReassigned"
+									>
+										@for (device of socketService.devices(); track device.id) {
+											<option [value]="device.id">
+												{{ device.name }}
+											</option>
+										}
+									</select>
+								}
+							</td>
+							<td>
+								@if (listenerClient.inactive) {
+									<button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteListener(listenerClient)">
+										<i class="fas fa-trash"></i> Delete
+									</button>
+								}
+								@if (!listenerClient.inactive && listenerClient.canBeFlashed) {
+									<button class="btn btn-sm btn-info mx-1 my-1" (click)="flash(listenerClient)">
+										<i class="fas fa-exclamation"></i> Flash
+									</button>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	</div>
+</div>
+<hr class="my-5" />
+<div class="row">
+	<h3>Connected vMix Listeners</h3>
+	@if (socketService.vmixClients().length == 0) {
+		<span class="text-muted mt-3">No listeners connected.</span>
+	}
+	<div class="table-responsive">
+		@if (socketService.vmixClients().length > 0) {
+			<table class="table table-hover align-middle">
+				<thead>
+					<tr>
+						<th>IP Address</th>
+					</tr>
+				</thead>
+				<tbody>
+					@for (vmixClient of socketService.vmixClients(); track vmixClient) {
+						<tr>
+							<td>{{ vmixClient.host }}</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	</div>
+</div>
+<hr class="my-5" />
+<div class="row">
+	<h3>
+		TSL Clients
+		<button class="btn btn-sm btn-success mr-1" (click)="addTSLClient()"><i class="fas fa-plus"></i> Add</button>
+	</h3>
+	<div>
+		<div class="form-check form-switch">
+			<input
+				class="form-check-input"
+				type="checkbox"
+				id="chkTSLClients_1SecUpdate"
+				[ngModel]="socketService.tslclients_1secupdate()"
+				(ngModelChange)="socketService.setTslClients1SecUpdate($event)"
+			/>
+			<label class="form-check-label" for="chkTSLClients_1SecUpdate">1-Second Updates</label>
+		</div>
+		@if (socketService.tslClients().length == 0) {
+			<span class="text-muted mt-3 d-block">No TSL Listener Clients configured.</span>
+		}
+		<div class="table-responsive">
+			@if (socketService.tslClients().length > 0) {
+				<table class="table table-hover align-middle">
+					<thead>
+						<tr>
+							<th>IP</th>
+							<th>Port</th>
+							<th>Protocol</th>
+							<th>Transport</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						@for (tslClient of socketService.tslClients(); track tslClient.id) {
+							<tr [class.text-success]="tslClient.connected">
+								<td>{{ tslClient.ip }}</td>
+								<td>{{ tslClient.port }}</td>
+								<td>
+									{{ tslClient.protocol == '3.1' ? 'TSL 3.1' : tslClient.protocol == '5.0' ? 'TSL 5.0' : 'TSL 3.1' }}
+								</td>
+								<td>{{ tslClient.transport == 'tcp' ? 'TCP' : 'UDP' }}</td>
+								<td class="text-center">
+									<button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editTSLClient(tslClient)">
+										<i class="fas fa-pen"></i> Edit
+									</button>
+									<button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteTSLClient(tslClient)">
+										<i class="fas fa-trash"></i> Delete
+									</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</div>
+	</div>
+</div>
+<hr class="my-5" />

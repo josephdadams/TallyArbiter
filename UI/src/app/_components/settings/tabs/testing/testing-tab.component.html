@@ -1,0 +1,26 @@
+@if (!testModeOn()) {
+	<div>
+		<button class="btn btn-secondary mb-5" (click)="setTestMode(true, socketService.testModeInterval())">
+			<i class="fas fa-vial"></i> Turn On Test Mode
+		</button>
+		<div class="mb-3 form-check">
+			<label for="testModeInterval" class="form-label">Interval (ms) between changes</label>
+			<input
+				type="number"
+				class="form-control w-25"
+				id="txtTestModeInterval"
+				[ngModel]="socketService.testModeInterval()"
+				(ngModelChange)="socketService.testModeInterval.set($event)"
+			/>
+		</div>
+	</div>
+} @else {
+	<button class="btn btn-secondary mb-5" (click)="setTestMode(false)">
+		<i class="fas fa-vial"></i> Turn Off Test Mode
+	</button>
+}
+
+@if (testModeOn()) {
+	<i class="fas fa-vial fa-spin fa-4x text-secondary float-end"></i>
+}
+<app-devices-table></app-devices-table>

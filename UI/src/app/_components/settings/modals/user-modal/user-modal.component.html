@@ -1,0 +1,58 @@
+<div class="modal-header">
+	<h4 class="modal-title" id="modal-basic-title">{{ editing ? 'Edit' : 'Add' }} User</h4>
+	<button class="btn" (click)="activeModal.dismiss()"><span>&times;</span></button>
+</div>
+<div class="modal-body">
+	<div class="mb-3">
+		<label for="userUsername" class="form-label">Username</label>
+		<input
+			required
+			type="text"
+			class="form-control"
+			id="userUsername"
+			[disabled]="editing"
+			[(ngModel)]="user.username"
+		/>
+	</div>
+	<div class="mb-3">
+		<label for="userRoles" class="form-label">Role</label>
+		<select
+			id="userRoles"
+			class="form-select"
+			multiple
+			[(ngModel)]="selectedUserRoles"
+			(ngModelChange)="userRolesSelectionChange($event)"
+		>
+			@for (role of authService.roles; track role) {
+				<option [value]="role" [selected]="isUserRoleSelected(role)">
+					{{ role }}
+				</option>
+			}
+		</select>
+		<small class="form-text">Use Ctrl to select multiple items.</small>
+	</div>
+	@if (!editing) {
+		<div class="mb-3">
+			<label for="userPassword" class="form-label">Password</label>
+			<input
+				required
+				type="password"
+				class="form-control"
+				id="userPassword"
+				autocomplete="new-password"
+				[(ngModel)]="user.password"
+			/>
+			<small class="form-text">At least {{ minPasswordLength }} characters.</small>
+			@if (user.password && newUserPasswordError) {
+				<div class="text-danger mt-1">
+					{{ newUserPasswordError }}
+				</div>
+			}
+		</div>
+	}
+	<div class="d-flex justify-content-end">
+		<button class="btn btn-primary" (click)="save()" [disabled]="newUserPasswordError !== ''">
+			<i class="fas fa-save"></i> {{ editing ? 'Save Changes' : 'Add User' }}
+		</button>
+	</div>
+</div>

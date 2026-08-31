@@ -1,0 +1,61 @@
+<div class="row">
+	<h3>
+		Users
+		<button class="btn btn-sm btn-success me-2" (click)="addUser()"><i class="fas fa-plus"></i> Add</button>
+	</h3>
+	<div>
+		@if (socketService.defaultPasswordUsers().length > 0) {
+			<div class="alert alert-warning">
+				<i class="fas fa-exclamation-triangle me-2"></i>
+				<strong>{{ socketService.defaultPasswordUsers().join(', ') }}</strong>
+				{{ socketService.defaultPasswordUsers().length === 1 ? 'is' : 'are' }} still using the default password that
+				Tally Arbiter ships with. Anyone who can reach this server can sign in. Please set a real password below — this
+				will be enforced in a future release.
+			</div>
+		}
+		@if (socketService.users().length == 0) {
+			<span class="text-muted mt-3 d-block"
+				>No user found. This should not happen... Please, open a bug report on Github.</span
+			>
+		}
+		<div class="table-responsive">
+			@if (socketService.users().length > 0) {
+				<table class="table table-hover align-middle">
+					<thead>
+						<tr>
+							<th>Username</th>
+							<th>Roles</th>
+							<th></th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						@for (user of socketService.users(); track user.username) {
+							<tr>
+								<td>{{ user.username }}</td>
+								<td>{{ user.roles.toString().replaceAll(';', ', ') }}</td>
+								<td>
+									<button class="btn btn-sm btn-secondary" (click)="editUser(user)">
+										<i class="fas fa-pen"></i> Edit
+									</button>
+								</td>
+								<td>
+									<button
+										class="btn btn-sm btn-danger"
+										(click)="deleteUserButton(user)"
+										[disabled]="socketService.users().length === 1"
+									>
+										<i class="fas fa-trash"></i> Delete
+										@if (authService.profile().username === user.username) {
+											<i class="fas fa-exclamation-triangle"></i>
+										}
+									</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</div>
+	</div>
+</div>

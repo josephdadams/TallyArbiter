@@ -1,4 +1,4 @@
-import { enableProdMode, provideZoneChangeDetection } from '@angular/core'
+import { enableProdMode, provideZonelessChangeDetection } from '@angular/core'
 import { bootstrapApplication } from '@angular/platform-browser'
 import { provideAnimations } from '@angular/platform-browser/animations'
 import { provideRouter, withHashLocation } from '@angular/router'
@@ -14,13 +14,11 @@ if (environment.production) {
 
 bootstrapApplication(AppComponent, {
 	providers: [
-		// Angular no longer turns on zone-based change detection implicitly. Every
-		// component here is CheckAlways over plain mutable state pushed in from
-		// socket.io, so without this the UI renders once and then never updates —
-		// tally colours, listener lists, logs, all of it goes stale. Phase 2 moves
-		// that state to signals, after which this can be swapped for
-		// provideZonelessChangeDetection().
-		provideZoneChangeDetection({ eventCoalescing: true }),
+		// Every piece of state the templates read is a signal, so change detection
+		// is driven by those writes rather than by zone.js patching the world and
+		// re-checking everything after each socket callback. Anything added here
+		// that mutates a plain field from an async callback will not repaint.
+		provideZonelessChangeDetection(),
 		provideRouter(routes, withHashLocation()),
 		provideAnimations(),
 		provideServiceWorker('ngsw-worker.js', {
