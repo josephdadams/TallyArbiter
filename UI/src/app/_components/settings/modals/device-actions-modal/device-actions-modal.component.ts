@@ -105,9 +105,7 @@ export class DeviceActionsModalComponent implements OnDestroy {
 			busId: new FormControl<string | null>(deviceAction.busId ?? null, { validators: [selectionMade] }),
 			active: new FormControl<boolean | null>(deviceAction.active ?? null, { validators: [selectionMade] }),
 			outputTypeIdx: new FormControl<number | null>(outputTypeIdx, { validators: [selectionMade] }),
-			//output types have never required their own fields be filled in, so the
-			//record carries no validators of its own
-			data: buildDataFieldRecord(fields, deviceAction.data),
+			data: buildDataFieldRecord(fields, deviceAction.data, { enforceRequired: true }),
 		})
 
 		this.outputTypeSubscription?.unsubscribe()
@@ -116,7 +114,7 @@ export class DeviceActionsModalComponent implements OnDestroy {
 			const nextFields = this.getOutputOptionFields(
 				index === null ? undefined : this.socketService.outputTypes()[index],
 			)
-			form.setControl('data', buildDataFieldRecord(nextFields, carried))
+			form.setControl('data', buildDataFieldRecord(nextFields, carried, { enforceRequired: true }))
 		})
 
 		return form

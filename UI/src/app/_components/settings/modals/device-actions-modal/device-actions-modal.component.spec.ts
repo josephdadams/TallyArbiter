@@ -104,7 +104,7 @@ describe('DeviceActionsModalComponent', () => {
 		expect(Object.keys(form().controls.data.controls).sort()).toEqual(['end', 'ip', 'port'])
 	})
 
-	it('leaves output type fields optional, so an empty dropdown choice still saves', () => {
+	it('requires the output type fields the descriptor does not mark optional', () => {
 		component.addDeviceAction()
 		fixture.detectChanges()
 		form().controls.busId.setValue('preview')
@@ -112,6 +112,28 @@ describe('DeviceActionsModalComponent', () => {
 		form().controls.outputTypeIdx.setValue(0)
 		fixture.detectChanges()
 
+		expect(form().invalid).toBe(true)
+		expect(form().controls.data.get('ip')!.errors).toEqual({ required: true })
+	})
+
+	it("accepts a dropdown's empty option as an answer", () => {
+		//the Generic UDP action's End Character offers '' for "None"; requiring it to
+		//be non-blank would make that choice unselectable, and leaving it unanswered
+		//is what used to append a literal "undefined" to the payload
+		component.addDeviceAction()
+		fixture.detectChanges()
+		form().controls.busId.setValue('preview')
+		form().controls.active.setValue(false)
+		form().controls.outputTypeIdx.setValue(0)
+		fixture.detectChanges()
+
+		expect(form().controls.data.get('end')!.errors).toEqual({ required: true })
+
+		form().controls.data.get('ip')!.setValue('10.0.0.1')
+		form().controls.data.get('port')!.setValue(7000)
+		form().controls.data.get('end')!.setValue('')
+
+		expect(form().controls.data.get('end')!.errors).toBeNull()
 		expect(form().valid).toBe(true)
 	})
 
@@ -138,6 +160,8 @@ describe('DeviceActionsModalComponent', () => {
 		form().controls.outputTypeIdx.setValue(0)
 		fixture.detectChanges()
 		form().controls.data.get('ip')!.setValue('10.0.0.1')
+		form().controls.data.get('port')!.setValue(7000)
+		form().controls.data.get('end')!.setValue('')
 
 		component.saveDeviceAction()
 
@@ -167,6 +191,12 @@ describe('DeviceActionsModalComponent', () => {
 		expect(form().controls.outputTypeIdx.value).toBe(0)
 		expect(form().controls.data.get('ip')!.value).toBe('10.0.0.9')
 
+		//the stored row predates the required rule and has no port or end character,
+		//so it is held back until they are answered rather than saved incomplete
+		expect(form().invalid).toBe(true)
+		form().controls.data.get('port')!.setValue(7000)
+		form().controls.data.get('end')!.setValue('')
+
 		component.saveDeviceAction()
 
 		const payload = socketService.lastEmit('manage')!.args[0]
@@ -181,6 +211,10 @@ describe('DeviceActionsModalComponent', () => {
 		form().controls.busId.setValue('preview')
 		form().controls.active.setValue(true)
 		form().controls.outputTypeIdx.setValue(0)
+		fixture.detectChanges()
+		form().controls.data.get('ip')!.setValue('10.0.0.1')
+		form().controls.data.get('port')!.setValue(7000)
+		form().controls.data.get('end')!.setValue('')
 		component.saveDeviceAction()
 
 		expect(component.form()).toBeNull()

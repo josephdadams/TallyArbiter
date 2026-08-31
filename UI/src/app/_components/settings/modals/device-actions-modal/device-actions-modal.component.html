@@ -84,14 +84,24 @@
 						@switch (field.fieldType) {
 							@case ('text') {
 								<div class="mb-3">
-									<label [for]="field.fieldName" class="form-label">{{ field.fieldLabel }}</label>
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
 									<input type="text" class="form-control" [id]="field.fieldName" [formControlName]="field.fieldName" />
 									<app-form-error [control]="dataControl(field.fieldName)" [label]="field.fieldLabel" />
 								</div>
 							}
 							@case ('password') {
 								<div class="mb-3">
-									<label [for]="field.fieldName" class="form-label">{{ field.fieldLabel }}</label>
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
 									<input
 										type="password"
 										autocomplete="new-password"
@@ -104,7 +114,12 @@
 							}
 							@case (['port', 'number'].includes(field.fieldType) ? field.fieldType : '') {
 								<div class="mb-3">
-									<label [for]="field.fieldName" class="form-label">{{ field.fieldLabel }}</label>
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
 									<input
 										type="number"
 										class="form-control"
@@ -116,7 +131,12 @@
 							}
 							@case ('dropdown') {
 								<div class="mb-3">
-									<label [for]="field.fieldName" class="form-label">{{ field.fieldLabel }}</label>
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
 									<select class="form-select" [id]="field.fieldName" [formControlName]="field.fieldName">
 										<option [ngValue]="null" disabled>-- Select --</option>
 										@for (option of field.options; track option.id) {
