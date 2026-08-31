@@ -1,16 +1,16 @@
-import { Injectable } from '@angular/core'
+import { Injectable, signal } from '@angular/core'
 
 @Injectable({
 	providedIn: 'root',
 })
 export class NavbarVisibilityService {
-	public navbarIsVisible: boolean = true
+	public readonly navbarIsVisible = signal(true)
 
 	public hideNavbar() {
-		this.navbarIsVisible = false
+		this.navbarIsVisible.set(false)
 	}
 
 	public showNavbar() {
-		this.navbarIsVisible = true
+		this.navbarIsVisible.set(true)
 	}
 }

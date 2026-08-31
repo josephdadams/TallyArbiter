@@ -25,9 +25,9 @@
 									@for (bus of socketService.busOptions(); track bus.id) {
 										<td
 											class="bus-cell"
-											[style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : null"
+											[style.background-color]="deviceBusColors()[device.id].includes(bus.id) ? bus.color : null"
 											[attr.aria-label]="
-												bus.label + (deviceBusColors[device.id].includes(bus.id) ? ': active' : ': inactive')
+												bus.label + (deviceBusColors()[device.id].includes(bus.id) ? ': active' : ': inactive')
 											"
 										></td>
 									}

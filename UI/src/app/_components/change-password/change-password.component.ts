@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, ChangeDetectionStrategy, inject } from '@angular/core'
+import { Component, ElementRef, ViewChild, ChangeDetectionStrategy, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { AuthService, ChangePasswordResponse } from 'src/app/_services/auth.service'
@@ -9,7 +9,7 @@ import { MIN_PASSWORD_LENGTH } from '../../../../../src/_helpers/passwordPolicy'
 	standalone: true,
 	imports: [FormsModule],
 	templateUrl: './change-password.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./change-password.component.scss'],
 })
 export class ChangePasswordComponent {
@@ -17,8 +17,9 @@ export class ChangePasswordComponent {
 	private readonly router = inject(Router)
 	public readonly authService = inject(AuthService)
 
-	public loading = false
-	public response: ChangePasswordResponse = { changeOk: true, message: '', accessToken: '' }
+	//written from a promise callback, so they have to notify rather than be mutated
+	public readonly loading = signal(false)
+	public readonly response = signal<ChangePasswordResponse>({ changeOk: true, message: '', accessToken: '' })
 	public currentPassword = ''
 	public newPassword = ''
 	public confirmPassword = ''
@@ -49,7 +50,7 @@ export class ChangePasswordComponent {
 	}
 
 	public get username(): string {
-		return this.authService.profile?.username || ''
+		return this.authService.profile()?.username || ''
 	}
 
 	public get validationError(): string {
@@ -73,10 +74,10 @@ export class ChangePasswordComponent {
 
 	changePassword(): void {
 		if (!this.canSubmit) return
-		this.loading = true
+		this.loading.set(true)
 		this.authService.changePassword(this.currentPassword, this.newPassword).then((response) => {
-			this.response = response
-			this.loading = false
+			this.response.set(response)
+			this.loading.set(false)
 
 			if (response.changeOk === true) {
 				this.currentPassword = ''

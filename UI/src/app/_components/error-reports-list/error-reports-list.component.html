@@ -1,4 +1,4 @@
-@if (!errorReportsLoaded) {
+@if (!errorReportsLoaded()) {
 	<div class="d-flex justify-content-center mt-5 pt-5">
 		<div class="spinner spinner-border"></div>
 	</div>
@@ -6,7 +6,7 @@
 <button (click)="locationBackService.goBack()" class="btn btn-outline-primary" style="margin: 10px" title="Go back">
 	<i class="fas fa-arrow-left"></i> Back
 </button>
-@if (errorReportsLoaded) {
+@if (errorReportsLoaded()) {
 	<div>
 		<div class="container mt-5">
 			@if (socketService.errorReports().length > 0) {
@@ -15,7 +15,7 @@
 						<option disabled selected>-- Select an error report --</option>
 						@for (errorReport of socketService.errorReports(); track errorReport.id) {
 							<option [value]="errorReport.id">
-								{{ errorReport.datetime }} {{ unread_error_reports.includes(errorReport.id) ? '(unread)' : '' }}
+								{{ errorReport.datetime }} {{ unread_error_reports().includes(errorReport.id) ? '(unread)' : '' }}
 							</option>
 						}
 					</select>

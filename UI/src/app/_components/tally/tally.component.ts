@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectionStrategy, inject } from '@angular/core'
+import { Component, OnDestroy, ChangeDetectionStrategy, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { Subscription } from 'rxjs'
@@ -11,7 +11,7 @@ import { ChatComponent } from '../chat/chat.component'
 	standalone: true,
 	imports: [FormsModule, ChatComponent],
 	templateUrl: './tally.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./tally.component.scss'],
 })
 export class TallyComponent implements OnDestroy {
@@ -19,9 +19,28 @@ export class TallyComponent implements OnDestroy {
 	public readonly route = inject(ActivatedRoute)
 	public readonly socketService = inject(SocketService)
 
-	public currentDeviceIdx?: number
-	public currentBus?: BusOption
-	private supportsVibrate?: boolean = false
+	public readonly currentDeviceIdx = signal<number | undefined>(undefined)
+
+	public readonly currentDevice = computed(() => {
+		const idx = this.currentDeviceIdx()
+		return idx === undefined ? undefined : this.socketService.devices()[idx]
+	})
+
+	//Which bus this device is on, if any. Derived rather than assigned from a
+	//subscription: this is the whole screen, and it has to repaint whenever any of
+	//its three inputs changes, not only when a device_states message happens to
+	//arrive.
+	public readonly currentBus = computed<BusOption | undefined>(() => {
+		const device = this.currentDevice()
+		if (!device) return undefined
+
+		const busOptions = this.socketService.busOptions()
+		return this.socketService
+			.device_states()
+			.filter((d) => d.deviceId == device.id && d.sources.length > 0)
+			.map(({ busId }) => busOptions.find((b) => b.id == busId))
+			.reduce<BusOption | undefined>((a, b) => ((a?.priority ?? -1) > (b?.priority ?? -1) ? a : b), undefined)
+	})
 
 	/** Fallback for "not on any bus" — see --ta-tally-idle-bg in styles/_tokens.scss. */
 	public COLORS = {
@@ -30,32 +49,43 @@ export class TallyComponent implements OnDestroy {
 
 	public enableChatOptions = true
 
-	private deviceStateChangedSubscription: Subscription
+	private readonly supportsVibrate = 'vibrate' in navigator
+	private routeSubscription?: Subscription
 
 	private reassignHandler = (oldDeviceId: string, deviceId: string) => {
 		this.socketService.socket.emit('listener_reassign', oldDeviceId, deviceId)
-		this.currentDeviceIdx = this.socketService.devices().findIndex((d) => d.id === deviceId)
+		this.currentDeviceIdx.set(this.socketService.devices().findIndex((d) => d.id === deviceId))
 	}
 
 	constructor() {
 		this.socketService.socket.emit('devices')
 		this.socketService.socket.emit('bus_options')
 
-		if ('vibrate' in navigator) {
-			this.supportsVibrate = true
-		}
+		//Buzz the phone in the operator's pocket when the bus changes. A side
+		//effect, so it stays out of the derivation above.
+		effect(() => {
+			const bus = this.currentBus()
+			if (!bus || !this.supportsVibrate) return
+
+			if (bus.type == 'program') {
+				window.navigator.vibrate(400)
+			} else if (bus.type == 'preview') {
+				window.navigator.vibrate([100, 30, 100, 30, 100])
+			}
+		})
 
 		this.socketService.dataLoaded.then(() => {
-			this.route.params.subscribe((params) => {
+			this.routeSubscription = this.route.params.subscribe((params) => {
 				if (params.deviceId) {
-					this.currentDeviceIdx = this.socketService
+					const idx = this.socketService
 						.devices()
 						.findIndex((d) => d.id === params.deviceId || d.name === params.deviceId)
 
-					if (this.currentDeviceIdx === -1) return
+					if (idx === -1) return
+					this.currentDeviceIdx.set(idx)
 
 					this.socketService.socket.emit('listenerclient_connect', {
-						deviceId: this.socketService.devices()[this.currentDeviceIdx].id,
+						deviceId: this.socketService.devices()[idx].id,
 						listenerType: 'web',
 						canBeReassigned: true,
 						canBeFlashed: true,
@@ -70,35 +100,6 @@ export class TallyComponent implements OnDestroy {
 			setTimeout(function () {
 				document.body.classList.remove('flash')
 			}, 500)
-		})
-
-		this.deviceStateChangedSubscription = this.socketService.deviceStateChanged.subscribe((deviceStates) => {
-			if (this.currentDeviceIdx === undefined) return
-
-			const currentDevice = this.socketService.devices()[this.currentDeviceIdx]
-			if (!currentDevice) return
-
-			const hightestPriorityBus = deviceStates
-				.filter((d) => d.deviceId == currentDevice.id && d.sources.length > 0)
-				.map(({ busId }) => this.socketService.busOptions().find((b) => b.id == busId))
-				.reduce((a: any, b: any) => (a?.priority > b?.priority ? a : b), {}) as BusOption
-
-			if (!hightestPriorityBus || Object.entries(hightestPriorityBus).length == 0) {
-				this.currentBus = undefined
-				return
-			}
-
-			if (hightestPriorityBus.type == 'program') {
-				if (this.supportsVibrate) {
-					window.navigator.vibrate(400)
-				}
-			} else if (hightestPriorityBus.type == 'preview') {
-				if (this.supportsVibrate) {
-					window.navigator.vibrate([100, 30, 100, 30, 100])
-				}
-			}
-
-			this.currentBus = hightestPriorityBus
 		})
 
 		this.socketService.socket.on('reassign', this.reassignHandler)
@@ -121,6 +122,6 @@ export class TallyComponent implements OnDestroy {
 	public ngOnDestroy() {
 		this.socketService.socket.off('flash')
 		this.socketService.socket.off('reassign', this.reassignHandler)
-		this.deviceStateChangedSubscription?.unsubscribe()
+		this.routeSubscription?.unsubscribe()
 	}
 }

@@ -40,3 +40,10 @@ div.logs {
 	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 	z-index: 1000;
 }
+
+// Same bus grid as the producer page: the colour is bound per-bus from config,
+// so only the "device is not on this bus" state is styled here.
+.bus-cell {
+	background-color: var(--ta-bus-idle);
+	min-width: 1.5rem;
+}

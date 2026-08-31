@@ -5,7 +5,7 @@
 }
 @if (socketService.devices()) {
 	<div>
-		@if (currentDeviceIdx === undefined) {
+		@if (!currentDevice()) {
 			<div class="container mt-5">
 				<div class="row">
 					<div class="col-md-4 col-xs-12">
@@ -41,19 +41,19 @@
 			</div>
 		}
 
-		@if (currentDeviceIdx !== undefined && socketService.devices()[currentDeviceIdx]) {
+		@if (currentDevice(); as device) {
 			<div
 				class="d-flex flex-column max-height container-fluid pt-5 text-center"
-				[class.text-white]="!currentBus?.color"
-				[style.background-color]="currentBus?.color || COLORS.DARK_GREY"
+				[class.text-white]="!currentBus()?.color"
+				[style.background-color]="currentBus()?.color || COLORS.DARK_GREY"
 			>
 				<div>
-					<h1>{{ socketService.devices()[currentDeviceIdx].name }}</h1>
-					<small>{{ socketService.devices()[currentDeviceIdx].description }}</small>
+					<h1>{{ device.name }}</h1>
+					<small>{{ device.description }}</small>
 				</div>
 				<div class="container flex-fill py-4" style="min-height: 50px">
 					@if (socketService.chatEnabled() && route.snapshot.queryParams.chat !== 'false') {
-						<app-chat [type]="socketService.devices()[currentDeviceIdx].name"></app-chat>
+						<app-chat [type]="device.name"></app-chat>
 					}
 				</div>
 			</div>

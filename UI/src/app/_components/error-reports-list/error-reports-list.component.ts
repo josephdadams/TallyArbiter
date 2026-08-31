@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ChangeDetectionStrategy, inject } from '@angular/core'
+import { Component, OnDestroy, ChangeDetectionStrategy, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { Confirmable } from 'src/app/_decorators/confirmable.decorator'
@@ -12,21 +12,22 @@ import { LocationBackService } from 'src/app/_services/locationBack.service'
 	standalone: true,
 	imports: [FormsModule],
 	templateUrl: './error-reports-list.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./error-reports-list.component.scss'],
 })
-export class ErrorReportsListComponent implements OnInit, OnDestroy {
+export class ErrorReportsListComponent implements OnDestroy {
 	private readonly router = inject(Router)
 	public readonly socketService = inject(SocketService)
 	public readonly navbarVisibilityService = inject(NavbarVisibilityService)
 	public readonly locationBackService = inject(LocationBackService)
 
-	public unread_error_reports: any = []
-	public errorReportsLoaded: boolean = false
+	//written from a socket handler, so they have to notify rather than be mutated
+	public readonly unread_error_reports = signal<string[]>([])
+	public readonly errorReportsLoaded = signal(false)
 
 	private unreadErrorReportsHandler = (list: ErrorReportsListElement[]) => {
-		this.unread_error_reports = list.map((report) => report.id)
-		this.errorReportsLoaded = true
+		this.unread_error_reports.set(list.map((report) => report.id))
+		this.errorReportsLoaded.set(true)
 	}
 
 	constructor() {
@@ -46,8 +47,6 @@ export class ErrorReportsListComponent implements OnInit, OnDestroy {
 	public deleteEveryErrorReport() {
 		this.socketService.socket.emit('delete_every_error_report')
 	}
-
-	ngOnInit(): void {}
 
 	ngOnDestroy(): void {
 		this.socketService.socket.off('unread_error_reports', this.unreadErrorReportsHandler)

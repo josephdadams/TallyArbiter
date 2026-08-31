@@ -6,7 +6,7 @@ import { SocketService } from 'src/app/_services/socket.service'
 	standalone: true,
 	imports: [],
 	templateUrl: './about.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./about.component.scss'],
 })
 export class AboutComponent implements OnInit {

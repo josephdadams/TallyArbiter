@@ -1,4 +1,4 @@
-@if (navbarVisibilityService.navbarIsVisible) {
+@if (navbarVisibilityService.navbarIsVisible()) {
 	<nav class="navbar navbar-expand-md fixed-top bg-dark" data-bs-theme="dark">
 		<div class="container">
 			<a class="navbar-brand" routerLink="/home"
@@ -27,12 +27,12 @@
 					<li class="nav-item">
 						<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/about">About</a>
 					</li>
-					@if (authService.profile !== undefined) {
+					@if (authService.profile() !== undefined) {
 						<li class="nav-item">
 							<a class="nav-link" (click)="showMenu = false; authService.logout()" style="cursor: pointer">Logout</a>
 						</li>
 					}
-					@if (authService.profile === undefined) {
+					@if (authService.profile() === undefined) {
 						<li class="nav-item">
 							<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/login/home"
 								>Login</a
@@ -47,8 +47,8 @@
 
 <router-outlet></router-outlet>
 
-@if (connLostSnackbar.visible) {
-	<div id="connLostSnackbar" [@fade]="connLostSnackbar.visible ? 'show' : 'hidden'">
+@if (connLostSnackbar.visible()) {
+	<div id="connLostSnackbar" [@fade]="connLostSnackbar.visible() ? 'show' : 'hidden'">
 		<p>Connection to server lost...</p>
 		<i class="fa-solid fa-spinner fa-spin fa-xl"></i>
 	</div>

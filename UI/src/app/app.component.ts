@@ -16,7 +16,7 @@ import { ThemeSelectorComponent } from './_components/theme-selector/theme-selec
 	imports: [RouterModule, ThemeSelectorComponent],
 	templateUrl: './app.component.html',
 	styleUrls: ['./app.component.scss'],
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	animations: [
 		trigger('fade', [
 			state('hidden', style({ opacity: 0 })),

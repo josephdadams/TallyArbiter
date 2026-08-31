@@ -1,6 +1,5 @@
 import { DatePipe } from '@angular/common'
-import { Component, OnDestroy, ChangeDetectionStrategy, inject } from '@angular/core'
-import { Subscription } from 'rxjs'
+import { Component, ChangeDetectionStrategy, computed, inject } from '@angular/core'
 import { ChatComponent } from '../chat/chat.component'
 import { SocketService } from 'src/app/_services/socket.service'
 
@@ -9,30 +8,29 @@ import { SocketService } from 'src/app/_services/socket.service'
 	standalone: true,
 	imports: [DatePipe, ChatComponent],
 	templateUrl: './producer.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./producer.component.scss'],
 })
-export class ProducerComponent implements OnDestroy {
+export class ProducerComponent {
 	public readonly socketService = inject(SocketService)
 
-	public deviceBusColors: Record<string, string[]> = {}
+	//Which busses each device is currently on. Derived from the two signals it
+	//reads, which replaces a deviceStateChanged subscription that could only
+	//react to state messages — a device list arriving afterwards left this stale.
+	public readonly deviceBusColors = computed<Record<string, string[]>>(() => {
+		const deviceStates = this.socketService.device_states()
+		const busIdsByDevice: Record<string, string[]> = {}
 
-	private deviceStateChangedSubscription: Subscription
+		for (const device of this.socketService.devices()) {
+			busIdsByDevice[device.id] = deviceStates
+				.filter((d) => d.deviceId == device.id && d.sources.length > 0)
+				.map((d) => d.busId)
+		}
+
+		return busIdsByDevice
+	})
 
 	constructor() {
 		this.socketService.joinProducers()
-		this.socketService.dataLoaded
-
-		this.deviceStateChangedSubscription = this.socketService.deviceStateChanged.subscribe((deviceStates) => {
-			for (const device of this.socketService.devices()) {
-				this.deviceBusColors[device.id] = deviceStates
-					.filter((d) => d.deviceId == device.id && d.sources.length > 0)
-					.map((d) => d.busId)
-			}
-		})
-	}
-
-	ngOnDestroy(): void {
-		this.deviceStateChangedSubscription?.unsubscribe()
 	}
 }

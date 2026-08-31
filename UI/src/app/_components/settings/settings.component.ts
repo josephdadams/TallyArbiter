@@ -1,6 +1,15 @@
 import { DatePipe, NgTemplateOutlet } from '@angular/common'
 
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, ChangeDetectionStrategy, inject } from '@angular/core'
+import {
+	Component,
+	ElementRef,
+	OnDestroy,
+	ViewChild,
+	ChangeDetectionStrategy,
+	computed,
+	inject,
+	signal,
+} from '@angular/core'
 
 import { FormsModule } from '@angular/forms'
 
@@ -71,7 +80,7 @@ type LogLevel = { title: string; id: string }
 	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./settings.component.scss'],
 })
-export class SettingsComponent implements OnInit, OnDestroy {
+export class SettingsComponent implements OnDestroy {
 	private readonly modalService = inject(NgbModal)
 	public readonly socketService = inject(SocketService)
 	private readonly router = inject(Router)
@@ -86,9 +95,29 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		{ title: 'Info', id: 'info' },
 		{ title: 'Verbose', id: 'info-quiet' },
 	]
-	public currentLogLevel = 'info'
-	public visibleLogs: LogItem[] = []
-	public deviceBusColors: Record<string, string[]> = {}
+	public readonly currentLogLevel = signal('info')
+
+	//derived rather than refiltered from a newLogsSubject subscription, so a level
+	//change and an incoming log line both repaint the pane
+	public readonly visibleLogs = computed(() => {
+		const index = this.logLevels.findIndex((l) => l.id == this.currentLogLevel())
+		const allowedLogLevels = this.logLevels.filter((l, i) => i <= index).map((l) => l.id)
+		return this.socketService.logs().filter((l) => allowedLogLevels.includes(l.type))
+	})
+
+	//same derivation as the producer table: which busses each device is on
+	public readonly deviceBusColors = computed<Record<string, string[]>>(() => {
+		const deviceStates = this.socketService.device_states()
+		const busIdsByDevice: Record<string, string[]> = {}
+
+		for (const device of this.socketService.devices()) {
+			busIdsByDevice[device.id] = deviceStates
+				.filter((d) => d.deviceId == device.id && d.sources.length > 0)
+				.map((d) => d.busId)
+		}
+
+		return busIdsByDevice
+	})
 
 	// add / edit Source
 	public editingSource = false
@@ -128,8 +157,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
 	public newCloudKey = ''
 
-	public configLoaded = false
-	public config = {}
+	//written from the 'config' socket handler, so they have to notify
+	public readonly configLoaded = signal(false)
+	public readonly config = signal<any>({})
 	public updatedConfig = {}
 	public updatedConfigValid = true
 	public updatedRawConfig = ''
@@ -154,10 +184,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	}
 
 	private handleConfigReceived = (config: any) => {
-		this.config = config
+		this.config.set(config)
 		this.updatedConfig = config
 		this.updatedRawConfig = JSON.stringify(config, null, 2)
-		this.configLoaded = true
+		this.configLoaded.set(true)
 		// Check for warnings on initial load - validation will happen when editor is ready
 		// Use setTimeout to ensure editor is initialized
 		setTimeout(() => {
@@ -189,21 +219,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		this.subscriptions.push(
 			this.socketService.scrollTallyDataSubject.subscribe(() => this.scrollToBottom(this.tallyDataContainer)),
 		)
-		this.subscriptions.push(
-			this.socketService.deviceStateChanged.subscribe((deviceStates) => {
-				for (const device of this.socketService.devices()) {
-					this.deviceBusColors[device.id] = deviceStates
-						.filter((d) => d.deviceId == device.id && d.sources.length > 0)
-						.map((d) => d.busId)
-				}
-			}),
-		)
-		this.subscriptions.push(
-			this.socketService.newLogsSubject.subscribe(() => {
-				this.filterLogs()
-				this.scrollToBottom(this.logsContainer)
-			}),
-		)
+		this.subscriptions.push(this.socketService.newLogsSubject.subscribe(() => this.scrollToBottom(this.logsContainer)))
 		this.subscriptions.push(this.socketService.deviceDuplicated.subscribe(() => this.onDeviceDuplicated()))
 		if (this.authService.requireRole('admin')) {
 			this.socketService.socket.on('server_error', this.handleServerError)
@@ -265,19 +281,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	}
 
 	public setLogLevel(logLevel: string) {
-		this.currentLogLevel = logLevel
-		this.filterLogs()
+		this.currentLogLevel.set(logLevel)
 		this.scrollToBottom(this.logsContainer)
-	}
-
-	private filterLogs() {
-		const index = this.logLevels.findIndex((l) => l.id == this.currentLogLevel)
-		const allowedLogLevels = this.logLevels.filter((l, i) => i <= index).map((l) => l.id)
-		this.visibleLogs = this.socketService.logs().filter((l) => allowedLogLevels.includes(l.type))
-	}
-
-	public ngOnInit() {
-		this.setLogLevel(this.currentLogLevel)
 	}
 
 	public ngOnDestroy() {
@@ -550,7 +555,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	}
 
 	public deleteUserButton(user: User) {
-		if (this.authService.profile.username === user.username) {
+		if (this.authService.profile().username === user.username) {
 			this.deleteUserAndLogout(user)
 		} else {
 			this.deleteUser(user)
@@ -1021,7 +1026,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		})
 	}
 
-	public configWarnings: Array<{ path: string; message: string; fix: () => void }> = []
+	public readonly configWarnings = signal<Array<{ path: string; message: string; fix: () => void }>>([])
 
 	public configUpdated(event: any) {
 		this.updatedConfig = event
@@ -1075,7 +1080,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 			this.parseSchemaValidationErrors(schemaErrors, config, warnings)
 		}
 
-		this.configWarnings = warnings
+		this.configWarnings.set(warnings)
 	}
 
 	private getConfigDefaults(): any {
@@ -1356,7 +1361,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		// Create a deep copy to ensure Angular detects the change
 		const newConfig = JSON.parse(JSON.stringify(this.updatedConfig))
 		this.updatedConfig = newConfig
-		this.config = newConfig
+		this.config.set(newConfig)
 		this.updatedRawConfig = JSON.stringify(newConfig, null, 2)
 
 		// Revalidate after editor updates
@@ -1396,7 +1401,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
 		// Update all config references with the new deep copy
 		this.updatedConfig = newConfig
-		this.config = newConfig // This is bound to [data] in the template, so updating it will update the editor
+		// bound to [data] in the template, so updating it updates the editor
+		this.config.set(newConfig)
 		this.updatedRawConfig = JSON.stringify(newConfig, null, 2)
 
 		// Trigger validation and recheck warnings after Angular updates the editor
@@ -1418,13 +1424,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	}
 
 	public fixAllConfigWarnings() {
-		if (this.configWarnings.length === 0) {
+		if (this.configWarnings().length === 0) {
 			return
 		}
 
 		// Collect all changes that will be applied
 		const changes: Array<{ path: string; value: string }> = []
-		for (const warning of this.configWarnings) {
+		for (const warning of this.configWarnings()) {
 			// Extract the value from the warning message
 			const valueMatch = warning.message.match(/Default value: (.+)$/)
 			const displayValue = valueMatch ? valueMatch[1] : 'default'
@@ -1437,7 +1443,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		// Apply all fixes by directly modifying the config
 		// This is more efficient than calling each fix() individually
 		const config: any = this.updatedConfig
-		for (const warning of this.configWarnings) {
+		for (const warning of this.configWarnings()) {
 			// Extract path parts from warning path (e.g., "device_sources[0].bus" -> ["device_sources", "0", "bus"])
 			const pathMatch = warning.path.match(/^([^[\]]+)\[(\d+)\]\.(.+)$/)
 			if (pathMatch) {
@@ -1466,7 +1472,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		// Create a deep copy and update all references
 		const newConfig = JSON.parse(JSON.stringify(this.updatedConfig))
 		this.updatedConfig = newConfig
-		this.config = newConfig
+		this.config.set(newConfig)
 		this.updatedRawConfig = JSON.stringify(newConfig, null, 2)
 
 		// Revalidate after all fixes are applied
@@ -1494,25 +1500,25 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	@Confirmable('Are you sure you want to update your config? Be careful and continue only if you are absolutely sure.')
 	public saveConfig() {
 		console.log(this.updatedConfig)
-		this.config = this.updatedConfig
+		this.config.set(this.updatedConfig)
 		this.socketService.socket.once('error', (message: string) => {
 			alert(message)
 		})
-		this.socketService.socket.emit('set_config', this.config)
+		this.socketService.socket.emit('set_config', this.config())
 	}
 
 	@Confirmable('Are you sure you want to update your config? Be careful and continue only if you are absolutely sure.')
 	public saveRawConfig() {
 		console.log(this.updatedRawConfig)
-		this.config = JSON.parse(this.updatedRawConfig)
+		this.config.set(JSON.parse(this.updatedRawConfig))
 		this.socketService.socket.once('error', (message: string) => {
 			alert(message)
 		})
-		this.socketService.socket.emit('set_config', this.config)
+		this.socketService.socket.emit('set_config', this.config())
 	}
 
 	public exportConfig() {
-		const blob = new Blob([JSON.stringify(this.config, null, 2)], { type: 'application/json' })
+		const blob = new Blob([JSON.stringify(this.config(), null, 2)], { type: 'application/json' })
 		const url = window.URL.createObjectURL(blob)
 		const a = document.createElement('a')
 		a.href = url
@@ -1530,13 +1536,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
 					if (e?.target?.result) {
 						let result = e?.target?.result as string
 						console.log('file contents:', result)
-						this.config = JSON.parse(result)
-						this.updatedConfig = this.config
-						this.updatedRawConfig = JSON.stringify(this.config, null, 2)
+						this.config.set(JSON.parse(result))
+						this.updatedConfig = this.config()
+						this.updatedRawConfig = JSON.stringify(this.config(), null, 2)
 
 						// Update the JSON editor with the new config
 						if (this.configEditor) {
-							this.configEditor.set(this.config as any)
+							this.configEditor.set(this.config() as any)
 						}
 
 						// Trigger validation and check for warnings after import
@@ -1568,10 +1574,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
 							}
 
 							// Check for warnings with validation errors
-							this.checkConfigWarnings(this.config, errors)
+							this.checkConfigWarnings(this.config(), errors)
 						}, 100)
 
-						this.socketService.socket.emit('set_config', this.config)
+						this.socketService.socket.emit('set_config', this.config())
 					}
 				}
 				reader.readAsText((input.files as FileList)[0])

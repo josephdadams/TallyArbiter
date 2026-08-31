@@ -9,7 +9,7 @@ import { SocketService } from 'src/app/_services/socket.service'
 	standalone: true,
 	imports: [DatePipe, TitleCasePipe, FormsModule],
 	templateUrl: './chat.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./chat.component.scss'],
 })
 export class ChatComponent implements OnDestroy {

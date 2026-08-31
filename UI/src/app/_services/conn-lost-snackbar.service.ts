@@ -1,16 +1,17 @@
-import { Injectable } from '@angular/core'
+import { Injectable, signal } from '@angular/core'
 
 @Injectable({
 	providedIn: 'root',
 })
 export class connLostSnackbarService {
-	public visible = false
+	//shown from a socket disconnect handler, so it has to notify
+	public readonly visible = signal(false)
 
 	public hide() {
-		this.visible = false
+		this.visible.set(false)
 	}
 
 	public show() {
-		this.visible = true
+		this.visible.set(true)
 	}
 }

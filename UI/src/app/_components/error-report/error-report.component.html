@@ -1,4 +1,4 @@
-@if (loading) {
+@if (loading()) {
 	<div class="d-flex justify-content-center mt-5 pt-5">
 		<div class="spinner spinner-border"></div>
 	</div>
@@ -6,7 +6,7 @@
 <button (click)="locationBackService.goBack()" id="backBtn" title="Go back">
 	<i class="fas fa-arrow-left"></i> Back
 </button>
-@if (validReport) {
+@if (validReport()) {
 	<div id="page">
 		<div id="text">
 			<h1>:(</h1>
@@ -19,7 +19,7 @@
 			<button
 				id="bugReportButton"
 				class="btn btn-lg btn-custom"
-				[disabled]="!bugReportUrlLoaded"
+				[disabled]="!bugReportUrlLoaded()"
 				(click)="bugReportButtonClick()"
 				role="button"
 			>
@@ -28,25 +28,25 @@
 		</div>
 		<div class="col">
 			<h3>Stacktrace:</h3>
-			<pre id="stacktrace">{{ currentReport.stacktrace }}</pre>
+			<pre id="stacktrace">{{ currentReport().stacktrace }}</pre>
 		</div>
 		<div class="col">
 			<h3>Error datetime</h3>
-			<h4>{{ currentReport.datetime | date: 'YYYY-MM-dd HH:mm:ss' }}</h4>
+			<h4>{{ currentReport().datetime | date: 'YYYY-MM-dd HH:mm:ss' }}</h4>
 		</div>
 		<div id="row">
 			<div class="col">
 				<h3>Logs:</h3>
-				<pre class="limit" id="logs">{{ currentReport.logs }}</pre>
+				<pre class="limit" id="logs">{{ currentReport().logs }}</pre>
 			</div>
 			<div class="col">
 				<h3>Config file:</h3>
-				<pre class="limit" id="config">{{ currentReport.config | json }}</pre>
+				<pre class="limit" id="config">{{ currentReport().config | json }}</pre>
 			</div>
 		</div>
 	</div>
 }
-@if (!validReport && !loading) {
+@if (!validReport() && !loading()) {
 	<div id="page">
 		<div id="text">
 			<h1>:(</h1>

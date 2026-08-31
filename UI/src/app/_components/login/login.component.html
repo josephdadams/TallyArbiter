@@ -1,8 +1,8 @@
 <div class="container text-center d-flex justify-content-center mt-5 pt-5">
 	<main class="form-signin">
 		<h1 class="h3 mb-3 fw-normal">Please sign in</h1>
-		@if (!loginResponse.loginOk) {
-			<div class="my-2 text-danger">{{ loginResponse.message }}</div>
+		@if (!loginResponse().loginOk) {
+			<div class="my-2 text-danger">{{ loginResponse().message }}</div>
 		}
 		<div class="form-floating">
 			<input
@@ -27,11 +27,11 @@
 			/>
 			<label for="password">Password</label>
 		</div>
-		<button class="w-100 btn btn-lg btn-primary" (click)="login()" [disabled]="loading">
-			@if (!loading) {
+		<button class="w-100 btn btn-lg btn-primary" (click)="login()" [disabled]="loading()">
+			@if (!loading()) {
 				<span>Login</span>
 			}
-			@if (loading) {
+			@if (loading()) {
 				<div class="spinner-border spinner-border-sm text-white"></div>
 			}
 		</button>

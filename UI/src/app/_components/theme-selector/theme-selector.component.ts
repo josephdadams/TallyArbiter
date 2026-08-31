@@ -13,7 +13,7 @@ interface ThemeOption {
 	standalone: true,
 	imports: [],
 	templateUrl: './theme-selector.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./theme-selector.component.scss'],
 })
 export class ThemeSelectorComponent {

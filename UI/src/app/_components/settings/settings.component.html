@@ -525,12 +525,12 @@
 							</button>
 						</div>
 					</div>
-					@if (!configLoaded) {
+					@if (!configLoaded()) {
 						<div class="d-flex justify-content-center mt-3 pt-3">
 							<div class="spinner spinner-border text-dark"><p style="margin-left: 0.5 rem">Loading config...</p></div>
 						</div>
 					}
-					@if (configLoaded) {
+					@if (configLoaded()) {
 						<div>
 							<hr class="my-3" />
 							<div class="row">
@@ -549,7 +549,7 @@
 								<i class="fas fa-exclamation-triangle"></i> Please note that updating your config manually shouldn't be
 								necessary and it's not recommended. Continue at your own risk.
 							</div>
-							@if (configWarnings.length > 0) {
+							@if (configWarnings().length > 0) {
 								<div class="row">
 									<h3>Config Warnings</h3>
 									<div class="alert alert-warning" role="alert">
@@ -561,12 +561,12 @@
 											<button
 												class="btn btn-warning"
 												(click)="fixAllConfigWarnings()"
-												[title]="'Apply all default values (' + configWarnings.length + ' fixes)'"
+												[title]="'Apply all default values (' + configWarnings().length + ' fixes)'"
 											>
-												<i class="fas fa-wrench"></i> Fix All ({{ configWarnings.length }})
+												<i class="fas fa-wrench"></i> Fix All ({{ configWarnings().length }})
 											</button>
 										</div>
-										@for (warning of configWarnings; track warning) {
+										@for (warning of configWarnings(); track warning) {
 											<div class="mb-2">
 												<div class="d-flex align-items-center">
 													<i
@@ -595,7 +595,7 @@
 								<h3>Config editor</h3>
 								<json-editor
 									[options]="jsonEditorOptions"
-									[data]="config"
+									[data]="config()"
 									(change)="configUpdated($event)"
 									#configEditor
 								></json-editor>
@@ -675,7 +675,7 @@
 															[disabled]="socketService.users().length === 1"
 														>
 															<i class="fas fa-trash"></i> Delete
-															@if (authService.profile.username === user.username) {
+															@if (authService.profile().username === user.username) {
 																<i class="fas fa-exclamation-triangle"></i>
 															}
 														</button>
@@ -699,7 +699,7 @@
 								Logs
 								<select
 									class="form-select d-inline w-50"
-									[ngModel]="currentLogLevel"
+									[ngModel]="currentLogLevel()"
 									(ngModelChange)="setLogLevel($event)"
 								>
 									@for (logLevel of logLevels; track logLevel) {
@@ -708,7 +708,7 @@
 								</select>
 							</h3>
 							<div class="logs bg-body-tertiary p-1" #logsContainer>
-								@for (log of visibleLogs; track log) {
+								@for (log of visibleLogs(); track log) {
 									<span
 										class="d-block"
 										[style.color]="
@@ -794,7 +794,13 @@
 					@for (device of socketService.devices(); track device.id; let index = $index) {
 						<tr [class.text-muted]="!device.enabled">
 							@for (bus of socketService.busOptionsVisible(); track bus.id) {
-								<td [style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : '#FFFFFF'"></td>
+								<td
+									class="bus-cell"
+									[style.background-color]="deviceBusColors()[device.id].includes(bus.id) ? bus.color : null"
+									[attr.aria-label]="
+										bus.label + (deviceBusColors()[device.id].includes(bus.id) ? ': active' : ': inactive')
+									"
+								></td>
 							}
 							<td>
 								<small

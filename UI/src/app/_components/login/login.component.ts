@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, ChangeDetectionStrategy, inject } from '@angular/core'
+import { Component, ElementRef, ViewChild, ChangeDetectionStrategy, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { AuthService, LoginResponse } from 'src/app/_services/auth.service'
@@ -8,7 +8,7 @@ import { AuthService, LoginResponse } from 'src/app/_services/auth.service'
 	standalone: true,
 	imports: [FormsModule],
 	templateUrl: './login.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./login.component.scss'],
 })
 export class LoginComponent {
@@ -16,8 +16,9 @@ export class LoginComponent {
 	private readonly router = inject(Router)
 	private readonly authService = inject(AuthService)
 
-	public loading = false
-	public loginResponse: LoginResponse = { loginOk: false, message: '', accessToken: '' }
+	//written from a promise callback, so they have to notify rather than be mutated
+	public readonly loading = signal(false)
+	public readonly loginResponse = signal<LoginResponse>({ loginOk: false, message: '', accessToken: '' })
 	public username = ''
 	public password = ''
 	private redirectParam = ''
@@ -43,10 +44,10 @@ export class LoginComponent {
 	}
 
 	login(): void {
-		this.loading = true
+		this.loading.set(true)
 		this.authService.login(this.username, this.password).then((response: LoginResponse) => {
-			this.loginResponse = response
-			this.loading = false
+			this.loginResponse.set(response)
+			this.loading.set(false)
 
 			if (response.loginOk === true) {
 				if (this.authService.mustChangePassword) {

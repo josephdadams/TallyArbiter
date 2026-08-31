@@ -8,7 +8,7 @@ import { SocketService } from 'src/app/_services/socket.service'
 	standalone: true,
 	imports: [FormsModule, QrCodeModule],
 	templateUrl: './home.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent {
