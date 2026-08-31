@@ -9,11 +9,11 @@
 @if (errorReportsLoaded) {
 	<div>
 		<div class="container mt-5">
-			@if (socketService.errorReports.length > 0) {
+			@if (socketService.errorReports().length > 0) {
 				<div class="form-group">
 					<select class="form-control col-xs-6 col-md-3" (change)="selectErrorReport($event)">
 						<option disabled selected>-- Select an error report --</option>
-						@for (errorReport of socketService.errorReports; track errorReport.id) {
+						@for (errorReport of socketService.errorReports(); track errorReport.id) {
 							<option [value]="errorReport.id">
 								{{ errorReport.datetime }} {{ unread_error_reports.includes(errorReport.id) ? '(unread)' : '' }}
 							</option>
@@ -28,7 +28,7 @@
 				</div>
 			}
 		</div>
-		@if (socketService.errorReports.length == 0) {
+		@if (socketService.errorReports().length == 0) {
 			<h2 class="lead mt-5 text-center">Hurray! No error report detected.</h2>
 		}
 	</div>

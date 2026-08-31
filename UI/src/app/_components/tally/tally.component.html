@@ -1,18 +1,18 @@
-@if (!socketService.devices) {
+@if (!socketService.devices()) {
 	<div class="d-flex justify-content-center mt-5 pt-5">
 		<div class="spinner spinner-border"></div>
 	</div>
 }
-@if (socketService.devices) {
+@if (socketService.devices()) {
 	<div>
 		@if (currentDeviceIdx === undefined) {
 			<div class="container mt-5">
 				<div class="row">
 					<div class="col-md-4 col-xs-12">
-						@if (socketService.devices.length > 0) {
+						@if (socketService.devices().length > 0) {
 							<select class="form-select col-xs-6 col-md-3" (change)="selectDevice($event)">
 								<option disabled selected>-- Select a device --</option>
-								@for (device of socketService.devices; track device.id) {
+								@for (device of socketService.devices(); track device.id) {
 									<option [value]="device.id">{{ device.name }}</option>
 								}
 							</select>
@@ -21,7 +21,7 @@
 				</div>
 				<div class="row">
 					<div class="col-xs-12">
-						@if (socketService.devices.length > 0 && socketService.chatEnabled) {
+						@if (socketService.devices().length > 0 && socketService.chatEnabled()) {
 							<div class="form-check">
 								<input
 									class="form-check-input"
@@ -35,25 +35,25 @@
 						}
 					</div>
 				</div>
-				@if (socketService.devices.length == 0) {
+				@if (socketService.devices().length == 0) {
 					<h2 class="lead mt-5">No devices are available for tally monitoring at this time.</h2>
 				}
 			</div>
 		}
 
-		@if (currentDeviceIdx !== undefined && socketService.devices[currentDeviceIdx]) {
+		@if (currentDeviceIdx !== undefined && socketService.devices()[currentDeviceIdx]) {
 			<div
 				class="d-flex flex-column max-height container-fluid pt-5 text-center"
 				[class.text-white]="!currentBus?.color"
 				[style.background-color]="currentBus?.color || COLORS.DARK_GREY"
 			>
 				<div>
-					<h1>{{ socketService.devices[currentDeviceIdx].name }}</h1>
-					<small>{{ socketService.devices[currentDeviceIdx].description }}</small>
+					<h1>{{ socketService.devices()[currentDeviceIdx].name }}</h1>
+					<small>{{ socketService.devices()[currentDeviceIdx].description }}</small>
 				</div>
 				<div class="container flex-fill py-4" style="min-height: 50px">
-					@if (socketService.chatEnabled && route.snapshot.queryParams.chat !== 'false') {
-						<app-chat [type]="socketService.devices[currentDeviceIdx].name"></app-chat>
+					@if (socketService.chatEnabled() && route.snapshot.queryParams.chat !== 'false') {
+						<app-chat [type]="socketService.devices()[currentDeviceIdx].name"></app-chat>
 					}
 				</div>
 			</div>

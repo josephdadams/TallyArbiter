@@ -191,7 +191,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		)
 		this.subscriptions.push(
 			this.socketService.deviceStateChanged.subscribe((deviceStates) => {
-				for (const device of this.socketService.devices) {
+				for (const device of this.socketService.devices()) {
 					this.deviceBusColors[device.id] = deviceStates
 						.filter((d) => d.deviceId == device.id && d.sources.length > 0)
 						.map((d) => d.busId)
@@ -249,7 +249,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	}
 
 	private portInUse(portToCheck: number, sourceId: string) {
-		for (const port of this.socketService.portsInUse) {
+		for (const port of this.socketService.portsInUse()) {
 			if (port.port.toString() === portToCheck.toString()) {
 				if (port.sourceId === sourceId) {
 					//this source owns this port, it's ok
@@ -273,7 +273,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	private filterLogs() {
 		const index = this.logLevels.findIndex((l) => l.id == this.currentLogLevel)
 		const allowedLogLevels = this.logLevels.filter((l, i) => i <= index).map((l) => l.id)
-		this.visibleLogs = this.socketService.logs.filter((l) => allowedLogLevels.includes(l.type))
+		this.visibleLogs = this.socketService.logs().filter((l) => allowedLogLevels.includes(l.type))
 	}
 
 	public ngOnInit() {
@@ -295,7 +295,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		if (
 			this.currentDeviceSource.sourceIdx === undefined ||
 			this.currentDeviceSource.sourceIdx === -1 ||
-			!this.socketService.sources[this.currentDeviceSource.sourceIdx]
+			!this.socketService.sources()[this.currentDeviceSource.sourceIdx]
 		) {
 			Swal.fire({
 				icon: 'error',
@@ -311,7 +311,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 			// @ts-ignore
 			deviceId: this.currentDevice.id,
 			...this.currentDeviceSource,
-			sourceId: this.socketService.sources[this.currentDeviceSource.sourceIdx].id,
+			sourceId: this.socketService.sources()[this.currentDeviceSource.sourceIdx].id,
 		} as DeviceSource
 
 		let arbiterObj = {
@@ -361,7 +361,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		if (
 			this.currentDeviceAction.outputTypeIdx === undefined ||
 			this.currentDeviceAction.outputTypeIdx === -1 ||
-			!this.socketService.outputTypes[this.currentDeviceAction.outputTypeIdx]
+			!this.socketService.outputTypes()[this.currentDeviceAction.outputTypeIdx]
 		) {
 			Swal.fire({
 				icon: 'error',
@@ -377,7 +377,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 			// @ts-ignore
 			deviceId: this.currentDevice.id,
 			...this.currentDeviceAction,
-			outputTypeId: this.socketService.outputTypes[this.currentDeviceAction.outputTypeIdx].id,
+			outputTypeId: this.socketService.outputTypes()[this.currentDeviceAction.outputTypeIdx].id,
 		} as DeviceAction
 
 		let arbiterObj = {
@@ -410,7 +410,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
 	@Confirmable('Are you sure you want to delete this device?')
 	public async deleteDevice(device: Device) {
-		let listenerCount = this.socketService.listenerClients.filter((l) => l.deviceId == device.id).length
+		let listenerCount = this.socketService.listenerClients().filter((l) => l.deviceId == device.id).length
 		if (listenerCount > 0) {
 			let result = await Swal.fire({
 				title: 'Confirmation',
@@ -475,7 +475,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	public editDeviceSource(deviceSource: DeviceSource) {
 		this.currentDeviceSource = {
 			...deviceSource,
-			sourceIdx: this.socketService.sources.findIndex((s) => s.id == deviceSource.sourceId),
+			sourceIdx: this.socketService.sources().findIndex((s) => s.id == deviceSource.sourceId),
 		}
 		this.editingDeviceSource = true
 	}
@@ -483,7 +483,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	public editDeviceAction(deviceAction: DeviceAction) {
 		this.currentDeviceAction = {
 			...deviceAction,
-			outputTypeIdx: this.socketService.outputTypes.findIndex((t) => t.id == deviceAction.outputTypeId),
+			outputTypeIdx: this.socketService.outputTypes().findIndex((t) => t.id == deviceAction.outputTypeId),
 		}
 		this.editingDeviceAction = true
 	}
@@ -581,29 +581,23 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	}
 
 	public getOptionFields(sourceType: SourceType) {
-		return this.socketService.sourceTypeDataFields.find((s) => s.sourceTypeId == sourceType.id)?.fields || []
+		return this.socketService.sourceTypeDataFields().find((s) => s.sourceTypeId == sourceType.id)?.fields || []
 	}
 
 	public getOutputOptionFields(outputType: OutputType) {
-		return this.socketService.outputTypeDataFields.find((t) => t.outputTypeId == outputType.id)?.fields || []
+		return this.socketService.outputTypeDataFields().find((t) => t.outputTypeId == outputType.id)?.fields || []
 	}
 
 	public getSourceBusOptionsBySourceTypeId(sourceTypeId: string): SourceTypeBus[] {
-		return this.socketService.sourceTypes.find((obj) => obj.id === sourceTypeId)?.busses as SourceTypeBus[]
+		return this.socketService.sourceTypes().find((obj) => obj.id === sourceTypeId)?.busses as SourceTypeBus[]
 	}
 
 	public setTestMode(state: boolean, interval: number = 1000) {
-		if (state == true) {
-			this.socketService.socket.emit('testmode', true, interval)
-			this.socketService.testModeOn = true
-		} else if (state == false) {
-			this.socketService.socket.emit('testmode', false)
-			this.socketService.testModeOn = false
-		}
+		this.socketService.setTestMode(state, interval)
 	}
 
 	public checkTestMode() {
-		let sources = this.socketService.sources
+		let sources = this.socketService.sources()
 		let status = false
 		for (let i = 0; i < sources.length; i++) {
 			if (sources[i].id == 'TEST') {
@@ -617,11 +611,11 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	}
 
 	public getDeviceSourcesByDeviceId(deviceId: string) {
-		return this.socketService.deviceSources.filter((obj) => obj.deviceId === deviceId)
+		return this.socketService.deviceSources().filter((obj) => obj.deviceId === deviceId)
 	}
 
 	public getDeviceActionsByDeviceId(deviceId: string) {
-		return this.socketService.deviceActions.filter((obj) => obj.deviceId === deviceId)
+		return this.socketService.deviceActions().filter((obj) => obj.deviceId === deviceId)
 	}
 
 	public editDeviceSources(device: Device, deviceSourcesModal: any) {
@@ -661,7 +655,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 			return
 		}
 		const sourceTypeIdx = this.currentSourceSelectedTypeIdx
-		if (sourceTypeIdx === undefined || sourceTypeIdx === -1 || !this.socketService.sourceTypes[sourceTypeIdx]) {
+		if (sourceTypeIdx === undefined || sourceTypeIdx === -1 || !this.socketService.sourceTypes()[sourceTypeIdx]) {
 			Swal.fire({
 				icon: 'error',
 				text: 'Please select a source type!',
@@ -670,7 +664,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 			})
 			return
 		}
-		for (const field of this.getOptionFields(this.socketService.sourceTypes[sourceTypeIdx])) {
+		for (const field of this.getOptionFields(this.socketService.sourceTypes()[sourceTypeIdx])) {
 			if (field.fieldName != 'info' && !field.optional) {
 				if (
 					this.currentSource.data[field.fieldName] === null ||
@@ -700,7 +694,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 		}
 		const sourceObj = {
 			...this.currentSource,
-			sourceTypeId: this.socketService.sourceTypes[sourceTypeIdx].id,
+			sourceTypeId: this.socketService.sourceTypes()[sourceTypeIdx].id,
 		} as any
 		if (!this.editingSource) {
 			sourceObj.reconnect = true
@@ -810,7 +804,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	}
 
 	public getBusById(busId: string) {
-		return this.socketService.busOptions.find(({ id }) => id === busId)
+		return this.socketService.busOptions().find(({ id }) => id === busId)
 	}
 
 	public addSource(modal: any) {
@@ -872,19 +866,19 @@ export class SettingsComponent implements OnInit, OnDestroy {
 	}
 
 	public getOutputTypeById(outputTypeId: string) {
-		return this.socketService.outputTypes.find(({ id }) => id === outputTypeId)
+		return this.socketService.outputTypes().find(({ id }) => id === outputTypeId)
 	}
 
 	public getSourceTypeById(sourceTypeId: string) {
-		return this.socketService.sourceTypes.find((sourceType) => sourceType.id === sourceTypeId)
+		return this.socketService.sourceTypes().find((sourceType) => sourceType.id === sourceTypeId)
 	}
 
 	public getNetworkDiscoveryList() {
-		return this.socketService.networkDiscovery.filter((el) => this.checkIfNetworkDiscoveryAlreadyAdded(el))
+		return this.socketService.networkDiscovery().filter((el) => this.checkIfNetworkDiscoveryAlreadyAdded(el))
 	}
 
 	public checkIfNetworkDiscoveryAlreadyAdded(networkDiscovery: NetworkDiscovery) {
-		return this.socketService.sources.every((source) => {
+		return this.socketService.sources().every((source) => {
 			return !(networkDiscovery.sourceId === source.sourceTypeId && networkDiscovery.addresses.includes(source.data.ip))
 		})
 	}
@@ -895,7 +889,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
 	public addSourceByNetworkDiscovery(discovered: NetworkDiscovery, modal: any) {
 		this.editingSource = false
-		this.currentSourceSelectedTypeIdx = this.socketService.sourceTypes.findIndex((t) => t.id == discovered.sourceId)
+		this.currentSourceSelectedTypeIdx = this.socketService.sourceTypes().findIndex((t) => t.id == discovered.sourceId)
 		this.currentSource = {
 			name: discovered.name,
 			data: {
@@ -910,7 +904,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
 	public editSource(source: Source, modal: any) {
 		this.editingSource = true
-		this.currentSourceSelectedTypeIdx = this.socketService.sourceTypes.findIndex((t) => t.id == source.sourceTypeId)
+		this.currentSourceSelectedTypeIdx = this.socketService.sourceTypes().findIndex((t) => t.id == source.sourceTypeId)
 		this.currentSource = {
 			...source,
 			data: {
@@ -997,7 +991,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
 	public editBusOption(bus: BusOption, modal: any) {
 		this.editingBusOption = true
-		this.currentBusOptionSelectedTypeIdx = this.socketService.busOptions.findIndex((t) => t.id == bus.id)
+		this.currentBusOptionSelectedTypeIdx = this.socketService.busOptions().findIndex((t) => t.id == bus.id)
 		this.currentBusOption = {
 			...bus,
 		} as BusOption

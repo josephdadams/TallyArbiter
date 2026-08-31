@@ -1,4 +1,4 @@
-@if (socketService.initialDataLoaded) {
+@if (socketService.initialDataLoaded()) {
 	<div class="container pt-4">
 		<nav
 			ngbNav
@@ -18,11 +18,11 @@
 								<i class="fas fa-plus"></i> Add
 							</button>
 						</h3>
-						@if (socketService.sources.length == 0) {
+						@if (socketService.sources().length == 0) {
 							<span class="text-muted mt-3">No sources configured.</span>
 						}
 						<div class="table-responsive">
-							@if (socketService.sources.length > 0) {
+							@if (socketService.sources().length > 0) {
 								<table class="table table-hover align-middle">
 									<thead>
 										<tr>
@@ -33,7 +33,7 @@
 										</tr>
 									</thead>
 									<tbody>
-										@for (source of socketService.sources; track source.id) {
+										@for (source of socketService.sources(); track source.id) {
 											<tr [class]="source.enabled ? (source.connected ? 'text-success' : 'text-danger') : 'text-muted'">
 												<td>{{ source.name }}</td>
 												<td>
@@ -129,8 +129,8 @@
 									class="form-check-input"
 									type="checkbox"
 									id="chkChatEnabled"
-									[(ngModel)]="socketService.chatEnabled"
-									(ngModelChange)="socketService.socket.emit('chat_enabled', $event)"
+									[ngModel]="socketService.chatEnabled()"
+									(ngModelChange)="socketService.setChatEnabled($event)"
 								/>
 								<label class="form-check-label" for="chkChatEnabled">Enable Chat</label>
 							</div>
@@ -144,11 +144,11 @@
 					<hr class="my-5" />
 					<div class="row">
 						<h3>Connected Listeners</h3>
-						@if (socketService.listenerClients.length == 0) {
+						@if (socketService.listenerClients().length == 0) {
 							<span class="text-muted mt-3">No listeners connected.</span>
 						}
 						<div class="table-responsive">
-							@if (socketService.listenerClients.length > 0) {
+							@if (socketService.listenerClients().length > 0) {
 								<table class="table table-hover align-middle">
 									<thead>
 										<tr>
@@ -160,7 +160,7 @@
 										</tr>
 									</thead>
 									<tbody>
-										@for (listenerClient of socketService.listenerClients; track listenerClient.id) {
+										@for (listenerClient of socketService.listenerClients(); track listenerClient.id) {
 											<tr>
 												<td>{{ listenerClient.ipAddress }}</td>
 												<td>
@@ -177,7 +177,7 @@
 															(ngModelChange)="reassignListenerClient(listenerClient, $event)"
 															[disabled]="!listenerClient.canBeReassigned"
 														>
-															@for (device of socketService.devices; track device.id) {
+															@for (device of socketService.devices(); track device.id) {
 																<option [value]="device.id">
 																	{{ device.name }}
 																</option>
@@ -207,11 +207,11 @@
 					<hr class="my-5" />
 					<div class="row">
 						<h3>Connected vMix Listeners</h3>
-						@if (socketService.vmixClients.length == 0) {
+						@if (socketService.vmixClients().length == 0) {
 							<span class="text-muted mt-3">No listeners connected.</span>
 						}
 						<div class="table-responsive">
-							@if (socketService.vmixClients.length > 0) {
+							@if (socketService.vmixClients().length > 0) {
 								<table class="table table-hover align-middle">
 									<thead>
 										<tr>
@@ -219,7 +219,7 @@
 										</tr>
 									</thead>
 									<tbody>
-										@for (vmixClient of socketService.vmixClients; track vmixClient) {
+										@for (vmixClient of socketService.vmixClients(); track vmixClient) {
 											<tr>
 												<td>{{ vmixClient.host }}</td>
 											</tr>
@@ -243,16 +243,16 @@
 									class="form-check-input"
 									type="checkbox"
 									id="chkTSLClients_1SecUpdate"
-									[(ngModel)]="socketService.tslclients_1secupdate"
-									(ngModelChange)="socketService.socket.emit('tslclients_1secupdate', $event)"
+									[ngModel]="socketService.tslclients_1secupdate()"
+									(ngModelChange)="socketService.setTslClients1SecUpdate($event)"
 								/>
 								<label class="form-check-label" for="chkTSLClients_1SecUpdate">1-Second Updates</label>
 							</div>
-							@if (socketService.tslClients.length == 0) {
+							@if (socketService.tslClients().length == 0) {
 								<span class="text-muted mt-3 d-block">No TSL Listener Clients configured.</span>
 							}
 							<div class="table-responsive">
-								@if (socketService.tslClients.length > 0) {
+								@if (socketService.tslClients().length > 0) {
 									<table class="table table-hover align-middle">
 										<thead>
 											<tr>
@@ -264,7 +264,7 @@
 											</tr>
 										</thead>
 										<tbody>
-											@for (tslClient of socketService.tslClients; track tslClient.id) {
+											@for (tslClient of socketService.tslClients(); track tslClient.id) {
 												<tr [class.text-success]="tslClient.connected">
 													<td>{{ tslClient.ip }}</td>
 													<td>{{ tslClient.port }}</td>
@@ -314,11 +314,11 @@
 									<i class="fas fa-plus"></i> Add
 								</button>
 							</h3>
-							@if (socketService.cloudDestinations.length == 0) {
+							@if (socketService.cloudDestinations().length == 0) {
 								<span class="text-muted mt-3">No cloud destinations configured.</span>
 							}
 							<div class="table-responsive">
-								@if (socketService.cloudDestinations.length > 0) {
+								@if (socketService.cloudDestinations().length > 0) {
 									<table class="table table-hover align-middle">
 										<thead>
 											<tr>
@@ -330,7 +330,7 @@
 											</tr>
 										</thead>
 										<tbody>
-											@for (cloudDestination of socketService.cloudDestinations; track cloudDestination.id) {
+											@for (cloudDestination of socketService.cloudDestinations(); track cloudDestination.id) {
 												<tr [class.text-success]="cloudDestination.status == 'connected'">
 													<td>{{ cloudDestination.host }}</td>
 													<td>{{ cloudDestination.port }}</td>
@@ -384,11 +384,11 @@
 									<i class="fas fa-plus"></i> Add
 								</button>
 							</h4>
-							@if (socketService.cloudKeys.length == 0) {
+							@if (socketService.cloudKeys().length == 0) {
 								<span class="text-muted mt-3">No cloud keys configured.</span>
 							}
 							<div class="table-responsive">
-								@if (socketService.cloudKeys.length > 0) {
+								@if (socketService.cloudKeys().length > 0) {
 									<table class="table table-hover align-middle">
 										<thead>
 											<tr>
@@ -397,7 +397,7 @@
 											</tr>
 										</thead>
 										<tbody>
-											@for (key of socketService.cloudKeys; track key) {
+											@for (key of socketService.cloudKeys(); track key) {
 												<tr>
 													<td>{{ key }}</td>
 													<td>
@@ -416,11 +416,11 @@
 					<div class="row mt-4">
 						<div class="col">
 							<h4>Clients</h4>
-							@if (socketService.cloudClients.length == 0) {
+							@if (socketService.cloudClients().length == 0) {
 								<span class="text-muted mt-3">No cloud clients connected.</span>
 							}
 							<div class="table-responsive">
-								@if (socketService.cloudClients.length > 0) {
+								@if (socketService.cloudClients().length > 0) {
 									<table class="table table-hover align-middle">
 										<thead>
 											<tr>
@@ -430,7 +430,7 @@
 											</tr>
 										</thead>
 										<tbody>
-											@for (client of socketService.cloudClients; track client.id) {
+											@for (client of socketService.cloudClients(); track client.id) {
 												<tr>
 													<td>{{ client.ipAddress.replace('::ffff:', '') }}</td>
 													<td>{{ client.key }}</td>
@@ -454,7 +454,7 @@
 				<ng-template ngbNavContent>
 					@if (checkTestMode() == false) {
 						<div>
-							<button class="btn btn-secondary mb-5" (click)="setTestMode(true, socketService.testModeInterval)">
+							<button class="btn btn-secondary mb-5" (click)="setTestMode(true, socketService.testModeInterval())">
 								<i class="fas fa-vial"></i> Turn On Test Mode
 							</button>
 							<div class="mb-3 form-check">
@@ -463,7 +463,8 @@
 									type="number"
 									class="form-control w-25"
 									id="txtTestModeInterval"
-									[(ngModel)]="socketService.testModeInterval"
+									[ngModel]="socketService.testModeInterval()"
+									(ngModelChange)="socketService.testModeInterval.set($event)"
 								/>
 							</div>
 						</div>
@@ -485,11 +486,11 @@
 					<div class="row">
 						<h3>Bus Options</h3>
 						<div>
-							@if (socketService.busOptions.length == 0) {
+							@if (socketService.busOptions().length == 0) {
 								<span class="text-muted mt-3 d-block">No Bus Options configured.</span>
 							}
 							<div class="table-responsive">
-								@if (socketService.busOptions.length > 0) {
+								@if (socketService.busOptions().length > 0) {
 									<table class="table table-hover align-middle">
 										<thead>
 											<tr>
@@ -500,7 +501,7 @@
 											</tr>
 										</thead>
 										<tbody>
-											@for (busOption of socketService.busOptions; track busOption.id) {
+											@for (busOption of socketService.busOptions(); track busOption.id) {
 												<tr>
 													<td>{{ busOption.label }}</td>
 													<td>{{ busOption.type }}</td>
@@ -632,22 +633,22 @@
 							</button>
 						</h3>
 						<div>
-							@if (socketService.defaultPasswordUsers.length > 0) {
+							@if (socketService.defaultPasswordUsers().length > 0) {
 								<div class="alert alert-warning">
 									<i class="fas fa-exclamation-triangle me-2"></i>
-									<strong>{{ socketService.defaultPasswordUsers.join(', ') }}</strong>
-									{{ socketService.defaultPasswordUsers.length === 1 ? 'is' : 'are' }} still using the default password
-									that Tally Arbiter ships with. Anyone who can reach this server can sign in. Please set a real
-									password below — this will be enforced in a future release.
+									<strong>{{ socketService.defaultPasswordUsers().join(', ') }}</strong>
+									{{ socketService.defaultPasswordUsers().length === 1 ? 'is' : 'are' }} still using the default
+									password that Tally Arbiter ships with. Anyone who can reach this server can sign in. Please set a
+									real password below — this will be enforced in a future release.
 								</div>
 							}
-							@if (socketService.users.length == 0) {
+							@if (socketService.users().length == 0) {
 								<span class="text-muted mt-3 d-block"
 									>No user found. This should not happen... Please, open a bug report on Github.</span
 								>
 							}
 							<div class="table-responsive">
-								@if (socketService.users.length > 0) {
+								@if (socketService.users().length > 0) {
 									<table class="table table-hover align-middle">
 										<thead>
 											<tr>
@@ -658,7 +659,7 @@
 											</tr>
 										</thead>
 										<tbody>
-											@for (user of socketService.users; track user.username) {
+											@for (user of socketService.users(); track user.username) {
 												<tr>
 													<td>{{ user.username }}</td>
 													<td>{{ user.roles.toString().replaceAll(';', ', ') }}</td>
@@ -671,7 +672,7 @@
 														<button
 															class="btn btn-sm btn-danger"
 															(click)="deleteUserButton(user)"
-															[disabled]="socketService.users.length === 1"
+															[disabled]="socketService.users().length === 1"
 														>
 															<i class="fas fa-trash"></i> Delete
 															@if (authService.profile.username === user.username) {
@@ -727,7 +728,7 @@
 						<div class="col-xs-12 col-md-6 mt-3" id="divContainer_TallyData">
 							<h3>Tally Data</h3>
 							<div class="logs bg-body-tertiary p-1" #tallyDataContainer>
-								@for (log of socketService.tallyData; track log) {
+								@for (log of socketService.tallyData(); track log) {
 									<span class="d-block"
 										>[{{ log.datetime | date: 'shortDate' }} {{ log.datetime | date: 'shortTime' }}] {{ log.log }}</span
 									>
@@ -735,7 +736,7 @@
 							</div>
 						</div>
 					</div>
-					@if (socketService.remoteErrorOpt == false) {
+					@if (socketService.remoteErrorOpt() == false) {
 						<div>
 							<button class="btn btn-dark my-3" (click)="optInErrorReporting()">
 								<i class="fas fa-remove"></i> Opt in to remote error reporting
@@ -748,7 +749,7 @@
 					}
 
 					<div class="text-muted my-3">
-						Version {{ socketService.version }} - <a routerLink="/errors">Go to error reports list</a>
+						Version {{ socketService.version() }} - <a routerLink="/errors">Go to error reports list</a>
 					</div>
 				</ng-template>
 			</ng-container>
@@ -757,7 +758,7 @@
 	</div>
 }
 
-@if (!socketService.initialDataLoaded) {
+@if (!socketService.initialDataLoaded()) {
 	<div class="d-flex justify-content-center mt-5 pt-5">
 		<div class="spinner spinner-border text-dark"></div>
 	</div>
@@ -770,15 +771,15 @@
 			<button class="btn btn-sm btn-success" (click)="addDevice(deviceModal)"><i class="fas fa-plus"></i> Add</button>
 		}
 	</h3>
-	@if (socketService.devices.length == 0) {
+	@if (socketService.devices().length == 0) {
 		<span class="text-muted mt-3">No devices configured.</span>
 	}
 	<div class="table-responsive">
-		@if (socketService.devices.length > 0) {
+		@if (socketService.devices().length > 0) {
 			<table class="table table-hover align-middle">
 				<thead>
 					<tr>
-						@for (bus of socketService.busOptionsVisible; track bus.id) {
+						@for (bus of socketService.busOptionsVisible(); track bus.id) {
 							<th>{{ bus.label }}</th>
 						}
 						<th style="min-width: 100px">Name</th>
@@ -790,9 +791,9 @@
 					</tr>
 				</thead>
 				<tbody>
-					@for (device of socketService.devices; track device.id; let index = $index) {
+					@for (device of socketService.devices(); track device.id; let index = $index) {
 						<tr [class.text-muted]="!device.enabled">
-							@for (bus of socketService.busOptionsVisible; track bus.id) {
+							@for (bus of socketService.busOptionsVisible(); track bus.id) {
 								<td [style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : '#FFFFFF'"></td>
 							}
 							<td>
@@ -859,7 +860,7 @@
 				<label for="sourceType" class="form-label">Source Type</label>
 				<select id="sourceType" class="form-select" disabled>
 					<option>
-						{{ socketService.sourceTypes[currentSourceSelectedTypeIdx!].label }}
+						{{ socketService.sourceTypes()[currentSourceSelectedTypeIdx!].label }}
 					</option>
 				</select>
 			</div>
@@ -867,7 +868,7 @@
 		@if (!editingSource) {
 			<select class="form-select" ngbAutofocus [(ngModel)]="currentSourceSelectedTypeIdx">
 				<option selected disabled [value]="undefined">-- Choose Source Type --</option>
-				@for (sourceType of socketService.sourceTypes; track sourceType.id; let index = $index) {
+				@for (sourceType of socketService.sourceTypes(); track sourceType.id; let index = $index) {
 					<option [value]="index">
 						{{ sourceType.label }}
 					</option>
@@ -876,12 +877,12 @@
 		}
 		@if (currentSourceSelectedTypeIdx !== undefined) {
 			<div>
-				<p>{{ socketService.sourceTypes[currentSourceSelectedTypeIdx].help }}</p>
+				<p>{{ socketService.sourceTypes()[currentSourceSelectedTypeIdx].help }}</p>
 				<div class="mb-3">
 					<label for="sourceName" class="form-label">Source Name<span class="text-danger">*</span></label>
 					<input type="text" class="form-control" id="sourceName" [(ngModel)]="currentSource.name" />
 				</div>
-				@for (field of getOptionFields(socketService.sourceTypes[currentSourceSelectedTypeIdx]); track field) {
+				@for (field of getOptionFields(socketService.sourceTypes()[currentSourceSelectedTypeIdx]); track field) {
 					@switch (field.fieldType) {
 						@case ('text') {
 							<div class="mb-3">
@@ -1051,7 +1052,7 @@
 			<label for="deviceCameraModel" class="form-label mt-2">Camera Model</label>
 			<select class="form-select" id="deviceCameraModel" [(ngModel)]="currentDevice.cameraModel">
 				<option value="">-- Select Model --</option>
-				@for (cameraModel of socketService.cameraModels; track cameraModel.id) {
+				@for (cameraModel of socketService.cameraModels(); track cameraModel.id) {
 					<option [value]="cameraModel.id">
 						{{ cameraModel.label }}
 					</option>
@@ -1068,7 +1069,7 @@
 			</small>
 			<div>
 				<select class="form-select" [(ngModel)]="currentDevice.linkedBusses" multiple="multiple">
-					@for (bus of socketService.busOptions; track bus.id) {
+					@for (bus of socketService.busOptions(); track bus.id) {
 						<option [value]="bus.id">{{ bus.label }}</option>
 					}
 				</select>
@@ -1143,30 +1144,30 @@
 					<select
 						class="form-select"
 						[(ngModel)]="currentDeviceSource.sourceIdx"
-						(ngModelChange)="socketService.socket.emit('source_tallydata', socketService.sources[$event].id)"
+						(ngModelChange)="socketService.socket.emit('source_tallydata', socketService.sources()[$event].id)"
 					>
-						@for (source of socketService.sources; track source.id; let index = $index) {
+						@for (source of socketService.sources(); track source.id; let index = $index) {
 							<option [value]="index">
 								{{ source.name }}
 							</option>
 						}
 					</select>
 				</div>
-				@if (socketService.sources[currentDeviceSource.sourceIdx!]) {
+				@if (socketService.sources()[currentDeviceSource.sourceIdx!]) {
 					<div class="mb-3">
 						<label for="deviceSource" class="form-label"
 							>Input/Address Number ({{
-								socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0
+								socketService.addresses()[socketService.sources()[currentDeviceSource.sourceIdx!].id].length > 0
 									? 'select or '
 									: ''
 							}}enter manually):</label
 						>
 						<div class="row">
-							@if (socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id].length > 0) {
+							@if (socketService.addresses()[socketService.sources()[currentDeviceSource.sourceIdx!].id].length > 0) {
 								<div class="col">
 									<select class="form-select" [(ngModel)]="currentDeviceSource.address">
 										@for (
-											address of socketService.addresses[socketService.sources[currentDeviceSource.sourceIdx!].id];
+											address of socketService.addresses()[socketService.sources()[currentDeviceSource.sourceIdx!].id];
 											track address.address
 										) {
 											<option [value]="address.address">
@@ -1188,16 +1189,16 @@
 					</div>
 				}
 				@if (
-					socketService.sources[currentDeviceSource.sourceIdx!] &&
-					getSourceBusOptionsBySourceTypeId(socketService.sources[currentDeviceSource.sourceIdx!].sourceTypeId).length >
-						0
+					socketService.sources()[currentDeviceSource.sourceIdx!] &&
+					getSourceBusOptionsBySourceTypeId(socketService.sources()[currentDeviceSource.sourceIdx!].sourceTypeId)
+						.length > 0
 				) {
 					<div class="mb-3">
 						<label for="bus" class="form-label">Bus:</label>
 						<select class="form-select" [(ngModel)]="currentDeviceSource.bus">
 							@for (
 								bus of getSourceBusOptionsBySourceTypeId(
-									socketService.sources[currentDeviceSource.sourceIdx!].sourceTypeId
+									socketService.sources()[currentDeviceSource.sourceIdx!].sourceTypeId
 								);
 								track bus.bus
 							) {
@@ -1208,7 +1209,7 @@
 						</select>
 					</div>
 				}
-				@if (socketService.sources[currentDeviceSource.sourceIdx!]) {
+				@if (socketService.sources()[currentDeviceSource.sourceIdx!]) {
 					<div class="form-check mb-3">
 						<input
 							class="form-check-input"
@@ -1284,7 +1285,7 @@
 					<label for="bus" class="form-label">Bus</label>
 					<select class="form-select" [(ngModel)]="currentDeviceAction.busId">
 						<option disabled selected [value]="undefined">-- Select --</option>
-						@for (bus of socketService.busOptions; track bus.id) {
+						@for (bus of socketService.busOptions(); track bus.id) {
 							<option [value]="bus.id">{{ bus.label }}</option>
 						}
 					</select>
@@ -1301,7 +1302,7 @@
 					<label for="outputType" class="form-label">Output Type</label>
 					<select class="form-select" id="outputType" [(ngModel)]="currentDeviceAction.outputTypeIdx">
 						<option disabled selected [value]="undefined">-- Select --</option>
-						@for (outputType of socketService.outputTypes; track outputType.id; let index = $index) {
+						@for (outputType of socketService.outputTypes(); track outputType.id; let index = $index) {
 							<option [value]="index">
 								{{ outputType.label }}
 							</option>
@@ -1309,9 +1310,9 @@
 					</select>
 				</div>
 
-				@if (socketService.outputTypes[currentDeviceAction.outputTypeIdx!]) {
+				@if (socketService.outputTypes()[currentDeviceAction.outputTypeIdx!]) {
 					@for (
-						field of getOutputOptionFields(socketService.outputTypes[currentDeviceAction.outputTypeIdx!]);
+						field of getOutputOptionFields(socketService.outputTypes()[currentDeviceAction.outputTypeIdx!]);
 						track field.fieldName
 					) {
 						@switch (field.fieldType) {

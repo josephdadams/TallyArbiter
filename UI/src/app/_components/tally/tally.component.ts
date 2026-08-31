@@ -34,7 +34,7 @@ export class TallyComponent implements OnDestroy {
 
 	private reassignHandler = (oldDeviceId: string, deviceId: string) => {
 		this.socketService.socket.emit('listener_reassign', oldDeviceId, deviceId)
-		this.currentDeviceIdx = this.socketService.devices.findIndex((d) => d.id === deviceId)
+		this.currentDeviceIdx = this.socketService.devices().findIndex((d) => d.id === deviceId)
 	}
 
 	constructor() {
@@ -48,14 +48,14 @@ export class TallyComponent implements OnDestroy {
 		this.socketService.dataLoaded.then(() => {
 			this.route.params.subscribe((params) => {
 				if (params.deviceId) {
-					this.currentDeviceIdx = this.socketService.devices.findIndex(
-						(d) => d.id === params.deviceId || d.name === params.deviceId,
-					)
+					this.currentDeviceIdx = this.socketService
+						.devices()
+						.findIndex((d) => d.id === params.deviceId || d.name === params.deviceId)
 
 					if (this.currentDeviceIdx === -1) return
 
 					this.socketService.socket.emit('listenerclient_connect', {
-						deviceId: this.socketService.devices[this.currentDeviceIdx].id,
+						deviceId: this.socketService.devices()[this.currentDeviceIdx].id,
 						listenerType: 'web',
 						canBeReassigned: true,
 						canBeFlashed: true,
@@ -75,12 +75,12 @@ export class TallyComponent implements OnDestroy {
 		this.deviceStateChangedSubscription = this.socketService.deviceStateChanged.subscribe((deviceStates) => {
 			if (this.currentDeviceIdx === undefined) return
 
-			const currentDevice = this.socketService.devices[this.currentDeviceIdx]
+			const currentDevice = this.socketService.devices()[this.currentDeviceIdx]
 			if (!currentDevice) return
 
 			const hightestPriorityBus = deviceStates
 				.filter((d) => d.deviceId == currentDevice.id && d.sources.length > 0)
-				.map(({ busId }) => this.socketService.busOptions.find((b) => b.id == busId))
+				.map(({ busId }) => this.socketService.busOptions().find((b) => b.id == busId))
 				.reduce((a: any, b: any) => (a?.priority > b?.priority ? a : b), {}) as BusOption
 
 			if (!hightestPriorityBus || Object.entries(hightestPriorityBus).length == 0) {

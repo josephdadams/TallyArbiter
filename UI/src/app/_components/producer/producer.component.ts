@@ -24,7 +24,7 @@ export class ProducerComponent implements OnDestroy {
 		this.socketService.dataLoaded
 
 		this.deviceStateChangedSubscription = this.socketService.deviceStateChanged.subscribe((deviceStates) => {
-			for (const device of this.socketService.devices) {
+			for (const device of this.socketService.devices()) {
 				this.deviceBusColors[device.id] = deviceStates
 					.filter((d) => d.deviceId == device.id && d.sources.length > 0)
 					.map((d) => d.busId)

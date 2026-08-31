@@ -9,23 +9,23 @@
 				<qr-code class="my-4 d-block" [value]="netInterfaceUrl" size="250" errorCorrectionLevel="M"></qr-code>
 				<select [(ngModel)]="netInterfaceUrl" class="form-select d-inline w-unset">
 					<option [value]="localNetInterfaceUrl">localhost (Local)</option>
-					@if (socketService.externalAddress !== 'http://0.0.0.0:4455/#/tally') {
-						<option [value]="socketService.externalAddress">External Address</option>
+					@if (socketService.externalAddress() !== 'http://0.0.0.0:4455/#/tally') {
+						<option [value]="socketService.externalAddress()">External Address</option>
 					}
-					@for (netInterface of socketService.interfaces; track netInterface) {
+					@for (netInterface of socketService.interfaces(); track netInterface) {
 						<option [ngValue]="netInterface.url">{{ netInterface.address }} ({{ netInterface.name }})</option>
 					}
 				</select>
 				<p>Scan the QR Code with your Phone or open one of the following URLs:</p>
 				<ul>
-					@for (net_interface of socketService.interfaces; track net_interface) {
+					@for (net_interface of socketService.interfaces(); track net_interface) {
 						<li>
 							<a target="_blank" [href]="net_interface.url">{{ net_interface.url }}</a>
 						</li>
 					}
-					@if (socketService.externalAddress !== 'http://0.0.0.0:4455/#/tally') {
+					@if (socketService.externalAddress() !== 'http://0.0.0.0:4455/#/tally') {
 						<li>
-							<a target="_blank" [href]="socketService.externalAddress">{{ socketService.externalAddress }}</a>
+							<a target="_blank" [href]="socketService.externalAddress()">{{ socketService.externalAddress() }}</a>
 							(External Address)
 						</li>
 					}

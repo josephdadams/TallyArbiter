@@ -1,6 +1,6 @@
 <div class="card chat d-flex">
 	<div class="mesages bg-body-tertiary flex-fill p-3 overflow-auto" #chatContainer>
-		@for (message of socketService.messages; track message) {
+		@for (message of socketService.messages(); track message) {
 			<div
 				[class]="
 					'd-flex ' +

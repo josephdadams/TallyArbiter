@@ -208,7 +208,7 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
 				let bugTitle = '[Bug] ' + this.currentReport.stacktrace.split('\n')[0]
 				this.generateBugReportUrl(
 					bugTitle,
-					this.socketService.version as string,
+					this.socketService.version() as string,
 					this.currentReport.config,
 					this.currentReport.logs,
 					this.currentReport.stacktrace,

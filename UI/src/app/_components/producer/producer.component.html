@@ -2,15 +2,15 @@
 	<div class="row">
 		<div class="col-md-6 col-xs-12">
 			<h3>Devices</h3>
-			@if (socketService.devices.length == 0) {
+			@if (socketService.devices().length == 0) {
 				<span class="text-muted mt-3">No devices configured.</span>
 			}
 			<div class="table-responsive">
-				@if (socketService.devices.length > 0) {
+				@if (socketService.devices().length > 0) {
 					<table class="table table-hover">
 						<thead>
 							<tr>
-								@for (bus of socketService.busOptions; track bus.id) {
+								@for (bus of socketService.busOptions(); track bus.id) {
 									<th>{{ bus.label }}</th>
 								}
 								<th>Name</th>
@@ -20,9 +20,9 @@
 							</tr>
 						</thead>
 						<tbody>
-							@for (device of socketService.devices; track device.id) {
+							@for (device of socketService.devices(); track device.id) {
 								<tr [class.text-muted]="!device.enabled">
-									@for (bus of socketService.busOptions; track bus.id) {
+									@for (bus of socketService.busOptions(); track bus.id) {
 										<td
 											class="bus-cell"
 											[style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : null"
@@ -51,11 +51,11 @@
 			</div>
 			<hr class="my-3" />
 			<h3>Clients</h3>
-			@if (socketService.listenerClients.length == 0) {
+			@if (socketService.listenerClients().length == 0) {
 				<span class="text-muted mt-3">No clients connected.</span>
 			}
 			<div class="table-responsive">
-				@if (socketService.listenerClients.length > 0) {
+				@if (socketService.listenerClients().length > 0) {
 					<table class="table table-hover">
 						<thead>
 							<tr>
@@ -68,7 +68,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							@for (listenerClient of socketService.listenerClients; track listenerClient.id) {
+							@for (listenerClient of socketService.listenerClients(); track listenerClient.id) {
 								<tr [class.text-muted]="listenerClient.inactive">
 									<td>{{ listenerClient.datetime_connected | date: 'shortTime' }}</td>
 									<td>{{ listenerClient.ipAddress }}</td>
@@ -94,7 +94,7 @@
 			</div>
 			<hr class="my-3" />
 		</div>
-		@if (socketService.chatEnabled) {
+		@if (socketService.chatEnabled()) {
 			<div class="col-md-6 col-xs-12 chat my-3">
 				<h3>Chat</h3>
 				<app-chat type="producer" class="p-3"></app-chat>
