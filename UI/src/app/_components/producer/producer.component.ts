@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+import { DatePipe } from '@angular/common'
 import { Component, OnDestroy, ChangeDetectionStrategy } from '@angular/core'
 import { Subscription } from 'rxjs'
 import { ChatComponent } from '../chat/chat.component'
@@ -7,7 +7,7 @@ import { SocketService } from 'src/app/_services/socket.service'
 @Component({
 	selector: 'app-producer',
 	standalone: true,
-	imports: [CommonModule, ChatComponent],
+	imports: [DatePipe, ChatComponent],
 	templateUrl: './producer.component.html',
 	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./producer.component.scss'],

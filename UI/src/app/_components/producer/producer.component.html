@@ -2,83 +2,103 @@
 	<div class="row">
 		<div class="col-md-6 col-xs-12">
 			<h3>Devices</h3>
-			<span class="text-muted mt-3" *ngIf="socketService.devices.length == 0">No devices configured.</span>
+			@if (socketService.devices.length == 0) {
+				<span class="text-muted mt-3">No devices configured.</span>
+			}
 			<div class="table-responsive">
-				<table class="table table-hover" *ngIf="socketService.devices.length > 0">
-					<thead>
-						<tr>
-							<th *ngFor="let bus of socketService.busOptions">{{ bus.label }}</th>
-							<th>Name</th>
-							<th></th>
-							<th>Description</th>
-							<th>Active Listeners</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr *ngFor="let device of socketService.devices" [class.text-muted]="!device.enabled">
-							<td
-								class="bus-cell"
-								*ngFor="let bus of socketService.busOptions"
-								[style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : null"
-								[attr.aria-label]="
-									bus.label + (deviceBusColors[device.id].includes(bus.id) ? ': active' : ': inactive')
-								"
-							></td>
-							<td>{{ device.name }}</td>
-							<td><i class="fas fa-cloud text-muted" *ngIf="device.cloudConnection"></i></td>
-							<td>{{ device.description }}</td>
-							<td>
-								<span class="badge text-bg-secondary" *ngIf="device.listenerCount && device.listenerCount > 0">{{
-									device.listenerCount
-								}}</span>
-							</td>
-						</tr>
-					</tbody>
-				</table>
+				@if (socketService.devices.length > 0) {
+					<table class="table table-hover">
+						<thead>
+							<tr>
+								@for (bus of socketService.busOptions; track bus.id) {
+									<th>{{ bus.label }}</th>
+								}
+								<th>Name</th>
+								<th></th>
+								<th>Description</th>
+								<th>Active Listeners</th>
+							</tr>
+						</thead>
+						<tbody>
+							@for (device of socketService.devices; track device.id) {
+								<tr [class.text-muted]="!device.enabled">
+									@for (bus of socketService.busOptions; track bus.id) {
+										<td
+											class="bus-cell"
+											[style.background-color]="deviceBusColors[device.id].includes(bus.id) ? bus.color : null"
+											[attr.aria-label]="
+												bus.label + (deviceBusColors[device.id].includes(bus.id) ? ': active' : ': inactive')
+											"
+										></td>
+									}
+									<td>{{ device.name }}</td>
+									<td>
+										@if (device.cloudConnection) {
+											<i class="fas fa-cloud text-muted"></i>
+										}
+									</td>
+									<td>{{ device.description }}</td>
+									<td>
+										@if (device.listenerCount && device.listenerCount > 0) {
+											<span class="badge text-bg-secondary">{{ device.listenerCount }}</span>
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
 			</div>
 			<hr class="my-3" />
 			<h3>Clients</h3>
-			<span class="text-muted mt-3" *ngIf="socketService.listenerClients.length == 0">No clients connected.</span>
+			@if (socketService.listenerClients.length == 0) {
+				<span class="text-muted mt-3">No clients connected.</span>
+			}
 			<div class="table-responsive">
-				<table class="table table-hover" *ngIf="socketService.listenerClients.length > 0">
-					<thead>
-						<tr>
-							<th></th>
-							<th>IP</th>
-							<th>Type</th>
-							<th></th>
-							<th>Device</th>
-							<th></th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr
-							*ngFor="let listenerClient of socketService.listenerClients"
-							[class.text-muted]="listenerClient.inactive"
-						>
-							<td>{{ listenerClient.datetime_connected | date: 'shortTime' }}</td>
-							<td>{{ listenerClient.ipAddress }}</td>
-							<td>{{ listenerClient.listenerType }}</td>
-							<td><i class="fas fa-cloud text-muted" *ngIf="listenerClient.cloudConnection"></i></td>
-							<td>{{ listenerClient.device?.name }}</td>
-							<td>
-								<button
-									*ngIf="!listenerClient.inactive && listenerClient.canBeFlashed"
-									class="btn btn-outline-dark"
-									(click)="socketService.flashListener(listenerClient)"
-								>
-									Flash
-								</button>
-							</td>
-						</tr>
-					</tbody>
-				</table>
+				@if (socketService.listenerClients.length > 0) {
+					<table class="table table-hover">
+						<thead>
+							<tr>
+								<th></th>
+								<th>IP</th>
+								<th>Type</th>
+								<th></th>
+								<th>Device</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody>
+							@for (listenerClient of socketService.listenerClients; track listenerClient.id) {
+								<tr [class.text-muted]="listenerClient.inactive">
+									<td>{{ listenerClient.datetime_connected | date: 'shortTime' }}</td>
+									<td>{{ listenerClient.ipAddress }}</td>
+									<td>{{ listenerClient.listenerType }}</td>
+									<td>
+										@if (listenerClient.cloudConnection) {
+											<i class="fas fa-cloud text-muted"></i>
+										}
+									</td>
+									<td>{{ listenerClient.device?.name }}</td>
+									<td>
+										@if (!listenerClient.inactive && listenerClient.canBeFlashed) {
+											<button class="btn btn-outline-dark" (click)="socketService.flashListener(listenerClient)">
+												Flash
+											</button>
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
 			</div>
 			<hr class="my-3" />
 		</div>
-		<div class="col-md-6 col-xs-12 chat my-3" *ngIf="socketService.chatEnabled">
-			<h3>Chat</h3>
-			<app-chat type="producer" class="p-3"></app-chat>
-		</div>
+		@if (socketService.chatEnabled) {
+			<div class="col-md-6 col-xs-12 chat my-3">
+				<h3>Chat</h3>
+				<app-chat type="producer" class="p-3"></app-chat>
+			</div>
+		}
 	</div>
 </div>

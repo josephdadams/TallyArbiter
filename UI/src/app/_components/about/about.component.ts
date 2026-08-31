@@ -1,11 +1,10 @@
-import { CommonModule } from '@angular/common'
 import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core'
 import { SocketService } from 'src/app/_services/socket.service'
 
 @Component({
 	selector: 'app-about',
 	standalone: true,
-	imports: [CommonModule],
+	imports: [],
 	templateUrl: './about.component.html',
 	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./about.component.scss'],

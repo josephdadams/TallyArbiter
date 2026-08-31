@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common'
 import { Component, ChangeDetectionStrategy } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { QrCodeModule } from 'ng-qrcode'
@@ -7,7 +6,7 @@ import { SocketService } from 'src/app/_services/socket.service'
 @Component({
 	selector: 'app-home',
 	standalone: true,
-	imports: [CommonModule, FormsModule, QrCodeModule],
+	imports: [FormsModule, QrCodeModule],
 	templateUrl: './home.component.html',
 	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./home.component.scss'],

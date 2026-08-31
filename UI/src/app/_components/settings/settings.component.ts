@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+import { DatePipe, NgTemplateOutlet } from '@angular/common'
 
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core'
 
@@ -66,7 +66,7 @@ type LogLevel = { title: string; id: string }
 @Component({
 	selector: 'app-settings',
 	standalone: true,
-	imports: [CommonModule, FormsModule, NgbNavModule, JsonEditorComponent, RequireRoleDirective],
+	imports: [DatePipe, NgTemplateOutlet, FormsModule, NgbNavModule, JsonEditorComponent, RequireRoleDirective],
 	templateUrl: './settings.component.html',
 	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./settings.component.scss'],

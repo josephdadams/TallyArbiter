@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common'
 import { Component, ChangeDetectionStrategy } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import { trigger, transition, style, animate, state } from '@angular/animations'
@@ -14,7 +13,7 @@ import { ThemeSelectorComponent } from './_components/theme-selector/theme-selec
 @Component({
 	selector: 'app-root',
 	standalone: true,
-	imports: [CommonModule, RouterModule, ThemeSelectorComponent],
+	imports: [RouterModule, ThemeSelectorComponent],
 	templateUrl: './app.component.html',
 	styleUrls: ['./app.component.scss'],
 	changeDetection: ChangeDetectionStrategy.Eager,

@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common'
 import { Component, OnDestroy, ChangeDetectionStrategy } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -10,7 +9,7 @@ import { ChatComponent } from '../chat/chat.component'
 @Component({
 	selector: 'app-tally',
 	standalone: true,
-	imports: [CommonModule, FormsModule, ChatComponent],
+	imports: [FormsModule, ChatComponent],
 	templateUrl: './tally.component.html',
 	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./tally.component.scss'],

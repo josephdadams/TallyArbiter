@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common'
 import { Component, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -7,7 +6,7 @@ import { AuthService, LoginResponse } from 'src/app/_services/auth.service'
 @Component({
 	selector: 'app-login',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [FormsModule],
 	templateUrl: './login.component.html',
 	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./login.component.scss'],

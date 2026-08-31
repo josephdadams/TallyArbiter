@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common'
 import { Component, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -11,7 +10,7 @@ import { LocationBackService } from 'src/app/_services/locationBack.service'
 @Component({
 	selector: 'app-error-reports-list',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [FormsModule],
 	templateUrl: './error-reports-list.component.html',
 	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./error-reports-list.component.scss'],

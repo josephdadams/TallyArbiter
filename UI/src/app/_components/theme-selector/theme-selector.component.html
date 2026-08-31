@@ -1,25 +1,27 @@
 <div class="btn-group btn-group-sm theme-selector" role="group" aria-label="Color theme">
-	<button
-		*ngFor="let option of options"
-		type="button"
-		class="btn btn-outline-light"
-		[class.active]="darkModeService.getDarkMode() === option.value"
-		[attr.aria-pressed]="darkModeService.getDarkMode() === option.value"
-		[attr.title]="option.label + ' theme'"
-		(click)="darkModeService.setDarkMode(option.value)"
-	>
-		<svg
-			*ngIf="selector_style !== 'label'"
-			xmlns="http://www.w3.org/2000/svg"
-			viewBox="0 0 16 16"
-			width="16"
-			height="16"
-			fill="currentColor"
-			aria-hidden="true"
-			focusable="false"
+	@for (option of options; track option) {
+		<button
+			type="button"
+			class="btn btn-outline-light"
+			[class.active]="darkModeService.getDarkMode() === option.value"
+			[attr.aria-pressed]="darkModeService.getDarkMode() === option.value"
+			[attr.title]="option.label + ' theme'"
+			(click)="darkModeService.setDarkMode(option.value)"
 		>
-			<path fill-rule="evenodd" [attr.d]="option.icon"></path>
-		</svg>
-		<span [class.visually-hidden]="selector_style !== 'label'">{{ option.label }}</span>
-	</button>
+			@if (selector_style !== 'label') {
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					width="16"
+					height="16"
+					fill="currentColor"
+					aria-hidden="true"
+					focusable="false"
+				>
+					<path fill-rule="evenodd" [attr.d]="option.icon"></path>
+				</svg>
+			}
+			<span [class.visually-hidden]="selector_style !== 'label'">{{ option.label }}</span>
+		</button>
+	}
 </div>

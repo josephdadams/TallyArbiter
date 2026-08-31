@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common'
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core'
 import { DarkModeService, ThemePreference } from '../../_services/darkmode.service'
 
@@ -12,7 +11,7 @@ interface ThemeOption {
 @Component({
 	selector: 'app-theme-selector',
 	standalone: true,
-	imports: [CommonModule],
+	imports: [],
 	templateUrl: './theme-selector.component.html',
 	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./theme-selector.component.scss'],

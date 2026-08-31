@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+import { DatePipe, TitleCasePipe } from '@angular/common'
 import { Component, ElementRef, Input, OnDestroy, ViewChild, ChangeDetectionStrategy } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Subscription } from 'rxjs'
@@ -7,7 +7,7 @@ import { SocketService } from 'src/app/_services/socket.service'
 @Component({
 	selector: 'app-chat',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [DatePipe, TitleCasePipe, FormsModule],
 	templateUrl: './chat.component.html',
 	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./chat.component.scss'],

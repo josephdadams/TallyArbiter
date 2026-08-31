@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+import { DatePipe, JsonPipe } from '@angular/common'
 import {
 	Component,
 	OnInit,
@@ -19,7 +19,7 @@ import { versions } from 'src/environments/versions'
 @Component({
 	selector: 'app-error-report',
 	standalone: true,
-	imports: [CommonModule],
+	imports: [DatePipe, JsonPipe],
 	templateUrl: './error-report.component.html',
 	changeDetection: ChangeDetectionStrategy.Eager,
 	styleUrls: ['./error-report.component.scss'],
