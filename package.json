@@ -155,7 +155,7 @@
 	"dependencies": {
 		"@sentry/node": "^10.58.0",
 		"ajv": "^8.11.0",
-		"atem-connection": "3.9.0",
+		"atem-connection": "3.10.2",
 		"axios": "^1.12.0",
 		"bcryptjs": "^3.0.3",
 		"bonjour-service": "^1.0.12",

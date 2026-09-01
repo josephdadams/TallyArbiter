@@ -127,6 +127,37 @@ On `systemctl stop` or `systemctl restart`, the listener turns off the relays it
 
 Upon startup, the program will enumerate through the `config_relays.json` file and attempt to connect to the specified Tally Arbiter server.
 
+# Checking the relays
+
+If you are not standing next to the hardware, you cannot hear the relays click -- so the diagnostics read each relay's state back off the board's own state register instead of assuming a write worked:
+
+```bash
+npm run test-relays
+```
+
+This cycles every relay on every board and reports each one as `confirmed` or `NOT CONFIRMED`. A relay that will not confirm accepted the write but did not change state, which is almost always a permissions problem (try `sudo node test-relays.js`; if that works, install the `udev` rule). If every relay confirms, the hardware is fine and any remaining problem is above the relay layer -- the Device assignment, the bus type, or the relay mapping in `config_relays.json`.
+
+To test one relay instead of all of them:
+
+```bash
+node test-relays.js --board BITFT --relay 3
+```
+
+To watch tally changes arrive, run this **while the service is running** and trigger a tally:
+
+```bash
+node test-relays.js --watch
+```
+
+It polls the boards directly and prints a timestamped line whenever a relay changes, so you can see whether tally data is reaching the hardware:
+
+```
+[2:52:00 PM] BITFT relay 1: off -> ON
+[2:52:02 PM] BITFT relay 1: ON  -> off
+```
+
+Nothing printing while a tally is active means the states are not reaching the relays; the listener's own log (`journalctl -u tallyarbiter-relay -f`) is the next place to look.
+
 # Relay Hardware
 
 Tally Arbiter Relay Listener supports USB relays with up to 8 separate relays. If you need more relays, run the program on more devices. It is designed to run on a Raspberry Pi Zero 2 W for a low cost of entry.
