@@ -1,5 +1,4 @@
-import { CommonModule } from '@angular/common'
-import { Component, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core'
+import { Component, ElementRef, ViewChild, ChangeDetectionStrategy, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { AuthService, LoginResponse } from 'src/app/_services/auth.service'
@@ -7,25 +6,26 @@ import { AuthService, LoginResponse } from 'src/app/_services/auth.service'
 @Component({
 	selector: 'app-login',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [FormsModule],
 	templateUrl: './login.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./login.component.scss'],
 })
 export class LoginComponent {
-	public loading = false
-	public loginResponse: LoginResponse = { loginOk: false, message: '', accessToken: '' }
+	public readonly route = inject(ActivatedRoute)
+	private readonly router = inject(Router)
+	private readonly authService = inject(AuthService)
+
+	//written from a promise callback, so they have to notify rather than be mutated
+	public readonly loading = signal(false)
+	public readonly loginResponse = signal<LoginResponse>({ loginOk: false, message: '', accessToken: '' })
 	public username = ''
 	public password = ''
 	private redirectParam = ''
 	private extraParam = ''
 	@ViewChild('inputPassword') public inputPassword!: ElementRef
 
-	constructor(
-		public route: ActivatedRoute,
-		private router: Router,
-		private authService: AuthService,
-	) {
+	constructor() {
 		this.route.params.subscribe((params) => {
 			if (params.redirect) this.redirectParam = params.redirect
 			if (params.extraParam) this.extraParam = params.extraParam
@@ -44,10 +44,10 @@ export class LoginComponent {
 	}
 
 	login(): void {
-		this.loading = true
+		this.loading.set(true)
 		this.authService.login(this.username, this.password).then((response: LoginResponse) => {
-			this.loginResponse = response
-			this.loading = false
+			this.loginResponse.set(response)
+			this.loading.set(false)
 
 			if (response.loginOk === true) {
 				if (this.authService.mustChangePassword) {

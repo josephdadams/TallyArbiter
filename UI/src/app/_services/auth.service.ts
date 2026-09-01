@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core'
+import { Injectable, inject, signal } from '@angular/core'
 import { Router } from '@angular/router'
 import { SocketService } from './socket.service'
 import { jwtDecode } from 'jwt-decode'
@@ -20,14 +20,15 @@ export interface ChangePasswordResponse {
 	providedIn: 'root',
 })
 export class AuthService {
+	private readonly socketService = inject(SocketService)
+	private readonly router = inject(Router)
+
 	public access_token: string = ''
-	public profile: any = undefined
+	//set when a token is decoded, which happens outside any template event
+	public readonly profile = signal<any>(undefined)
 	public roles: string[] = []
 
-	constructor(
-		private socketService: SocketService,
-		private router: Router,
-	) {
+	constructor() {
 		if (localStorage.getItem('access_token') !== null) {
 			this.access_token = localStorage.getItem('access_token') as string
 			this.loadProfile()
@@ -55,7 +56,7 @@ export class AuthService {
 			decoded = jwtDecode(this.access_token)
 		} catch (e) {
 			this.removeToken()
-			this.profile = undefined
+			this.profile.set(undefined)
 			return false
 		}
 		if (typeof decoded.exp !== 'undefined' && decoded.exp < now) {
@@ -64,7 +65,7 @@ export class AuthService {
 		if (typeof decoded.nbf !== 'undefined' && decoded.nbf > now) {
 			return false
 		}
-		this.profile = decoded.user
+		this.profile.set(decoded.user)
 		return true
 	}
 
@@ -84,8 +85,8 @@ export class AuthService {
 	//server blocks everything else for these accounts, so the UI sends them straight
 	//to the change-password page.
 	public get mustChangePassword(): boolean {
-		if (this.profile === undefined) return false
-		return this.profile.mustChangePassword === true
+		if (this.profile() === undefined) return false
+		return this.profile().mustChangePassword === true
 	}
 
 	public changePassword(currentPassword: string, newPassword: string) {
@@ -103,7 +104,7 @@ export class AuthService {
 
 	public logout(routerDestination: string[] | null = null) {
 		this.removeToken()
-		this.profile = undefined
+		this.profile.set(undefined)
 		if (routerDestination === null) {
 			routerDestination = ['home']
 		}
@@ -111,8 +112,8 @@ export class AuthService {
 	}
 
 	public requireRole(role: string) {
-		if (this.profile === undefined) return false
-		const roles: string[] = this.profile.roles.split(';')
+		if (this.profile() === undefined) return false
+		const roles: string[] = this.profile().roles.split(';')
 		if (roles.includes('admin')) return true
 		return roles.includes(role)
 	}

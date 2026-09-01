@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core'
+import { Injectable, inject } from '@angular/core'
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@angular/router'
 import { Observable } from 'rxjs'
 import { AuthService } from '../_services/auth.service'
@@ -7,10 +7,8 @@ import { AuthService } from '../_services/auth.service'
 	providedIn: 'root',
 })
 export class AuthorizeGuard {
-	constructor(
-		private authService: AuthService,
-		private router: Router,
-	) {}
+	private readonly authService = inject(AuthService)
+	private readonly router = inject(Router)
 
 	canActivate(
 		route: ActivatedRouteSnapshot,
@@ -37,7 +35,7 @@ export class AuthorizeGuard {
 				requiredRole = 'producer'
 				break
 		}
-		if (this.authService.profile === undefined) {
+		if (this.authService.profile() === undefined) {
 			console.log('Not logged in. Navigating to the login page...')
 			this.router.navigate(destination)
 			return false
@@ -53,7 +51,7 @@ export class AuthorizeGuard {
 			// tabs/sections gate more granularly on their specific sub-role.
 			let checkRole: boolean
 			if (requiredRole === 'settings') {
-				const profileRoles: string[] = this.authService.profile.roles.split(';')
+				const profileRoles: string[] = this.authService.profile().roles.split(';')
 				checkRole = profileRoles.includes('admin') || profileRoles.some((r) => r.startsWith('settings:'))
 			} else {
 				checkRole = this.authService.requireRole(requiredRole)

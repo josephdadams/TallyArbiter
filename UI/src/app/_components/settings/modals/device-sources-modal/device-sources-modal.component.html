@@ -1,0 +1,120 @@
+<div class="modal-header">
+	<h4 class="modal-title" id="modal-basic-title">Device Sources: {{ device.name }}</h4>
+	<button class="btn" (click)="activeModal.dismiss()"><span>&times;</span></button>
+</div>
+<div class="modal-body">
+	@if (form() === null) {
+		<div>
+			<div class="table-responsive">
+				<table class="table table-hover align-middle">
+					<thead>
+						<tr>
+							<th>Source</th>
+							<th>Address</th>
+							<th>(Bus)</th>
+							<th>Allow Renaming</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						@for (deviceSource of deviceSources(); track deviceSource.id) {
+							<tr>
+								<td>
+									{{ socketService.getSourceById(deviceSource.sourceId)?.name }}
+								</td>
+								<td>{{ deviceSource.address }}</td>
+								<td>{{ deviceSource.bus }}</td>
+								<td>{{ deviceSource.rename }}</td>
+								<td>
+									<button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editDeviceSource(deviceSource)">
+										<i class="fas fa-pen"></i> Edit
+									</button>
+									<button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteDeviceSource(deviceSource)">
+										<i class="fas fa-trash"></i> Delete
+									</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<button class="btn btn-success mr-1" (click)="addDeviceSource()"><i class="fas fa-plus"></i> Add Source</button>
+		</div>
+	} @else if (form(); as form) {
+		<form [formGroup]="form" (ngSubmit)="saveDeviceSource()">
+			<h5>{{ isEditingExisting ? 'Edit' : 'New' }} Device Source</h5>
+			<div class="mb-3">
+				<label for="deviceSource" class="form-label">Source<span class="text-danger">*</span></label>
+				<select class="form-select" id="deviceSource" formControlName="sourceIdx">
+					<option [ngValue]="null" disabled>-- Select --</option>
+					@for (source of socketService.sources(); track source.id; let index = $index) {
+						<option [ngValue]="index">
+							{{ source.name }}
+						</option>
+					}
+				</select>
+				<app-form-error [control]="form.controls.sourceIdx" label="Source" />
+			</div>
+			@if (selectedSource) {
+				<div class="mb-3">
+					<label for="deviceSourceAddress" class="form-label"
+						>Input/Address Number ({{ knownAddresses.length > 0 ? 'select or ' : '' }}enter manually):<span
+							class="text-danger"
+							>*</span
+						></label
+					>
+					<div class="row">
+						@if (knownAddresses.length > 0) {
+							<div class="col">
+								<!-- both controls edit the same `address` value: pick a known one, or type your own -->
+								<select class="form-select" formControlName="address">
+									@for (address of knownAddresses; track address.address) {
+										<option [value]="address.address">
+											{{ address.label }}
+										</option>
+									}
+								</select>
+							</div>
+						}
+						<div class="col">
+							<input
+								type="text"
+								class="form-control"
+								id="deviceSourceAddress"
+								formControlName="address"
+								placeholder="Address"
+							/>
+						</div>
+					</div>
+					<app-form-error [control]="form.controls.address" label="Address" />
+				</div>
+			}
+			@if (busOptions.length > 0) {
+				<div class="mb-3">
+					<label for="bus" class="form-label">Bus:<span class="text-danger">*</span></label>
+					<select class="form-select" id="bus" formControlName="bus">
+						<option [ngValue]="null" disabled>-- Select --</option>
+						@for (bus of busOptions; track bus.bus) {
+							<option [ngValue]="bus.bus">
+								{{ bus.name }}
+							</option>
+						}
+					</select>
+					<app-form-error [control]="form.controls.bus" label="Bus" />
+				</div>
+			}
+			@if (selectedSource) {
+				<div class="form-check mb-3">
+					<input class="form-check-input" type="checkbox" id="deviceSourceRename" formControlName="rename" />
+					<label class="form-check-label" for="deviceSourceRename"> Allow Device Renaming </label>
+				</div>
+			}
+			<div class="d-flex justify-content-end">
+				<button type="submit" class="btn btn-primary" [disabled]="form.invalid">
+					<i class="fas fa-save"></i>
+					{{ isEditingExisting ? 'Save Changes' : 'Add Device Source' }}
+				</button>
+			</div>
+		</form>
+	}
+</div>

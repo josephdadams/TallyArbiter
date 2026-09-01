@@ -8,33 +8,24 @@
 		<link rel="icon" type="image/x-icon" href="favicon.png" />
 		<link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials" />
 		<meta name="theme-color" content="#1976d2" />
-		<style>
-			.no-fouc {
-				display: none;
-			}
-		</style>
 		<script>
-			document.documentElement.className = 'no-fouc'
-			document.addEventListener('DOMContentLoaded', function () {
-				document.documentElement.className = ''
-			})
+			// Apply the stored theme before first paint. Without this the page
+			// paints light and then flips, which is why this used to be a
+			// display:none FOUC hack. DarkModeService takes over once Angular boots.
+			;(function () {
+				try {
+					var stored = localStorage.getItem('darkMode') || 'auto'
+					var dark =
+						stored === 'dark' || (stored === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+					document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light')
+				} catch (e) {
+					document.documentElement.setAttribute('data-bs-theme', 'light')
+				}
+			})()
 		</script>
 	</head>
 	<body>
 		<app-root></app-root>
 		<noscript>Please enable JavaScript to continue using this application.</noscript>
-		<script>
-			var $buoop = { required: { e: 89, f: 88, o: 78, s: 13, c: 90 }, insecure: true, api: 2021.1 }
-			function $buo_f() {
-				var e = document.createElement('script')
-				e.src = '//browser-update.org/update.min.js'
-				document.body.appendChild(e)
-			}
-			try {
-				document.addEventListener('DOMContentLoaded', $buo_f, false)
-			} catch (e) {
-				window.attachEvent('onload', $buo_f)
-			}
-		</script>
 	</body>
 </html>

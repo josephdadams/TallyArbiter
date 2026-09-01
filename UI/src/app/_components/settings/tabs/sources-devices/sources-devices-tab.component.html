@@ -1,0 +1,108 @@
+<div class="row">
+	<h3>
+		Sources
+		<button class="btn btn-sm btn-success me-2" (click)="addSource()"><i class="fas fa-plus"></i> Add</button>
+	</h3>
+	@if (socketService.sources().length == 0) {
+		<span class="text-muted mt-3">No sources configured.</span>
+	}
+	<div class="table-responsive">
+		@if (socketService.sources().length > 0) {
+			<table class="table table-hover align-middle">
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th></th>
+						<th>Type</th>
+						<th style="min-width: 200px"></th>
+					</tr>
+				</thead>
+				<tbody>
+					@for (source of socketService.sources(); track source.id) {
+						<tr [class]="source.enabled ? (source.connected ? 'text-success' : 'text-danger') : 'text-muted'">
+							<td>{{ source.name }}</td>
+							<td>
+								@if (source.cloudConnection) {
+									<i class="fas fa-cloud text-muted"></i>
+								}
+							</td>
+							<td>{{ source.sourceTypeName }}</td>
+							<td class="text-center">
+								<button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editSource(source)">
+									<i class="fas fa-pen"></i> Edit
+								</button>
+								<button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteSource(source)">
+									<i class="fas fa-trash"></i> Delete
+								</button>
+								@if (!source.connected) {
+									<button class="btn btn-sm btn-warning mx-1 my-1" (click)="reconnect(source)">
+										<i class="fas fa-sync"></i> Reconnect
+									</button>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	</div>
+</div>
+@if (networkDiscoveryList().length > 0) {
+	<div class="alert alert-info mt-3" role="alert">
+		Found {{ networkDiscoveryList().length }} new {{ networkDiscoveryList().length === 1 ? 'source' : 'sources' }} in
+		your network.
+		<div class="table-responsive">
+			@if (networkDiscoveryList().length > 0) {
+				<table class="table table-hover align-middle">
+					<thead>
+						<tr>
+							<th>IP/Host</th>
+							<th>Type</th>
+							<th>Name</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						@for (networkDiscovery of networkDiscoveryList(); track networkDiscovery) {
+							<tr>
+								<td>
+									<select
+										class="form-select"
+										[ngModel]="networkDiscovery.ip"
+										(ngModelChange)="changeIpSelection(networkDiscovery, $event)"
+									>
+										@for (address of networkDiscovery.addresses; track address) {
+											<option [value]="address">
+												{{ address }}
+											</option>
+										}
+									</select>
+								</td>
+								<td>{{ getSourceTypeById(networkDiscovery.sourceId)?.label || 'Source type not found' }}</td>
+								<td>{{ networkDiscovery.name }}</td>
+								<td>
+									<button class="btn btn-sm btn-secondary" (click)="addSourceByNetworkDiscovery(networkDiscovery)">
+										<i class="fas fa-plus"></i> Add
+									</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</div>
+	</div>
+}
+<hr class="my-5" />
+<div class="row">
+	<app-devices-table
+		[editMode]="true"
+		(addDevice)="addDevice()"
+		(editDevice)="editDevice($event)"
+		(editSources)="editDeviceSources($event)"
+		(editActions)="editDeviceActions($event)"
+		(duplicateDevice)="duplicateDevice($event)"
+		(deleteDevice)="deleteDevice($event)"
+	></app-devices-table>
+</div>
+<hr class="my-5" />

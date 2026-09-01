@@ -1,16 +1,20 @@
 div.chat {
 	height: 100%;
-	color: #000;
 	text-align: left;
+	background-color: var(--ta-chat-bg);
+
 	.message {
 		width: 80%;
-		background-color: rgb(255, 255, 255);
+		background-color: var(--ta-chat-bubble);
+		border: 1px solid var(--ta-border);
+
 		&.server {
-			background-color: rgb(255, 255, 231);
+			background-color: var(--ta-chat-bubble-server);
 			font-size: small;
 		}
+
 		&.producer {
-			background-color: rgb(212, 236, 255);
+			background-color: var(--ta-chat-bubble-producer);
 		}
 	}
 }

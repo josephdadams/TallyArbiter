@@ -1,0 +1,157 @@
+<div class="modal-header">
+	<h4 class="modal-title" id="modal-basic-title">{{ editing ? 'Edit' : 'Add' }} Source</h4>
+	<button class="btn" (click)="activeModal.dismiss()"><span>&times;</span></button>
+</div>
+<div class="modal-body">
+	<form [formGroup]="form" (ngSubmit)="save()">
+		@if (editing) {
+			<div class="mb-3">
+				<label for="sourceId" class="form-label">Source Id</label>
+				<input type="text" id="sourceId" class="form-control" disabled [value]="source.id" />
+			</div>
+			<div class="mb-3">
+				<label for="sourceType" class="form-label">Source Type</label>
+				<input type="text" id="sourceType" class="form-control" disabled [value]="selectedSourceType?.label" />
+			</div>
+		} @else {
+			<div class="mb-3">
+				<label for="sourceTypeSelect" class="form-label">Source Type<span class="text-danger">*</span></label>
+				<select id="sourceTypeSelect" class="form-select" ngbAutofocus formControlName="sourceTypeIdx">
+					<option [ngValue]="null" disabled>-- Choose Source Type --</option>
+					@for (sourceType of socketService.sourceTypes(); track sourceType.id; let index = $index) {
+						<option [ngValue]="index">
+							{{ sourceType.label }}
+						</option>
+					}
+				</select>
+				<app-form-error [control]="form.controls.sourceTypeIdx" label="Source Type" />
+			</div>
+		}
+
+		@if (selectedSourceType; as sourceType) {
+			<div>
+				<p>{{ sourceType.help }}</p>
+				<div class="mb-3">
+					<label for="sourceName" class="form-label">Source Name<span class="text-danger">*</span></label>
+					<input type="text" class="form-control" id="sourceName" formControlName="name" />
+					<app-form-error [control]="form.controls.name" label="Source Name" />
+				</div>
+
+				<div formGroupName="data">
+					@for (field of getOptionFields(sourceType); track dataFieldKey(field)) {
+						@switch (field.fieldType) {
+							@case ('text') {
+								<div class="mb-3">
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
+									<input type="text" class="form-control" [id]="field.fieldName" [formControlName]="field.fieldName" />
+									<app-form-error [control]="dataControl(field.fieldName)" [label]="field.fieldLabel" />
+								</div>
+							}
+							@case ('password') {
+								<div class="mb-3">
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
+									<input
+										type="password"
+										autocomplete="new-password"
+										class="form-control"
+										[id]="field.fieldName"
+										[formControlName]="field.fieldName"
+									/>
+									<app-form-error [control]="dataControl(field.fieldName)" [label]="field.fieldLabel" />
+								</div>
+							}
+							@case (['port', 'number'].includes(field.fieldType) ? field.fieldType : '') {
+								<div class="mb-3">
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
+									<input
+										type="number"
+										class="form-control"
+										[id]="field.fieldName"
+										[formControlName]="field.fieldName"
+									/>
+									<app-form-error [control]="dataControl(field.fieldName)" [label]="field.fieldLabel" />
+								</div>
+							}
+							@case ('multiselect') {
+								<div class="mb-3">
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
+									<select class="form-select" multiple [id]="field.fieldName" [formControlName]="field.fieldName">
+										@for (option of field.options; track option.id) {
+											<option [value]="option.id">
+												{{ option.label }}
+											</option>
+										}
+									</select>
+									<small class="form-text">Use Ctrl to select multiple items.</small>
+									<app-form-error [control]="dataControl(field.fieldName)" [label]="field.fieldLabel" />
+								</div>
+							}
+							@case ('dropdown') {
+								<div class="mb-3">
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
+									<select class="form-select" [id]="field.fieldName" [formControlName]="field.fieldName">
+										<option [ngValue]="null" disabled>-- Select --</option>
+										@for (option of field.options; track option.id) {
+											<option [value]="option.id">
+												{{ option.label }}
+											</option>
+										}
+									</select>
+									<app-form-error [control]="dataControl(field.fieldName)" [label]="field.fieldLabel" />
+								</div>
+							}
+							@case ('info') {
+								<div class="mb-3">
+									<label class="form-label">{{ field.fieldLabel }}</label
+									><br />
+									<small class="form-text">{{ field.text }}</small>
+								</div>
+							}
+						}
+					}
+				</div>
+
+				@if (editing) {
+					<div class="mb-3 form-check">
+						<input type="checkbox" class="form-check-input" id="enabled" formControlName="enabled" />
+						<label class="form-check-label" for="enabled">Enabled</label>
+					</div>
+					<div class="mb-3 form-check">
+						<input type="checkbox" class="form-check-input" id="reconnect" formControlName="reconnect" />
+						<label class="form-check-label" for="reconnect">Reconnect</label>
+					</div>
+				}
+				<div class="d-flex justify-content-end">
+					<button type="submit" class="btn btn-primary" [disabled]="form.invalid">
+						<i class="fas fa-save"></i> {{ editing ? 'Save Changes' : 'Add Source' }}
+					</button>
+				</div>
+			</div>
+		}
+	</form>
+</div>

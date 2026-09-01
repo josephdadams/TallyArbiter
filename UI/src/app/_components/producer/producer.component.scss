@@ -1,3 +1,82 @@
 .chat {
 	height: 80vh;
 }
+
+.producer__heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-bottom: 0.75rem;
+}
+
+.producer__search {
+	min-width: 12rem;
+	max-width: 18rem;
+	flex: 1 1 12rem;
+}
+
+.device-grid {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	// auto-fill rather than a fixed column count: 80 devices on a producer's
+	// wide monitor should use the width, not scroll for a screen and a half
+	grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+	gap: 0.75rem;
+}
+
+.device-status {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	padding: 0.65rem 0.75rem;
+	border: 1px solid var(--ta-border);
+	border-radius: var(--ta-radius);
+	background-color: var(--ta-surface-raised);
+
+	&--muted {
+		opacity: 0.55;
+	}
+}
+
+.device-status__head {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.device-status__name {
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.device-status__description {
+	margin: 0;
+	font-size: 0.8125rem;
+	color: var(--ta-text-muted);
+}
+
+.device-status__busses {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+	margin-top: auto;
+}
+
+// Named, not just coloured — the same reason the tally screen spells out its state.
+.bus-chip {
+	padding: 0.1rem 0.45rem;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 1.4;
+
+	&--idle {
+		background-color: var(--ta-bus-idle);
+		color: var(--ta-text-muted);
+		font-weight: 400;
+	}
+}

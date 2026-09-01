@@ -1,0 +1,177 @@
+<div class="modal-header">
+	<h4 class="modal-title" id="modal-basic-title">Device Actions: {{ device.name }}</h4>
+	<button class="btn" (click)="activeModal.dismiss()"><span>&times;</span></button>
+</div>
+<div class="modal-body">
+	@if (form() === null) {
+		<div>
+			<div class="table-responsive">
+				<table class="table table-hover align-middle">
+					<thead>
+						<tr>
+							<th>Bus</th>
+							<th>On / Off</th>
+							<th>Output Type</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						@for (deviceAction of deviceActions(); track deviceAction.id) {
+							<tr>
+								<td>{{ getBusById(deviceAction.busId)?.label }}</td>
+								<td>{{ deviceAction.active ? 'On' : 'Off' }}</td>
+								<td>{{ getOutputTypeById(deviceAction.outputTypeId)?.label }}</td>
+								<td>
+									<button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editDeviceAction(deviceAction)">
+										<i class="fas fa-pen"></i> Edit
+									</button>
+									<button
+										class="btn btn-sm btn-secondary mx-1 my-1"
+										title="Create a copy of this action on this device."
+										(click)="duplicateDeviceAction(deviceAction)"
+									>
+										<i class="fas fa-copy"></i> Duplicate
+									</button>
+									<button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteDeviceAction(deviceAction)">
+										<i class="fas fa-trash"></i> Delete
+									</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<button class="btn btn-success mr-1" (click)="addDeviceAction()"><i class="fas fa-plus"></i> Add Action</button>
+		</div>
+	} @else if (form(); as form) {
+		<form [formGroup]="form" (ngSubmit)="saveDeviceAction()">
+			<h5>{{ isEditingExisting ? 'Edit' : 'New' }} Device Action</h5>
+			<div class="mb-3">
+				<label for="bus" class="form-label">Bus<span class="text-danger">*</span></label>
+				<select class="form-select" id="bus" formControlName="busId">
+					<option [ngValue]="null" disabled>-- Select --</option>
+					@for (bus of socketService.busOptions(); track bus.id) {
+						<option [ngValue]="bus.id">{{ bus.label }}</option>
+					}
+				</select>
+				<app-form-error [control]="form.controls.busId" label="Bus" />
+			</div>
+			<div class="mb-3">
+				<label for="active" class="form-label">Active<span class="text-danger">*</span></label>
+				<select class="form-select" id="active" formControlName="active">
+					<option [ngValue]="null" disabled>-- Select --</option>
+					<option [ngValue]="true">On</option>
+					<option [ngValue]="false">Off</option>
+				</select>
+				<app-form-error [control]="form.controls.active" label="Active" />
+			</div>
+			<div class="mb-3">
+				<label for="outputType" class="form-label">Output Type<span class="text-danger">*</span></label>
+				<select class="form-select" id="outputType" formControlName="outputTypeIdx">
+					<option [ngValue]="null" disabled>-- Select --</option>
+					@for (outputType of socketService.outputTypes(); track outputType.id; let index = $index) {
+						<option [ngValue]="index">
+							{{ outputType.label }}
+						</option>
+					}
+				</select>
+				<app-form-error [control]="form.controls.outputTypeIdx" label="Output Type" />
+			</div>
+
+			@if (selectedOutputType; as outputType) {
+				<div formGroupName="data">
+					@for (field of getOutputOptionFields(outputType); track dataFieldKey(field)) {
+						@switch (field.fieldType) {
+							@case ('text') {
+								<div class="mb-3">
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
+									<input type="text" class="form-control" [id]="field.fieldName" [formControlName]="field.fieldName" />
+									<app-form-error [control]="dataControl(field.fieldName)" [label]="field.fieldLabel" />
+								</div>
+							}
+							@case ('password') {
+								<div class="mb-3">
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
+									<input
+										type="password"
+										autocomplete="new-password"
+										class="form-control"
+										[id]="field.fieldName"
+										[formControlName]="field.fieldName"
+									/>
+									<app-form-error [control]="dataControl(field.fieldName)" [label]="field.fieldLabel" />
+								</div>
+							}
+							@case (['port', 'number'].includes(field.fieldType) ? field.fieldType : '') {
+								<div class="mb-3">
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
+									<input
+										type="number"
+										class="form-control"
+										[id]="field.fieldName"
+										[formControlName]="field.fieldName"
+									/>
+									<app-form-error [control]="dataControl(field.fieldName)" [label]="field.fieldLabel" />
+								</div>
+							}
+							@case ('dropdown') {
+								<div class="mb-3">
+									<label [for]="field.fieldName" class="form-label"
+										>{{ field.fieldLabel }}
+										@if (!field.optional) {
+											<span class="text-danger">*</span>
+										}
+									</label>
+									<select class="form-select" [id]="field.fieldName" [formControlName]="field.fieldName">
+										<option [ngValue]="null" disabled>-- Select --</option>
+										@for (option of field.options; track option.id) {
+											<option [value]="option.id">
+												{{ option.label }}
+											</option>
+										}
+									</select>
+									@if (field.help) {
+										<small class="form-text">{{ field.help }}</small>
+									}
+									<app-form-error [control]="dataControl(field.fieldName)" [label]="field.fieldLabel" />
+								</div>
+							}
+							@case ('bool') {
+								<div class="mb-3 form-check">
+									<input
+										class="form-check-input"
+										type="checkbox"
+										[id]="field.fieldName"
+										[formControlName]="field.fieldName"
+									/>
+									<label [for]="field.fieldName" class="form-check-label">{{ field.fieldLabel }}</label>
+								</div>
+							}
+						}
+					}
+				</div>
+			}
+
+			<div class="d-flex justify-content-end">
+				<button type="submit" class="btn btn-primary" [disabled]="form.invalid">
+					<i class="fas fa-save"></i> {{ isEditingExisting ? 'Save Changes' : 'Add Action' }}
+				</button>
+			</div>
+		</form>
+	}
+</div>

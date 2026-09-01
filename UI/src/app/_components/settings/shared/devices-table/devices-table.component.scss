@@ -1,0 +1,7 @@
+// The colour is bound per-bus from config, so only the "device is not on this
+// bus" state is styled here. It has to stay quieter than any configured bus
+// colour in both themes.
+.bus-cell {
+	background-color: var(--ta-bus-idle);
+	min-width: 1.5rem;
+}

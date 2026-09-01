@@ -1,28 +1,31 @@
 <div class="card chat d-flex">
-	<div class="mesages bg-light flex-fill p-3 overflow-auto" #chatContainer>
-		<div
-			[class]="
-				'd-flex ' +
-				(message.type == 'server'
-					? 'justify-content-center'
-					: message.socketId == socketService.socket.id
-						? 'justify-content-end'
-						: 'justify-content-start')
-			"
-			*ngFor="let message of socketService.messages"
-		>
+	<div class="mesages bg-body-tertiary flex-fill p-3 overflow-auto" #chatContainer>
+		@for (message of socketService.messages(); track message) {
 			<div
-				class="message p-2 mb-3 rounded"
-				[class.server]="message.type == 'server'"
-				[class.producer]="message.type == 'producer'"
+				[class]="
+					'd-flex ' +
+					(message.type == 'server'
+						? 'justify-content-center'
+						: message.socketId == socketService.socket.id
+							? 'justify-content-end'
+							: 'justify-content-start')
+				"
 			>
-				<b *ngIf="message.type !== 'server'">{{ message.type | titlecase }}<br /></b>
-				<span>{{ message.text }}</span>
-				<div class="d-flex justify-content-end text-muted">
-					<small class="time">{{ message.date | date: 'shortTime' }}</small>
+				<div
+					class="message p-2 mb-3 rounded"
+					[class.server]="message.type == 'server'"
+					[class.producer]="message.type == 'producer'"
+				>
+					@if (message.type !== 'server') {
+						<b>{{ message.type | titlecase }}<br /></b>
+					}
+					<span>{{ message.text }}</span>
+					<div class="d-flex justify-content-end text-muted">
+						<small class="time">{{ message.date | date: 'shortTime' }}</small>
+					</div>
 				</div>
 			</div>
-		</div>
+		}
 	</div>
 	<div class="input-group">
 		<input

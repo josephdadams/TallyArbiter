@@ -40,3 +40,9 @@
 		fadein 0.5s,
 		fadeout 0.5s 2.5s;
 }
+
+// Reads as a warning inside the dark navbar without being a full alert banner.
+.source-alert {
+	color: var(--bs-warning) !important;
+	font-weight: 600;
+}

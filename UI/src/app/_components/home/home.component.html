@@ -1,53 +1,63 @@
-<div class="container pt-5">
-	<div class="row text-center">
-		<h1 class="display-4">Welcome to Tally Arbiter</h1>
-	</div>
-	<div class="row mt-5 row-cols-1 row-cols-md-2 g-5 text-center">
-		<div class="col">
-			<div class="rounded bg-light p-3">
-				<h3><i class="fas fa-mobile-alt"></i> Tally Web Clients</h3>
-				<qr-code class="my-4 d-block" [value]="netInterfaceUrl" size="250" errorCorrectionLevel="M"></qr-code>
-				<select [(ngModel)]="netInterfaceUrl" class="form-select d-inline w-unset">
-					<option [value]="localNetInterfaceUrl">localhost (Local)</option>
-					<option
-						*ngIf="socketService.externalAddress !== 'http://0.0.0.0:4455/#/tally'"
-						[value]="socketService.externalAddress"
-					>
-						External Address
-					</option>
-					<option *ngFor="let netInterface of socketService.interfaces" [ngValue]="netInterface.url">
-						{{ netInterface.address }} ({{ netInterface.name }})
-					</option>
-				</select>
-				<p>Scan the QR Code with your Phone or open one of the following URLs:</p>
-				<ul>
-					<li *ngFor="let net_interface of socketService.interfaces">
-						<a target="_blank" [href]="net_interface.url">{{ net_interface.url }}</a>
-					</li>
-					<li *ngIf="socketService.externalAddress !== 'http://0.0.0.0:4455/#/tally'">
-						<a target="_blank" [href]="socketService.externalAddress">{{ socketService.externalAddress }}</a> (External
-						Address)
-					</li>
-				</ul>
-			</div>
+<div class="container py-4">
+	<div class="row g-4">
+		<div class="col-12 col-lg-7">
+			<section class="connect">
+				<h1 class="h4">Connect a tally client</h1>
+				<p class="text-muted">
+					Scan this with a phone, or open the address on any device on the same network. It opens the tally view, where
+					you pick which device to follow.
+				</p>
+
+				<div class="connect__code">
+					<qr-code [value]="netInterfaceUrl" size="220" errorCorrectionLevel="M"></qr-code>
+				</div>
+
+				<div class="connect__address">
+					<label class="form-label" for="netInterfaceSelect">Address</label>
+					<div class="input-group">
+						<select id="netInterfaceSelect" class="form-select" [(ngModel)]="netInterfaceUrl">
+							<option [value]="localNetInterfaceUrl">localhost (this machine)</option>
+							@if (socketService.externalAddress() !== 'http://0.0.0.0:4455/#/tally') {
+								<option [value]="socketService.externalAddress()">External address</option>
+							}
+							@for (netInterface of socketService.interfaces(); track netInterface.url) {
+								<option [ngValue]="netInterface.url">{{ netInterface.address }} ({{ netInterface.name }})</option>
+							}
+						</select>
+						<a class="btn btn-outline-secondary" [href]="netInterfaceUrl" target="_blank" rel="noopener">
+							<i class="fas fa-link" aria-hidden="true"></i> Open
+						</a>
+					</div>
+					<p class="form-text">Pick the interface the phone can reach. localhost only works on this machine.</p>
+				</div>
+			</section>
 		</div>
-		<div class="col">
-			<div class="rounded bg-light p-3">
-				<h3><i class="fas fa-book-open"></i> Documentation</h3>
-				<p>View the documentation and usage instructions online if you need help along the way.</p>
-				<a class="btn btn-outline-primary" href="https://josephdadams.github.io/TallyArbiter/" target="_blank"
-					>Documentation Link</a
-				>
-			</div>
-			<div class="rounded bg-light mt-5 p-3">
-				<h3><i class="fas fa-tasks"></i> Producer</h3>
-				<p>On the Producer page you get an overview of all connected devices and Tally clients.</p>
-				<a class="btn btn-outline-primary" routerLink="/producer">Producer Page</a>
-			</div>
-			<div class="rounded bg-light mt-5 p-3">
-				<h3><i class="fas fa-cogs"></i> Settings</h3>
-				<p>Here you can configure and setup all sources, devices, Tally clients and more.</p>
-				<a class="btn btn-outline-primary" routerLink="/settings">Settings</a>
+
+		<div class="col-12 col-lg-5">
+			<div class="d-grid gap-3">
+				<a class="home-link" routerLink="/producer">
+					<span class="home-link__icon"><i class="fas fa-tasks" aria-hidden="true"></i></span>
+					<span>
+						<span class="home-link__title">Producer</span>
+						<span class="home-link__text">Live tally state for every device, and chat with connected clients.</span>
+					</span>
+				</a>
+
+				<a class="home-link" routerLink="/settings">
+					<span class="home-link__icon"><i class="fas fa-cogs" aria-hidden="true"></i></span>
+					<span>
+						<span class="home-link__title">Settings</span>
+						<span class="home-link__text">Sources, devices, listeners, cloud and configuration.</span>
+					</span>
+				</a>
+
+				<a class="home-link" href="https://josephdadams.github.io/TallyArbiter/" target="_blank" rel="noopener">
+					<span class="home-link__icon"><i class="fas fa-book-open" aria-hidden="true"></i></span>
+					<span>
+						<span class="home-link__title">Documentation</span>
+						<span class="home-link__text">Setup guides and usage instructions.</span>
+					</span>
+				</a>
 			</div>
 		</div>
 	</div>

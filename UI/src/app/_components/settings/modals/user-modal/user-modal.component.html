@@ -1,0 +1,52 @@
+<div class="modal-header">
+	<h4 class="modal-title" id="modal-basic-title">{{ editing ? 'Edit' : 'Add' }} User</h4>
+	<button class="btn" (click)="activeModal.dismiss()"><span>&times;</span></button>
+</div>
+<div class="modal-body">
+	<form [formGroup]="form" (ngSubmit)="save()">
+		<div class="mb-3">
+			<label for="userUsername" class="form-label">Username<span class="text-danger">*</span></label>
+			<input type="text" class="form-control" id="userUsername" formControlName="username" />
+			<app-form-error [control]="form.controls.username" label="Username" />
+		</div>
+		<div class="mb-3">
+			<label for="userRoles" class="form-label">Role</label>
+			<select id="userRoles" class="form-select" multiple formControlName="roles">
+				@for (role of authService.roles; track role) {
+					<option [value]="role">
+						{{ role }}
+					</option>
+				}
+			</select>
+			<small class="form-text">Use Ctrl to select multiple items.</small>
+		</div>
+		<div class="mb-3">
+			<label for="userPassword" class="form-label"
+				>{{ editing ? 'New Password' : 'Password' }}
+				@if (!editing) {
+					<span class="text-danger">*</span>
+				}
+			</label>
+			<input
+				type="password"
+				class="form-control"
+				id="userPassword"
+				autocomplete="new-password"
+				formControlName="password"
+			/>
+			@if (editing) {
+				<small class="form-text"
+					>Leave blank to keep the current password. At least {{ minPasswordLength }} characters otherwise.</small
+				>
+			} @else {
+				<small class="form-text">At least {{ minPasswordLength }} characters.</small>
+			}
+			<app-form-error [control]="form.controls.password" label="Password" />
+		</div>
+		<div class="d-flex justify-content-end">
+			<button type="submit" class="btn btn-primary" [disabled]="form.invalid">
+				<i class="fas fa-save"></i> {{ editing ? 'Save Changes' : 'Add User' }}
+			</button>
+		</div>
+	</form>
+</div>

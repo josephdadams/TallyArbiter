@@ -1,0 +1,80 @@
+// App-level styles that sit on top of Bootstrap and the token layer.
+
+body {
+	padding-top: var(--ta-navbar-height);
+}
+
+// Fills the viewport below the fixed navbar. `dvh` rather than `vh` so the
+// tally view does not sit under a phone's collapsing browser toolbar.
+.max-height {
+	height: calc(100dvh - var(--ta-navbar-height));
+}
+
+.w-unset {
+	width: unset;
+}
+
+// Listener "flash" — the producer pinging a client to identify it.
+.flash {
+	animation: flasher 0.1s cubic-bezier(1, 0, 0, 1) infinite alternate;
+}
+
+@keyframes flasher {
+	to {
+		background-color: var(--bs-body-bg);
+		opacity: 0;
+	}
+}
+
+// A 10Hz full-screen strobe is exactly what a photosensitive viewer needs to
+// not get. Keep the cue, drop the flicker.
+@media (prefers-reduced-motion: reduce) {
+	.flash {
+		animation: none;
+		outline: 0.5rem solid var(--ta-bus-program);
+		outline-offset: -0.5rem;
+	}
+}
+
+// Empty states. Shared so "nothing here yet" reads the same everywhere and
+// always offers the action that fixes it.
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 0.75rem;
+	max-width: 32rem;
+	margin: 3rem auto;
+	padding: 2rem 1rem;
+	border: 1px dashed var(--ta-border);
+	border-radius: var(--ta-radius-lg);
+}
+
+.empty-state__icon {
+	font-size: 2rem;
+	color: var(--ta-text-muted);
+}
+
+.empty-state p {
+	margin: 0;
+}
+
+// Reactive form validation. Angular already puts ng-invalid/ng-touched/ng-dirty
+// on every bound control, so the Bootstrap invalid treatment can key off those
+// rather than every template having to toggle .is-invalid by hand. Errors stay
+// hidden until the field has actually been visited, so a freshly opened modal
+// is not a wall of red.
+.form-control,
+.form-select,
+.form-check-input {
+	&.ng-invalid.ng-touched,
+	&.ng-invalid.ng-dirty {
+		border-color: var(--bs-form-invalid-border-color);
+
+		&:focus {
+			border-color: var(--bs-form-invalid-border-color);
+			box-shadow: 0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.25);
+		}
+	}
+}

@@ -21,28 +21,35 @@
 			"prefix": "app",
 			"architect": {
 				"build": {
-					"builder": "@angular-devkit/build-angular:browser",
+					"builder": "@angular-devkit/build-angular:application",
 					"options": {
-						"outputPath": "../ui-dist",
+						"outputPath": {
+							"base": "../ui-dist",
+							"browser": ""
+						},
 						"index": "src/index.html",
-						"main": "src/main.ts",
-						"polyfills": "src/polyfills.ts",
+						"browser": "src/main.ts",
+						"polyfills": [],
 						"tsConfig": "tsconfig.app.json",
 						"inlineStyleLanguage": "scss",
 						"assets": ["src/favicon.png", "src/assets", "src/manifest.webmanifest"],
 						"styles": ["src/styles.scss"],
 						"scripts": [],
-						"serviceWorker": true,
-						"ngswConfigPath": "ngsw-config.json",
-						"allowedCommonJsDependencies": ["jsoneditor", "qrcode", "sweetalert2", "darkreader", "nosleep.js"]
+						"serviceWorker": "ngsw-config.json",
+						"allowedCommonJsDependencies": ["jsoneditor", "qrcode", "sweetalert2", "nosleep.js"],
+						"stylePreprocessorOptions": {
+							"sass": {
+								"silenceDeprecations": ["import"]
+							}
+						}
 					},
 					"configurations": {
 						"production": {
 							"budgets": [
 								{
 									"type": "initial",
-									"maximumWarning": "3mb",
-									"maximumError": "5mb"
+									"maximumWarning": "1mb",
+									"maximumError": "1.5mb"
 								},
 								{
 									"type": "anyComponentStyle",
@@ -67,10 +74,7 @@
 							}
 						},
 						"development": {
-							"buildOptimizer": false,
 							"optimization": false,
-							"vendorChunk": true,
-							"extractLicenses": false,
 							"sourceMap": true,
 							"namedChunks": true
 						}
@@ -100,8 +104,7 @@
 				"test": {
 					"builder": "@angular-devkit/build-angular:karma",
 					"options": {
-						"main": "src/test.ts",
-						"polyfills": "src/polyfills.ts",
+						"polyfills": ["zone.js", "zone.js/testing"],
 						"tsConfig": "tsconfig.spec.json",
 						"karmaConfig": "karma.conf.js",
 						"inlineStyleLanguage": "scss",

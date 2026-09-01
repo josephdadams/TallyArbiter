@@ -1,19 +1,18 @@
-import { CommonModule } from '@angular/common'
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core'
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core'
 import { SocketService } from 'src/app/_services/socket.service'
 
 @Component({
 	selector: 'app-about',
 	standalone: true,
-	imports: [CommonModule],
+	imports: [],
 	templateUrl: './about.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./about.component.scss'],
 })
 export class AboutComponent implements OnInit {
-	public currentYear = new Date().getFullYear()
+	public readonly socketService = inject(SocketService)
 
-	constructor(public socketService: SocketService) {}
+	public currentYear = new Date().getFullYear()
 
 	ngOnInit(): void {}
 }

@@ -1,0 +1,43 @@
+// Design tokens.
+//
+// Everything here is a CSS custom property rather than a Sass variable so that
+// component stylesheets and template bindings can both reach them, and so the
+// dark values swap at runtime with Bootstrap's `data-bs-theme` instead of
+// needing a second build.
+//
+// Surface/border tokens alias Bootstrap's own colour-mode variables, so a theme
+// change updates them for free. Only the tally-specific colours are literal.
+
+:root {
+	// --- Tally semantics -----------------------------------------------------
+	// The tally colours themselves are fixed: an operator learns "red means
+	// you're live" and that must not shift with a UI theme.
+	--ta-bus-program: #e43f5a;
+	--ta-bus-preview: #3fe481;
+
+	// A tally light that is off reads as "dark", in either theme.
+	--ta-tally-idle-bg: #212529;
+
+	// --- Surfaces ------------------------------------------------------------
+	--ta-surface: var(--bs-body-bg);
+	--ta-surface-raised: var(--bs-tertiary-bg);
+	--ta-surface-sunken: var(--bs-secondary-bg);
+	--ta-border: var(--bs-border-color);
+	--ta-text-muted: var(--bs-secondary-color);
+
+	// The "device is not on this bus" cell in the producer/settings grids.
+	// Previously hardcoded to #FFFFFF, which was brighter than an active cell
+	// once the page went dark.
+	--ta-bus-idle: var(--bs-secondary-bg);
+
+	// --- Chat ----------------------------------------------------------------
+	--ta-chat-bg: var(--bs-tertiary-bg);
+	--ta-chat-bubble: var(--bs-body-bg);
+	--ta-chat-bubble-producer: color-mix(in srgb, var(--bs-primary) 18%, var(--bs-body-bg));
+	--ta-chat-bubble-server: color-mix(in srgb, var(--bs-warning) 18%, var(--bs-body-bg));
+
+	// --- Layout --------------------------------------------------------------
+	--ta-navbar-height: 3.5rem;
+	--ta-radius: 0.5rem;
+	--ta-radius-lg: 0.75rem;
+}

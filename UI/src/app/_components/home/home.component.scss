@@ -1,4 +1,56 @@
-ul {
+.connect {
+	padding: 1.25rem;
+	border: 1px solid var(--ta-border);
+	border-radius: var(--ta-radius-lg);
+	background-color: var(--ta-surface-raised);
+}
+
+// The QR needs a light quiet zone to scan reliably, so it keeps its own plate
+// rather than inheriting the page background in dark mode.
+.connect__code {
 	display: inline-block;
-	text-align: left;
+	padding: 0.75rem;
+	margin: 1rem 0;
+	background: #fff;
+	border-radius: var(--ta-radius);
+}
+
+.connect__address {
+	max-width: 32rem;
+}
+
+.home-link {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.85rem;
+	padding: 1rem;
+	border: 1px solid var(--ta-border);
+	border-radius: var(--ta-radius-lg);
+	background-color: var(--ta-surface-raised);
+	color: inherit;
+	text-decoration: none;
+	transition: border-color 120ms ease;
+
+	&:hover,
+	&:focus-visible {
+		border-color: var(--bs-primary);
+	}
+}
+
+.home-link__icon {
+	flex: 0 0 auto;
+	color: var(--bs-primary);
+	font-size: 1.25rem;
+	line-height: 1.4;
+}
+
+.home-link__title {
+	display: block;
+	font-weight: 600;
+}
+
+.home-link__text {
+	display: block;
+	color: var(--ta-text-muted);
+	font-size: 0.875rem;
 }

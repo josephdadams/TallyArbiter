@@ -1,5 +1,4 @@
-import { CommonModule } from '@angular/common'
-import { Component, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core'
+import { Component, ElementRef, ViewChild, ChangeDetectionStrategy, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { AuthService, ChangePasswordResponse } from 'src/app/_services/auth.service'
@@ -8,14 +7,19 @@ import { MIN_PASSWORD_LENGTH } from '../../../../../src/_helpers/passwordPolicy'
 @Component({
 	selector: 'app-change-password',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [FormsModule],
 	templateUrl: './change-password.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./change-password.component.scss'],
 })
 export class ChangePasswordComponent {
-	public loading = false
-	public response: ChangePasswordResponse = { changeOk: true, message: '', accessToken: '' }
+	public readonly route = inject(ActivatedRoute)
+	private readonly router = inject(Router)
+	public readonly authService = inject(AuthService)
+
+	//written from a promise callback, so they have to notify rather than be mutated
+	public readonly loading = signal(false)
+	public readonly response = signal<ChangePasswordResponse>({ changeOk: true, message: '', accessToken: '' })
 	public currentPassword = ''
 	public newPassword = ''
 	public confirmPassword = ''
@@ -24,11 +28,7 @@ export class ChangePasswordComponent {
 	@ViewChild('inputNewPassword') public inputNewPassword!: ElementRef
 	@ViewChild('inputConfirmPassword') public inputConfirmPassword!: ElementRef
 
-	constructor(
-		public route: ActivatedRoute,
-		private router: Router,
-		public authService: AuthService,
-	) {
+	constructor() {
 		this.route.params.subscribe((params) => {
 			if (params.redirect) this.redirectParam = params.redirect
 		})
@@ -50,7 +50,7 @@ export class ChangePasswordComponent {
 	}
 
 	public get username(): string {
-		return this.authService.profile?.username || ''
+		return this.authService.profile()?.username || ''
 	}
 
 	public get validationError(): string {
@@ -65,7 +65,7 @@ export class ChangePasswordComponent {
 
 	public get canSubmit(): boolean {
 		return (
-			!this.loading &&
+			!this.loading() &&
 			this.currentPassword.length > 0 &&
 			this.newPassword.length >= MIN_PASSWORD_LENGTH &&
 			this.newPassword === this.confirmPassword
@@ -74,10 +74,10 @@ export class ChangePasswordComponent {
 
 	changePassword(): void {
 		if (!this.canSubmit) return
-		this.loading = true
+		this.loading.set(true)
 		this.authService.changePassword(this.currentPassword, this.newPassword).then((response) => {
-			this.response = response
-			this.loading = false
+			this.response.set(response)
+			this.loading.set(false)
 
 			if (response.changeOk === true) {
 				this.currentPassword = ''

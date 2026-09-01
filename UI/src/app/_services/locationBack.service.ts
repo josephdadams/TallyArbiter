@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core'
+import { Injectable, inject } from '@angular/core'
 import { Location } from '@angular/common'
 import { Router, NavigationEnd } from '@angular/router'
 
@@ -6,12 +6,12 @@ import { Router, NavigationEnd } from '@angular/router'
 
 @Injectable({ providedIn: 'root' })
 export class LocationBackService {
+	private readonly router = inject(Router)
+	private readonly location = inject(Location)
+
 	private history: string[] = []
 
-	constructor(
-		private router: Router,
-		private location: Location,
-	) {
+	constructor() {
 		this.router.events.subscribe((event) => {
 			if (event instanceof NavigationEnd && !event.urlAfterRedirects.includes('login')) {
 				this.history.push(event.urlAfterRedirects)

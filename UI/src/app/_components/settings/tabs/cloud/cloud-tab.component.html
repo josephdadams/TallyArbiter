@@ -1,0 +1,134 @@
+<div class="row">
+	<div class="mb-3">
+		<h3><i class="fas fa-cloud text-muted"></i> Cloud Settings</h3>
+	</div>
+	<div class="col-md-6 col-xs-12">
+		<h3>
+			Destinations
+			<button class="btn btn-sm btn-success" (click)="addCloudDestination()"><i class="fas fa-plus"></i> Add</button>
+		</h3>
+		@if (socketService.cloudDestinations().length == 0) {
+			<span class="text-muted mt-3">No cloud destinations configured.</span>
+		}
+		<div class="table-responsive">
+			@if (socketService.cloudDestinations().length > 0) {
+				<table class="table table-hover align-middle">
+					<thead>
+						<tr>
+							<th>Host</th>
+							<th>Port</th>
+							<th>Key</th>
+							<th></th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						@for (cloudDestination of socketService.cloudDestinations(); track cloudDestination.id) {
+							<tr [class.text-success]="cloudDestination.status == 'connected'">
+								<td>{{ cloudDestination.host }}</td>
+								<td>{{ cloudDestination.port }}</td>
+								<td>{{ cloudDestination.key }}</td>
+								<td>
+									@if (cloudDestination.status == 'invalid_key') {
+										<span class="text-danger">Invalid Key!</span>
+									}
+								</td>
+								<td class="text-center">
+									<button class="btn btn-sm btn-secondary mx-1 my-1" (click)="editCloudDestination(cloudDestination)">
+										<i class="fas fa-pen"></i> Edit
+									</button>
+									<button class="btn btn-sm btn-danger mx-1 my-1" (click)="deleteCloudDestination(cloudDestination)">
+										<i class="fas fa-trash"></i> Delete
+									</button>
+									@if (cloudDestination.status == 'disconnected') {
+										<button
+											class="btn btn-sm btn-warning mx-1 my-1"
+											(click)="reconnectCloudDestination(cloudDestination)"
+										>
+											<i class="fas fa-sync"></i> Reconnect
+										</button>
+									}
+									@if (cloudDestination.status == 'connected') {
+										<button
+											class="btn btn-sm btn-dark mx-1 my-1"
+											(click)="disconnectCloudDestination(cloudDestination)"
+										>
+											<i class="fas fa-times"></i> Disconnect
+										</button>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</div>
+	</div>
+	<div class="col-md-6 col-xs-12 mt-3">
+		<h4>
+			Keys
+			<button class="btn btn-sm btn-success" (click)="addCloudKey()"><i class="fas fa-plus"></i> Add</button>
+		</h4>
+		@if (socketService.cloudKeys().length == 0) {
+			<span class="text-muted mt-3">No cloud keys configured.</span>
+		}
+		<div class="table-responsive">
+			@if (socketService.cloudKeys().length > 0) {
+				<table class="table table-hover align-middle">
+					<thead>
+						<tr>
+							<th>Key</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						@for (key of socketService.cloudKeys(); track key) {
+							<tr>
+								<td>{{ key }}</td>
+								<td>
+									<button class="btn btn-sm btn-danger" (click)="deleteCloudKey(key)">
+										<i class="fas fa-trash"></i> Delete
+									</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</div>
+	</div>
+</div>
+<div class="row mt-4">
+	<div class="col">
+		<h4>Clients</h4>
+		@if (socketService.cloudClients().length == 0) {
+			<span class="text-muted mt-3">No cloud clients connected.</span>
+		}
+		<div class="table-responsive">
+			@if (socketService.cloudClients().length > 0) {
+				<table class="table table-hover align-middle">
+					<thead>
+						<tr>
+							<th>IP</th>
+							<th>Key</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						@for (client of socketService.cloudClients(); track client.id) {
+							<tr>
+								<td>{{ client.ipAddress.replace('::ffff:', '') }}</td>
+								<td>{{ client.key }}</td>
+								<td>
+									<button class="btn btn-sm btn-danger" (click)="removeCloudClient(client)">
+										<i class="fas fa-trash"></i> Remove
+									</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</div>
+	</div>
+</div>

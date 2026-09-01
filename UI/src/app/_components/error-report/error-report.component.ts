@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+import { DatePipe, JsonPipe } from '@angular/common'
 import {
 	Component,
 	OnInit,
@@ -7,6 +7,8 @@ import {
 	Renderer2,
 	ElementRef,
 	ChangeDetectionStrategy,
+	inject,
+	signal,
 } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { SocketService } from 'src/app/_services/socket.service'
@@ -19,29 +21,32 @@ import { versions } from 'src/environments/versions'
 @Component({
 	selector: 'app-error-report',
 	standalone: true,
-	imports: [CommonModule],
+	imports: [DatePipe, JsonPipe],
 	templateUrl: './error-report.component.html',
-	changeDetection: ChangeDetectionStrategy.Eager,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./error-report.component.scss'],
 })
 export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
+	public readonly route = inject(ActivatedRoute)
+	public readonly socketService = inject(SocketService)
+	public readonly navbarVisibilityService = inject(NavbarVisibilityService)
+	public readonly locationBackService = inject(LocationBackService)
+	private readonly renderer = inject(Renderer2)
+	private readonly el = inject(ElementRef)
+
 	public currentReportId: string = 'blank'
-	public currentReport: ErrorReport = {} as ErrorReport
-	public loading = true
-	public validReport = false
+	//all written from promise callbacks, so they have to notify rather than be mutated
+	public readonly currentReport = signal<ErrorReport>({} as ErrorReport)
+	public readonly loading = signal(true)
+	public readonly validReport = signal(false)
 
-	public bugReportUrl = ''
-	public bugReportUrlLoaded: boolean = false
-	public bugReportShowForkWarning: boolean = false
+	public readonly bugReportUrl = signal('')
+	public readonly bugReportUrlLoaded = signal(false)
+	public readonly bugReportShowForkWarning = signal(false)
 
-	constructor(
-		public route: ActivatedRoute,
-		public socketService: SocketService,
-		public navbarVisibilityService: NavbarVisibilityService,
-		public locationBackService: LocationBackService,
-		private renderer: Renderer2,
-		private el: ElementRef,
-	) {
+	constructor() {
+		const navbarVisibilityService = this.navbarVisibilityService
+
 		navbarVisibilityService.hideNavbar()
 		this.route.params.subscribe((params) => {
 			if (params.errorReportId) {
@@ -160,7 +165,7 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
 						repo_url = versions.remote_url
 					} else {
 						repo_url = 'https://github.com/josephdadams/TallyArbiter'
-						this.bugReportShowForkWarning = true
+						this.bugReportShowForkWarning.set(true)
 					}
 					console.log(`Issues ${issuesEnabled ? 'enabled' : 'disabled'} for the repo ${repo_url}.`)
 					resolve(`${repo_url}${this.generateBugReportUrlParams(bugTitle, version, config, logs, stacktrace)}`)
@@ -170,7 +175,7 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
 					// configured remote_url), fall back to the official repo instead of
 					// leaving this promise unresolved/rejected.
 					console.log('Failed to check if issues are enabled for the configured repo:', error)
-					this.bugReportShowForkWarning = true
+					this.bugReportShowForkWarning.set(true)
 					const repo_url = 'https://github.com/josephdadams/TallyArbiter'
 					resolve(`${repo_url}${this.generateBugReportUrlParams(bugTitle, version, config, logs, stacktrace)}`)
 				})
@@ -178,10 +183,10 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
 	}
 
 	bugReportButtonClick() {
-		if (this.bugReportShowForkWarning) {
+		if (this.bugReportShowForkWarning()) {
 			this.bugReportForkWarning()
 		} else {
-			open(this.bugReportUrl, '_blank')
+			open(this.bugReportUrl(), '_blank')
 		}
 	}
 
@@ -191,33 +196,33 @@ export class ErrorReportComponent implements OnInit, OnDestroy, AfterViewInit {
 		{ icon: 'warning', title: 'TallyArbiter fork detected' },
 	)
 	bugReportForkWarning() {
-		this.bugReportUrl = this.bugReportUrl.replace('labels=bug', 'labels=bug,fork')
-		open(this.bugReportUrl, '_blank')
+		this.bugReportUrl.update((url) => url.replace('labels=bug', 'labels=bug,fork'))
+		open(this.bugReportUrl(), '_blank')
 	}
 
 	ngOnInit() {
 		this.socketService
 			.getErrorReportById(this.currentReportId)
 			.then((errorReport) => {
-				this.currentReport = errorReport as ErrorReport
-				this.loading = false
-				this.validReport = true
-				let bugTitle = '[Bug] ' + this.currentReport.stacktrace.split('\n')[0]
+				this.currentReport.set(errorReport as ErrorReport)
+				this.loading.set(false)
+				this.validReport.set(true)
+				let bugTitle = '[Bug] ' + this.currentReport().stacktrace.split('\n')[0]
 				this.generateBugReportUrl(
 					bugTitle,
-					this.socketService.version as string,
-					this.currentReport.config,
-					this.currentReport.logs,
-					this.currentReport.stacktrace,
+					this.socketService.version() as string,
+					this.currentReport().config,
+					this.currentReport().logs,
+					this.currentReport().stacktrace,
 				).then((response) => {
-					this.bugReportUrl = response
-					this.bugReportUrlLoaded = true
+					this.bugReportUrl.set(response)
+					this.bugReportUrlLoaded.set(true)
 				})
 				console.log('Error report found:')
 				console.log(errorReport)
 			})
 			.catch((response) => {
-				this.loading = false
+				this.loading.set(false)
 				console.log('Error report not found')
 			})
 	}
