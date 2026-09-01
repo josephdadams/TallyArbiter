@@ -1,12 +1,13 @@
 import { Component, ChangeDetectionStrategy, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { RouterLink } from '@angular/router'
 import { QrCodeModule } from 'ng-qrcode'
 import { SocketService } from 'src/app/_services/socket.service'
 
 @Component({
 	selector: 'app-home',
 	standalone: true,
-	imports: [FormsModule, QrCodeModule],
+	imports: [FormsModule, RouterLink, QrCodeModule],
 	templateUrl: './home.component.html',
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./home.component.scss'],

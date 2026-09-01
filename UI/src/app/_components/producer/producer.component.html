@@ -1,65 +1,88 @@
 <div class="container pt-3">
-	<div class="row">
-		<div class="col-md-6 col-xs-12">
-			<h3>Devices</h3>
-			@if (socketService.devices().length == 0) {
-				<span class="text-muted mt-3">No devices configured.</span>
-			}
-			<div class="table-responsive">
-				@if (socketService.devices().length > 0) {
-					<table class="table table-hover">
-						<thead>
-							<tr>
-								@for (bus of socketService.busOptions(); track bus.id) {
-									<th>{{ bus.label }}</th>
-								}
-								<th>Name</th>
-								<th></th>
-								<th>Description</th>
-								<th>Active Listeners</th>
-							</tr>
-						</thead>
-						<tbody>
-							@for (device of socketService.devices(); track device.id) {
-								<tr [class.text-muted]="!device.enabled">
-									@for (bus of socketService.busOptions(); track bus.id) {
-										<td
-											class="bus-cell"
-											[style.background-color]="deviceBusColors()[device.id].includes(bus.id) ? bus.color : null"
-											[attr.aria-label]="
-												bus.label + (deviceBusColors()[device.id].includes(bus.id) ? ': active' : ': inactive')
-											"
-										></td>
-									}
-									<td>{{ device.name }}</td>
-									<td>
-										@if (device.cloudConnection) {
-											<i class="fas fa-cloud text-muted"></i>
-										}
-									</td>
-									<td>{{ device.description }}</td>
-									<td>
-										@if (device.listenerCount && device.listenerCount > 0) {
-											<span class="badge text-bg-secondary">{{ device.listenerCount }}</span>
-										}
-									</td>
-								</tr>
-							}
-						</tbody>
-					</table>
-				}
+	<div class="row g-4">
+		<div [class]="socketService.chatEnabled() ? 'col-12 col-lg-7' : 'col-12'">
+			<div class="producer__heading">
+				<h3 class="mb-0">
+					Devices
+					@if (liveCount() > 0) {
+						<span class="badge text-bg-danger align-middle ms-2">{{ liveCount() }} live</span>
+					}
+				</h3>
+				<div class="producer__search">
+					<label class="visually-hidden" for="deviceFilter">Filter devices</label>
+					<input
+						id="deviceFilter"
+						type="search"
+						class="form-control form-control-sm"
+						placeholder="Filter devices…"
+						[ngModel]="filter()"
+						(ngModelChange)="filter.set($event)"
+					/>
+				</div>
 			</div>
-			<hr class="my-3" />
+
+			@if (socketService.devices().length === 0) {
+				<div class="empty-state">
+					<i class="fas fa-video empty-state__icon" aria-hidden="true"></i>
+					<h4 class="h6 mb-0">No devices configured</h4>
+					<p class="text-muted">Once devices are set up, their tally state shows here as it changes.</p>
+					<a class="btn btn-sm btn-primary" routerLink="/settings/sources-devices">Go to Settings</a>
+				</div>
+			} @else if (visibleStatuses().length === 0) {
+				<p class="text-muted mt-3">
+					No device matches “{{ filter() }}”.
+					<button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="clearFilter()">
+						Clear filter
+					</button>
+				</p>
+			} @else {
+				<ul class="device-grid">
+					@for (status of visibleStatuses(); track status.device.id) {
+						<li class="device-status" [class.device-status--muted]="!status.device.enabled">
+							<div class="device-status__head">
+								<span class="device-status__name">{{ status.device.name }}</span>
+								@if (status.device.cloudConnection) {
+									<i class="fas fa-cloud text-muted" title="Connected over cloud" aria-label="Cloud"></i>
+								}
+								@if (status.device.listenerCount) {
+									<span class="badge text-bg-secondary" [title]="status.device.listenerCount + ' listeners'">
+										<i class="fas fa-mobile-alt" aria-hidden="true"></i> {{ status.device.listenerCount }}
+									</span>
+								}
+							</div>
+
+							@if (status.device.description) {
+								<p class="device-status__description">{{ status.device.description }}</p>
+							}
+
+							<div class="device-status__busses">
+								@for (bus of status.busses; track bus.id) {
+									<span
+										class="bus-chip"
+										[style.background-color]="bus.color"
+										[style.color]="contrastColor(bus.color)"
+										>{{ bus.label }}</span
+									>
+								} @empty {
+									<span class="bus-chip bus-chip--idle">Standby</span>
+								}
+							</div>
+						</li>
+					}
+				</ul>
+			}
+
+			<hr class="my-4" />
+
 			<h3>Clients</h3>
 			@if (socketService.listenerClients().length == 0) {
-				<span class="text-muted mt-3">No clients connected.</span>
-			}
-			<div class="table-responsive">
-				@if (socketService.listenerClients().length > 0) {
-					<table class="table table-hover">
+				<span class="text-muted">No clients connected.</span>
+			} @else {
+				<div class="table-responsive">
+					<table class="table table-hover align-middle">
 						<thead>
 							<tr>
-								<th></th>
+								<th>Connected</th>
 								<th>IP</th>
 								<th>Type</th>
 								<th></th>
@@ -75,13 +98,16 @@
 									<td>{{ listenerClient.listenerType }}</td>
 									<td>
 										@if (listenerClient.cloudConnection) {
-											<i class="fas fa-cloud text-muted"></i>
+											<i class="fas fa-cloud text-muted" aria-label="Cloud"></i>
 										}
 									</td>
 									<td>{{ listenerClient.device?.name }}</td>
 									<td>
 										@if (!listenerClient.inactive && listenerClient.canBeFlashed) {
-											<button class="btn btn-outline-dark" (click)="socketService.flashListener(listenerClient)">
+											<button
+												class="btn btn-sm btn-outline-secondary"
+												(click)="socketService.flashListener(listenerClient)"
+											>
 												Flash
 											</button>
 										}
@@ -90,12 +116,12 @@
 							}
 						</tbody>
 					</table>
-				}
-			</div>
-			<hr class="my-3" />
+				</div>
+			}
 		</div>
+
 		@if (socketService.chatEnabled()) {
-			<div class="col-md-6 col-xs-12 chat my-3">
+			<div class="col-12 col-lg-5 chat my-3">
 				<h3>Chat</h3>
 				<app-chat type="producer" class="p-3"></app-chat>
 			</div>

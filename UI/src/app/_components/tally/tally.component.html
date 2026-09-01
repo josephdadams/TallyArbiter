@@ -1,61 +1,73 @@
-@if (!socketService.devices()) {
-	<div class="d-flex justify-content-center mt-5 pt-5">
-		<div class="spinner spinner-border"></div>
-	</div>
-}
-@if (socketService.devices()) {
-	<div>
-		@if (!currentDevice()) {
-			<div class="container mt-5">
-				<div class="row">
-					<div class="col-md-4 col-xs-12">
-						@if (socketService.devices().length > 0) {
-							<select class="form-select col-xs-6 col-md-3" (change)="selectDevice($event)">
-								<option disabled selected>-- Select a device --</option>
-								@for (device of socketService.devices(); track device.id) {
-									<option [value]="device.id">{{ device.name }}</option>
-								}
-							</select>
-						}
-					</div>
-				</div>
-				<div class="row">
-					<div class="col-xs-12">
-						@if (socketService.devices().length > 0 && socketService.chatEnabled()) {
-							<div class="form-check">
-								<input
-									class="form-check-input"
-									type="checkbox"
-									value=""
-									id="enableChatOptionsInput"
-									[(ngModel)]="enableChatOptions"
-								/>
-								<label class="form-check-label" for="enableChatOptionsInput"> Enable Chat </label>
-							</div>
-						}
-					</div>
-				</div>
-				@if (socketService.devices().length == 0) {
-					<h2 class="lead mt-5">No devices are available for tally monitoring at this time.</h2>
-				}
+@if (currentDevice(); as device) {
+	<div class="tally" [style.background-color]="background()" [style.color]="foreground()">
+		<div class="tally__bar">
+			<a
+				class="tally__control"
+				routerLink="/tally"
+				title="Choose a different device"
+				aria-label="Choose a different device"
+			>
+				<i class="fas fa-arrow-left" aria-hidden="true"></i>
+			</a>
+			<button
+				type="button"
+				class="tally__control"
+				(click)="toggleFullscreen()"
+				[title]="isFullscreen() ? 'Exit full screen' : 'Full screen'"
+				[attr.aria-label]="isFullscreen() ? 'Exit full screen' : 'Full screen'"
+			>
+				<i class="fas" [class.fa-compress]="isFullscreen()" [class.fa-expand]="!isFullscreen()" aria-hidden="true"></i>
+			</button>
+		</div>
+
+		<div class="tally__state" role="status" aria-live="polite">
+			<p class="tally__bus">{{ busLabel() }}</p>
+			<h1 class="tally__name">{{ device.name }}</h1>
+			@if (device.description) {
+				<p class="tally__description">{{ device.description }}</p>
+			}
+		</div>
+
+		@if (socketService.chatEnabled() && route.snapshot.queryParams.chat !== 'false') {
+			<div class="tally__chat">
+				<app-chat [type]="device.name"></app-chat>
 			</div>
 		}
+	</div>
+} @else {
+	<div class="container py-5">
+		@if (socketService.devices().length > 0) {
+			<h1 class="h3 mb-1">Tally View</h1>
+			<p class="text-muted">Pick the device this screen should show tally for.</p>
 
-		@if (currentDevice(); as device) {
-			<div
-				class="d-flex flex-column max-height container-fluid pt-5 text-center"
-				[class.text-white]="!currentBus()?.color"
-				[style.background-color]="currentBus()?.color || COLORS.DARK_GREY"
-			>
-				<div>
-					<h1>{{ device.name }}</h1>
-					<small>{{ device.description }}</small>
+			<div class="row g-3 mt-2">
+				@for (device of socketService.devices(); track device.id) {
+					<div class="col-12 col-sm-6 col-lg-4">
+						<a class="device-card" [routerLink]="['/tally', device.id]" [queryParams]="chatQueryParams()">
+							<span class="device-card__name">{{ device.name }}</span>
+							@if (device.description) {
+								<span class="device-card__description">{{ device.description }}</span>
+							}
+						</a>
+					</div>
+				}
+			</div>
+
+			@if (socketService.chatEnabled()) {
+				<div class="form-check mt-4">
+					<input class="form-check-input" type="checkbox" id="enableChatOptionsInput" [(ngModel)]="enableChatOptions" />
+					<label class="form-check-label" for="enableChatOptionsInput">Enable chat on the tally screen</label>
 				</div>
-				<div class="container flex-fill py-4" style="min-height: 50px">
-					@if (socketService.chatEnabled() && route.snapshot.queryParams.chat !== 'false') {
-						<app-chat [type]="device.name"></app-chat>
-					}
-				</div>
+			}
+		} @else {
+			<div class="empty-state">
+				<i class="fas fa-mobile-alt empty-state__icon" aria-hidden="true"></i>
+				<h1 class="h4">No devices to monitor yet</h1>
+				<p class="text-muted">
+					Devices are the cameras and positions Tally Arbiter tracks. Add one in Settings and it will show up here for
+					any phone or browser you point at this server.
+				</p>
+				<a class="btn btn-primary" routerLink="/settings/sources-devices">Add a device</a>
 			</div>
 		}
 	</div>

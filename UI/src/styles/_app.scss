@@ -35,3 +35,27 @@ body {
 		outline-offset: -0.5rem;
 	}
 }
+
+// Empty states. Shared so "nothing here yet" reads the same everywhere and
+// always offers the action that fixes it.
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 0.75rem;
+	max-width: 32rem;
+	margin: 3rem auto;
+	padding: 2rem 1rem;
+	border: 1px dashed var(--ta-border);
+	border-radius: var(--ta-radius-lg);
+}
+
+.empty-state__icon {
+	font-size: 2rem;
+	color: var(--ta-text-muted);
+}
+
+.empty-state p {
+	margin: 0;
+}

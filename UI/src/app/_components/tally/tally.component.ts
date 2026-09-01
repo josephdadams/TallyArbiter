@@ -1,23 +1,25 @@
 import { Component, OnDestroy, ChangeDetectionStrategy, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { ActivatedRoute, Router } from '@angular/router'
+import { ActivatedRoute, RouterLink } from '@angular/router'
 import { Subscription } from 'rxjs'
 import { BusOption } from 'src/app/_models/BusOption'
+import { NavbarVisibilityService } from 'src/app/_services/navbar-visibility.service'
 import { SocketService } from 'src/app/_services/socket.service'
+import { contrastColor } from 'src/app/_helpers/color'
 import { ChatComponent } from '../chat/chat.component'
 
 @Component({
 	selector: 'app-tally',
 	standalone: true,
-	imports: [FormsModule, ChatComponent],
+	imports: [FormsModule, RouterLink, ChatComponent],
 	templateUrl: './tally.component.html',
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['./tally.component.scss'],
 })
 export class TallyComponent implements OnDestroy {
-	private readonly router = inject(Router)
 	public readonly route = inject(ActivatedRoute)
 	public readonly socketService = inject(SocketService)
+	private readonly navbarVisibilityService = inject(NavbarVisibilityService)
 
 	public readonly currentDeviceIdx = signal<number | undefined>(undefined)
 
@@ -42,15 +44,22 @@ export class TallyComponent implements OnDestroy {
 			.reduce<BusOption | undefined>((a, b) => ((a?.priority ?? -1) > (b?.priority ?? -1) ? a : b), undefined)
 	})
 
-	/** Fallback for "not on any bus" — see --ta-tally-idle-bg in styles/_tokens.scss. */
-	public COLORS = {
-		DARK_GREY: 'var(--ta-tally-idle-bg)',
-	}
+	//The state has to be readable without relying on colour alone — on camera the
+	//operator may be colour blind, and a phone in bright sun washes hues out.
+	public readonly busLabel = computed(() => this.currentBus()?.label?.toUpperCase() ?? 'STANDBY')
 
+	public readonly background = computed(() => this.currentBus()?.color || 'var(--ta-tally-idle-bg)')
+
+	//the idle background is always dark, so undefined resolves to white
+	public readonly foreground = computed(() => contrastColor(this.currentBus()?.color))
+
+	public readonly isFullscreen = signal(false)
 	public enableChatOptions = true
 
 	private readonly supportsVibrate = 'vibrate' in navigator
 	private routeSubscription?: Subscription
+
+	private fullscreenChangeHandler = () => this.isFullscreen.set(document.fullscreenElement !== null)
 
 	private reassignHandler = (oldDeviceId: string, deviceId: string) => {
 		this.socketService.socket.emit('listener_reassign', oldDeviceId, deviceId)
@@ -60,6 +69,16 @@ export class TallyComponent implements OnDestroy {
 	constructor() {
 		this.socketService.socket.emit('devices')
 		this.socketService.socket.emit('bus_options')
+
+		//A tally light is the whole screen. Once a device is picked the app chrome
+		//is just 56px of black stealing contrast from the thing being looked at.
+		effect(() => {
+			if (this.currentDevice()) {
+				this.navbarVisibilityService.hideNavbar()
+			} else {
+				this.navbarVisibilityService.showNavbar()
+			}
+		})
 
 		//Buzz the phone in the operator's pocket when the bus changes. A side
 		//effect, so it stays out of the derivation above.
@@ -73,6 +92,8 @@ export class TallyComponent implements OnDestroy {
 				window.navigator.vibrate([100, 30, 100, 30, 100])
 			}
 		})
+
+		document.addEventListener('fullscreenchange', this.fullscreenChangeHandler)
 
 		this.socketService.dataLoaded.then(() => {
 			this.routeSubscription = this.route.params.subscribe((params) => {
@@ -105,23 +126,29 @@ export class TallyComponent implements OnDestroy {
 		this.socketService.socket.on('reassign', this.reassignHandler)
 	}
 
-	public selectDevice(id: any) {
-		let navUrl = `/tally/${id.target.value}`
+	//`chat=false` is carried on the link so the choice survives the navigation
+	public chatQueryParams() {
+		return this.enableChatOptions ? {} : { chat: 'false' }
+	}
 
-		if (this.enableChatOptions) {
-			this.router.navigate([navUrl])
-		} else {
-			this.router.navigate([navUrl], {
-				queryParams: {
-					chat: 'false',
-				},
-			})
+	public async toggleFullscreen() {
+		try {
+			if (document.fullscreenElement) {
+				await document.exitFullscreen()
+			} else {
+				await document.documentElement.requestFullscreen()
+			}
+		} catch {
+			//iOS Safari refuses requestFullscreen outside of video; the page is
+			//already chrome-free, so there is nothing to fall back to
 		}
 	}
 
 	public ngOnDestroy() {
 		this.socketService.socket.off('flash')
 		this.socketService.socket.off('reassign', this.reassignHandler)
+		document.removeEventListener('fullscreenchange', this.fullscreenChangeHandler)
 		this.routeSubscription?.unsubscribe()
+		this.navbarVisibilityService.showNavbar()
 	}
 }

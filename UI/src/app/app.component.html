@@ -2,39 +2,54 @@
 	<nav class="navbar navbar-expand-md fixed-top bg-dark" data-bs-theme="dark">
 		<div class="container">
 			<a class="navbar-brand" routerLink="/home"
-				><img src="assets/logo_white.png" height="30" alt="" loading="lazy"
+				><img src="assets/logo_white.png" height="30" alt="Tally Arbiter" loading="lazy"
 			/></a>
-			<button class="navbar-toggler" type="button" (click)="showMenu = !showMenu">
+			<button
+				class="navbar-toggler"
+				type="button"
+				aria-controls="navbarCollapse"
+				aria-label="Toggle navigation"
+				[attr.aria-expanded]="showMenu()"
+				(click)="showMenu.set(!showMenu())"
+			>
 				<span class="navbar-toggler-icon"></span>
 			</button>
-			<div class="collapse navbar-collapse" id="navbarCollapse" [class.show]="showMenu">
+			<div class="collapse navbar-collapse" id="navbarCollapse" [class.show]="showMenu()">
 				<ul class="navbar-nav me-auto mb-2 mb-md-0">
 					<li class="nav-item">
-						<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/home">Home</a>
+						<a class="nav-link" routerLinkActive="active" (click)="showMenu.set(false)" routerLink="/home">Home</a>
 					</li>
 					<li class="nav-item">
-						<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/tally">Tally View</a>
+						<a class="nav-link" routerLinkActive="active" (click)="showMenu.set(false)" routerLink="/tally"
+							>Tally View</a
+						>
 					</li>
 					<li class="nav-item">
-						<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/producer">Producer</a>
+						<a class="nav-link" routerLinkActive="active" (click)="showMenu.set(false)" routerLink="/producer"
+							>Producer</a
+						>
 					</li>
 					<li class="nav-item">
-						<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/settings">Settings</a>
+						<a class="nav-link" routerLinkActive="active" (click)="showMenu.set(false)" routerLink="/settings"
+							>Settings</a
+						>
 					</li>
 				</ul>
 				<ul class="navbar-nav mb-2 mb-md-0">
 					<app-theme-selector></app-theme-selector>
 					<li class="nav-item">
-						<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/about">About</a>
+						<a class="nav-link" routerLinkActive="active" (click)="showMenu.set(false)" routerLink="/about">About</a>
 					</li>
 					@if (authService.profile() !== undefined) {
 						<li class="nav-item">
-							<a class="nav-link" (click)="showMenu = false; authService.logout()" style="cursor: pointer">Logout</a>
+							<button type="button" class="nav-link btn btn-link" (click)="showMenu.set(false); authService.logout()">
+								Logout
+							</button>
 						</li>
 					}
 					@if (authService.profile() === undefined) {
 						<li class="nav-item">
-							<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/login/home"
+							<a class="nav-link" routerLinkActive="active" (click)="showMenu.set(false)" routerLink="/login/home"
 								>Login</a
 							>
 						</li>
@@ -48,7 +63,7 @@
 <router-outlet></router-outlet>
 
 @if (connLostSnackbar.visible()) {
-	<div id="connLostSnackbar" [@fade]="connLostSnackbar.visible() ? 'show' : 'hidden'">
+	<div id="connLostSnackbar" role="status" aria-live="polite" [@fade]="connLostSnackbar.visible() ? 'show' : 'hidden'">
 		<p>Connection to server lost...</p>
 		<i class="fa-solid fa-spinner fa-spin fa-xl"></i>
 	</div>

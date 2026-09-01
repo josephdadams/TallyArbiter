@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core'
+import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import { trigger, transition, style, animate, state } from '@angular/animations'
 
@@ -34,7 +34,7 @@ export class AppComponent {
 	public readonly darkModeService = inject(DarkModeService)
 	public readonly authService = inject(AuthService)
 
-	public showMenu = false
+	public readonly showMenu = signal(false)
 
 	constructor() {
 		const wakeLockService = this.wakeLockService

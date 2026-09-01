@@ -61,6 +61,8 @@ export class SocketServiceStub {
 	public readonly deviceStateChanged = new Subject<any[]>()
 	public readonly deviceDuplicated = new Subject<void>()
 
+	public readonly dataLoaded = Promise.resolve()
+
 	public joinAdmins() {}
 	public joinProducers() {}
 	public sendAccessToken() {}
