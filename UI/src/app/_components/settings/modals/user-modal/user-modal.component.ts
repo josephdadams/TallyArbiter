@@ -1,7 +1,9 @@
 import { Component, OnInit, ChangeDetectionStrategy, Input, inject } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap'
 import { MIN_PASSWORD_LENGTH } from '../../../../../../../src/_helpers/passwordPolicy'
+import { FormErrorComponent } from 'src/app/_forms/form-error.component'
+import { nonBlank } from 'src/app/_forms/validators'
 import { User } from 'src/app/_models/User'
 import { AuthService } from 'src/app/_services/auth.service'
 import { SocketService } from 'src/app/_services/socket.service'
@@ -9,7 +11,7 @@ import { SocketService } from 'src/app/_services/socket.service'
 @Component({
 	selector: 'app-user-modal',
 	standalone: true,
-	imports: [FormsModule],
+	imports: [ReactiveFormsModule, FormErrorComponent],
 	templateUrl: './user-modal.component.html',
 	changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -22,40 +24,52 @@ export class UserModalComponent implements OnInit {
 	@Input() user: User = {} as User
 	@Input() editing = false
 
-	public selectedUserRoles: string[] = []
 	public readonly minPasswordLength = MIN_PASSWORD_LENGTH
 
+	public form!: FormGroup<{
+		username: FormControl<string>
+		roles: FormControl<string[]>
+		password?: FormControl<string>
+	}>
+
 	public ngOnInit() {
-		this.selectedUserRoles = this.user.roles ? this.user.roles.split(';') : []
-	}
+		this.form = new FormGroup<{
+			username: FormControl<string>
+			roles: FormControl<string[]>
+			password?: FormControl<string>
+		}>({
+			username: new FormControl(
+				{ value: this.user.username ?? '', disabled: this.editing },
+				{ nonNullable: true, validators: [nonBlank] },
+			),
+			roles: new FormControl(this.user.roles ? this.user.roles.split(';') : [], { nonNullable: true }),
+		})
 
-	public userRolesSelectionChange(selection: string[]) {
-		this.user.roles = selection.join(';')
-	}
-
-	public isUserRoleSelected(role: string) {
-		return !!this.user.roles && this.user.roles.split(';').includes(role)
-	}
-
-	//a new user needs a real password. this used to fall back to '12345', which quietly
-	//created accounts on the password Tally Arbiter ships with.
-	public get newUserPasswordError(): string {
-		if (this.editing) return ''
-		const password = this.user.password || ''
-		if (password.length === 0) return 'Please set a password for this user.'
-		if (password.length < MIN_PASSWORD_LENGTH) {
-			return `The password must be at least ${MIN_PASSWORD_LENGTH} characters long.`
+		//a new user needs a real password. this used to fall back to '12345', which quietly
+		//created accounts on the password Tally Arbiter ships with. an existing user keeps
+		//theirs, so the control only exists while adding.
+		if (!this.editing) {
+			this.form.addControl(
+				'password',
+				new FormControl('', {
+					nonNullable: true,
+					validators: [nonBlank, Validators.minLength(MIN_PASSWORD_LENGTH)],
+				}),
+			)
 		}
-		return ''
 	}
 
 	public save() {
-		if (this.newUserPasswordError !== '') return
+		if (this.form.invalid) return
 
-		const userObj = { ...this.user } as any
-		if (!userObj.roles) {
-			userObj.roles = 'tally_view'
-		}
+		//getRawValue, not value: username is a disabled control while editing and the
+		//server keys the update off it
+		const { roles, ...rest } = this.form.getRawValue()
+		const userObj = {
+			...this.user,
+			...rest,
+			roles: roles.length > 0 ? roles.join(';') : 'tally_view',
+		} as any
 
 		this.socketService.socket.emit('manage', {
 			action: this.editing ? 'edit' : 'add',

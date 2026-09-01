@@ -1,0 +1,54 @@
+<div class="row">
+	<div class="col-xs-12 col-md-6 mt-3" id="divContainer_Logs">
+		<h3>
+			Logs
+			<select class="form-select d-inline w-50" [ngModel]="currentLogLevel()" (ngModelChange)="setLogLevel($event)">
+				@for (logLevel of logLevels; track logLevel.id) {
+					<option [value]="logLevel.id">{{ logLevel.title }}</option>
+				}
+			</select>
+		</h3>
+		<div class="logs bg-body-tertiary p-1" #logsContainer>
+			@for (log of visibleLogs(); track log) {
+				<span
+					class="d-block"
+					[style.color]="
+						log.type == 'console_action'
+							? '#00ff00'
+							: log.type == 'error'
+								? '#FF0000'
+								: log.type == 'info-quiet'
+									? '#888888'
+									: '#0000FF'
+					"
+					>[{{ log.datetime | date: 'shortDate' }} {{ log.datetime | date: 'shortTime' }}] {{ log.log }}</span
+				>
+			}
+		</div>
+	</div>
+	<div class="col-xs-12 col-md-6 mt-3" id="divContainer_TallyData">
+		<h3>Tally Data</h3>
+		<div class="logs bg-body-tertiary p-1" #tallyDataContainer>
+			@for (log of socketService.tallyData(); track log) {
+				<span class="d-block"
+					>[{{ log.datetime | date: 'shortDate' }} {{ log.datetime | date: 'shortTime' }}] {{ log.log }}</span
+				>
+			}
+		</div>
+	</div>
+</div>
+@if (socketService.remoteErrorOpt() == false) {
+	<div>
+		<button class="btn btn-dark my-3" (click)="optInErrorReporting()">
+			<i class="fas fa-remove"></i> Opt in to remote error reporting
+		</button>
+	</div>
+} @else {
+	<button class="btn btn-dark my-3" (click)="optOutErrorReporting()">
+		<i class="fas fa-remove"></i> Opt out of remote error reporting
+	</button>
+}
+
+<div class="text-muted my-3">
+	Version {{ socketService.version() }} - <a routerLink="/errors">Go to error reports list</a>
+</div>

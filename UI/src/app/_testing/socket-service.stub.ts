@@ -63,6 +63,10 @@ export class SocketServiceStub {
 
 	public readonly dataLoaded = Promise.resolve()
 
+	public getSourceById(sourceId: string) {
+		return this.sources().find((s) => s.id === sourceId)
+	}
+
 	public joinAdmins() {}
 	public joinProducers() {}
 	public sendAccessToken() {}

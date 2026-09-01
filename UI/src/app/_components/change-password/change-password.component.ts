@@ -65,7 +65,7 @@ export class ChangePasswordComponent {
 
 	public get canSubmit(): boolean {
 		return (
-			!this.loading &&
+			!this.loading() &&
 			this.currentPassword.length > 0 &&
 			this.newPassword.length >= MIN_PASSWORD_LENGTH &&
 			this.newPassword === this.confirmPassword

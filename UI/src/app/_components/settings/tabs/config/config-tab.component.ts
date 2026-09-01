@@ -1,7 +1,7 @@
 import { Component, OnDestroy, ChangeDetectionStrategy, ViewChild, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
-import { JsonEditorComponent, JsonEditorOptions } from 'ang-jsoneditor'
+import { JsonEditorComponent, JsonEditorOptions, NgJsonEditorModule } from 'ang-jsoneditor'
 import Swal from 'sweetalert2'
 import { Confirmable } from 'src/app/_decorators/confirmable.decorator'
 import { BusOption } from 'src/app/_models/BusOption'
@@ -20,7 +20,8 @@ const globalSwalOptions = {
 @Component({
 	selector: 'app-config-tab',
 	standalone: true,
-	imports: [FormsModule, JsonEditorComponent],
+	//JsonEditorComponent is not standalone, so it comes in through its module
+	imports: [FormsModule, NgJsonEditorModule],
 	templateUrl: './config-tab.component.html',
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	styleUrls: ['../../settings.component.scss'],

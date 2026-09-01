@@ -6,29 +6,32 @@
 	@if (editing) {
 		<div class="mb-3">
 			<label for="busId" class="form-label">Bus Id</label>
-			<input type="text" id="busId" class="form-control" disabled [ngModel]="busOption.id" />
+			<input type="text" id="busId" class="form-control" disabled [value]="busOption.id" />
 		</div>
 	}
 
-	<div class="mb-3">
-		<label for="busLabel" class="form-label">Label</label>
-		<input type="text" class="form-control" id="busLabel" disabled [(ngModel)]="busOption.label" />
-	</div>
-	<div class="mb-3">
-		<label for="busType" class="form-label">Type</label>
-		<input type="text" class="form-control" id="busType" disabled [(ngModel)]="busOption.type" />
-	</div>
-	<div class="mb-3">
-		<label for="busColor" class="form-label">Color</label>
-		<input type="color" class="form-control color-input" id="busColor" [(ngModel)]="busOption.color" />
-	</div>
-	<div class="mb-3">
-		<input type="checkbox" class="form-check-input" id="busVisible" [(ngModel)]="busOption.visible" />
-		<label class="form-check-label" for="busVisible">Visible in UI</label>
-	</div>
-	<div class="d-flex justify-content-end">
-		<button class="btn btn-primary" (click)="save()">
-			<i class="fas fa-save"></i> {{ editing ? 'Save Changes' : 'Add Bus Option' }}
-		</button>
-	</div>
+	<form [formGroup]="form" (ngSubmit)="save()">
+		<div class="mb-3">
+			<label for="busLabel" class="form-label">Label</label>
+			<input type="text" class="form-control" id="busLabel" formControlName="label" />
+		</div>
+		<div class="mb-3">
+			<label for="busType" class="form-label">Type</label>
+			<input type="text" class="form-control" id="busType" formControlName="type" />
+		</div>
+		<div class="mb-3">
+			<label for="busColor" class="form-label">Color</label>
+			<input type="color" class="form-control color-input" id="busColor" formControlName="color" />
+			<app-form-error [control]="form.controls.color" label="Color" />
+		</div>
+		<div class="mb-3">
+			<input type="checkbox" class="form-check-input" id="busVisible" formControlName="visible" />
+			<label class="form-check-label" for="busVisible">Visible in UI</label>
+		</div>
+		<div class="d-flex justify-content-end">
+			<button type="submit" class="btn btn-primary" [disabled]="form.invalid">
+				<i class="fas fa-save"></i> {{ editing ? 'Save Changes' : 'Add Bus Option' }}
+			</button>
+		</div>
+	</form>
 </div>
