@@ -504,7 +504,9 @@ function initialSetup() {
 			let device = GetDeviceByDeviceId(deviceId)
 			let oldDeviceId = null
 
-			if (deviceId === 'null' || device.id === 'unassigned') {
+			//`!device` is the check that used to read `device.id === 'unassigned'`, back when a
+			//missing device came back as a stand-in carrying that id rather than as undefined.
+			if (deviceId === 'null' || !device) {
 				if (devices.length > 0) {
 					oldDeviceId = deviceId
 					deviceId = devices[0].id
@@ -521,7 +523,7 @@ function initialSetup() {
 			let supportsChat = obj.supportsChat ? obj.supportsChat : false
 
 			socket.join('device-' + deviceId)
-			let deviceName = GetDeviceByDeviceId(deviceId).name
+			let deviceName = GetDeviceNameByDeviceId(deviceId)
 			logger(`Listener Client Connected. Type: ${listenerType} Device: ${deviceName}`, 'info')
 
 			let ipAddress = socket.handshake.address
@@ -683,16 +685,23 @@ function initialSetup() {
 					socket.leave('device-' + oldDeviceId)
 					socket.join('device-' + deviceId)
 
+					// A socket can host more than one listener client -- the relay listener
+					// registers one entry per relay group, which is why the sibling
+					// listener_reassign_relay handler below also matches on internalId. So
+					// socketId alone does not say which client is being reassigned, and
+					// stopping at the first match would move whichever one happens to sit
+					// earliest in the array. oldDeviceId is the discriminator the caller
+					// already supplies: reassign every client on this socket that is
+					// actually pointing at it, and do not break early.
 					for (let i = 0; i < listener_clients.length; i++) {
-						if (listener_clients[i].socketId === socket.id) {
+						if (listener_clients[i].socketId === socket.id && listener_clients[i].deviceId === oldDeviceId) {
 							listener_clients[i].deviceId = deviceId
 							listener_clients[i].inactive = false
-							break
 						}
 					}
 
-					let oldDeviceName = GetDeviceByDeviceId(oldDeviceId).name
-					let deviceName = GetDeviceByDeviceId(deviceId).name
+					let oldDeviceName = GetDeviceNameByDeviceId(oldDeviceId)
+					let deviceName = GetDeviceNameByDeviceId(deviceId)
 
 					logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info')
 					UpdateSockets('listener_clients')
@@ -733,8 +742,8 @@ function initialSetup() {
 						}
 					}
 
-					let oldDeviceName = GetDeviceByDeviceId(oldDeviceId).name
-					let deviceName = GetDeviceByDeviceId(deviceId).name
+					let oldDeviceName = GetDeviceNameByDeviceId(oldDeviceId)
+					let deviceName = GetDeviceNameByDeviceId(deviceId)
 
 					logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info')
 					UpdateSockets('listener_clients')
@@ -775,8 +784,8 @@ function initialSetup() {
 						}
 					}
 
-					let oldDeviceName = GetDeviceByDeviceId(oldDeviceId).name
-					let deviceName = GetDeviceByDeviceId(deviceId).name
+					let oldDeviceName = GetDeviceNameByDeviceId(oldDeviceId)
+					let deviceName = GetDeviceNameByDeviceId(deviceId)
 
 					logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info')
 					UpdateSockets('listener_clients')
@@ -801,8 +810,8 @@ function initialSetup() {
 						}
 					}
 
-					let oldDeviceName = GetDeviceByDeviceId(reassignObj.oldDeviceId).name
-					let deviceName = GetDeviceByDeviceId(reassignObj.newDeviceId).name
+					let oldDeviceName = GetDeviceNameByDeviceId(reassignObj.oldDeviceId)
+					let deviceName = GetDeviceNameByDeviceId(reassignObj.newDeviceId)
 
 					logger(`Listener Client reassigned from ${oldDeviceName} to ${deviceName}`, 'info')
 					UpdateSockets('listener_clients')
@@ -1359,8 +1368,9 @@ function getDeviceStates(deviceId?: string): DeviceState[] {
 				const deviceSources = device_sources.filter((s) => s.deviceId == d.id)
 
 				// Check if buss is linked, if linked all sources must be in this bus
-				const device = GetDeviceByDeviceId(d.id)
-				if ((device.linkedBusses || []).includes(b.id)) {
+				// d is already the device -- it comes from iterating `devices` just above, so
+				// looking it up again by its own id only ever returned d itself
+				if ((d.linkedBusses || []).includes(b.id)) {
 					// Check if all sources are in the buss, if not return [] for sources.
 					// Count number of sources in bus
 					// TODO: Check if this can be replaced with deviceSources.findIndex((s) and refactored to reduce duplicated code.
@@ -1660,7 +1670,7 @@ export function WarnAboutDefaultPasswords(): Promise<string[]> {
 				logger(
 					`WARNING: ${usernames.map((u) => `'${u}'`).join(', ')} ${
 						usernames.length === 1 ? 'is' : 'are'
-					} still using the default password. Change it in Settings > Users.`,
+					} still using the default password. Change it from Settings > Users, or from the Change Password link in the menu.`,
 					'error',
 				)
 			}
@@ -1851,6 +1861,14 @@ function RunAction(deviceId, busId, active) {
 	let actionObj: DeviceAction = null
 
 	let deviceObj = GetDeviceByDeviceId(deviceId)
+
+	if (!deviceObj) {
+		//previously this fell through to the disabled branch below and logged
+		//"Device: Unassigned is not enabled", because the missing device came back as a
+		//stand-in with no `enabled` field. Say what actually happened instead.
+		logger(`No device found for id ${deviceId}, so no actions will be run.`, 'error')
+		return
+	}
 
 	if (deviceObj.enabled === true) {
 		let filteredActions = device_actions.filter((obj) => obj.deviceId === deviceId)
@@ -2361,9 +2379,11 @@ function TallyArbiter_Edit_Device(obj: Manage): ManageResponse {
 	let deviceObj = obj.device
 
 	//capture the camera config before the loop below overwrites it, so we can tell whether it actually changed
+	//optional chaining because an edit for an id that is not present finds nothing; the loop below
+	//then matches nothing either, so treating the previous camera config as unset is correct
 	const existingDevice = GetDeviceByDeviceId(deviceObj.id)
-	const previousCameraIP = existingDevice.cameraIP
-	const previousCameraModel = existingDevice.cameraModel
+	const previousCameraIP = existingDevice?.cameraIP
+	const previousCameraModel = existingDevice?.cameraModel
 	const cameraChanged = previousCameraIP !== deviceObj.cameraIP || previousCameraModel !== deviceObj.cameraModel
 
 	for (let i = 0; i < devices.length; i++) {
@@ -2397,7 +2417,7 @@ function TallyArbiter_Edit_Device(obj: Manage): ManageResponse {
 
 function TallyArbiter_Delete_Device(obj: Manage): ManageResponse {
 	let deviceId = obj.deviceId
-	let deviceName = GetDeviceByDeviceId(deviceId).name
+	let deviceName = GetDeviceNameByDeviceId(deviceId)
 
 	//release any VISCA socket/keepalive timer held for this device
 	CleanupViscaCameraState(deviceId)
@@ -2486,10 +2506,17 @@ function TallyArbiter_Duplicate_Device(obj: Manage): ManageResponse {
 // or re-pointed while its address is already live has no cache entry until the next emission.
 // Several source types only emit on change (TSL 3.1/5.0, SimplyLive), so that gap can last
 // indefinitely. Seed the entry from the source's current tally instead, and drop any stale entry
-// when there is nothing to seed from. Stored as a defensive copy for the same reason
-// processSourceTallyData copies: source objects mutate their own bus arrays in place.
+// when there is nothing to seed from.
+//
+// Asks the source for its full state rather than reading tally.value, which is only the most
+// recent emission. The source types that emit through sendIndividualTallyData() -- the same
+// TSL and SimplyLive ones that emit on change -- publish just the address that changed, so
+// tally.value[address] was usually undefined for the address being seeded and this fell through
+// to the delete below even when the address was live. The spread below is kept even though
+// getCurrentTallyData() already returns per-address copies: the cache must not alias arrays a
+// source mutates in place, and that holds here regardless of what the accessor promises.
 function SeedSourceTallyDataForDeviceSource(deviceSource: DeviceSource) {
-	const busses = SourceClients[deviceSource.sourceId]?.tally?.value?.[deviceSource.address]
+	const busses = SourceClients[deviceSource.sourceId]?.getCurrentTallyData()?.[deviceSource.address]
 	if (Array.isArray(busses)) {
 		currentSourceTallyData[deviceSource.id] = [...busses]
 	} else {
@@ -2508,7 +2535,7 @@ function TallyArbiter_Add_Device_Source(obj: Manage): ManageResponse {
 
 	let deviceName = ''
 	try {
-		deviceName = GetDeviceByDeviceId(deviceSourceObj.deviceId).name
+		deviceName = GetDeviceNameByDeviceId(deviceSourceObj.deviceId)
 	} catch (error) {
 		//sometimes the device is already deleted, so we can't get the name
 		deviceName = 'Unknown'
@@ -2556,7 +2583,7 @@ function TallyArbiter_Edit_Device_Source(obj: Manage): ManageResponse {
 
 	let deviceName = ''
 	try {
-		deviceName = GetDeviceByDeviceId(deviceId).name
+		deviceName = GetDeviceNameByDeviceId(deviceId)
 	} catch (error) {
 		//sometimes the device is already deleted, so we can't get the name
 		deviceName = 'Unknown'
@@ -2604,7 +2631,7 @@ function TallyArbiter_Delete_Device_Source(obj: Manage): ManageResponse {
 
 	let deviceName = ''
 	try {
-		deviceName = GetDeviceByDeviceId(deviceId).name
+		deviceName = GetDeviceNameByDeviceId(deviceId)
 	} catch (error) {
 		//sometimes the device is already deleted, so we can't get the name
 		deviceName = 'Unknown'
@@ -2634,7 +2661,7 @@ function TallyArbiter_Add_Device_Action(obj: Manage): ManageResponse {
 	deviceActionObj.id = uuidv4()
 	device_actions.push(deviceActionObj)
 
-	let deviceName = GetDeviceByDeviceId(deviceActionObj.deviceId).name
+	let deviceName = GetDeviceNameByDeviceId(deviceActionObj.deviceId)
 
 	logger(`Device Action Added: ${deviceName}`, 'info')
 
@@ -2654,7 +2681,7 @@ function TallyArbiter_Edit_Device_Action(obj: Manage): ManageResponse {
 		}
 	}
 
-	let deviceName = GetDeviceByDeviceId(deviceActionObj.deviceId).name
+	let deviceName = GetDeviceNameByDeviceId(deviceActionObj.deviceId)
 
 	logger(`Device Action Edited: ${deviceName}`, 'info')
 
@@ -2675,7 +2702,7 @@ function TallyArbiter_Delete_Device_Action(obj: Manage): ManageResponse {
 		}
 	}
 
-	let deviceName = GetDeviceByDeviceId(deviceId).name
+	let deviceName = GetDeviceNameByDeviceId(deviceId)
 
 	logger(`Device Action Deleted: ${deviceName}`, 'info')
 
@@ -2694,7 +2721,7 @@ function TallyArbiter_Duplicate_Device_Action(obj: Manage): ManageResponse {
 
 	let deviceName = ''
 	try {
-		deviceName = GetDeviceByDeviceId(deviceActionObj.deviceId).name
+		deviceName = GetDeviceNameByDeviceId(deviceActionObj.deviceId)
 	} catch (error) {
 		//sometimes the device is already deleted, so we can't get the name
 		deviceName = 'Unknown'
@@ -2949,21 +2976,27 @@ export function GetBusByBusId(busId: string): BusOption {
 	return currentConfig.bus_options.find(({ id }) => id === busId)
 }
 
-function GetDeviceByDeviceId(deviceId: string): Device {
-	//gets the Device object by id
-	let device = undefined
+//gets the Device object by id, or undefined when no such device exists.
+//
+//This used to fabricate a { id: 'unassigned', name: 'Unassigned' } stand-in rather than
+//returning undefined, which made every `if (!device)` guard in this file unreachable and
+//let callers read fields the stand-in never had. It also meant the `Device` return
+//annotation was not enforced: the object only type-checked because it was inferred as any.
+//Callers that just need something printable should use GetDeviceNameByDeviceId below.
+//
+//'unassigned' is not a device id -- it is the sentinel a listener client carries when it is
+//not pointed at a device -- so it never resolves to a device.
+function GetDeviceByDeviceId(deviceId: string): Device | undefined {
+	if (deviceId === 'unassigned') return undefined
 
-	if (deviceId !== 'unassigned') {
-		device = devices.find(({ id }) => id === deviceId)
-	}
+	return devices.find(({ id }) => id === deviceId)
+}
 
-	if (!device) {
-		device = {}
-		device.id = 'unassigned'
-		device.name = 'Unassigned'
-	}
-
-	return device
+//Display counterpart to GetDeviceByDeviceId, for log lines and messages that only need a
+//label. Keeps the old 'Unassigned' fallback, which several callers below print for devices
+//that have already been deleted.
+function GetDeviceNameByDeviceId(deviceId: string): string {
+	return GetDeviceByDeviceId(deviceId)?.name ?? 'Unassigned'
 }
 
 function GetTSLClientById(tslClientId: string): TSLClient {
@@ -3058,9 +3091,11 @@ function AddListenerClient(
 }
 
 function UpdateListenerClients(deviceId: string) {
-	const device = GetDeviceByDeviceId(deviceId)
+	//name only, for the log line below -- clients can still be pointed at a device that has
+	//since been deleted, and that is what CheckListenerClients reassigns them away from
+	const deviceName = GetDeviceNameByDeviceId(deviceId)
 	for (const listenerClient of listener_clients.filter((l) => l.deviceId == deviceId && !l.inactive)) {
-		logger(`Sending device states to Listener Client: ${listenerClient.id} - ${device.name}`, 'info-quiet')
+		logger(`Sending device states to Listener Client: ${listenerClient.id} - ${deviceName}`, 'info-quiet')
 		io.to(`device-${deviceId}`).emit('device_states', getDeviceStates(deviceId))
 	}
 }
@@ -3479,7 +3514,7 @@ function UpdateSonyViscaTally(deviceId: string, cameraIP: string, inPgm: boolean
 function UpdateCamera(deviceId: string) {
 	const device = GetDeviceByDeviceId(deviceId)
 
-	if (!device.cameraIP || !device.cameraModel) {
+	if (!device?.cameraIP || !device.cameraModel) {
 		//only proceed if both camera IP and model are set
 		CleanupViscaCameraState(deviceId)
 		return
@@ -3642,7 +3677,11 @@ function CheckListenerClients() {
 	}
 
 	for (let i = 0; i < listener_clients.length; i++) {
-		if (GetDeviceByDeviceId(listener_clients[i].deviceId).id === 'unassigned') {
+		//`!GetDeviceByDeviceId(...)` is the check that used to read `.id === 'unassigned'`, back
+		//when a missing device came back as a stand-in carrying that id rather than as undefined.
+		//Clients already sitting on the 'unassigned' sentinel still match, since that never
+		//resolves to a device.
+		if (!GetDeviceByDeviceId(listener_clients[i].deviceId)) {
 			//this device has been removed, so reassign it to the first index
 			ReassignListenerClient(listener_clients[i].id, listener_clients[i].deviceId, newDeviceId)
 		}

@@ -39,13 +39,13 @@ describe('UserModalComponent', () => {
 		createFor({})
 
 		expect(component.form.controls.username.errors).toEqual({ required: true })
-		expect(component.form.controls.password!.errors).toEqual({ required: true })
+		expect(component.form.controls.password.errors).toEqual({ required: true })
 	})
 
 	it('rejects a password shorter than the policy allows and says so inline', () => {
 		createFor({})
-		component.form.controls.password!.setValue('a'.repeat(MIN_PASSWORD_LENGTH - 1))
-		component.form.controls.password!.markAsTouched()
+		component.form.controls.password.setValue('a'.repeat(MIN_PASSWORD_LENGTH - 1))
+		component.form.controls.password.markAsTouched()
 		fixture.detectChanges()
 
 		expect(component.form.invalid).toBe(true)
@@ -53,11 +53,34 @@ describe('UserModalComponent', () => {
 		expect(fixture.nativeElement.querySelector('button[type="submit"]').disabled).toBe(true)
 	})
 
-	it('has no password control when editing, so an existing user saves untouched', () => {
+	it('accepts a blank password when editing, and sends no password at all', () => {
 		createFor({ username: 'jo', roles: 'admin' }, true)
-
-		expect(component.form.controls.password).toBeUndefined()
 		expect(component.form.valid).toBe(true)
+
+		component.save()
+
+		//the server replaces the whole record, so an absent password means 'keep the
+		//current one'; an empty string would set the account's password to blank
+		expect('password' in socketService.lastEmit('manage')!.args[0].user).toBe(false)
+	})
+
+	it('still enforces the length on a password actually being set while editing', () => {
+		createFor({ username: 'jo', roles: 'admin' }, true)
+		component.form.controls.password.setValue('a'.repeat(MIN_PASSWORD_LENGTH - 1))
+		component.save()
+
+		expect(component.form.invalid).toBe(true)
+		expect(socketService.lastEmit('manage')).toBeUndefined()
+	})
+
+	it('sends a new password when one is typed while editing', () => {
+		createFor({ username: 'jo', roles: 'admin' }, true)
+		component.form.controls.password.setValue('b'.repeat(MIN_PASSWORD_LENGTH))
+		component.save()
+
+		const payload = socketService.lastEmit('manage')!.args[0]
+		expect(payload.action).toBe('edit')
+		expect(payload.user.password).toBe('b'.repeat(MIN_PASSWORD_LENGTH))
 	})
 
 	it('locks the username while editing but still sends it', () => {
@@ -96,7 +119,7 @@ describe('UserModalComponent', () => {
 	it('emits an add once username and password pass', () => {
 		createFor({})
 		component.form.controls.username.setValue('newbie')
-		component.form.controls.password!.setValue('a'.repeat(MIN_PASSWORD_LENGTH))
+		component.form.controls.password.setValue('a'.repeat(MIN_PASSWORD_LENGTH))
 		component.save()
 
 		const payload = socketService.lastEmit('manage')!.args[0]

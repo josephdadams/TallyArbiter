@@ -55,6 +55,15 @@
 					</li>
 					@if (authService.profile() !== undefined) {
 						<li class="nav-item">
+							<a
+								class="nav-link"
+								routerLinkActive="active"
+								(click)="showMenu.set(false)"
+								routerLink="/change-password/home"
+								>Change Password</a
+							>
+						</li>
+						<li class="nav-item">
 							<button type="button" class="nav-link btn btn-link" (click)="showMenu.set(false); authService.logout()">
 								Logout
 							</button>

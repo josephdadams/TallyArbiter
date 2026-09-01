@@ -29,34 +29,30 @@ export class UserModalComponent implements OnInit {
 	public form!: FormGroup<{
 		username: FormControl<string>
 		roles: FormControl<string[]>
-		password?: FormControl<string>
+		password: FormControl<string>
 	}>
 
 	public ngOnInit() {
+		//a new user needs a real password. this used to fall back to '12345', which quietly
+		//created accounts on the password Tally Arbiter ships with. an existing user already
+		//has one, so a blank field there means 'keep it' -- minLength alone passes an empty
+		//value, so the length is only enforced on a password actually being set.
+		const passwordValidators = this.editing
+			? [Validators.minLength(MIN_PASSWORD_LENGTH)]
+			: [nonBlank, Validators.minLength(MIN_PASSWORD_LENGTH)]
+
 		this.form = new FormGroup<{
 			username: FormControl<string>
 			roles: FormControl<string[]>
-			password?: FormControl<string>
+			password: FormControl<string>
 		}>({
 			username: new FormControl(
 				{ value: this.user.username ?? '', disabled: this.editing },
 				{ nonNullable: true, validators: [nonBlank] },
 			),
 			roles: new FormControl(this.user.roles ? this.user.roles.split(';') : [], { nonNullable: true }),
+			password: new FormControl('', { nonNullable: true, validators: passwordValidators }),
 		})
-
-		//a new user needs a real password. this used to fall back to '12345', which quietly
-		//created accounts on the password Tally Arbiter ships with. an existing user keeps
-		//theirs, so the control only exists while adding.
-		if (!this.editing) {
-			this.form.addControl(
-				'password',
-				new FormControl('', {
-					nonNullable: true,
-					validators: [nonBlank, Validators.minLength(MIN_PASSWORD_LENGTH)],
-				}),
-			)
-		}
 	}
 
 	public save() {
@@ -64,12 +60,20 @@ export class UserModalComponent implements OnInit {
 
 		//getRawValue, not value: username is a disabled control while editing and the
 		//server keys the update off it
-		const { roles, ...rest } = this.form.getRawValue()
+		const { roles, password, ...rest } = this.form.getRawValue()
 		const userObj = {
 			...this.user,
 			...rest,
 			roles: roles.length > 0 ? roles.join(';') : 'tally_view',
 		} as any
+
+		//a blank field on an edit means 'leave the password alone', so send nothing at all
+		//rather than an empty one
+		if (password) {
+			userObj.password = password
+		} else {
+			delete userObj.password
+		}
 
 		this.socketService.socket.emit('manage', {
 			action: this.editing ? 'edit' : 'add',

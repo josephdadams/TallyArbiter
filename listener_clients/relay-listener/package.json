@@ -22,15 +22,21 @@
 	],
 	"license": "MIT",
 	"author": "Joseph Adams",
+	"overrides": {
+		"@josephdadams/usbrelay": {
+			"node-hid": "^3.4.0"
+		}
+	},
 	"dependencies": {
 		"@josephdadams/usbrelay": "^1.0.3",
-		"bonjour": "^3.5.1",
+		"bonjour-service": "^1.4.4",
 		"cli-color": "^2.0.4",
-		"socket.io": "4.8.3",
+		"socket.io-client": "4.8.3",
 		"uuid": "^14.0.1"
 	},
 	"main": "index.js",
 	"scripts": {
+		"setup": "node setup.js",
 		"start": "node index.js"
 	}
 }

@@ -9,8 +9,8 @@
 				<i class="fas fa-exclamation-triangle me-2"></i>
 				<strong>{{ socketService.defaultPasswordUsers().join(', ') }}</strong>
 				{{ socketService.defaultPasswordUsers().length === 1 ? 'is' : 'are' }} still using the default password that
-				Tally Arbiter ships with. Anyone who can reach this server can sign in. Please set a real password below — this
-				will be enforced in a future release.
+				Tally Arbiter ships with. Anyone who can reach this server can sign in. Use <strong>Edit</strong> below to set a
+				real password — this will be enforced in a future release.
 			</div>
 		}
 		@if (socketService.users().length == 0) {
