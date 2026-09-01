@@ -97,6 +97,45 @@ describe('TallyComponent', () => {
 		expect(fixture.componentInstance.foreground()).toBe('#000000')
 	})
 
+	// A frozen colour looks exactly like a correct one, and someone reads this to
+	// decide whether they are on air.
+	describe('when the connection drops', () => {
+		beforeEach(() => {
+			selectDevice()
+			socketService.device_states.set([{ deviceId: 'd1', busId: 'pgm', sources: ['s1'] }])
+			fixture.detectChanges()
+			socketService.connected.set(false)
+			fixture.detectChanges()
+		})
+
+		it('stops claiming the device is on a bus', () => {
+			expect(fixture.componentInstance.stale()).toBe(true)
+			expect(fixture.nativeElement.querySelector('.tally__bus').textContent.trim()).toBe('NO CONNECTION')
+		})
+
+		it('says outright that the state may be out of date', () => {
+			expect(fixture.nativeElement.textContent).toContain('may be out of date')
+		})
+
+		it('covers the last known colour rather than showing it as current', () => {
+			expect(fixture.nativeElement.querySelector('.tally--stale')).toBeTruthy()
+			expect(fixture.componentInstance.foreground()).toBe('#ffffff')
+		})
+
+		it('announces the change assertively, not politely', () => {
+			expect(fixture.nativeElement.querySelector('.tally__state').getAttribute('aria-live')).toBe('assertive')
+		})
+
+		it('goes back to reporting the bus once the socket returns', () => {
+			socketService.connected.set(true)
+			fixture.detectChanges()
+
+			expect(fixture.componentInstance.stale()).toBe(false)
+			expect(fixture.nativeElement.querySelector('.tally__bus').textContent.trim()).toBe('PROGRAM')
+			expect(fixture.nativeElement.querySelector('.tally--stale')).toBeNull()
+		})
+	})
+
 	it('hides the app chrome while a device is showing, and restores it after', () => {
 		expect(navbar.navbarIsVisible()).toBe(true)
 

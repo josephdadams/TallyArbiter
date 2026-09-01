@@ -36,6 +36,19 @@
 					</li>
 				</ul>
 				<ul class="navbar-nav mb-2 mb-md-0">
+					@if (socketService.disconnectedSources().length; as downCount) {
+						<li class="nav-item">
+							<a
+								class="nav-link source-alert"
+								routerLink="/settings/sources-devices"
+								(click)="showMenu.set(false)"
+								[title]="disconnectedSourceNames()"
+							>
+								<i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+								{{ downCount }} {{ downCount === 1 ? 'source' : 'sources' }} down
+							</a>
+						</li>
+					}
 					<app-theme-selector></app-theme-selector>
 					<li class="nav-item">
 						<a class="nav-link" routerLinkActive="active" (click)="showMenu.set(false)" routerLink="/about">About</a>
@@ -62,8 +75,8 @@
 
 <router-outlet></router-outlet>
 
-@if (connLostSnackbar.visible()) {
-	<div id="connLostSnackbar" role="status" aria-live="polite" [@fade]="connLostSnackbar.visible() ? 'show' : 'hidden'">
+@if (!socketService.connected()) {
+	<div id="connLostSnackbar" role="status" aria-live="polite" [@fade]="'show'">
 		<p>Connection to server lost...</p>
 		<i class="fa-solid fa-spinner fa-spin fa-xl"></i>
 	</div>

@@ -1,5 +1,10 @@
 @if (currentDevice(); as device) {
-	<div class="tally" [style.background-color]="background()" [style.color]="foreground()">
+	<div
+		class="tally"
+		[class.tally--stale]="stale()"
+		[style.background-color]="background()"
+		[style.color]="foreground()"
+	>
 		<div class="tally__bar">
 			<a
 				class="tally__control"
@@ -20,10 +25,12 @@
 			</button>
 		</div>
 
-		<div class="tally__state" role="status" aria-live="polite">
-			<p class="tally__bus">{{ busLabel() }}</p>
+		<div class="tally__state" role="status" aria-live="assertive">
+			<p class="tally__bus" [class.tally__bus--stale]="stale()">{{ busLabel() }}</p>
 			<h1 class="tally__name">{{ device.name }}</h1>
-			@if (device.description) {
+			@if (stale()) {
+				<p class="tally__description">Last state shown may be out of date</p>
+			} @else if (device.description) {
 				<p class="tally__description">{{ device.description }}</p>
 			}
 		</div>

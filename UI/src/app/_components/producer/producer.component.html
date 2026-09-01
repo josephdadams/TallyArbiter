@@ -1,6 +1,20 @@
 <div class="container pt-3">
 	<div class="row g-4">
 		<div [class]="socketService.chatEnabled() ? 'col-12 col-lg-7' : 'col-12'">
+			@if (socketService.disconnectedSources().length > 0) {
+				<div class="alert alert-warning d-flex gap-2" role="status">
+					<i class="fas fa-exclamation-triangle mt-1" aria-hidden="true"></i>
+					<div>
+						<strong
+							>{{ disconnectedSourceNames() }} {{ socketService.disconnectedSources().length === 1 ? 'is' : 'are' }} not
+							connected.</strong
+						>
+						<div>Tally below may be out of date — devices fed by it keep their last known state.</div>
+						<a class="alert-link" routerLink="/settings/sources-devices">Check sources</a>
+					</div>
+				</div>
+			}
+
 			<div class="producer__heading">
 				<h3 class="mb-0">
 					Devices

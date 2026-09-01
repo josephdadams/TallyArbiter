@@ -11,6 +11,32 @@
 	transition: background-color 80ms linear;
 }
 
+// Connection lost. The colour underneath is whatever was last heard, so it is
+// buried under a scrim rather than shown as if it still meant something. The
+// hazard stripes are there to be recognised peripherally, from across a studio,
+// without reading anything.
+.tally--stale::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background-color: rgba(0, 0, 0, 0.78);
+	background-image: repeating-linear-gradient(45deg, transparent 0 14px, rgba(255, 255, 255, 0.05) 14px 28px);
+	pointer-events: none;
+	z-index: 0;
+}
+
+.tally--stale > * {
+	position: relative;
+	z-index: 1;
+}
+
+.tally__bus--stale {
+	color: var(--ta-bus-program);
+	letter-spacing: 0.15em;
+	text-indent: 0.15em;
+	opacity: 1;
+}
+
 .tally__bar {
 	display: flex;
 	justify-content: space-between;

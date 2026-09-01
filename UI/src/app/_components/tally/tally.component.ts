@@ -44,14 +44,22 @@ export class TallyComponent implements OnDestroy {
 			.reduce<BusOption | undefined>((a, b) => ((a?.priority ?? -1) > (b?.priority ?? -1) ? a : b), undefined)
 	})
 
+	//A frozen colour is indistinguishable from a correct one, and someone reads
+	//this to decide whether they are on air. When the socket is down the screen
+	//has to stop asserting anything.
+	public readonly stale = computed(() => !this.socketService.connected())
+
 	//The state has to be readable without relying on colour alone — on camera the
 	//operator may be colour blind, and a phone in bright sun washes hues out.
-	public readonly busLabel = computed(() => this.currentBus()?.label?.toUpperCase() ?? 'STANDBY')
+	public readonly busLabel = computed(() =>
+		this.stale() ? 'NO CONNECTION' : (this.currentBus()?.label?.toUpperCase() ?? 'STANDBY'),
+	)
 
 	public readonly background = computed(() => this.currentBus()?.color || 'var(--ta-tally-idle-bg)')
 
-	//the idle background is always dark, so undefined resolves to white
-	public readonly foreground = computed(() => contrastColor(this.currentBus()?.color))
+	//the idle background is always dark, so undefined resolves to white; while
+	//stale the scrim covers the colour, so white always wins
+	public readonly foreground = computed(() => (this.stale() ? '#ffffff' : contrastColor(this.currentBus()?.color)))
 
 	public readonly isFullscreen = signal(false)
 	public enableChatOptions = true

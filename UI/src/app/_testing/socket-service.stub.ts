@@ -16,6 +16,7 @@ export class SocketServiceStub {
 		once: () => {},
 	}
 
+	public readonly connected = signal(true)
 	public readonly devices = signal<any[]>([])
 	public readonly cameraModels = signal<any[]>([])
 	public readonly device_states = signal<any[]>([])
@@ -53,6 +54,10 @@ export class SocketServiceStub {
 	public readonly errorReports = signal<any[]>([])
 	public readonly users = signal<any[]>([])
 	public readonly defaultPasswordUsers = signal<string[]>([])
+
+	public readonly disconnectedSources = computed(() =>
+		this.sources().filter((source: any) => source.enabled && !source.connected),
+	)
 
 	public readonly newLogsSubject = new Subject<void>()
 	public readonly scrollTallyDataSubject = new Subject<void>()

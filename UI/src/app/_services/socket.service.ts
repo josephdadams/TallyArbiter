@@ -1,7 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core'
 import { Subject } from 'rxjs'
 import { io, Socket } from 'socket.io-client'
-import { connLostSnackbarService } from '../_services/conn-lost-snackbar.service'
 import { BusOption } from '../_models/BusOption'
 import { CloudClient } from '../_models/CloudClient'
 import { CloudDestination } from '../_models/CloudDestination'
@@ -37,14 +36,17 @@ const MAX_LOG_ITEMS = 1000
 	providedIn: 'root',
 })
 export class SocketService {
-	private readonly connLostSnackbar = inject(connLostSnackbarService)
-
 	public socket: Socket
 
 	//State the templates render is held in signals: change detection is driven by
 	//these being written, not by a zone noticing that a socket callback ran.
 	//Anything mutated in place here would be invisible, so every writer replaces
 	//the value rather than editing it.
+	//Whether the socket is currently up. Every screen that renders live state has
+	//to be able to say "this may be stale" — a tally light showing the last colour
+	//it heard about is worse than one showing nothing, because it looks correct.
+	public readonly connected = signal(true)
+
 	public readonly devices = signal<Device[]>([])
 	public readonly cameraModels = signal<CameraModel[]>([])
 	public readonly device_states = signal<DeviceState[]>([])
@@ -89,6 +91,12 @@ export class SocketService {
 	//warned rather than locked out, so the settings page nags until this is empty
 	public readonly defaultPasswordUsers = signal<string[]>([])
 
+	//Sources the user has switched on that the server cannot currently reach.
+	//While one is down, every device fed by it silently keeps its last state.
+	public readonly disconnectedSources = computed(() =>
+		this.sources().filter((source) => source.enabled && !source.connected),
+	)
+
 	//derived rather than assigned: the previous code recomputed this only in the
 	//initial-data handler, so a later `bus_options` update left it stale
 	public readonly busOptionsVisible = computed(() =>
@@ -110,17 +118,19 @@ export class SocketService {
 	public deviceDuplicated = new Subject<void>()
 
 	constructor() {
-		const connLostSnackbar = this.connLostSnackbar
-
 		this.socket = io()
 
 		this.socket.on('error', (message: string) => {
 			console.error(message)
 		})
 
+		this.socket.on('connect', () => {
+			this.connected.set(true)
+		})
+
 		this.socket.on('disconnect', (data) => {
 			console.error(data)
-			connLostSnackbar.show()
+			this.connected.set(false)
 		})
 		this.socket.io.on('reconnect_attempt', (attempt) => {
 			console.log('Reconnect attempt', attempt)
@@ -131,7 +141,7 @@ export class SocketService {
 
 		this.socket.io.on('reconnect', () => {
 			console.log('Reconnected successfully')
-			this.connLostSnackbar.hide()
+			this.connected.set(true)
 			if (typeof this.accessToken !== 'undefined') {
 				this.socket.emit('access_token', this.accessToken)
 			}

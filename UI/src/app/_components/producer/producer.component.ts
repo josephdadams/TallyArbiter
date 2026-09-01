@@ -59,6 +59,13 @@ export class ProducerComponent {
 
 	public readonly liveCount = computed(() => this.statuses().filter((s) => s.live).length)
 
+	public readonly disconnectedSourceNames = computed(() =>
+		this.socketService
+			.disconnectedSources()
+			.map((source) => source.name)
+			.join(', '),
+	)
+
 	public readonly contrastColor = contrastColor
 
 	constructor() {
