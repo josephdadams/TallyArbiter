@@ -1,0 +1,50 @@
+name: UI Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  ng-test:
+    name: UI Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            UI/package-lock.json
+
+      # UI/src/app/_models, _types and _schemas are copied from the server's own
+      # sources and are gitignored, so a fresh checkout does not have them and
+      # nothing under src/ will compile until it does. This is a plain filesystem
+      # copy with no dependencies of its own, so it runs before any install.
+      - name: Sync shared models and types
+        run: node scripts/sync-ui-shared.js
+
+      # src/environments/versions.ts is generated and gitignored as well, and the
+      # About screen imports it, so the spec compilation needs it in place.
+      - name: Generate version file
+        run: node git.version.js
+        working-directory: UI
+
+      # Only the UI's dependencies: nothing here runs the server, and skipping the
+      # root install avoids the Electron download that a test run has no use for.
+      - name: Install dependencies
+        run: npm ci
+        working-directory: UI
+
+      # ChromeHeadlessCI is defined in karma.conf.js and adds --no-sandbox.
+      - name: Run unit tests
+        run: npx ng test --watch=false --browsers=ChromeHeadlessCI
+        working-directory: UI

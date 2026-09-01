@@ -30,6 +30,15 @@ module.exports = function (config) {
 			reporters: [{ type: 'html' }, { type: 'text-summary' }],
 		},
 		reporters: ['progress', 'kjhtml'],
+		customLaunchers: {
+			// Headless Chrome cannot set up its own sandbox on a CI runner, where
+			// the process does not have the privileges to do so, and exits rather
+			// than starting. Used by the UI Tests workflow.
+			ChromeHeadlessCI: {
+				base: 'ChromeHeadless',
+				flags: ['--no-sandbox', '--disable-gpu'],
+			},
+		},
 		port: 9876,
 		colors: true,
 		logLevel: config.LOG_INFO,
