@@ -161,6 +161,12 @@ export function editUser(user: User) {
 			const passwordChanged = !!user.password && !BCRYPT_HASH_PATTERN.test(user.password)
 			if (passwordChanged) {
 				user.password = hashPassword(user.password)
+			} else if (!user.password) {
+				//the users list is served without passwords, so an edit that only changes roles
+				//arrives with the field missing entirely. the whole record is replaced below, so
+				//without this the account is left with no password at all and can never sign in
+				//again -- and there is no way back, because it is not the caller's own account.
+				user.password = user_original.password
 			}
 			//the whole record is replaced here, so an edit that does not touch the password
 			//(changing roles, say) must not quietly clear a pending forced change

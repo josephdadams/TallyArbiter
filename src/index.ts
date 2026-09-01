@@ -1670,7 +1670,7 @@ export function WarnAboutDefaultPasswords(): Promise<string[]> {
 				logger(
 					`WARNING: ${usernames.map((u) => `'${u}'`).join(', ')} ${
 						usernames.length === 1 ? 'is' : 'are'
-					} still using the default password. Change it in Settings > Users.`,
+					} still using the default password. Change it from Settings > Users, or from the Change Password link in the menu.`,
 					'error',
 				)
 			}

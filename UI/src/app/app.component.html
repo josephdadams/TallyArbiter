@@ -25,6 +25,11 @@
 					<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/about">About</a>
 				</li>
 				<li class="nav-item" *ngIf="authService.profile !== undefined">
+					<a class="nav-link" routerLinkActive="active" (click)="showMenu = false" routerLink="/change-password/home"
+						>Change Password</a
+					>
+				</li>
+				<li class="nav-item" *ngIf="authService.profile !== undefined">
 					<a class="nav-link" (click)="showMenu = false; authService.logout()" style="cursor: pointer">Logout</a>
 				</li>
 				<li class="nav-item" *ngIf="authService.profile === undefined">

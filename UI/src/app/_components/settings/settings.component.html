@@ -568,8 +568,8 @@
 							<i class="fas fa-exclamation-triangle me-2"></i>
 							<strong>{{ socketService.defaultPasswordUsers.join(', ') }}</strong>
 							{{ socketService.defaultPasswordUsers.length === 1 ? 'is' : 'are' }} still using the default password that
-							Tally Arbiter ships with. Anyone who can reach this server can sign in. Please set a real password below —
-							this will be enforced in a future release.
+							Tally Arbiter ships with. Anyone who can reach this server can sign in. Use <strong>Edit</strong> below to
+							set a real password — this will be enforced in a future release.
 						</div>
 						<span class="text-muted mt-3 d-block" *ngIf="socketService.users.length == 0"
 							>No user found. This should not happen... Please, open a bug report on Github.</span
@@ -1467,23 +1467,26 @@
 			</select>
 			<small class="form-text">Use Ctrl to select multiple items.</small>
 		</div>
-		<div class="mb-3" *ngIf="!editingUser">
-			<label for="userPassword" class="form-label">Password</label>
+		<div class="mb-3">
+			<label for="userPassword" class="form-label">{{ editingUser ? 'New Password' : 'Password' }}</label>
 			<input
-				required
+				[required]="!editingUser"
 				type="password"
 				class="form-control"
 				id="userPassword"
 				autocomplete="new-password"
 				[(ngModel)]="currentUser.password"
 			/>
-			<small class="form-text">At least {{ minPasswordLength }} characters.</small>
-			<div class="text-danger mt-1" *ngIf="currentUser.password && newUserPasswordError">
-				{{ newUserPasswordError }}
+			<small class="form-text" *ngIf="!editingUser">At least {{ minPasswordLength }} characters.</small>
+			<small class="form-text" *ngIf="editingUser"
+				>Leave blank to keep the current password. At least {{ minPasswordLength }} characters otherwise.</small
+			>
+			<div class="text-danger mt-1" *ngIf="currentUser.password && userPasswordError">
+				{{ userPasswordError }}
 			</div>
 		</div>
 		<div class="d-flex justify-content-end">
-			<button class="btn btn-primary" (click)="saveCurrentUser()" [disabled]="newUserPasswordError !== ''">
+			<button class="btn btn-primary" (click)="saveCurrentUser()" [disabled]="userPasswordError !== ''">
 				<i class="fas fa-save"></i> {{ editingUser ? 'Save Changes' : 'Add User' }}
 			</button>
 		</div>
