@@ -13,4 +13,7 @@ export interface Device {
 	modeProgram?: boolean
 	cameraIP?: string
 	cameraModel?: string
+	//the camera's own tally lamp only, not Tally Arbiter's own idea of preview for this
+	//device (UI, listener clients, device actions all still see preview normally)
+	cameraPreviewDisabled?: boolean
 }

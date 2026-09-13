@@ -32,6 +32,7 @@ export class DeviceModalComponent implements OnInit {
 		tslAddress: FormControl<string | number | null>
 		cameraIP: FormControl<string>
 		cameraModel: FormControl<string>
+		cameraPreviewDisabled: FormControl<boolean>
 		linkedBusses: FormControl<string[]>
 		enabled: FormControl<boolean>
 	}>
@@ -47,6 +48,7 @@ export class DeviceModalComponent implements OnInit {
 			}),
 			cameraIP: new FormControl(this.device.cameraIP ?? '', { nonNullable: true }),
 			cameraModel: new FormControl(this.device.cameraModel ?? '', { nonNullable: true }),
+			cameraPreviewDisabled: new FormControl(this.device.cameraPreviewDisabled ?? false, { nonNullable: true }),
 			linkedBusses: new FormControl(this.device.linkedBusses ?? [], { nonNullable: true }),
 			enabled: new FormControl(this.device.enabled ?? false, { nonNullable: true }),
 		})

@@ -2400,6 +2400,7 @@ function TallyArbiter_Edit_Device(obj: Manage): ManageResponse {
 			devices[i].tslAddress = deviceObj.tslAddress
 			devices[i].cameraIP = deviceObj.cameraIP
 			devices[i].cameraModel = deviceObj.cameraModel
+			devices[i].cameraPreviewDisabled = deviceObj.cameraPreviewDisabled
 			devices[i].enabled = deviceObj.enabled
 			devices[i].linkedBusses = deviceObj.linkedBusses
 		}
@@ -3534,7 +3535,9 @@ function UpdateCamera(deviceId: string) {
 	const pvwBus = pvwBusOption && deviceState.find((bus) => bus.busId === pvwBusOption.id)
 
 	const inPgm = pgmBus && pgmBus.sources.length > 0
-	const inPvw = pvwBus && pvwBus.sources.length > 0
+	//the camera's own lamp only -- Tally Arbiter's own idea of preview for this device (UI,
+	//listener clients, device actions) is untouched, since everything else still reads pvwBus/inPvw
+	const inPvw = !device.cameraPreviewDisabled && pvwBus && pvwBus.sources.length > 0
 
 	//if this device was previously a VISCA camera and no longer is, release its socket and keepalive
 	if (device.cameraModel !== 'sony_visca' && device.cameraModel !== 'sony_visca_rg') {
