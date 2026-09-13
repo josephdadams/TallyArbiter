@@ -324,6 +324,7 @@ function initialSetup() {
 					let error_msg = 'Access token required. Please login to use this feature.'
 					socket.emit('error', error_msg)
 					reject(error_msg)
+					return
 				}
 				let access_token = tmpSocketAccessTokens[socket.id]
 				validateAccessToken(access_token)
@@ -346,7 +347,13 @@ function initialSetup() {
 						}
 					})
 					.catch((err) => {
+						//the client's own copy of the token decoded fine and looked unexpired, so its
+						//login guard let it through -- only the server can catch a signature it no longer
+						//recognizes (an expired token, or one signed before a config/key reset). Without
+						//a distinct signal here, the client has no way to tell this apart from a transient
+						//error, and screens gated on this (e.g. settings) are left waiting forever.
 						socket.emit('error', err.message)
+						socket.emit('invalid_access_token')
 						reject(err.message)
 					})
 			})
