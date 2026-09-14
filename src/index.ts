@@ -324,6 +324,7 @@ function initialSetup() {
 					let error_msg = 'Access token required. Please login to use this feature.'
 					socket.emit('error', error_msg)
 					reject(error_msg)
+					return
 				}
 				let access_token = tmpSocketAccessTokens[socket.id]
 				validateAccessToken(access_token)
@@ -346,7 +347,13 @@ function initialSetup() {
 						}
 					})
 					.catch((err) => {
+						//the client's own copy of the token decoded fine and looked unexpired, so its
+						//login guard let it through -- only the server can catch a signature it no longer
+						//recognizes (an expired token, or one signed before a config/key reset). Without
+						//a distinct signal here, the client has no way to tell this apart from a transient
+						//error, and screens gated on this (e.g. settings) are left waiting forever.
 						socket.emit('error', err.message)
+						socket.emit('invalid_access_token')
 						reject(err.message)
 					})
 			})
@@ -2393,6 +2400,7 @@ function TallyArbiter_Edit_Device(obj: Manage): ManageResponse {
 			devices[i].tslAddress = deviceObj.tslAddress
 			devices[i].cameraIP = deviceObj.cameraIP
 			devices[i].cameraModel = deviceObj.cameraModel
+			devices[i].cameraPreviewDisabled = deviceObj.cameraPreviewDisabled
 			devices[i].enabled = deviceObj.enabled
 			devices[i].linkedBusses = deviceObj.linkedBusses
 		}
@@ -3453,15 +3461,11 @@ function CleanupViscaCameraState(deviceId: string) {
 
 // Sends the absolute desired lamp state and keeps it refreshed.
 //
-// CLEAR-vs-SET: the Canon branch sends an unconditional tally=off and then
-// turns on whichever lamp applies. We do NOT mirror that here. Blanking a VISCA
-// lamp and immediately re-lighting it is a visible blink on the physical lamp
-// and doubles the packet count. Instead we send the absolute state of every
-// lamp we control on every call -- red = program, green = preview -- which is
-// idempotent, produces no intermediate off state, and is still unconditional
-// (not send-on-change), so a dropped UDP packet self-corrects on the next tally
-// transition. Cost is 1 packet per transition for sony_visca and 2 for
-// sony_visca_rg, plus the keepalive below.
+// We send the absolute state of every lamp we control on every call -- red =
+// program, green = preview -- which is idempotent, produces no intermediate
+// off state, and is still unconditional (not send-on-change), so a dropped UDP
+// packet self-corrects on the next tally transition. Cost is 1 packet per
+// transition for sony_visca and 2 for sony_visca_rg, plus the keepalive below.
 function UpdateSonyViscaTally(deviceId: string, cameraIP: string, inPgm: boolean, inPvw: boolean, redGreen: boolean) {
 	const state = GetViscaCameraState(deviceId, cameraIP)
 
@@ -3531,7 +3535,9 @@ function UpdateCamera(deviceId: string) {
 	const pvwBus = pvwBusOption && deviceState.find((bus) => bus.busId === pvwBusOption.id)
 
 	const inPgm = pgmBus && pgmBus.sources.length > 0
-	const inPvw = pvwBus && pvwBus.sources.length > 0
+	//the camera's own lamp only -- Tally Arbiter's own idea of preview for this device (UI,
+	//listener clients, device actions) is untouched, since everything else still reads pvwBus/inPvw
+	const inPvw = !device.cameraPreviewDisabled && pvwBus && pvwBus.sources.length > 0
 
 	//if this device was previously a VISCA camera and no longer is, release its socket and keepalive
 	if (device.cameraModel !== 'sony_visca' && device.cameraModel !== 'sony_visca_rg') {
@@ -3539,31 +3545,27 @@ function UpdateCamera(deviceId: string) {
 	}
 
 	switch (device.cameraModel) {
-		case 'canon_xc':
-			//clear all tallies first
+		case 'canon_xc': {
+			//one request for the single absolute state we want, not clear-then-set: firing an
+			//unconditional tally=off alongside a conditional tally=on as two separate unawaited
+			//requests races over the network, and whichever lands last wins -- an off that arrives
+			//after the on silently clears the lamp we just meant to light. Program wins ties (both
+			//true is an edge case, not a state this lamp can actually represent).
+			const query = inPgm
+				? 'f.tally=on&f.tally.mode=program'
+				: inPvw
+					? 'f.tally=on&f.tally.mode=preview'
+					: 'f.tally=off'
+
+			logger(`Sending Canon XC command to set camera ${inPgm ? 'ON AIR' : inPvw ? 'PREVIEW' : 'OFF'}`, 'info-quiet')
 			//a bare axios.get() with no .catch() is an unhandled rejection if the camera is unreachable,
 			//which terminates the process on modern Node. UpdateCamera is now also reachable from the
 			//device edit handler, so a mistyped camera IP must not be fatal.
 			axios
-				.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=off`)
+				.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?${query}`)
 				.catch((error) => logger(`Error sending Canon XC command to ${device.cameraIP}: ${error}`, 'error'))
-
-			if (inPgm) {
-				logger(`Sending Canon XC command to set camera ON AIR`, 'info-quiet')
-				//send command to camera IP to set tally program
-				axios
-					.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=program`)
-					.catch((error) => logger(`Error sending Canon XC command to ${device.cameraIP}: ${error}`, 'error'))
-			}
-
-			if (inPvw) {
-				logger(`Sending Canon XC command to set camera PREVIEW`, 'info-quiet')
-				//send command to camera IP to set tally preview
-				axios
-					.get(`http://${device.cameraIP}/-wvhttp-01-/control.cgi?f.tally=on&f.tally.mode=preview`)
-					.catch((error) => logger(`Error sending Canon XC command to ${device.cameraIP}: ${error}`, 'error'))
-			}
 			break
+		}
 		case 'sony_visca':
 			//single tally lamp: program or preview both light it
 			UpdateSonyViscaTally(deviceId, device.cameraIP, !!inPgm, !!inPvw, false)

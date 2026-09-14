@@ -35,6 +35,14 @@ export class AuthService {
 			this.socketService.sendAccessToken(this.access_token)
 		}
 		this.roles = roles
+
+		//the server is the only one that can verify a token's signature; when it rejects one
+		//this client still has stored, treat it the same as a manual logout instead of leaving
+		//whatever screen asked for it (e.g. settings) waiting on a response that will never come
+		this.socketService.sessionExpired.subscribe(() => {
+			alert('Your session has expired. Please log in again.')
+			this.logout()
+		})
 	}
 
 	private setToken(value: string) {

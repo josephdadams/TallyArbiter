@@ -116,12 +116,21 @@ export class SocketService {
 	public closeModals = new Subject<void>()
 	public deviceStateChanged = new Subject<DeviceState[]>()
 	public deviceDuplicated = new Subject<void>()
+	//fires when the server rejects a token this client still has stored (expired, or signed
+	//before a server-side reset) -- the client's own login guard only decodes the token
+	//locally and can't catch this itself, so without this screens gated on a server response
+	//(like settings) would otherwise wait forever with no visible error
+	public sessionExpired = new Subject<void>()
 
 	constructor() {
 		this.socket = io()
 
 		this.socket.on('error', (message: string) => {
 			console.error(message)
+		})
+
+		this.socket.on('invalid_access_token', () => {
+			this.sessionExpired.next()
 		})
 
 		this.socket.on('connect', () => {
@@ -144,6 +153,13 @@ export class SocketService {
 			this.connected.set(true)
 			if (typeof this.accessToken !== 'undefined') {
 				this.socket.emit('access_token', this.accessToken)
+			}
+			//room membership (settings/producer) lives on the socket.io connection, not the
+			//session -- a reconnect gets a new connection with none of it, so without
+			//rejoining here the page looks fine but silently stops receiving any of the
+			//pushes (sources, devices, manage_response, log_item, ...) it was relying on
+			if (typeof this.lastRoomJoin !== 'undefined') {
+				this.socket.emit(this.lastRoomJoin)
 			}
 		})
 
@@ -479,11 +495,16 @@ export class SocketService {
 		this.testModeOn.set(on)
 	}
 
+	//remembered so a reconnect can rejoin the same room; see the 'reconnect' handler above
+	private lastRoomJoin: 'settings' | 'producer' | undefined
+
 	public joinProducers() {
+		this.lastRoomJoin = 'producer'
 		this.socket.emit('producer')
 	}
 
 	public joinAdmins() {
+		this.lastRoomJoin = 'settings'
 		this.socket.emit('settings')
 	}
 

@@ -56,6 +56,24 @@
 					</option>
 				}
 			</select>
+			@if (form.controls.cameraModel.value) {
+				<div class="form-check mt-2">
+					<input
+						type="checkbox"
+						class="form-check-input"
+						id="deviceCameraPreviewDisabled"
+						formControlName="cameraPreviewDisabled"
+					/>
+					<label class="form-check-label" for="deviceCameraPreviewDisabled">
+						Don't light the camera's tally lamp for Preview
+						<span
+							class="ta-tooltip"
+							data-tip="The camera's lamp will only react to Program (on-air). Tally Arbiter's own preview state for this device -- shown in the UI, sent to listener clients, and used by device actions -- is unaffected."
+							>ⓘ</span
+						>
+					</label>
+				</div>
+			}
 		</div>
 		<hr class="my-3" />
 		<div class="mb-3">
