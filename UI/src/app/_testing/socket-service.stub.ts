@@ -65,6 +65,10 @@ export class SocketServiceStub {
 	public readonly closeModals = new Subject<void>()
 	public readonly deviceStateChanged = new Subject<any[]>()
 	public readonly deviceDuplicated = new Subject<void>()
+	// AuthService subscribes to this in its constructor, so every spec that pulls
+	// AuthService out of the injector needs it to exist, not just the screens that
+	// react to an expired session.
+	public readonly sessionExpired = new Subject<void>()
 
 	public readonly dataLoaded = Promise.resolve()
 
