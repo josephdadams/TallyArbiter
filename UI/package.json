@@ -48,7 +48,7 @@
 		"@angular/cli": "22.2.2",
 		"@angular/compiler-cli": "22.1.1",
 		"@types/jasmine": "~6.0.0",
-		"@types/node": "^26.6.4",
+		"@types/node": "^26.6.5",
 		"istanbul-lib-instrument": "^6.0.3",
 		"jasmine-core": "~7.0.2",
 		"karma": "~6.4.2",
