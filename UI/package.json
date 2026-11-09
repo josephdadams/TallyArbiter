@@ -41,14 +41,14 @@
 		"rxjs": "~7.8.1",
 		"socket.io-client": "^4.8.4",
 		"sweetalert2": "^11.26.25",
-		"tslib": "^2.6.2"
+		"tslib": "^2.9.1"
 	},
 	"devDependencies": {
 		"@angular-devkit/build-angular": "22.2.3",
 		"@angular/cli": "22.2.2",
 		"@angular/compiler-cli": "22.1.1",
 		"@types/jasmine": "~6.0.0",
-		"@types/node": "^26.6.4",
+		"@types/node": "^26.6.6",
 		"istanbul-lib-instrument": "^6.0.3",
 		"jasmine-core": "~7.0.2",
 		"karma": "~6.4.2",
