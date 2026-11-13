@@ -699,12 +699,18 @@ void socket_Messaging(String payload) {
 
 void processTallyData() {
   bool typeChanged = false;
+  int bestPriority = -1;
   for (int i = 0; i < DeviceStates.length(); i++) {
     if (DeviceStates[i]["sources"].length() > 0) {
-      typeChanged = true;
-      actualType = getBusTypeById(JSON.stringify(DeviceStates[i]["busId"]));
-      actualColor = getBusColorById(JSON.stringify(DeviceStates[i]["busId"]));
-      actualPriority = getBusPriorityById(JSON.stringify(DeviceStates[i]["busId"]));
+      String busId = JSON.stringify(DeviceStates[i]["busId"]);
+      int busPriority = getBusPriorityById(busId);
+      if (busPriority > bestPriority) {
+        typeChanged = true;
+        bestPriority = busPriority;
+        actualType = getBusTypeById(busId);
+        actualColor = getBusColorById(busId);
+        actualPriority = busPriority;
+      }
     }
   }
 
