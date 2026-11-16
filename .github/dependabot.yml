@@ -70,6 +70,13 @@ updates:
       # migration in settings.component.ts and app.module.ts first.
       - dependency-name: 'ang-jsoneditor'
         update-types: ['version-update:semver-major']
+      # Jasmine 7 froze its global functions, and zone.js's zone-testing.js
+      # assigns over them in patchJasmine(), so the whole suite dies at bootstrap
+      # with "Cannot assign to read only property 'describe'" and zero specs run.
+      # #1228 bumped this to 7.0.2 and did exactly that to main. It can move again
+      # once zone.js supports Jasmine 7.
+      - dependency-name: 'jasmine-core'
+        update-types: ['version-update:semver-major']
 
   # Docusaurus site. Build-time only: the output is static HTML deployed to
   # gh-pages, so nothing here is ever executed by a user or by the server.
